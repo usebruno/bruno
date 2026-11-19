@@ -168,6 +168,7 @@ const MultipartFormParams = ({ item, collection }) => {
       key: 'name',
       name: 'Key',
       isKeyField: true,
+      inputTestId: 'multipart-form-key',
       placeholder: 'Key',
       width: '20%'
     },
@@ -256,6 +257,7 @@ const MultipartFormParams = ({ item, collection }) => {
       <EditableTable
         tableId="multipart-form"
         testId="multipart-form-table"
+        rowConfig={{ testId: () => 'multipart-form-row' }}
         columns={columns}
         rows={params || []}
         onChange={handleParamsChange}

@@ -112,7 +112,7 @@ const GenerateCodeItem = ({ collectionUid, item, onClose, isExample = false, exa
   const modalTitle = isExample ? `Generate Code - ${get(item, 'draft.examples', []).find((e) => e.uid === exampleUid)?.name || 'Example'}` : 'Generate Code';
 
   return (
-    <Modal size="lg" title={modalTitle} handleCancel={onClose} hideFooter={true}>
+    <Modal size="lg" dataTestId="generate-code-dialog" title={modalTitle} handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
         <div className="code-generator">
           <CodeViewToolbar />

@@ -1,27 +1,22 @@
-import { test, expect, Page, ElectronApplication } from '../../../../playwright';
-import { buildCommonLocators } from '../locators';
+import { ElectronApplication, Page, test } from '../../../../playwright';
+import { mockBrowseFiles } from '../actions';
 
-/**
- * Locators for the multipart form table on the request Body tab.
- * Wide columns render one chip per file; a narrow column collapses them to an "N files" summary.
- */
 export const buildMultipartFormLocators = (page: Page) => {
-  const locators = buildCommonLocators(page);
-  const table = locators.table('multipart-form-table');
-  const file = (testId: string) => table.container().getByTestId(testId);
+  const table = page.getByTestId('multipart-form-table');
 
-  return {
-    uploadButton: () => table.allRows().last().getByTestId('multipart-file-upload'),
-    // .first() keeps toBeVisible strict when several chips are on screen.
-    selectedFiles: () => file('multipart-file-chip').or(file('multipart-file-summary')).first(),
-    fieldName: (rowIndex: number) => table.row(rowIndex).getByTestId('column-name').getByRole('textbox')
+  const row = (index: number) => {
+    const container = table.getByTestId('multipart-form-row').nth(index);
+    return {
+      key: container.getByTestId('multipart-form-key'),
+      upload: container.getByTestId('multipart-file-upload'),
+      fileSelection: container.getByTestId('multipart-file-selection')
+    };
   };
+
+  return { table, row };
 };
 
-/**
- * Choose files for the last multipart row and name that field.
- * The spec must already stub `dialog.showOpenDialog` to return `(global).__mockFilePaths`.
- */
+/** Attach files from outside the collection to a new multipart field. */
 export const selectMultipartFiles = async (
   page: Page,
   electronApp: ElectronApplication,
@@ -29,14 +24,13 @@ export const selectMultipartFiles = async (
   fieldName: string,
   rowIndex = 0
 ) => {
-  await test.step('Multi-select the files onto one form field', async () => {
-    await electronApp.evaluate((_, paths) => {
-      (global as any).__mockFilePaths = paths;
-    }, filePaths);
+  await test.step(`Attach files to multipart field "${fieldName}"`, async () => {
+    const row = buildMultipartFormLocators(page).row(rowIndex);
+    await row.key.fill(fieldName);
+    await mockBrowseFiles(electronApp, filePaths);
+    await row.upload.click();
 
-    const form = buildMultipartFormLocators(page);
-    await form.uploadButton().click();
-    await expect(form.selectedFiles()).toBeVisible();
-    await form.fieldName(rowIndex).fill(fieldName);
+    const selection = row.fileSelection.and(page.locator(`[data-file-paths=${JSON.stringify(JSON.stringify(filePaths))}]`));
+    await selection.waitFor({ state: 'attached' });
   });
 };

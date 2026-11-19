@@ -63,7 +63,7 @@ const CodeView = ({ language, item }) => {
           <IconCopy size={20} strokeWidth={1.5} />
         </button>
       </CopyToClipboard>
-      <div className="editor-content">
+      <div className="editor-content" data-testid="generated-code-editor">
         <CodeEditor
           readOnly
           collection={collection}

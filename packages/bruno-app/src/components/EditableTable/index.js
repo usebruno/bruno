@@ -406,6 +406,7 @@ const EditableTable = React.forwardRef(({
       <div className="flex items-center">
         <input
           type="text"
+          data-testid={column.inputTestId}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

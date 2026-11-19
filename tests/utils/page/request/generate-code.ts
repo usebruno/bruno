@@ -11,7 +11,7 @@ import { readEditorValue } from '../autocomplete';
  */
 const readGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Read generated snippet', async () => {
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    const codeEditor = page.getByTestId('generated-code-editor').locator('.CodeMirror');
     await expect(codeEditor).toBeVisible();
     return await readEditorValue(codeEditor);
   });
@@ -27,9 +27,14 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
     const { request } = buildCommonLocators(page);
 
     await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByTestId('generate-code-dialog').waitFor({ state: 'visible' });
 
-    return await readGeneratedSnippet(page);
+    let snippet = '';
+    await expect.poll(async () => {
+      snippet = await readGeneratedSnippet(page);
+      return snippet.trim();
+    }).not.toBe('');
+    return snippet;
   });
 };
 

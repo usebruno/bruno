@@ -1,7 +1,7 @@
 {
   "maximized": false,
   "lastOpenedCollections": [
-    "{{projectRoot}}/tests/request/multipart-form/fixtures/collection"
+    "{{collectionPath}}"
   ],
   "preferences": {
     "onboarding": {

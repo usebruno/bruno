@@ -33,6 +33,7 @@ import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
+import { buildMultipartFormLocators } from './request/multipart-form';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -52,6 +53,7 @@ export const buildCommonLocators = (page: Page) => ({
   collectionProxy: buildCollectionProxyLocators(page),
   runner: () => page.getByTestId('run-button'),
   fileMode: buildFileModeLocators(page),
+  multipartForm: buildMultipartFormLocators(page),
   timelineHeaders: buildTimelineHeaderLocators(page),
   devtools: buildDevToolsLocators(page),
   codeEditorSearch: (editorId: string) => buildCodeEditorSearchLocators(page, editorId),
