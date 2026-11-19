@@ -703,7 +703,11 @@ const handler = async function (argv) {
       }
     }
 
-    requestItems = getCallStack(resolvedPaths, collection, { recursive });
+    // The runner only has an HTTP transport; gRPC and WebSocket items can't be executed through it.
+    const excludedRequestTypes = ['grpc-request', 'ws-request'];
+
+    requestItems = getCallStack(resolvedPaths, collection, { recursive })
+      .filter((item) => !excludedRequestTypes.includes(item.type));
 
     if (testsOnly) {
       requestItems = requestItems.filter((item) => {
