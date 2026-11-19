@@ -23,7 +23,7 @@ import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
 import ResponseStopWatch from 'components/ResponsePane/ResponseStopWatch';
-import WSMessagesList from './WsResponsePane/WSMessagesList';
+import SseResponse from './SseResponse';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { useSetAsVariable } from 'providers/SetAsVariable/context';
 import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
@@ -156,7 +156,7 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
+          return <SseResponse key={item.uid} item={item} collection={collection} />;
         }
         return (
           <QueryResult

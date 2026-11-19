@@ -57,6 +57,7 @@ You can explore our [paid versions](https://www.usebruno.com/pricing) to see if 
 ## Table of Contents
 
 - [Installation](#installation)
+- [SSE responses](#sse-responses)
 - [Bruno CLI](#bruno-cli)
 - [Run with Docker](#run-with-docker)
 - [Features](#features)
@@ -112,6 +113,25 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
   | sudo tee /etc/apt/sources.list.d/bruno.list
 sudo apt update && sudo apt install bruno
 ```
+
+## SSE responses
+
+Send an HTTP request that returns `Content-Type: text/event-stream`, then open **Response → Merged**. **Auto detect** joins OpenAI-compatible, DeepSeek, OpenAI Responses, Claude, Gemini, and Ollama SSE text fragments. Answer text and reasoning appear as separate variables. Each variable has a **Copy** action; **Events** shows the incoming data.
+
+For a custom response format, choose **Extract → JSONPath** and define named extraction rules. Each JSONPath runs against the JSON in one SSE event’s `data` field. For example:
+
+```text
+data: {"payload":{"text":"Hello "}}
+
+data: {"payload":{"text":"world"}}
+
+```
+
+The rule `answer` → `$.payload.text` with **Append** displays `Hello world`. Use **Latest** for a field that contains the complete text so far, a status, or an ID. Wildcards such as `$.parts[*].text` extract multiple values in event order. Choose **Text events** to join plain event data directly.
+
+Extraction rules and the selected view are saved locally for each request. Enable **Save as runtime variables when the stream ends** to make custom results available in later requests, for example `{{answer}}`. Runtime variables also update when you adjust rules for a completed response.
+
+![SSE response merging](assets/images/sse-response-merging.png)
 
 ## Bruno CLI
 

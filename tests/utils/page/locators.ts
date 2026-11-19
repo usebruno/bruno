@@ -33,6 +33,7 @@ import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
+import { buildSseLocators } from './sse';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -46,6 +47,7 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  sse: buildSseLocators(page),
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   collectionApp: buildCollectionAppLocators(page),

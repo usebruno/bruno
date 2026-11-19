@@ -18,12 +18,13 @@ import { draftDetectMiddleware } from './middlewares/draft/middleware';
 import { autosaveMiddleware } from './middlewares/autosave/middleware';
 import { snapshotMiddleware } from './middlewares/snapshot/middleware';
 import { benchmarkMiddleware } from './middlewares/benchmark/middleware';
+import { sseMiddleware } from './middlewares/sse/middleware';
 
 const isDevEnv = () => {
   return import.meta.env.MODE === 'development';
 };
 
-let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware, snapshotMiddleware];
+let middleware = [tasksMiddleware.middleware, draftDetectMiddleware, autosaveMiddleware, snapshotMiddleware, sseMiddleware];
 if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }
