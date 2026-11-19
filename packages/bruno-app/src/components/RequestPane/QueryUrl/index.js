@@ -18,7 +18,7 @@ import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collecti
 import { getRequestFromCurlCommand } from 'utils/curl';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconCode, IconChevronDown } from '@tabler/icons';
+import { IconDeviceFloppy, IconCode, IconChevronDown, IconRepeat } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SendButton from 'components/RequestPane/SendButton';
 import ScheduleSendModal from 'components/RequestPane/ScheduleSendModal';
@@ -31,6 +31,14 @@ import StyledWrapper from './StyledWrapper';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
 import ToolHint from 'components/ToolHint';
 import toast from 'react-hot-toast';
+
+const formatInterval = (ms) => {
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (!minutes) return `${seconds}s`;
+  return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+};
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -464,6 +472,23 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           </div>
         </div>
       </div>
+      {scheduledSend && (
+        <ToolHint
+          text={`Repeating every ${formatInterval(scheduledSend.intervalMs)}. Click Cancel to stop.`}
+          toolhintId="repeat-on-interval-indicator"
+          place="top"
+          positionStrategy="fixed"
+        >
+          <div
+            className="flex items-center gap-1 ml-2 text-xs whitespace-nowrap"
+            style={{ color: theme.primary.text }}
+            data-testid="repeat-on-interval-indicator"
+          >
+            <IconRepeat size={14} strokeWidth={1.5} />
+            every {formatInterval(scheduledSend.intervalMs)}
+          </div>
+        </ToolHint>
+      )}
       <SendButton
         isLoading={isLoading || item.response?.stream?.running || Boolean(scheduledSend)}
         onSend={handleRun}
