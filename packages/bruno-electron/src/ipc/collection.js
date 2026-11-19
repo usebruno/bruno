@@ -63,7 +63,8 @@ const {
   isValidDotEnvFilename,
   scanForBrunoFiles,
   withFileLock,
-  removeGitMetadata
+  removeGitMetadata,
+  posixifyPath
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -2703,7 +2704,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const linkTarget = fs.readlinkSync(fullPath);
             const resolvedTarget = path.resolve(path.dirname(fullPath), linkTarget);
             if (!resolvedTarget.startsWith(baseDir + path.sep) && resolvedTarget !== baseDir) {
-              throw new Error(`Security error: Symlink "${entry.name}" points outside extraction directory`);
+              const symlinkPath = posixifyPath(path.relative(baseDir, fullPath));
+              throw new Error(`Security error: the ZIP file contains a symlink "${symlinkPath}" that points outside the collection directory`);
             }
           }
 

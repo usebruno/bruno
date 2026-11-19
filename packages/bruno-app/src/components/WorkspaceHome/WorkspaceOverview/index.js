@@ -4,6 +4,7 @@ import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { setIsCreatingCollection, setIsOpeningCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
+import { formatIpcError } from 'utils/common/error';
 import toast from 'react-hot-toast';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
@@ -87,6 +88,9 @@ const WorkspaceOverview = ({ workspace }) => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
         handleImportResolved(convertedCollection, importedItem);
+      })
+      .catch((err) => {
+        toast.error(formatIpcError(err) || 'Failed to import collection');
       });
   };
 
