@@ -7,6 +7,7 @@ import {
   createRequest,
   selectRequestPaneTab
 } from '../../../pages';
+import { fillRequestHeaderName } from '../../../pages/request/headers';
 
 test.afterEach(async ({ page }) => {
   await closeAllCollections(page);
@@ -75,5 +76,45 @@ test('Auto-appends an empty header row when either Name or Value is filled', asy
     await page.keyboard.press('Backspace');
 
     await expect(rows).toHaveCount(1);
+  });
+});
+
+test('TC-2650: Verify header deletion when header name is cleared', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  const { request } = buildCommonLocators(page);
+  const headers = request.headers;
+  const headerName = 'X-Test';
+
+  await createCollection(page, 'clearing-header-name-deletes-header', await createTmpDir('clearing-header-name-deletes-header'));
+  await createRequest(page, 'request-1', 'clearing-header-name-deletes-header', { url: 'https://example.com/api' });
+  await selectRequestPaneTab(page, 'Headers');
+
+  await test.step('The Headers tab starts with no headers', async () => {
+    await expect(headers.addRow()).toBeVisible();
+    await expect(headers.count()).toHaveCount(0);
+  });
+
+  await test.step('Type X-Test in the Name field', async () => {
+    await fillRequestHeaderName(page, headers.addRow(), headerName);
+    await expect(headers.requestRow(headerName)).toBeVisible();
+    await expect(headers.count()).toHaveText('1');
+  });
+
+  await test.step('Backspace until the Name field is empty', async () => {
+    await headers.nameCell(headers.requestRow(headerName)).click();
+    await page.keyboard.press('End');
+    for (let i = 0; i < headerName.length; i++) {
+      await page.keyboard.press('Backspace');
+    }
+  });
+
+  await test.step('Click outside the row', async () => {
+    await request.urlLine().click();
+  });
+
+  await test.step('The Headers count drops and the header is removed', async () => {
+    await expect(headers.count()).toHaveCount(0);
+    await expect(headers.requestRow(headerName)).toHaveCount(0);
+    await expect(headers.addRow()).toBeVisible();
+    await expect(headers.addRow()).not.toContainText(headerName);
   });
 });

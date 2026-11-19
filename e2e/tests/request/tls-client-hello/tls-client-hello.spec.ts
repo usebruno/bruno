@@ -7,7 +7,8 @@ const GROUP_X25519 = 0x001d;
 const GROUP_X25519_MLKEM768 = 0x11ec;
 
 // Reads the named groups the client sent key shares for from a raw TLS ClientHello record.
-// Same parser as packages/bruno-cli/tests/integration/tls-client-hello, which guards the CLI's pin.
+// Same parser as packages/bruno-cli/tests/integration/tls-client-hello, which guards the CLI's pin
+// and also reads the supported_groups extension.
 const parseKeyShareGroups = (record: Buffer): number[] => {
   // record header (5) + handshake header (4) + legacy_version (2) + random (32)
   let offset = 43;

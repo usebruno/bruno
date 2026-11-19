@@ -245,7 +245,7 @@ export const dragSidebarToWidth = async (page: Page, width: number) => {
  * Locators for folder rows in the sidebar tree.
  */
 export const buildFolderLocators = (page: Page) => ({
-  chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron'),
+  chevron: (folderName: string) => page.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) }).getByTestId('folder-chevron'),
   postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
   preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
   testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')

@@ -87,3 +87,40 @@ for (const { position, prefix } of [
     });
   });
 }
+
+test('New Request variable tooltip closes with the dialog, even after clicking into its value', async ({ newPage: page, createTmpDir }) => {
+  const collectionName = 'Tooltip closes with dialog';
+  const variableValue = 'example-api-key';
+  const { codeMirror, modal, request, varInfoPopup } = buildCommonLocators(page);
+  const tooltip = varInfoPopup.byName('apiKey');
+
+  await test.step('Create a collection with an environment variable', async () => {
+    await createCollection(page, collectionName, await createTmpDir('new-request-tooltip-close'));
+    await createEnvironment(page, 'Example', 'collection');
+    await addEnvironmentVariables(page, [{ name: 'apiKey', value: variableValue }]);
+    await saveEnvironment(page);
+    await closeEnvironmentPanel(page);
+  });
+
+  await test.step('Put the variable in the dialog URL and open its tooltip for editing', async () => {
+    await openNewRequestModal(page, collectionName);
+    await request.newRequestUrl().click();
+    await page.keyboard.type('{{api');
+    await codeMirror.hint('apiKey').click();
+    await page.keyboard.type('}}');
+    await expect(request.newRequestUrl()).toContainText('{{apiKey}}');
+
+    await modal.newRequestVariableToken('apiKey').hover();
+    await expect(tooltip).toBeVisible();
+    await expect(varInfoPopup.editableValue(tooltip)).toHaveText(variableValue);
+    await varInfoPopup.editableValue(tooltip).click();
+    await expect(varInfoPopup.editor(tooltip)).toBeVisible();
+  });
+
+  await test.step('Closing the dialog with its X button removes the tooltip', async () => {
+    await modal.closeButton().click();
+
+    await expect(modal.any()).toHaveCount(0);
+    await expect(tooltip).toHaveCount(0);
+  });
+});

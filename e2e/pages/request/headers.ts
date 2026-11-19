@@ -22,6 +22,17 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
 };
 
 /**
+ * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
+ */
+export const appendRequestHeadersToBulkEditor = async (page: Page, lines: string[]) => {
+  const { headers } = buildRequestLocators(page);
+  const editor = headers.bulkEditor();
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
+};
+
+/**
  * Reveal the Inherited Headers accordion (hidden by default) and return header locators.
  */
 export const showInheritedHeaders = async (page: Page) => {
