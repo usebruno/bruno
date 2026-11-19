@@ -6,7 +6,7 @@ import ConfirmAppClose from './ConfirmAppClose';
 import MigrateCollectionToYmlModal from 'components/MigrateCollectionToYmlModal';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
-import StyledWrapper from './StyledWrapper';
+import BackgroundImage from './BackgroundImage';
 import useOpenAPISyncPolling from './useOpenAPISyncPolling';
 import useChangelogOnUpdate from './useChangelogOnUpdate';
 import { version } from '../../../package.json';
@@ -78,11 +78,11 @@ export const AppProvider = (props) => {
 
   return (
     <AppContext.Provider {...props} value={{ version }}>
-      <StyledWrapper>
+      <BackgroundImage>
         <ConfirmAppClose />
         <MigrateCollectionToYmlModal />
         {props.children}
-      </StyledWrapper>
+      </BackgroundImage>
     </AppContext.Provider>
   );
 };

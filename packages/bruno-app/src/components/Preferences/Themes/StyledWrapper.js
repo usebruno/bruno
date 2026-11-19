@@ -97,6 +97,50 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.input.border};
     margin: 15px 0;
   }
+
+  .background-image-display {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+
+    &:disabled {
+      opacity: 0.55;
+    }
+
+    input[type='range'] {
+      accent-color: ${(props) => props.theme.accents.primary};
+    }
+
+    select {
+      background-color: ${(props) => props.theme.input.bg};
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .background-image-sliders {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 1rem;
+    max-width: 52rem;
+  }
+
+  [data-background-image-active] & {
+    .background-image-settings .settings-group-description,
+    .theme-variant-label {
+      color: ${(props) => props.theme.text};
+    }
+
+    .theme-variant-card {
+      background-color: ${(props) => props.theme.background.surface0};
+
+      &.selected {
+        background-color: color-mix(
+          in srgb, ${(props) => props.theme.background.surface0}, ${(props) => props.theme.accents.primary} 7%
+        );
+      }
+    }
+  }
 `;
 
 export default StyledWrapper;
