@@ -256,7 +256,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Inspect tab option in the modal focuses that tab and keeps everything open', async ({ page }) => {
+  test('Inspect tab - clicking on this option the modal focuses that tab and keeps everything open', async ({ page }) => {
     const { tabs, unsavedChangesModal } = buildCommonLocators(page);
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
     await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
