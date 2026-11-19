@@ -45,7 +45,7 @@ const GenerateDocumentation = ({ onClose, collectionUid }) => {
   );
 
   const isLoading = useMemo(
-    () => (collection ? areItemsLoading(collection) : false),
+    () => (collection ? collection.mountStatus === 'mounting' || areItemsLoading(collection) : false),
     [collection]
   );
 
