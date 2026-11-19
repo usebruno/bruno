@@ -24,7 +24,7 @@ export * from './request-settings';
 export * from './set-as-variable';
 export * from './unresolved-variables-info';
 export * from './secret-variable-form';
-export * from './variables-tab';
+export * from './variables-sidebar';
 export * from './autocomplete';
 export * from './graphql/query-builder';
 export * from './graphql/variables';

@@ -107,7 +107,8 @@ const EditableTable = React.forwardRef(({
   sortStorageKey,
   isDraft,
   focusRow,
-  onFocusRowHandled
+  onFocusRowHandled,
+  virtualized = true
 }, ref) => {
   const {
     isEditable: isRowEditable = defaultIsRowEditable,
@@ -584,7 +585,21 @@ const EditableTable = React.forwardRef(({
       data-testid={testId}
       className={`${showCheckbox ? 'has-checkbox' : 'no-checkbox'} ${resizing ? 'is-resizing' : ''} ${renderFullWidthRow ? 'has-section-rows' : ''}`}
     >
-      {scrollParent && (
+      {!virtualized && (
+        <div className="table-container">
+          <table>
+            <thead>{fixedHeaderContent()}</thead>
+            <tbody>
+              {rowsWithEmpty.map((row, rowIndex) => (
+                <TableRow key={row.uid} item={row} context={virtuosoContext} data-item-index={rowIndex}>
+                  {itemContent(rowIndex, row)}
+                </TableRow>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {virtualized && scrollParent && (
         <TableVirtuoso
           ref={virtuosoRef}
           className="table-container"

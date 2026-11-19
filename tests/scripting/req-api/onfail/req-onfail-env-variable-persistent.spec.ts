@@ -1,6 +1,6 @@
 import { test, expect } from '../../../../playwright';
 import { openCollection, selectEnvironment, openRequest, openEnvironmentConfigTab, setSandboxMode } from '../../../utils/page';
-import { openVariablesTab, readVariableValue } from '../../../utils/page/variables-tab';
+import { closeVariablesSidebar, openVariablesSidebar, readVariableValue } from '../../../utils/page/variables-sidebar';
 import { buildCommonLocators } from '../../../utils/page/locators';
 
 test.describe('req.onFail', () => {
@@ -13,8 +13,9 @@ test.describe('req.onFail', () => {
       await selectEnvironment(page, 'Test');
       await selectEnvironment(page, 'Global', 'global');
 
-      await openVariablesTab(page, 'onfail-collection');
+      await openVariablesSidebar(page);
       await expect.poll(() => readVariableValue(page, 'environment', 'envVar')).toBe('"original"');
+      await closeVariablesSidebar(page);
 
       await openEnvironmentConfigTab(page, 'global');
       await expect(locators.environment.varRowsByValue('globalEnvVar', 'original')).toHaveCount(1);
@@ -27,7 +28,7 @@ test.describe('req.onFail', () => {
     });
 
     await test.step('Verify the handler overwrote the runtime, environment and global values', async () => {
-      await openVariablesTab(page, 'onfail-collection');
+      await openVariablesSidebar(page);
       await expect.poll(() => readVariableValue(page, 'runtime', 'var'), { timeout: 5000 }).toBe('"updated"');
       await expect.poll(() => readVariableValue(page, 'environment', 'envVar'), { timeout: 5000 }).toBe('"updated"');
 

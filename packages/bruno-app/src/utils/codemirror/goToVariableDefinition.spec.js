@@ -34,12 +34,17 @@ describe('goToVariableDefinition', () => {
     jest.clearAllMocks();
   });
 
-  it('does nothing when scopeInfo, collection, or variableName is missing', () => {
+  it('does nothing when scopeInfo or collection is missing', () => {
     goToVariableDefinition(null, collection, null, 'apiKey');
     goToVariableDefinition({ type: 'collection' }, null, null, 'apiKey');
-    goToVariableDefinition({ type: 'collection' }, collection, null, '');
 
     expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('opens the scope without a variable name', () => {
+    goToVariableDefinition({ type: 'collection', data: {} }, collection, null);
+
+    expect(openCollectionSettings).toHaveBeenCalledWith('col-1', 'vars');
   });
 
   it('opens the target request on its Variables tab for a request-scoped variable', () => {

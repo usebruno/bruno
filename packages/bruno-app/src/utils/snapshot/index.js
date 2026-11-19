@@ -14,7 +14,6 @@ const isObject = (value) => value && typeof value === 'object' && !Array.isArray
 
 const REQUEST_TAB_TYPES = new Set(['http-request', 'graphql-request', 'grpc-request', 'ws-request']);
 const SINGLETON_TAB_TYPES = new Set([
-  'variables',
   'collection-runner',
   'collection-settings',
   'collection-overview',
@@ -30,7 +29,6 @@ const SINGLETON_TAB_TYPES = new Set([
 
 const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
   'collection-runner',
-  'variables',
   'openapi-sync',
   'openapi-spec',
   'mock-server'
@@ -38,7 +36,8 @@ const NON_REPLACEABLE_SINGLETON_TAB_TYPES = new Set([
 
 const IGNORED_TAB_TYPES = new Set([
   'v4-migration',
-  'changelog'
+  'changelog',
+  'variables'
 ]);
 
 export const WORKSPACE_TAB_UID_SUFFIX_BY_TYPE = {

@@ -15,7 +15,6 @@ import QueryUrl from 'components/RequestPane/QueryUrl/index';
 import GrpcQueryUrl from 'components/RequestPane/GrpcQueryUrl/index';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
-import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
@@ -61,11 +60,11 @@ const EXPAND_EDGE_THRESHOLD = 100;
 // Minimum response pane height to show placeholder content on click-expand
 const RESPONSE_EXPAND_MIN_HEIGHT = 300;
 
-// Tabs whose response pane we auto-collapsed when the AI sidebar docked.
+// Tabs whose response pane we auto-collapsed when a right sidebar (AI or Variables) docked.
 // Module-level because the panel remounts per tab (key={activeTabUid}) — a
 // tab is restored here only once the sidebar is gone AND the user didn't
 // expand it manually in the meantime.
-const aiAutoCollapsedTabs = new Set();
+const rightSidebarAutoCollapsedTabs = new Set();
 
 const RequestTabPanel = () => {
   const dispatch = useDispatch();
@@ -82,7 +81,7 @@ const RequestTabPanel = () => {
   });
   const isVerticalLayout = preferences?.layout?.responsePaneOrientation === 'vertical';
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
-  const isAiSidebarDocked = useSelector((state) => state.chat.isOpen && !state.chat.isPoppedOut);
+  const isRightSidebarDocked = useSelector((state) => (state.chat.isOpen && !state.chat.isPoppedOut) || state.app.isVariablesSidebarOpen);
 
   const isRequestTab = focusedTab && ['request', 'http-request', 'grpc-request', 'ws-request', 'graphql-request'].includes(focusedTab.type);
   useKeybinding('sendRequest', (e) => {
@@ -367,17 +366,17 @@ const RequestTabPanel = () => {
 
   useEffect(() => {
     if (isVerticalLayout) return;
-    if (isAiSidebarDocked) {
+    if (isRightSidebarDocked) {
       if (responsePaneCollapsedRef.current) return;
-      aiAutoCollapsedTabs.add(activeTabUid);
+      rightSidebarAutoCollapsedTabs.add(activeTabUid);
       collapseResponseRef.current();
-    } else if (aiAutoCollapsedTabs.has(activeTabUid)) {
-      aiAutoCollapsedTabs.delete(activeTabUid);
+    } else if (rightSidebarAutoCollapsedTabs.has(activeTabUid)) {
+      rightSidebarAutoCollapsedTabs.delete(activeTabUid);
       if (responsePaneCollapsedRef.current) {
         expandResponseRef.current();
       }
     }
-  }, [isAiSidebarDocked, isVerticalLayout, activeTabUid]);
+  }, [isRightSidebarDocked, isVerticalLayout, activeTabUid]);
 
   useEffect(() => {
     if (!isVerticalLayout) return;
@@ -517,14 +516,6 @@ const RequestTabPanel = () => {
     return (
       <ScopedPersistenceProvider scope={focusedTab.uid}>
         <RunnerResults collection={collection} />
-      </ScopedPersistenceProvider>
-    );
-  }
-
-  if (focusedTab.type === 'variables') {
-    return (
-      <ScopedPersistenceProvider scope={focusedTab.uid}>
-        <VariablesEditor collection={collection} />
       </ScopedPersistenceProvider>
     );
   }

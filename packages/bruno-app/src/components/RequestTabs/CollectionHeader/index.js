@@ -18,7 +18,8 @@ import {
   IconFileOff,
   IconCode,
   IconAppWindow,
-  IconTransform
+  IconTransform,
+  IconVariable
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
@@ -27,6 +28,7 @@ import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
+import { showAiSidebar, showVariablesSidebar, toggleVariablesSidebar } from 'providers/ReduxStore/slices/app';
 import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
 import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
 import get from 'lodash/get';
@@ -71,6 +73,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const isAiEnabled = get(preferences, 'ai.enabled', false);
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
+  const isVariablesSidebarOpen = useSelector((state) => state.app.isVariablesSidebarOpen);
 
   // Get the current active workspace
   const currentWorkspace = useSelector(selectActiveWorkspace);
@@ -275,13 +278,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const viewVariables = () => {
-    dispatch(
-      addTab({
-        uid: uuid(),
-        collectionUid: collection.uid,
-        type: 'variables'
-      })
-    );
+    dispatch(showVariablesSidebar());
   };
 
   const viewCollectionSettings = () => {
@@ -739,10 +736,21 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   </ToolHint>
                 </div>
               )}
+              <ToolHint text="Variables" toolhintId="VariablesSidebarToolhintId" place="bottom">
+                <ActionIcon
+                  onClick={() => dispatch(toggleVariablesSidebar())}
+                  aria-label="Variables"
+                  size="sm"
+                  data-testid="variables-sidebar-toggle"
+                  className={isVariablesSidebarOpen ? 'active' : ''}
+                >
+                  <IconVariable size={16} strokeWidth={1.5} />
+                </ActionIcon>
+              </ToolHint>
               {isAiEnabled && (
                 <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
                   <ActionIcon
-                    onClick={() => dispatch(toggleAiSidebar())}
+                    onClick={() => dispatch(isAiSidebarOpen ? toggleAiSidebar() : showAiSidebar())}
                     aria-label="AI Assistant"
                     size="sm"
                     data-testid="ai-assistant"
