@@ -1,0 +1,22 @@
+meta {
+  name: ws-test-request-with-lowercase-subproto
+  type: ws
+  seq: 7
+}
+
+ws {
+  url: ws://localhost:8081/ws/sub-proto
+  body: ws
+  auth: inherit
+}
+
+headers {
+  sec-websocket-protocol: mqtt, soap
+}
+
+body:ws {
+  name: message 1
+  content: '''
+    {}
+  '''
+}
