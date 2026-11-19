@@ -149,6 +149,18 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(listed.note.tone).toBe('warning');
     expect(listed.note.text).toContain(STOPPED_EARLY);
   });
+
+  it('warns that folders inside could not be read when it lists the collections it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder', [api.path])], collections: [api], unreadableFolderCount: 2 }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 2 folders inside it.'
+    });
+  });
 });
 
 describe('getFolderSearchOutcome with files dropped along with folders', () => {
@@ -272,6 +284,22 @@ describe('getFolderSearchOutcome with several folders', () => {
         tone: 'info',
         text: 'Found 3 collections in the folders you picked. Pick the ones to open. docs isn’t a collection, so it was skipped.'
       }
+    });
+  });
+
+  it('warns that folders inside the picked folders could not be read when it lists the collections it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({
+        folders: [folder(orders.path, 'collection', [orders.path]), folder('/work', 'folder', [api.path])],
+        collections: [orders, api],
+        unreadableFolderCount: 1
+      }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 1 folder inside them.'
     });
   });
 

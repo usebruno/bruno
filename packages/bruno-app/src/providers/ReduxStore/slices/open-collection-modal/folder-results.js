@@ -55,7 +55,6 @@ const decideOutcome = (searchResult, openPathKeys) => {
   const namesByPath = new Map(collections.map((collection) => [collection.path, collection.name]));
   const toRows = (paths) => paths.map((collectionPath) => ({ path: collectionPath, name: namesByPath.get(collectionPath) }));
   const stoppedEarlyText = stoppedEarly && STOPPED_EARLY_TEXT;
-  const searchTone = stoppedEarly ? 'warning' : 'info';
   const describeMissing = (place) => sentences(
     unreadableFolderCount > 0 && `Bruno couldn’t read ${countOf(unreadableFolderCount, 'folder')} inside ${place}.`,
     stoppedEarlyText
@@ -75,9 +74,10 @@ const decideOutcome = (searchResult, openPathKeys) => {
       return isOpen(collectionPath) ? switchTo(collectionPath, '') : { type: 'open', paths: [collectionPath], skippedText: '' };
     }
 
+    const missingText = describeMissing('it');
+    const tone = missingText ? 'warning' : 'info';
+
     if (folder.collectionPaths.length === 0) {
-      const missingText = describeMissing('it');
-      const tone = missingText ? 'warning' : 'info';
       if (folder.importableFiles.length > 0) {
         const [file] = folder.importableFiles;
         return showMessage(tone, sentences(
@@ -92,10 +92,10 @@ const decideOutcome = (searchResult, openPathKeys) => {
       collections: toRows(folder.collectionPaths),
       folders: [folder.path],
       preselect: [],
-      tone: searchTone,
+      tone,
       text: sentences(
         `${name} isn’t a collection itself, but it has ${countOf(folder.collectionPaths.length, 'collection')} inside. Pick the ones to open.`,
-        stoppedEarlyText
+        missingText
       )
     });
   }
@@ -106,9 +106,9 @@ const decideOutcome = (searchResult, openPathKeys) => {
 
   const { notCollectionsText, unreadableText } = describeSkippedFolders(folders.filter((folder) => folder.collectionPaths.length === 0));
   const allPaths = unique(folders.flatMap((folder) => folder.collectionPaths));
+  const missingText = describeMissing('them');
 
   if (allPaths.length === 0) {
-    const missingText = describeMissing('them');
     return showMessage(
       unreadableText || missingText ? 'warning' : 'info',
       sentences('None of those folders is a Bruno collection.', COLLECTION_FOLDER_HINT, unreadableText, missingText)
@@ -131,12 +131,12 @@ const decideOutcome = (searchResult, openPathKeys) => {
     collections: toRows(unique([...directPaths, ...allPaths])),
     folders: foldersWithCollections.map((folder) => folder.path),
     preselect: directPaths,
-    tone: searchTone,
+    tone: missingText ? 'warning' : 'info',
     text: sentences(
       `Found ${countOf(allPaths.length, 'collection')} in the folders you picked. Pick the ones to open.`,
       notCollectionsText,
       unreadableText,
-      stoppedEarlyText
+      missingText
     )
   });
 };
