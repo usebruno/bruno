@@ -1,11 +1,5 @@
 {
   "lastOpenedCollections": [
     "{{collectionPath}}"
-  ],
-  "preferences": {
-    "onboarding": {
-      "hasLaunchedBefore": true,
-      "hasSeenWelcomeModal": true
-    }
-  }
+  ]
 }

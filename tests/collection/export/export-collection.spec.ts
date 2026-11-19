@@ -2,24 +2,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import YAML from 'yaml';
-import { test, expect } from '../../../playwright';
+import { test, expect, closeElectronApp, ElectronApplication, waitForReadyPage } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   exportCollectionAsSingleYaml,
   exportCollectionAsZip,
-  exportCollectionToPostman
+  exportCollectionToPostman,
+  openShareCollectionModal
 } from '../../utils/page';
-import { isEnterpriseEdition } from '../../utils/page/preferences';
-import {
-  closeShareCollection,
-  openExportTabIfPresent,
-  openShareCollection,
-  proceedToExportApiSpec,
-  saveOpenApiSpecification,
-  selectOpenApiFormat
-} from '../../utils/page/collection/share-collection';
 
 const collectionName = 'export-collection';
 const postmanCollectionName = 'export-postman';
@@ -119,71 +111,53 @@ test.describe('Export Bruno collection', () => {
   });
 });
 
-test.describe('Export OpenAPI Specification collection', () => {
-  test.afterAll(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
-  test('TC-3050: Verify that the user is able to Export a OpenAPI Specification collection', { tag: '@sanity' }, async ({
-    pageWithUserData: page,
-    reuseOrLaunchElectronApp,
+test.describe('Export a collection with gRPC requests to Postman', () => {
+  test('TC-3050: Verify that exporting to Postman skips gRPC requests with a note', { tag: '@sanity' }, async ({
+    launchElectronApp,
+    collectionFixturePath,
     createTmpDir
-  }, testInfo) => {
-    const collectionName = 'new-collection';
+  }) => {
+    const collectionName = 'export-postman-grpc';
     const exportLocation = await createTmpDir(`${collectionName}-output`);
-    const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
-    const { sidebar, shareCollection } = buildCommonLocators(page);
+    let app: ElectronApplication | undefined;
 
-    await test.step('Open the fixture collection with an HTTP request and a gRPC request', async () => {
-      await expect(sidebar.collection(collectionName)).toBeVisible();
-    });
+    try {
+      app = await launchElectronApp({
+        initUserDataPath: path.join(__dirname, 'init-user-data'),
+        templateVars: { collectionPath: collectionFixturePath! }
+      });
+      const page = await waitForReadyPage(app);
+      const { sidebar, shareCollection, export: exportLocators } = buildCommonLocators(page);
 
-    const isEnterprise = await isEnterpriseEdition(page);
+      await test.step('Verify that the fixture collection (HTTP + gRPC requests) is loaded', async () => {
+        await expect(sidebar.collection(collectionName)).toBeVisible();
+      });
 
-    await openShareCollection(page, collectionName);
-    await openExportTabIfPresent(page);
+      await openShareCollectionModal(page, collectionName);
 
-    const openApiCard = shareCollection.openApiCard();
-
-    if (isEnterprise) {
-      await expect(openApiCard).toBeVisible();
-      const filePath = path.join(exportLocation, `${collectionName}.yaml`);
-      await selectOpenApiFormat(page);
-
-      await test.step('Verify that gRPC requests are skipped with a note', async () => {
-        await expect(shareCollection.nonExportableNote()).toBeVisible();
+      await test.step('Verify that selecting Postman shows the gRPC skip note', async () => {
+        // In enterprise version, the export tab is visible, so need to click it to proceed.
+        if (await exportLocators.exportTab().isVisible()) {
+          await exportLocators.exportTab().click();
+        }
+        await shareCollection.postmanFormatCard().click();
         await expect(shareCollection.nonExportableNote()).toContainText(
           'gRPC requests in this collection will not be exported'
         );
+        await shareCollection.closeButton().click();
+        await expect(shareCollection.modal()).toBeHidden();
       });
 
-      await proceedToExportApiSpec(page);
+      const exported = await exportCollectionToPostman(page, collectionName, exportLocation);
 
-      await test.step('Verify that Export API Spec uses the collection name as the default file name', async () => {
-        await expect(shareCollection.nameInput()).toHaveValue(collectionName);
+      await test.step('Verify that the Postman export contains the HTTP request only', async () => {
+        expect(exported.info.name).toBe(collectionName);
+        expect(exported.item.map((item: { name: string }) => item.name)).toEqual(['ping']);
       });
-
-      await saveOpenApiSpecification(page, electronApp, exportLocation);
-
-      await test.step('Verify that the exported OpenAPI spec contains the HTTP request only', async () => {
-        await expect(shareCollection.exportedToast().first()).toBeVisible();
-        await expect.poll(() => fs.existsSync(filePath)).toBe(true);
-        const spec = YAML.parse(fs.readFileSync(filePath, 'utf8'));
-        expect(spec).toMatchObject({
-          openapi: expect.stringMatching(/^3\./),
-          info: { title: collectionName }
-        });
-        expect(spec.paths).toHaveProperty('/ping');
-        expect(JSON.stringify(spec)).not.toMatch(/grpc/i);
-      });
-    } else {
-      await test.step('OSS Share Collection does not offer OpenAPI Specification', async () => {
-        await expect(openApiCard).toBeHidden();
-        await expect(shareCollection.zipCard()).toBeVisible();
-        await expect(shareCollection.yamlCard()).toBeVisible();
-        await expect(shareCollection.postmanCard()).toBeVisible();
-      });
-      await closeShareCollection(page);
+    } finally {
+      if (app) {
+        await closeElectronApp(app);
+      }
     }
   });
 });
