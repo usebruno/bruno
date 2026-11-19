@@ -768,6 +768,7 @@ const Keybindings = () => {
 
         <div className="section-actions">
           <ToggleSwitch
+            data-testid="keybindings-enabled-toggle"
             isOn={keybindingsEnabled}
             handleToggle={handleToggleKeybindings}
             size="2xs"
