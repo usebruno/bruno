@@ -22,6 +22,50 @@ describe('getRequestFromCurlCommand', () => {
   });
 });
 
+describe('GraphQL variables imported from a cURL command', () => {
+  const GRAPHQL_REQUEST = 'graphql-request';
+  const QUERY = 'query Me { me { id } }';
+
+  const graphqlCurl = (body) =>
+    `curl --url https://e.com/graphql -H 'Content-Type: application/json' --data '${JSON.stringify(body)}'`;
+
+  it('formats object variables as pretty-printed JSON text', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: { id: 1 } });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": 1\n}');
+  });
+
+  it('unwraps string-encoded variables instead of encoding them a second time', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: JSON.stringify({ id: 1 }) });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": 1\n}');
+  });
+
+  it('keeps a Bruno placeholder inside string-encoded variables', () => {
+    const curl = graphqlCurl({ query: QUERY, variables: '{"id": {{userId}}}' });
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('{\n  "id": {{userId}}\n}');
+  });
+
+  it.each([
+    ['missing', { query: QUERY }],
+    ['null', { query: QUERY, variables: null }],
+    ['an empty string', { query: QUERY, variables: '' }]
+  ])('leaves the variables text empty when variables are %s', (_, body) => {
+    const curl = graphqlCurl(body);
+
+    const request = getRequestFromCurlCommand(curl, GRAPHQL_REQUEST);
+
+    expect(request.body.graphql.variables).toBe('');
+  });
+});
+
 describe('form bodies imported from a cURL command', () => {
   // #9511: the URL-bar paste handler set the body mode but never dispatched the
   // params, so a `--form` cURL produced an empty Body tab. The handler now

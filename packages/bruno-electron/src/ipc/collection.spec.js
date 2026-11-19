@@ -61,6 +61,7 @@ jest.mock('../app/collection-watcher', () => {
 jest.mock('@usebruno/filestore', () => ({
   parseRequest: jest.fn(() => ({})),
   stringifyRequest: jest.fn(() => 'mock-content-stringified'),
+  stringifyRequestViaWorker: jest.fn(async () => 'mock-request-stringified'),
   stringifyCollection: jest.fn(async () => 'mock-collection-stringified')
 }));
 
@@ -252,6 +253,63 @@ describe('IPC collection handlers', () => {
         ],
         'opened'
       ]]);
+    });
+
+    describe('request files', () => {
+      const requestItem = (name, method, filename) => ({
+        uid: `${method} ${name}`,
+        type: 'http-request',
+        name,
+        ...(filename && { filename }),
+        request: { method, url: `https://api.example.com${name}` }
+      });
+
+      const importItems = (items, format) => importCollectionHandler({}, { uid: 'requests', name: 'Requests', items, environments: [] }, collectionLocation, { format });
+
+      const requestFilesIn = (...folders) => fs.readdirSync(path.join(collectionLocation, 'Requests', ...folders))
+        .filter((file) => /\.(bru|yml)$/.test(file) && !['opencollection.yml', 'collection.bru'].includes(file))
+        .sort();
+
+      it.each(['bru', 'yml'])('writes each request\'s file name in %s, also when its path ends in a slash or holds .bru', async (format) => {
+        await importItems([
+          requestItem('/', 'GET', 'GET /.bru'),
+          requestItem('/users/', 'GET', 'GET /users/.bru'),
+          requestItem('/export.bru', 'GET', 'GET /export.bru.bru'),
+          requestItem('/pets', 'GET', 'GET /pets.bru')
+        ], format);
+
+        expect(requestFilesIn()).toEqual([`GET -.${format}`, `GET -export.bru.${format}`, `GET -pets.${format}`, `GET -users-.${format}`]);
+      });
+
+      it.each(['bru', 'yml'])('adds the format extension to a file name that has none, in %s', async (format) => {
+        await importItems([requestItem('/users', 'GET', 'get-users')], format);
+
+        expect(requestFilesIn()).toEqual([`get-users.${format}`]);
+      });
+
+      it.each(['bru', 'yml'])('writes requests that share a name to the files the converter gave them, in %s', async (format) => {
+        await importItems([
+          requestItem('List pets', 'GET'),
+          requestItem('List pets', 'POST', 'List pets (POST).bru')
+        ], format);
+
+        expect(requestFilesIn()).toEqual([`List pets (POST).${format}`, `List pets.${format}`]);
+      });
+
+      it('keeps requests that share a name in one folder in their own files', async () => {
+        await importItems([{
+          uid: 'pet',
+          type: 'folder',
+          name: 'pet',
+          items: [
+            requestItem('/pet/{petId}', 'GET'),
+            requestItem('/pet/{petId}', 'POST'),
+            requestItem('/Pet/{petId}', 'DELETE')
+          ]
+        }], 'yml');
+
+        expect(requestFilesIn('pet')).toEqual(['Pet-{petId} (2).yml', 'pet-{petId} (1).yml', 'pet-{petId}.yml']);
+      });
     });
   });
 
