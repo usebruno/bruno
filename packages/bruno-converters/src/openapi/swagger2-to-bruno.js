@@ -17,7 +17,6 @@ import {
   groupRequestsByTags,
   groupRequestsByPath,
   getRequestName,
-  uniqueRequestName,
   getTagDescriptions,
   toSpecString,
   operationSchemeName,
@@ -149,13 +148,14 @@ const transformSwaggerRequestItem = (request, usedNames = new Set(), options = {
   const produces = op.produces || request.global.produces || ['application/json'];
 
   // Determine operation name
-  const operationName = uniqueRequestName(getRequestName(request, options.requestNameSource), request.method, usedNames);
+  const { name: operationName, filename } = getRequestName(request, options.requestNameSource, usedNames);
 
   let path = request.path;
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
+    ...(filename && { filename }),
     type: 'http-request',
     settings: {
       forwardAuthorizationHeader: false

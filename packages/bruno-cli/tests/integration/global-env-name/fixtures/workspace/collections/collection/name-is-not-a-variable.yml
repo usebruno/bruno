@@ -1,0 +1,19 @@
+info:
+  name: name-is-not-a-variable
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: '{{baseUrl}}/ping'
+  auth: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("the global env name is not exposed as a variable", function() {
+          expect(bru.getAllGlobalEnvVars()).to.not.have.property("__name__");
+          expect(bru.hasGlobalEnvVar("__name__")).to.equal(false);
+          expect(bru.getGlobalEnvVar("__name__")).to.equal(undefined);
+        });
