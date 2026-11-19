@@ -1,0 +1,33 @@
+{
+  "maximized": false,
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": true,
+        "filePath": "{{projectRoot}}/e2e/tests/request/post-quantum-key-exchange/certs/localhost.crt"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    },
+    "proxy": {
+      "source": "manual",
+      "disabled": {{proxyDisabled}},
+      "config": {
+        "protocol": "http",
+        "hostname": "127.0.0.1",
+        "port": {{proxyPort}},
+        "auth": {
+          "username": "",
+          "password": ""
+        },
+        "bypassProxy": ""
+      }
+    }
+  }
+}
