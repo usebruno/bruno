@@ -12,10 +12,6 @@ export const AUTH_MODE_LABELS = {
   NONE: 'No Auth'
 } as const;
 
-/**
- * Labels the auth mode selector shows once a mode is selected. Most match the dropdown entry in
- * AUTH_MODE_LABELS; NTLM and AWS Sig v4 are rendered differently by `humanizeRequestAuthMode`.
- */
 export const SELECTED_AUTH_MODE_LABELS = {
   ...AUTH_MODE_LABELS,
   NTLM: 'NTLM',
