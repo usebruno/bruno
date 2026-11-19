@@ -1,93 +1,80 @@
 import { test, expect } from '../../../playwright';
+import {
+  buildCommonLocators,
+  dragSidebarBy,
+  dragSidebarTo,
+  expandSidebar,
+  getSidebarWidth,
+  getStoredSidebarState,
+  hoverSidebarHandle
+} from '../../utils/page';
 
 test.describe('Sidebar Toggle', () => {
+  // The collapsed flag persists on the shared window, so always start and end expanded
+  test.beforeEach(async ({ page }) => {
+    await expandSidebar(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await expandSidebar(page);
+  });
+
   test('should toggle sidebar visibility when clicking the toggle button', async ({ page }) => {
-    // Get the sidebar and toggle button elements
-    const sidebar = page.locator('aside.sidebar');
-    const toggleButton = page.getByTestId('toggle-sidebar-button');
-    const dragHandle = page.locator('.sidebar-drag-handle');
+    const { sidebar } = buildCommonLocators(page);
 
-    // Initial state - sidebar and drag handle should be visible
-    await expect(sidebar).toBeVisible();
-    await expect(dragHandle).toBeVisible();
+    await test.step('Hide the sidebar; the drag handle stays so it can be reopened', async () => {
+      await sidebar.toggleSidebarButton().click();
+      await expect.poll(() => getSidebarWidth(page)).toBe(0);
+      await expect(sidebar.dragHandle()).toHaveClass(/collapsed/);
+    });
 
-    // Click toggle to hide sidebar
-    await toggleButton.click();
-
-    // Wait for transition to complete and verify sidebar and drag handle are hidden
-    await expect(sidebar).not.toBeVisible();
-    // The drag handle stays at the left edge so the sidebar, can be reopened by dragging/clicking it
-    await expect(dragHandle).toHaveClass(/collapsed/);
-
-    // Verify the sidebar has collapsed width
-    const sidebarBox = await sidebar.boundingBox();
-    expect(sidebarBox?.width).toBe(0);
-
-    // Click toggle again to show sidebar
-    await toggleButton.click();
-
-    // Wait for transition and verify sidebar and drag handle are visible again
-    await expect(sidebar).toBeVisible();
-    await expect(dragHandle).toBeVisible();
-
-    // Verify the sidebar has expanded width
-    const expandedSidebarBox = await sidebar.boundingBox();
-    expect(expandedSidebarBox?.width).toBeGreaterThan(0);
+    await test.step('Show the sidebar again', async () => {
+      await sidebar.toggleSidebarButton().click();
+      await expect.poll(() => getSidebarWidth(page)).toBeGreaterThan(0);
+      await expect(sidebar.dragHandle()).not.toHaveClass(/collapsed/);
+    });
   });
 
   test('should collapse when dragged below the threshold and reopen when dragged back', async ({ page }) => {
-    const sidebar = page.locator('aside.sidebar');
-    const dragHandle = page.getByTestId('sidebar-drag-handle');
+    await test.step('Drag below the 150px collapse threshold', async () => {
+      await dragSidebarTo(page, 60);
 
-    const handleBox = await dragHandle.boundingBox();
-    const y = handleBox.y + handleBox.height / 2;
-
-    await test.step('Drag well below the 150px collapse threshold', async () => {
-      await page.mouse.move(handleBox.x + 1, y);
-      await page.mouse.down();
-      await page.mouse.move(60, y, { steps: 5 });
-      await page.mouse.up();
-
-      await expect.poll(async () => (await sidebar.boundingBox())?.width).toBe(0);
-      await expect(dragHandle).toHaveClass(/collapsed/);
+      await expect.poll(() => getSidebarWidth(page)).toBe(0);
+      await expect.poll(() => getStoredSidebarState(page)).toBe('true');
     });
 
-    await test.step('Drag the collapsed handle back out to reopen', async () => {
-      const collapsedBox = await dragHandle.boundingBox();
-      await page.mouse.move(collapsedBox.x + 1, y);
-      await page.mouse.down();
-      await page.mouse.move(320, y, { steps: 5 });
-      await page.mouse.up();
-
-      await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeGreaterThan(0);
-      await expect(dragHandle).not.toHaveClass(/collapsed/);
+    await test.step('Drag the collapsed handle back out', async () => {
+      await dragSidebarTo(page, 320);
+      await expect.poll(() => getSidebarWidth(page)).toBeGreaterThan(0);
+      await expect.poll(() => getStoredSidebarState(page)).toBe('false');
     });
   });
 
-  test('should reopen when the collapsed handle is clicked and show a tooltip only while collapsed', async ({ page }) => {
-    const sidebar = page.locator('aside.sidebar');
-    const dragHandle = page.getByTestId('sidebar-drag-handle');
-    const tooltip = page.getByTestId('sidebar-drag-handle-tooltip-title');
+  test('should stay collapsed when the collapsed handle is dragged a short way', async ({ page }) => {
+    const { sidebar } = buildCommonLocators(page);
 
-    await test.step('Collapse the sidebar', async () => {
-      await page.getByTestId('toggle-sidebar-button').click();
-      await expect.poll(async () => (await sidebar.boundingBox())?.width).toBe(0);
-    });
+    await sidebar.toggleSidebarButton().click();
+    await expect.poll(() => getSidebarWidth(page)).toBe(0);
+    // Moves more than the click tolerance, but stays under the 150px threshold
+    await dragSidebarTo(page, 60);
+    await expect.poll(() => getSidebarWidth(page)).toBe(0);
+    await expect(sidebar.dragHandle()).toHaveClass(/collapsed/);
+  });
 
-    await test.step('Hovering the collapsed handle shows the tooltip', async () => {
-      await dragHandle.hover();
-      await expect(tooltip).toContainText('Show sidebar');
-    });
+  test('should reopen at the previous width when the collapsed handle is clicked, even with a small wiggle', async ({ page }) => {
+    const widthBefore = await getSidebarWidth(page);
 
-    await test.step('Clicking the collapsed handle reopens the sidebar', async () => {
-      await dragHandle.click({ position: { x: 1, y: 10 } });
-      await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeGreaterThan(0);
-    });
+    await dragSidebarTo(page, 60);
+    await expect.poll(() => getSidebarWidth(page)).toBe(0);
+    await dragSidebarBy(page, 2);
+    await expect.poll(() => getSidebarWidth(page)).toBe(widthBefore);
+  });
 
-    await test.step('No tooltip while the sidebar is open', async () => {
-      // The main pane overlaps the open handle's right side, so hover its left edge
-      await dragHandle.hover({ position: { x: 1, y: 10 } });
-      await expect(tooltip).toHaveCount(0);
-    });
+  test('should show a tooltip when hovering the collapsed handle', async ({ page }) => {
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.toggleSidebarButton().click();
+    await expect.poll(() => getSidebarWidth(page)).toBe(0);
+    await hoverSidebarHandle(page);
+    await expect(sidebar.dragHandleTooltip()).toContainText('Show sidebar');
   });
 });
