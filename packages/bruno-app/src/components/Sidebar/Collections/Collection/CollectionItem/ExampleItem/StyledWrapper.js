@@ -34,7 +34,8 @@ const StyledWrapper = styled.div`
     }
 
     &:hover,
-    &.item-hovered {
+    &.item-hovered,
+    &.item-keyboard-focused {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
         visibility: visible;
@@ -47,6 +48,12 @@ const StyledWrapper = styled.div`
       &:hover {
         background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
+    }
+
+    &.item-keyboard-focused {
+      border-top: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      border-bottom: 1px solid ${(props) => props.theme.sidebar.collection.item.focusBorder};
+      outline: none;
     }
 
     &.drag-disabled:active {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -13,6 +13,7 @@ import { CollectionItemDragPreview } from './Collection/CollectionItem/Collectio
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
 import useDebounce from 'hooks/useDebounce';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
+import useSidebarKeyboardNavigation from 'hooks/useSidebarKeyboardNavigation';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids } from 'src/selectors/collections';
 
@@ -25,6 +26,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const collections = useSelector(selectCollections);
   const collectionSortOrder = useSelector(selectCollectionSortOrder);
   const selectedSidebarUids = useSelector(selectSelectedSidebarUids);
+  const sidebarSearchResetToken = useSelector((state) => state.app.sidebarSearchResetToken);
   const workspaces = useSelector((state) => state.workspaces.workspaces);
   const activeWorkspaceUid = useSelector((state) => state.workspaces.activeWorkspaceUid);
   const dispatch = useDispatch();
@@ -32,6 +34,11 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   const scrollerRef = useRef(null);
 
   const { openBulkMenu, menuProps } = useBulkActionsMenu();
+
+  // The focus shortcut clears the filter so the active tab's row is in `rows`.
+  useEffect(() => {
+    setSearchText('');
+  }, [sidebarSearchResetToken]);
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid) || workspaces.find((w) => w.type === 'default');
 
@@ -89,6 +96,17 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   useSidebarAutoReveal({ rowIndexByItemUid, rowIndexByCollectionUid, sidebarEntries, virtuosoRef, scrollerRef });
 
+  const { handleKeyDown } = useSidebarKeyboardNavigation({
+    rows,
+    rowIndexByItemUid,
+    rowIndexByCollectionUid,
+    itemsByUid,
+    collectionsByUid,
+    virtuosoRef,
+    scrollerRef,
+    searchText: debouncedSearchText
+  });
+
   // Clear multi-selection only when clicking the bare scroller background.
   // The `contains` guard ignores events propagated from portaled menus/modals in <body>.
   // The `[data-sidebar-row]` check covers all row types and inline menus/modals rendered within a row.
@@ -130,6 +148,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
       <div
         className="collections-list flex flex-col flex-1 overflow-hidden"
         onClick={handleContainerClick}
+        onKeyDown={handleKeyDown}
       >
         <Virtuoso
           ref={virtuosoRef}

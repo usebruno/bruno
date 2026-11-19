@@ -21,4 +21,14 @@ describe('keyMappings display helpers', () => {
     expect(getKeyBindingDisplayTextByOS('sendRequest', userKeyBindings, 'windows')).toBe('Ctrl + Shift + R');
     expect(getKeyBindingDisplayTextByOS('sendRequest', userKeyBindings, 'mac')).toBe('⇧ + ⌘ + R');
   });
+
+  it('formats the sidebar focus shortcut for display', () => {
+    expect(getKeyBindingDisplayTextByOS('focusActiveSidebarItem', undefined, 'windows')).toBe('Ctrl + Shift + E');
+    expect(getKeyBindingDisplayTextByOS('focusActiveSidebarItem', undefined, 'mac')).toBe('⇧ + ⌘ + E');
+  });
+
+  it('does not define global arrow shortcuts for the sidebar', () => {
+    expect(getKeyBindingForActionByOS('navigateSidebarUp', undefined, 'windows')).toBe('');
+    expect(getKeyBindingForActionByOS('navigateSidebarDown', undefined, 'windows')).toBe('');
+  });
 });
