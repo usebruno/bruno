@@ -16,6 +16,7 @@ import {
 const collectionName = 'export-collection';
 const postmanCollectionName = 'export-postman';
 const singleYamlCollectionName = 'export-single-yaml';
+const postmanGrpcCollectionName = 'export-postman-grpc';
 
 test.describe('Export Bruno collection', () => {
   test.afterEach(async ({ page }) => {
@@ -117,8 +118,7 @@ test.describe('Export a collection with gRPC requests to Postman', () => {
     collectionFixturePath,
     createTmpDir
   }) => {
-    const collectionName = 'export-postman-grpc';
-    const exportLocation = await createTmpDir(`${collectionName}-output`);
+    const exportLocation = await createTmpDir(`${postmanGrpcCollectionName}-output`);
     let app: ElectronApplication | undefined;
 
     try {
@@ -127,19 +127,15 @@ test.describe('Export a collection with gRPC requests to Postman', () => {
         templateVars: { collectionPath: collectionFixturePath! }
       });
       const page = await waitForReadyPage(app);
-      const { sidebar, shareCollection, export: exportLocators } = buildCommonLocators(page);
+      const { sidebar, shareCollection } = buildCommonLocators(page);
 
-      await test.step('Verify that the fixture collection (HTTP + gRPC requests) is loaded', async () => {
-        await expect(sidebar.collection(collectionName)).toBeVisible();
+      await test.step('Verify the fixture collection with an HTTP request and a gRPC request opens', async () => {
+        await expect(sidebar.collection(postmanGrpcCollectionName)).toBeVisible();
       });
 
-      await openShareCollectionModal(page, collectionName);
+      await openShareCollectionModal(page, postmanGrpcCollectionName);
 
       await test.step('Verify that selecting Postman shows the gRPC skip note', async () => {
-        // In enterprise version, the export tab is visible, so need to click it to proceed.
-        if (await exportLocators.exportTab().isVisible()) {
-          await exportLocators.exportTab().click();
-        }
         await shareCollection.postmanFormatCard().click();
         await expect(shareCollection.nonExportableNote()).toContainText(
           'gRPC requests in this collection will not be exported'
@@ -148,10 +144,10 @@ test.describe('Export a collection with gRPC requests to Postman', () => {
         await expect(shareCollection.modal()).toBeHidden();
       });
 
-      const exported = await exportCollectionToPostman(page, collectionName, exportLocation);
+      const exported = await exportCollectionToPostman(page, postmanGrpcCollectionName, exportLocation);
 
       await test.step('Verify that the Postman export contains the HTTP request only', async () => {
-        expect(exported.info.name).toBe(collectionName);
+        expect(exported.info.name).toBe(postmanGrpcCollectionName);
         expect(exported.item.map((item: { name: string }) => item.name)).toEqual(['ping']);
       });
     } finally {
