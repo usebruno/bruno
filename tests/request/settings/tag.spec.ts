@@ -9,15 +9,25 @@ import {
   selectRequestPaneTab
 } from '../../utils/page';
 
+/**
+ * Copies the settings fixture collection into a temp directory and returns the paths the app needs.
+ * @param createTmpDir - The `createTmpDir` fixture from the test
+ * @returns The init user-data path and the temp collection path
+ */
+const setupTagCollection = async (createTmpDir: (name: string) => Promise<string>) => {
+  const initUserDataPath = path.join(__dirname, 'init-user-data');
+  const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
+  const collectionPath = await createTmpDir('tag-collection');
+  await fs.promises.cp(fixtureCollectionsPath, collectionPath, { recursive: true });
+  return { initUserDataPath, collectionPath };
+};
+
 test.describe('Request tags', () => {
   test('TC-685: adds a single tag to a request and saves it', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
     const COLLECTION_NAME = 'settings-yaml';
     const REQUEST_NAME = 'Tag Request';
     const TAG_NAME = 'smoke_test';
-    const initUserDataPath = path.join(__dirname, 'init-user-data');
-    const fixtureCollectionsPath = path.join(__dirname, 'fixtures', 'collections');
-    const collectionPath = await createTmpDir('tag-collection');
-    await fs.promises.cp(fixtureCollectionsPath, collectionPath, { recursive: true });
+    const { initUserDataPath, collectionPath } = await setupTagCollection(createTmpDir);
     const app = await launchElectronApp({ initUserDataPath, templateVars: { collectionPath } });
     const page = await waitForReadyPage(app);
     const { sidebar, tabs } = buildCommonLocators(page);

@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from '../../../playwright';
+import { writeCodeMirrorValue } from './actions';
 
 const graphqlTabLabel = {
   query: 'Query',
@@ -31,7 +32,7 @@ const requestPane = (page: Page) => page.getByTestId('request-pane');
  */
 export const buildGraphqlAuthIntrospectionLocators = (page: Page) => ({
   queryEditor: () => page.getByTestId('graphql-query-editor').locator('.CodeMirror').first(),
-  variablesHeader: () => requestPane(page).getByTestId('graphql-variables-header'),
+  variablesToggle: () => requestPane(page).getByTestId('graphql-variables-toggle'),
   variablesEditor: () => page.getByTestId('graphql-variables-editor').locator('.CodeMirror').first(),
   requestTab: (key: string) => requestPane(page).getByTestId(`responsive-tab-${key}`),
   authModeLabel: () => page.getByTestId('auth-mode-label'),
@@ -54,13 +55,6 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => ({
 const readCodeMirrorValue = async (editor: Locator): Promise<string> => {
   await editor.waitFor({ state: 'visible' });
   return editor.evaluate((editorElement) => (editorElement as any).CodeMirror?.getValue() ?? '');
-};
-
-const writeCodeMirrorValue = async (editor: Locator, value: string) => {
-  await editor.waitFor({ state: 'visible' });
-  await editor.evaluate((editorElement, nextValue) => {
-    (editorElement as any).CodeMirror.setValue(nextValue);
-  }, value);
 };
 
 /** Switch the open GraphQL request to its Query or Auth tab and check the tab is active. */
@@ -97,7 +91,7 @@ export const setGraphqlVariables = async (page: Page, variablesJson: string) => 
       await writeCodeMirrorValue(editor, variablesJson);
       return;
     }
-    await gql.variablesHeader().click();
+    await gql.variablesToggle().click();
     await editor.waitFor({ state: 'visible' });
     await writeCodeMirrorValue(editor, variablesJson);
   });
@@ -117,7 +111,7 @@ export const readGraphqlVariables = async (page: Page): Promise<string> => {
   if (await editor.isVisible()) {
     return readCodeMirrorValue(editor);
   }
-  await gql.variablesHeader().click();
+  await gql.variablesToggle().click();
   await editor.waitFor({ state: 'visible' });
   return readCodeMirrorValue(editor);
 };

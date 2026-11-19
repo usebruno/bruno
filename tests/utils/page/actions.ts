@@ -24,6 +24,18 @@ export const getScrollMetrics = (locator: Locator) =>
   locator.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollTop: el.scrollTop }));
 
 /**
+ * Replace the full value of a CodeMirror editor through its `CodeMirror` instance.
+ * @param editor - Locator for the element that holds the `.CodeMirror` instance
+ * @param value - The new editor value
+ */
+export const writeCodeMirrorValue = async (editor: Locator, value: string) => {
+  await editor.waitFor({ state: 'visible' });
+  await editor.evaluate((editorElement, nextValue) => {
+    (editorElement as any).CodeMirror.setValue(nextValue);
+  }, value);
+};
+
+/**
  * Wait for the Electron app to have a ready, loaded window.
  * Handles cases where the first window is slow to appear.
  */

@@ -213,7 +213,7 @@ export const dragRunnerConfigItem = async (
  * @param names - The expected request names, top to bottom
  * @returns void
  */
-export const expectRunnerConfigOrder = async (page: Page, names: string[]) => {
+export const verifyRunnerConfigOrder = async (page: Page, names: string[]) => {
   await expect(buildRunnerLocators(page).getRequestItemNameList()).toHaveText(names);
 };
 
@@ -224,7 +224,7 @@ export const expectRunnerConfigOrder = async (page: Page, names: string[]) => {
  * @param names - The expected request names, in execution order
  * @returns void
  */
-export const expectRunnerResultOrder = async (page: Page, names: string[]) => {
+export const verifyRunnerResultOrder = async (page: Page, names: string[]) => {
   await expect(buildRunnerLocators(page).resultItems()).toHaveText(names.map((name) => new RegExp(`^${name}`)));
 };
 

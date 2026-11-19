@@ -1,13 +1,12 @@
-import { test, expect } from '../../../playwright';
+import { test, expect, waitForReadyPage } from '../../../playwright';
 import {
   buildRunnerLocators,
-  closeAllCollections,
   createFolder,
   expandCollection,
   createRequestViaModal,
   dragRunnerConfigItem,
-  expectRunnerConfigOrder,
-  expectRunnerResultOrder,
+  verifyRunnerConfigOrder,
+  verifyRunnerResultOrder,
   getRunnerConfigOrder,
   openRunnerTab,
   reopenRunnerConfig,
@@ -22,11 +21,9 @@ const FOLDER_NAME = 'Folder';
 const NESTED_REQUEST = 'Nested Request';
 
 test.describe('Runner request reordering', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
-  test('TC-719: Validate collection run follows the reordered request sequence', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-719: Validate collection run follows the reordered request sequence', { tag: '@sanity' }, async ({ restartApp }) => {
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
     const runner = buildRunnerLocators(page);
     let initialOrder: string[] = [];
 
@@ -40,15 +37,15 @@ test.describe('Runner request reordering', () => {
     });
 
     await dragRunnerConfigItem(page, 'Request E', 'Request A', 'above');
-    await expectRunnerConfigOrder(page, ['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
+    await verifyRunnerConfigOrder(page, ['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
 
     await dragRunnerConfigItem(page, 'Request A', 'Request D', 'below');
-    await expectRunnerConfigOrder(page, ['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
+    await verifyRunnerConfigOrder(page, ['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
 
     await dragRunnerConfigItem(page, 'Request C', 'Request B', 'above');
 
     await test.step('Verify the UI shows the intended order', async () => {
-      await expectRunnerConfigOrder(page, REORDERED);
+      await verifyRunnerConfigOrder(page, REORDERED);
       await expect(runner.configCounter()).toHaveText(`${REORDERED.length} of ${REORDERED.length} selected`);
     });
 
@@ -66,13 +63,12 @@ test.describe('Runner request reordering', () => {
 
     await test.step('Check the run results after the run completes', async () => {
       await expect(runner.runAgainButton()).toBeVisible({ timeout: 60000 });
-      await expectRunnerResultOrder(page, REORDERED);
+      await verifyRunnerResultOrder(page, REORDERED);
       await validateRunnerResults(page, { totalRequests: REORDERED.length, passed: REORDERED.length, failed: 0, skipped: 0 });
     });
 
     await test.step('Compare the execution order with the initial order', async () => {
       expect(REORDERED).not.toEqual(initialOrder);
-
       await expect(runner.resultItems().first()).not.toHaveText(new RegExp(`^${initialOrder[0]}`));
     });
 
@@ -83,17 +79,15 @@ test.describe('Runner request reordering', () => {
 
     await test.step('Verify Reset restores the original request order', async () => {
       // Reset clears the saved runner configuration, custom order included
-      await expectRunnerConfigOrder(page, initialOrder);
+      await verifyRunnerConfigOrder(page, initialOrder);
     });
   });
 });
 
 test.describe('Runner request checkboxes', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
-  test('TC-713: Each request in the run configuration has a checkbox', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
+  test('TC-713: Each request in the run configuration has a checkbox', { tag: '@sanity' }, async ({ restartApp }) => {
+    const app = await restartApp();
+    const page = await waitForReadyPage(app);
     const runner = buildRunnerLocators(page);
     const checkboxOrder = ['Nested Request', 'Request A', 'Request B', 'Request C', 'Request D', 'Request E'];
 
@@ -104,7 +98,7 @@ test.describe('Runner request checkboxes', () => {
     await openRunnerTab(page, COLLECTION_NAME);
     await test.step('Verify the run configuration lists root and nested requests', async () => {
       await expect(runner.requestItem(NESTED_REQUEST)).toBeVisible({ timeout: 15000 });
-      await expectRunnerConfigOrder(page, checkboxOrder);
+      await verifyRunnerConfigOrder(page, checkboxOrder);
     });
 
     await test.step('A checkbox is present next to each request', async () => {
