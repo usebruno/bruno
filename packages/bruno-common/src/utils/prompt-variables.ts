@@ -33,6 +33,59 @@ export const PROMPT_VARIABLE_TEXT_PATTERN = new RegExp(`^\\?(${PROMPT_VARIABLE_P
 export const PROMPT_VARIABLE_TEMPLATE_PATTERN = new RegExp(`{{\\?(${PROMPT_VARIABLE_PATTERN.source})}}`, 'g');
 
 /**
+ * Parse a prompt variable's raw inner text into a display label and, when the enum syntax is used,
+ * the list of fixed values to offer as a dropdown.
+ *
+ * - `Label|a,b,c`  → single-select dropdown (`multi: false`)
+ * - `Label||a,b,c` → multi-select dropdown (`multi: true`); the chosen values are joined with `,`
+ * - `Label`        → free-text prompt (`options: null`)
+ *
+ * An option prefixed with `*` is preselected by default (`*b` in `a,*b,c` → `b` is the default
+ * selection). For a single-select only the first starred option is used; for multi-select every
+ * starred option is preselected. The `*` is a display-only marker and is stripped from both the
+ * option and its default value.
+ *
+ * The raw string is the exact text captured between `{{?` and `}}`, and it doubles as the
+ * interpolation key (`?<raw>`), so this parsing only affects how the prompt is *displayed* and what
+ * it defaults to — it never changes the substitution key.
+ *
+ * @param {string} raw - The prompt variable inner text, e.g. "Country|US,*UK,DE" or "Token".
+ * @returns {{ label: string, options: string[] | null, multi: boolean, defaults: string[] }} -
+ *   `options` is null when no fixed values are given (plain prompt) or when every value is empty
+ *   after trimming; `defaults` holds the values marked with a leading `*` (empty when none are).
+ */
+export const parsePromptVariable = (
+  raw: string
+): { label: string; options: string[] | null; multi: boolean; defaults: string[] } => {
+  const pipeIndex = raw.indexOf('|');
+  if (pipeIndex === -1) {
+    return { label: raw.trim(), options: null, multi: false, defaults: [] };
+  }
+
+  const multi = raw[pipeIndex + 1] === '|';
+  const label = raw.slice(0, pipeIndex).trim();
+  const defaults: string[] = [];
+  const options = raw
+    .slice(pipeIndex + (multi ? 2 : 1))
+    .split(',')
+    .map((option) => option.trim())
+    .filter((option) => option.length > 0)
+    .map((option) => {
+      if (option.startsWith('*')) {
+        const value = option.slice(1).trim();
+        if (value.length > 0 && (multi || defaults.length === 0)) {
+          defaults.push(value);
+        }
+        return value;
+      }
+      return option;
+    })
+    .filter((option) => option.length > 0);
+
+  return { label, options: options.length > 0 ? options : null, multi, defaults };
+};
+
+/**
  * Extract prompt variables matching {{?<Prompt Text>}} from a string.
  * @param {string} str - The input string.
  * @returns {string[]} - An array of extracted prompt variables.

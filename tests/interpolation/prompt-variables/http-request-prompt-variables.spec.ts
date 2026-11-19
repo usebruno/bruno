@@ -122,4 +122,57 @@ test.describe('Prompt Variables Interpolation', () => {
 
     // @TODO: setup a valid certificate and server required to verify the request is sent with the correct variables
   });
+
+  test('Prompt variables with a fixed list of values render as single- and multi-select', async ({ pageWithUserData: page }) => {
+    let promptVariablesModal;
+    let enumRow;
+    let multiRow;
+
+    await test.step('Open collection and navigate to the enum prompt request', async () => {
+      await page.locator('#sidebar-collection-name').filter({ hasText: 'prompt-variables-interpolation' }).click();
+      await page.locator('.collection-item-name').filter({ hasText: 'enum-folder' }).click();
+      await page.locator('.collection-item-name').filter({ hasText: 'http-request-enum-prompt' }).click();
+    });
+
+    await test.step('Send the request and open the prompt variables modal', async () => {
+      await page.getByTestId('send-arrow-icon').click();
+      promptVariablesModal = page.getByRole('dialog').filter({ has: page.locator('.bruno-modal-header-title').getByText('Input Required') });
+      await promptVariablesModal.waitFor({ state: 'visible' });
+    });
+
+    await test.step('The single-select prompt renders a dropdown, not a text input', async () => {
+      enumRow = promptVariablesModal.getByTestId('prompt-variable-input-container').filter({ hasText: 'Enter Environment' });
+      await expect(enumRow).toHaveCount(1);
+      // A dropdown (combobox), not a free-text input, is shown for the fixed-value prompt
+      await expect(enumRow.locator('[role="combobox"]')).toBeVisible();
+      await expect(enumRow.locator('input')).toHaveCount(0);
+      // The option marked with `*` (stage) is preselected by default
+      await expect(enumRow.locator('[role="combobox"]')).toContainText('stage');
+    });
+
+    await test.step('The multi-select prompt renders a multi-select dropdown', async () => {
+      multiRow = promptVariablesModal.getByTestId('prompt-variable-input-container').filter({ hasText: 'Enter Regions' });
+      await expect(multiRow).toHaveCount(1);
+      await expect(multiRow.locator('[role="combobox"]')).toBeVisible();
+    });
+
+    await test.step('Choose values and send the request', async () => {
+      // Override the preselected default (stage) with prod
+      await enumRow.locator('[role="combobox"]').click();
+      await page.getByRole('option', { name: 'prod', exact: true }).click();
+
+      // Multi-select stays open while toggling; pick us and ap
+      await multiRow.locator('[role="combobox"]').click();
+      await page.getByRole('option', { name: 'us', exact: true }).click();
+      await page.getByRole('option', { name: 'ap', exact: true }).click();
+
+      await promptVariablesModal.getByRole('button', { name: 'Continue' }).click();
+    });
+
+    await test.step('The chosen values are interpolated into the request', async () => {
+      await expect(page.getByTestId('response-status-code')).toHaveText(/200/);
+      await expect(page.locator('.response-pane').locator('.CodeMirror-line').getByText('"env": "prod"').first()).toBeVisible();
+      await expect(page.locator('.response-pane').locator('.CodeMirror-line').getByText('"regions": "us,ap"').first()).toBeVisible();
+    });
+  });
 });
