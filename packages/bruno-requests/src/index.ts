@@ -7,7 +7,7 @@ export {
   addEdgeGridInterceptor,
   handleNtlmRedirect
 } from './auth';
-export { GrpcClient, generateGrpcSampleMessage } from './grpc';
+export { GrpcClient, generateGrpcSampleMessage, splitMethodDescriptors } from './grpc';
 export { WsClient } from './ws/ws-client';
 export { default as cookies } from './cookies';
 

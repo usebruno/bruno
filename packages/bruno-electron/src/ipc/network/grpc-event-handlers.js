@@ -1,6 +1,6 @@
 // To implement grpc event handlers
 const { ipcMain, app } = require('electron');
-const { GrpcClient } = require('@usebruno/requests');
+const { GrpcClient, splitMethodDescriptors } = require('@usebruno/requests');
 const { safeParseJSON, safeStringifyJSON } = require('../../utils/common');
 const { cloneDeep, get } = require('lodash');
 const { preferencesUtil } = require('../../store/preferences');
@@ -15,6 +15,11 @@ const { getPacResolver } = require('@usebruno/requests');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { getJsSandboxRuntime } = require('../../utils/collection');
 const { createGrpcScriptOrchestration } = require('./grpc-script-orchestration');
+const {
+  readReflectionCache,
+  writeReflectionCache,
+  readReflectionDescriptors
+} = require('../../services/grpc-reflection-cache');
 
 // Creating grpcClient at module level so it can be accessed from window-all-closed event
 let grpcClient;
@@ -153,7 +158,9 @@ const registerGrpcEventHandlers = (window) => {
 
   // The orchestration forwards every event to the renderer and maintains session
   // details for hooks to use.
-  grpcClient = new GrpcClient(grpcScriptOrchestration.interceptGrpcEvent);
+  grpcClient = new GrpcClient(grpcScriptOrchestration.interceptGrpcEvent, {
+    getCachedDescriptors: readReflectionDescriptors
+  });
 
   ipcMain.handle('connections-changed', (event) => {
     sendEvent('grpc:connections-changed', event);
@@ -403,7 +410,7 @@ const registerGrpcEventHandlers = (window) => {
   });
 
   // Load methods from server reflection
-  ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables }) => {
+  ipcMain.handle('grpc:load-methods-reflection', async (event, { request, collection, environment, runtimeVariables, isManualRefresh = false }) => {
     try {
       const requestCopy = cloneDeep(request);
       const preparedRequest = await prepareGrpcRequest(requestCopy, collection, environment, runtimeVariables);
@@ -411,6 +418,19 @@ const registerGrpcEventHandlers = (window) => {
       const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
       if (!protocolRegex.test(preparedRequest.url)) {
         preparedRequest.url = `http://${preparedRequest.url}`;
+      }
+
+      if (!isManualRefresh) {
+        const cached = readReflectionCache(preparedRequest.url);
+        if (cached) {
+          try {
+            // Rebuilding here keeps a send from having to reflect again for this url
+            grpcClient.loadMethodsFromDescriptors(cached.descriptors);
+            return { success: true, methods: cached.methods, fromCache: true };
+          } catch (error) {
+            console.warn('Stored gRPC descriptors could not be rebuilt, reflecting instead: ', error);
+          }
+        }
       }
 
       // Get certificates and proxy configuration
@@ -479,7 +499,12 @@ const registerGrpcEventHandlers = (window) => {
         proxyConfig: grpcProxyConfig
       });
 
-      return { success: true, methods: safeParseJSON(safeStringifyJSON(methods)) };
+      // Split before serializing: a descriptor's bytes have to be read while they are still bytes
+      const { methods: methodsForRenderer, descriptors } = splitMethodDescriptors(methods);
+      const serializableMethods = safeParseJSON(safeStringifyJSON(methodsForRenderer));
+      writeReflectionCache({ url: preparedRequest.url, methods: serializableMethods, descriptors });
+
+      return { success: true, methods: serializableMethods, fromCache: false };
     } catch (error) {
       console.error('Error loading gRPC methods from reflection:', error);
       return { success: false, error: error.message };

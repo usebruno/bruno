@@ -2,6 +2,7 @@ import { makeGenericClientConstructor, ChannelCredentials, Metadata, status, cre
 import { GrpcReflection } from 'grpc-js-reflection-client';
 import * as protoLoader from '@grpc/proto-loader';
 import { generateGrpcSampleMessage } from './grpcMessageGenerator';
+import { loadPackageDefinitionFromDescriptors } from './method-descriptors';
 import * as tls from 'tls';
 import { isString } from 'lodash';
 import * as nodePath from 'node:path';
@@ -195,10 +196,17 @@ const setupGrpcEventHandlers = (callback, requestId, collectionUid, rpc, onCompl
 };
 
 class GrpcClient {
-  constructor(eventCallback) {
+  /**
+   * @param {Function} eventCallback
+   * @param {Object} [options]
+   * @param {(url: string) => string[] | null} [options.getCachedDescriptors] - resolves stored proto
+   *   descriptors for a url, letting a cold process rebuild methods without a reflection round trip
+   */
+  constructor(eventCallback, { getCachedDescriptors } = {}) {
     this.activeConnections = new Map();
     this.methods = new Map();
     this.eventCallback = eventCallback;
+    this.getCachedDescriptors = getCachedDescriptors;
   }
 
   /**
@@ -446,6 +454,26 @@ class GrpcClient {
   }
 
   /**
+   * Rebuilds the wanted method from descriptors stored by an earlier reflection.
+   * A stored descriptor set can be incomplete for the path being called, so this only reports
+   * success once that path is actually resolvable — otherwise the caller still reflects.
+   * @returns {boolean} whether the method is now known
+   * @private
+   */
+  #rebuildMethodsFromCache(url, methodPath) {
+    const descriptors = this.getCachedDescriptors?.(url);
+    if (!descriptors?.length) return false;
+
+    try {
+      this.loadMethodsFromDescriptors(descriptors);
+      return this.methods.has(methodPath);
+    } catch (error) {
+      console.warn('Failed to rebuild gRPC methods from stored descriptors:', error);
+      return false;
+    }
+  }
+
+  /**
    * Refresh methods using reflection or proto file as fallback
    * @param {Object} options - Options for refreshing methods
    * @param {string} options.url - The gRPC server URL
@@ -459,10 +487,14 @@ class GrpcClient {
    * @returns {Promise<boolean>} Whether methods were successfully refreshed
    * @private
    */
-  async #refreshMethods({ url, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig }) {
+  async #refreshMethods({ url, methodPath, headers, protoPath, collectionPath, collectionUid, certificates = {}, verifyOptions, includeDirs = [], proxyConfig }) {
     try {
       // Try reflection first if no proto path is specified
       if (!protoPath) {
+        if (this.#rebuildMethodsFromCache(url, methodPath)) {
+          return true;
+        }
+
         await this.loadMethodsFromReflection({
           request: { url, headers },
           collectionUid,
@@ -649,6 +681,7 @@ class GrpcClient {
       */
       const refreshSuccess = await this.#refreshMethods({
         url: request.url,
+        methodPath,
         headers: request.headers,
         protoPath: request.protoPath,
         collectionPath: collection.pathname,
@@ -863,17 +896,34 @@ class GrpcClient {
 
   async loadMethodsFromProtoFile(filePath, includeDirs = []) {
     const protoDefinition = await protoLoader.load(filePath, { ...configOptions, includeDirs });
-    const methods = Object.values(protoDefinition)
+    return this.#registerPackageDefinition(protoDefinition);
+  }
+
+  /**
+   * Rebuild methods from stored proto descriptors instead of asking the server again.
+   * @param {string[]} descriptors - base64 FileDescriptorProtos, as split out by splitMethodDescriptors
+   * @returns {Array} the loaded methods, with their serializers restored on this.methods
+   */
+  loadMethodsFromDescriptors(descriptors = []) {
+    if (!descriptors.length) return [];
+    return this.#registerPackageDefinition(loadPackageDefinitionFromDescriptors(descriptors, configOptions));
+  }
+
+  /**
+   * Indexes every method of a package definition by path, so a call can find its serializers.
+   * @private
+   */
+  #registerPackageDefinition(packageDefinition) {
+    const methods = Object.values(packageDefinition)
       .filter((definition) => !definition?.format)
       .flatMap(Object.values);
-    const methodsWithType = methods.map((method) => ({
-      ...method,
-      type: this.#getMethodType(method)
-    }));
     methods.forEach((method) => {
       this.methods.set(method.path, method);
     });
-    return methodsWithType;
+    return methods.map((method) => ({
+      ...method,
+      type: this.#getMethodType(method)
+    }));
   }
 
   end(requestId) {
