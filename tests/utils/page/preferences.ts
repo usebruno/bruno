@@ -17,7 +17,8 @@ export const buildPreferencesLocators = (page: Page) => ({
     autoSaveEnabled: () => page.locator('#autoSaveEnabled'),
     autoSaveInterval: () => page.locator('#autoSaveInterval'),
     /** The "Request Timeout (in ms)" field on the General tab */
-    requestTimeoutInput: () => page.locator('input[name="timeout"]')
+    requestTimeoutInput: () => page.locator('input[name="timeout"]'),
+    maxPreviewSizeInput: () => page.locator('#maxPreviewSizeMB')
   },
   /** Locators on the Keybindings tab, each takes the action id (e.g. `triggerAutocomplete`) */
   keybindings: {
@@ -123,6 +124,18 @@ export const setRequestTimeoutPreference = async (page: Page, value: string) => 
     await expect(preferences.general.requestTimeoutInput()).toHaveValue(value, { timeout: 5000 });
     await preferences.openTab().hover();
     await preferences.openTabCloseIcon().click({ force: true });
+    await preferences.openTab().waitFor({ state: 'detached' });
+  });
+};
+
+export const setMaxPreviewSizePreference = async (page: Page, megabytes: number) => {
+  await test.step(`Set max preview size preference to ${megabytes}MB`, async () => {
+    const preferences = buildPreferencesLocators(page);
+    await openPreferences(page);
+    await selectPreferencesTab(page, 'General');
+    await preferences.general.maxPreviewSizeInput().fill(String(megabytes));
+    await expect(preferences.general.maxPreviewSizeInput()).toHaveValue(String(megabytes));
+    await closePreferences(page);
     await preferences.openTab().waitFor({ state: 'detached' });
   });
 };

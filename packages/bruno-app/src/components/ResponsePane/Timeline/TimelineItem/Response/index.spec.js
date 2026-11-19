@@ -1,12 +1,14 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MAX_RENDERABLE_RESPONSE_BYTES } from 'utils/common/constants';
 import { ThemeContext } from 'providers/Theme';
 import BodyBlock from '../Common/Body/index';
 import Response from './index';
 
 jest.mock('../Common/Body/index', () => jest.fn(() => null));
+jest.mock('react-redux', () => ({
+  useSelector: (selector) => selector({ app: { preferences: { response: { maxPreviewSizeMB: 5 } } } })
+}));
 jest.mock('../Common/Headers/index', () => () => null);
 
 const theme = {
@@ -25,15 +27,15 @@ const bodyProps = () => BodyBlock.mock.calls.at(-1)[0];
 describe('Timeline Response', () => {
   beforeEach(() => BodyBlock.mockClear());
 
-  it('marks a body over the renderable limit as not loaded', () => {
-    renderResponse({ response: { status: 200, data: null, dataBuffer: null, size: MAX_RENDERABLE_RESPONSE_BYTES + 1 } });
+  it('holds back a body over the max preview size', () => {
+    renderResponse({ response: { status: 200, data: null, dataBuffer: null, size: 5 * 1024 * 1024 + 1 } });
 
-    expect(bodyProps().isLoaded).toBe(true);
+    expect(bodyProps().isBodyHeldBack).toBe(true);
   });
 
   it('treats a small empty body as empty', () => {
     renderResponse({ response: { status: 204, data: null, dataBuffer: null, size: 0 } });
 
-    expect(bodyProps().isLoaded).toBe(false);
+    expect(bodyProps().isBodyHeldBack).toBe(false);
   });
 });
