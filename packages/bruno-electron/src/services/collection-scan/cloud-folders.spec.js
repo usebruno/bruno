@@ -172,7 +172,7 @@ describe('cloud folders', () => {
       expect(args[3]).toContain('$env:BRUNO_CLOUD_CHECK_FILES');
       expect(args[3]).toContain('0x441000');
       expect(timeout).toBe(10000);
-      expect(env.PATH).toBe(process.env.PATH);
+      expect(env).toMatchObject({ ...process.env });
       expect(decodeCheckedFiles(runCommand.mock.calls[0])).toEqual(files);
     });
 
