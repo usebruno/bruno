@@ -2097,27 +2097,16 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
 
 const authFieldEditor = (page: Page, testId: string) => page.getByTestId(testId).locator('.CodeMirror').first();
 
-export const oauthField = {
-  clientId: 'oauth2-client-credentials-clientId',
-  clientSecret: 'oauth2-client-credentials-clientSecret'
-};
-
-export const oauthGrantType = {
-  clientCredentials: 'Client Credentials'
-};
-
-export type OAuth2ClientCredentials = {
-  clientId: string;
-  clientSecret: string;
-};
-
 /**
  * Select OAuth 2.0 Client Credentials on the open request and fill the client id and secret.
  * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
  * @param page - The page object
  * @param auth - Client id and client secret
  */
-export const configureOAuth2ClientCredentials = async (page: Page, auth: OAuth2ClientCredentials) => {
+export const configureOAuth2ClientCredentials = async (
+  page: Page,
+  auth: { clientId: string; clientSecret: string }
+) => {
   await test.step('Configure OAuth 2.0 Client Credentials auth', async () => {
     await selectRequestPaneTab(page, 'Auth');
     const grantType = page.getByTestId('grant-type-dropdown');
@@ -2128,21 +2117,11 @@ export const configureOAuth2ClientCredentials = async (page: Page, auth: OAuth2C
 
     await grantType.click();
     await page.getByTestId('grant-type-dropdown-client_credentials').click();
-    await expect(grantType).toContainText(oauthGrantType.clientCredentials);
+    await expect(grantType).toContainText('Client Credentials');
 
-    await writeCodeMirrorValue(authFieldEditor(page, oauthField.clientId), auth.clientId);
-    await writeCodeMirrorValue(authFieldEditor(page, oauthField.clientSecret), auth.clientSecret);
+    await writeCodeMirrorValue(authFieldEditor(page, 'oauth2-client-credentials-clientId'), auth.clientId);
+    await writeCodeMirrorValue(authFieldEditor(page, 'oauth2-client-credentials-clientSecret'), auth.clientSecret);
   });
-};
-
-export const digestField = {
-  username: 'auth-digest-username',
-  password: 'auth-digest-password'
-};
-
-export type DigestAuth = {
-  username: string;
-  password: string;
 };
 
 /**
@@ -2151,23 +2130,15 @@ export type DigestAuth = {
  * @param page - The page object
  * @param auth - Digest username and password
  */
-export const configureDigestAuth = async (page: Page, auth: DigestAuth) => {
+export const configureDigestAuth = async (page: Page, auth: { username: string; password: string }) => {
   await test.step('Configure Digest auth', async () => {
     await selectRequestPaneTab(page, 'Auth');
     await page.getByTestId('auth-mode-label').click();
     await page.getByTestId('auth-mode-dropdown-digest').click();
 
-    await writeCodeMirrorValue(authFieldEditor(page, digestField.username), auth.username);
-    await writeCodeMirrorValue(authFieldEditor(page, digestField.password), auth.password);
+    await writeCodeMirrorValue(authFieldEditor(page, 'auth-digest-username'), auth.username);
+    await writeCodeMirrorValue(authFieldEditor(page, 'auth-digest-password'), auth.password);
   });
-};
-
-export const bearerField = {
-  token: 'auth-bearer-token'
-};
-
-export type BearerAuth = {
-  token: string;
 };
 
 /**
@@ -2176,24 +2147,14 @@ export type BearerAuth = {
  * @param page - The page object
  * @param auth - Bearer token
  */
-export const configureBearerAuth = async (page: Page, auth: BearerAuth) => {
+export const configureBearerAuth = async (page: Page, auth: { token: string }) => {
   await test.step('Configure Bearer Token auth', async () => {
     await selectRequestPaneTab(page, 'Auth');
     await page.getByTestId('auth-mode-label').click();
     await page.getByTestId('auth-mode-dropdown-bearer').click();
 
-    await writeCodeMirrorValue(authFieldEditor(page, bearerField.token), auth.token);
+    await writeCodeMirrorValue(authFieldEditor(page, 'auth-bearer-token'), auth.token);
   });
-};
-
-export const basicField = {
-  username: 'auth-basic-username',
-  password: 'auth-basic-password'
-};
-
-export type BasicAuth = {
-  username: string;
-  password: string;
 };
 
 /**
@@ -2202,14 +2163,14 @@ export type BasicAuth = {
  * @param page - The page object
  * @param auth - Basic username and password
  */
-export const configureBasicAuth = async (page: Page, auth: BasicAuth) => {
+export const configureBasicAuth = async (page: Page, auth: { username: string; password: string }) => {
   await test.step('Configure Basic auth', async () => {
     await selectRequestPaneTab(page, 'Auth');
     await page.getByTestId('auth-mode-label').click();
     await page.getByTestId('auth-mode-dropdown-basic').click();
 
-    await writeCodeMirrorValue(authFieldEditor(page, basicField.username), auth.username);
-    await writeCodeMirrorValue(authFieldEditor(page, basicField.password), auth.password);
+    await writeCodeMirrorValue(authFieldEditor(page, 'auth-basic-username'), auth.username);
+    await writeCodeMirrorValue(authFieldEditor(page, 'auth-basic-password'), auth.password);
   });
 };
 

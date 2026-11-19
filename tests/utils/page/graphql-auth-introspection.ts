@@ -17,6 +17,33 @@ export const authField = {
   value: 'auth-apikey-value'
 };
 
+/** Test ids of the OAuth 2.0 Client Credentials fields. */
+export const oauthField = {
+  clientId: 'oauth2-client-credentials-clientId',
+  clientSecret: 'oauth2-client-credentials-clientSecret'
+};
+
+export const oauthGrantType = {
+  clientCredentials: 'Client Credentials'
+};
+
+/** Test ids of the Digest auth fields. */
+export const digestField = {
+  username: 'auth-digest-username',
+  password: 'auth-digest-password'
+};
+
+/** Test id of the Bearer Token field. */
+export const bearerField = {
+  token: 'auth-bearer-token'
+};
+
+/** Test ids of the Basic auth fields. */
+export const basicField = {
+  username: 'auth-basic-username',
+  password: 'auth-basic-password'
+};
+
 export type GraphqlApiKeyAuth = {
   key: string;
   value: string;
