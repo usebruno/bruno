@@ -10,7 +10,7 @@ import {
   openMigrateToYmlModalFromOverview,
   openRequest,
   saveRequest
-} from '../../utils/page';
+} from '../../../pages';
 
 const COLLECTION_NAME = 'migrate-edit-request';
 const REQUEST_NAME = 'edit-after-migration';
