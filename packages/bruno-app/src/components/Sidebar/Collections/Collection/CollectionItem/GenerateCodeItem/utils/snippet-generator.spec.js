@@ -869,7 +869,7 @@ describe('generateSnippet curl multipart file quoting', () => {
           mode: 'multipartForm',
           multipartForm: [
             { name: 'comma', value: '/tmp/a,b.txt', type: 'file', enabled: true },
-            { name: 'semi', value: "/tmp/it's;x.txt", type: 'file', enabled: true },
+            { name: 'semi', value: '/tmp/it\'s;x.txt', type: 'file', enabled: true },
             { name: 'quote', value: '/tmp/a"b.txt', type: 'file', enabled: true },
             { name: 'space', value: '/tmp/report.txt ', type: 'file', enabled: true }
           ]
@@ -880,7 +880,7 @@ describe('generateSnippet curl multipart file quoting', () => {
 
     const result = await runWithRealHttpSnippet(item);
     expect(result).toContain(`--form 'comma=@"/tmp/a,b.txt"'`);
-    expect(result).toContain(`--form 'semi=@"/tmp/it's;x.txt"'`);
+    expect(result).toContain(String.raw`--form 'semi=@"/tmp/it'\''s;x.txt"'`);
     expect(result).toContain(`--form 'quote=@"/tmp/a\\"b.txt"'`);
     expect(result).toContain(`--form 'space=@"/tmp/report.txt "'`);
   });
@@ -904,7 +904,7 @@ describe('generateSnippet curl multipart file quoting', () => {
 
     const result = await runWithRealHttpSnippet(item);
     expect(result).toContain(`--form 'upload=@/tmp/a b.txt'`);
-    expect(result).toContain(`--form 'upload=@/tmp/c.txt'`);
+    expect(result).toContain('--form upload=@/tmp/c.txt');
   });
 });
 

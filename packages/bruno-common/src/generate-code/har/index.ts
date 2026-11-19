@@ -562,7 +562,7 @@ const buildPostData = (body: BrunoBody | undefined): any => {
           if (p.type !== 'file') {
             return [{ name: p.name, value: p.value }];
           }
-          const fileNames = Array.isArray(p.value) ? p.value : (p.value ? [p.value] : []);
+          const fileNames: string[] = Array.isArray(p.value) ? p.value : (p.value ? [p.value] : []);
           return fileNames.map((fileName) => ({
             name: p.name,
             value: fileName,

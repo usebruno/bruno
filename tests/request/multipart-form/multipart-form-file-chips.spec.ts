@@ -6,7 +6,7 @@ import {
   openCollection,
   openRequest,
   saveRequest,
-  selectRequestPaneTab
+  selectMultipartFormBody
 } from '../../utils/page';
 import { buildCommonLocators } from '../../utils/page/locators';
 import type { ElectronApplication, Page } from '@playwright/test';
@@ -50,9 +50,9 @@ test.describe('Multipart Form - Multiple File Upload', () => {
     });
     await openCollection(page, 'multipart-multi-upload');
     await openRequest(page, 'multipart-multi-upload', 'test-multi-upload', { persist: true });
-    await selectRequestPaneTab(page, 'Body');
-    await buildCommonLocators(page).request.bodyModeSelector().click();
-    await page.locator('.dropdown-item').filter({ hasText: 'Multipart Form' }).click();
+    await selectMultipartFormBody(page);
+    await expect(buildCommonLocators(page).multipartForm.table).toBeVisible();
+    await saveRequest(page);
   });
 
   test.afterAll(async ({ page, electronApp }) => {
@@ -76,7 +76,6 @@ test.describe('Multipart Form - Multiple File Upload', () => {
       await expect(table.allRows()).toHaveCount(rowCount - 1);
       rowCount = await table.allRows().count();
     }
-    await saveRequest(page);
   });
 
   // Tell the mocked dialog what to return, then click the upload button on
