@@ -2505,7 +2505,6 @@ const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
   });
 };
 
-// Right-click a request tab's label and pick an entry from its context menu.
 // Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
 const clickTabContextMenuItem = async (page: Page, tabLabel: Locator, itemId: string) => {
   await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
