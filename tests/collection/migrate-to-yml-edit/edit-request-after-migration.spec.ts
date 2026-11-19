@@ -5,56 +5,54 @@ import {
   buildCommonLocators,
   closeAllCollections,
   confirmMigration,
-  createCollection,
-  createRequest,
   fillRequestUrl,
+  openCollection,
   openMigrateToYmlModalFromOverview,
+  openRequest,
   saveRequest
 } from '../../utils/page';
 
+const COLLECTION_NAME = 'migrate-edit-request';
 const REQUEST_NAME = 'edit-after-migration';
-const ORIGINAL_URL = 'http://localhost:8081/ping';
 const EDITED_URL = 'http://localhost:8081/ping?edited=true';
 
-const firstDirIn = (dir: string) =>
-  path.join(dir, fs.readdirSync(dir).find((entry) => fs.statSync(path.join(dir, entry)).isDirectory())!);
-
-test.describe('Migrate to YML edit request after migration', { tag: '@sanity' }, () => {
-  test.afterEach(async ({ page }) => {
+test.describe('Migrate to YML — edit request after migration', () => {
+  test.afterEach(async ({ pageWithUserData: page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-5964: Verify after migration user is able to edit the request', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-    const { sidebar, tabs } = buildCommonLocators(page);
-    const collectionName = 'migrate-edit-request';
-    const parentDir = await createTmpDir(collectionName);
+  test('TC-5964: Verify after migration user is able to edit the request', { tag: '@sanity' }, async ({
+    pageWithUserData: page,
+    collectionFixturePath
+  }) => {
+    const { tabs, toast } = buildCommonLocators(page);
+    const collectionPath = collectionFixturePath!;
+    const ymlPath = path.join(collectionPath, `${REQUEST_NAME}.yml`);
 
-    await test.step('Precondition: migrate a bru collection to yml', async () => {
-      await createCollection(page, collectionName, parentDir, 'bru');
-      await createRequest(page, REQUEST_NAME, collectionName, { method: 'GET', url: ORIGINAL_URL });
-      await openMigrateToYmlModalFromOverview(page, collectionName);
+    await test.step('Precondition: migrate the bru collection to yml', async () => {
+      await openCollection(page, COLLECTION_NAME);
+      await openMigrateToYmlModalFromOverview(page, COLLECTION_NAME);
       await confirmMigration(page);
-      await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible();
+      await toast.byMessage('Collection migrated to YML format successfully').waitFor({ state: 'visible' });
     });
 
-    await test.step('User clicks on the request', async () => {
-      await sidebar.request(REQUEST_NAME).click();
-      await expect(tabs.activeRequestTab()).toContainText(REQUEST_NAME);
-    });
-
-    await test.step('User edits the URL', async () => {
+    await test.step('Open the request and edit its URL', async () => {
+      await openRequest(page, COLLECTION_NAME, REQUEST_NAME);
       await fillRequestUrl(page, EDITED_URL, { replace: true });
+    });
+
+    await test.step('The request has unsaved changes', async () => {
       await expect(tabs.tabDraftIndicator(tabs.activeRequestTab())).toBeVisible();
     });
 
-    await test.step('User saves; the request is saved with the new changes', async () => {
+    await test.step('Save the request', async () => {
       await saveRequest(page);
-      await expect(tabs.tabDraftIndicator(tabs.activeRequestTab())).toBeHidden();
+    });
 
-      const collectionDir = firstDirIn(parentDir);
-      const ymlPath = path.join(collectionDir, `${REQUEST_NAME}.yml`);
+    await test.step('The request is saved with the new URL in yml format', async () => {
+      await expect(tabs.tabDraftIndicator(tabs.activeRequestTab())).toBeHidden();
       await expect.poll(() => fs.readFileSync(ymlPath, 'utf8')).toContain(EDITED_URL);
-      expect(fs.existsSync(path.join(collectionDir, `${REQUEST_NAME}.bru`))).toBe(false);
+      expect(fs.existsSync(path.join(collectionPath, `${REQUEST_NAME}.bru`))).toBe(false);
     });
   });
 });
