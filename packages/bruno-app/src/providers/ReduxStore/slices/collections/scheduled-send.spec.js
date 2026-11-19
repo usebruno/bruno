@@ -1,16 +1,18 @@
+import toast from 'react-hot-toast';
 import { startScheduledSend, stopScheduledSend, getScheduledSend } from './scheduled-send';
 import { sendRequest } from './actions';
 
-jest.mock('./actions', () => ({
-  sendRequest: jest.fn(() => ({ type: 'test/sendRequest' }))
-}));
+jest.mock('react-hot-toast', () => ({ error: jest.fn() }));
+jest.mock('./actions', () => ({ sendRequest: jest.fn() }));
 
-const buildState = ({ requestState = null, tabOpen = true, itemExists = true } = {}) => ({
+const buildState = ({ tabOpen = true, itemExists = true, streamRunning = false } = {}) => ({
   collections: {
     collections: [
       {
         uid: 'c1',
-        items: itemExists ? [{ uid: 'r1', type: 'http-request', requestState }] : []
+        items: itemExists
+          ? [{ uid: 'r1', type: 'http-request', response: streamRunning ? { stream: { running: true } } : null }]
+          : []
       }
     ]
   },
@@ -19,12 +21,16 @@ const buildState = ({ requestState = null, tabOpen = true, itemExists = true } =
 
 describe('scheduled send', () => {
   let state;
-  const dispatch = jest.fn((action) => (typeof action === 'function' ? action(dispatch, () => state) : Promise.resolve()));
+  const dispatch = jest.fn((action) => action(dispatch, () => state));
+
+  // sendRequest is a thunk: resolve it immediately unless a test overrides it
+  const mockSend = (result = () => Promise.resolve()) => sendRequest.mockImplementation(() => result);
 
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     state = buildState();
+    mockSend();
   });
 
   afterEach(() => {
@@ -32,43 +38,83 @@ describe('scheduled send', () => {
     jest.useRealTimers();
   });
 
-  it('sends immediately, then repeats on the interval until stopped', () => {
+  it('sends immediately, then repeats on the interval until stopped', async () => {
     dispatch(startScheduledSend('r1', 'c1', 1000));
     expect(sendRequest).toHaveBeenCalledTimes(1);
     expect(getScheduledSend('r1')).toMatchObject({ intervalMs: 1000 });
 
-    jest.advanceTimersByTime(3000);
+    await jest.advanceTimersByTimeAsync(3000);
     expect(sendRequest).toHaveBeenCalledTimes(4);
 
     stopScheduledSend('r1');
     expect(getScheduledSend('r1')).toBeNull();
-    jest.advanceTimersByTime(3000);
+    await jest.advanceTimersByTimeAsync(3000);
     expect(sendRequest).toHaveBeenCalledTimes(4);
   });
 
-  it('skips a tick while the previous request is still in flight', () => {
-    state = buildState({ requestState: 'sending' });
-    dispatch(startScheduledSend('r1', 'c1', 1000));
+  it('waits for the previous send to settle before scheduling the next one', async () => {
+    let settle;
+    mockSend(() => new Promise((resolve) => (settle = resolve)));
 
-    jest.advanceTimersByTime(1000);
-    expect(sendRequest).not.toHaveBeenCalled();
-    expect(getScheduledSend('r1')).not.toBeNull();
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(sendRequest).toHaveBeenCalledTimes(1);
+
+    settle();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(sendRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('stops when the tab is closed', () => {
-    dispatch(startScheduledSend('r1', 'c1', 1000));
-    state = buildState({ tabOpen: false });
+  it('does not reschedule when stopped while a send is in flight', async () => {
+    let settle;
+    mockSend(() => new Promise((resolve) => (settle = resolve)));
 
-    jest.advanceTimersByTime(1000);
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    stopScheduledSend('r1');
+    settle();
+    await jest.advanceTimersByTimeAsync(3000);
+
     expect(sendRequest).toHaveBeenCalledTimes(1);
     expect(getScheduledSend('r1')).toBeNull();
   });
 
-  it('stops when the request no longer exists', () => {
+  it('stops and shows an error when a send fails', async () => {
+    mockSend(() => Promise.reject(new Error('Collection not found')));
+
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    await jest.advanceTimersByTimeAsync(3000);
+
+    expect(sendRequest).toHaveBeenCalledTimes(1);
+    expect(getScheduledSend('r1')).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith('Repeat on Interval stopped: Collection not found');
+  });
+
+  it('skips the tick while a streaming response is open', async () => {
+    state = buildState({ streamRunning: true });
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    await jest.advanceTimersByTimeAsync(2000);
+    expect(sendRequest).not.toHaveBeenCalled();
+    expect(getScheduledSend('r1')).not.toBeNull();
+
+    state = buildState();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(sendRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops when the tab is closed', async () => {
+    dispatch(startScheduledSend('r1', 'c1', 1000));
+    state = buildState({ tabOpen: false });
+
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(sendRequest).toHaveBeenCalledTimes(1);
+    expect(getScheduledSend('r1')).toBeNull();
+  });
+
+  it('stops when the request no longer exists', async () => {
     dispatch(startScheduledSend('r1', 'c1', 1000));
     state = buildState({ itemExists: false });
 
-    jest.advanceTimersByTime(1000);
+    await jest.advanceTimersByTimeAsync(1000);
     expect(sendRequest).toHaveBeenCalledTimes(1);
     expect(getScheduledSend('r1')).toBeNull();
   });

@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { sendRequest } from './actions';
 
@@ -27,7 +28,13 @@ export const stopScheduledSend = (itemUid) => {
 export const startScheduledSend = (itemUid, collectionUid, intervalMs) => (dispatch, getState) => {
   stopScheduledSend(itemUid);
 
-  const fire = () => {
+  const schedule = { intervalMs, timer: null };
+  // A stop (or a restart) while a send is in flight replaces or removes this entry
+  const isActive = () => schedules.get(itemUid) === schedule;
+
+  const fire = async () => {
+    if (!isActive()) return;
+
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     const item = collection ? findItemInCollection(collection, itemUid) : null;
@@ -39,14 +46,24 @@ export const startScheduledSend = (itemUid, collectionUid, intervalMs) => (dispa
       return;
     }
 
-    // Skip this tick if the previous request is still in flight, so sends never overlap
-    if (!['queued', 'sending'].includes(item.requestState)) {
-      dispatch(sendRequest(item, collectionUid)).catch(() => {});
+    // A new send would cancel an open streaming response, so leave it running and wait for the next tick
+    if (!item.response?.stream?.running) {
+      try {
+        // Waiting for the send to settle keeps sends from overlapping and prompts from stacking up
+        await dispatch(sendRequest(item, collectionUid));
+      } catch (error) {
+        stopScheduledSend(itemUid);
+        toast.error(`Repeat on Interval stopped: ${error?.message || 'the request could not be sent'}`);
+        return;
+      }
     }
 
-    schedules.set(itemUid, { intervalMs, timer: setTimeout(fire, intervalMs) });
-    notify();
+    if (isActive()) {
+      schedule.timer = setTimeout(fire, intervalMs);
+    }
   };
 
+  schedules.set(itemUid, schedule);
+  notify();
   fire();
 };
