@@ -160,15 +160,6 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
 };
 
 /**
- * Locates a row in the runner's "Configure requests to run" list by its exact request name.
- * @param page - The Playwright page object
- * @param requestName - The request's name as shown in the row
- * @returns The row locator
- */
-export const runnerConfigItem = (page: Page, requestName: string): Locator =>
-  getRequestItemByName(page, requestName);
-
-/**
  * Reads the request names in the runner's "Configure requests to run" list, top to bottom.
  * @param page - The Playwright page object
  * @returns The request names in their configured order

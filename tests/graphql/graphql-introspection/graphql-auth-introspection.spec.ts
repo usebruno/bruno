@@ -5,10 +5,10 @@ import {
   closeAllCollections,
   closeEnvironmentPanel,
   configureGraphqlApiKeyAuth,
-  configureGraphqlBasicAuth,
-  configureGraphqlBearerAuth,
-  configureGraphqlDigestAuth,
-  configureGraphqlOAuth2ClientCredentials,
+  configureBasicAuth,
+  configureBearerAuth,
+  configureDigestAuth,
+  configureOAuth2ClientCredentials,
   apiKeyPlacement,
   authField,
   basicField,
@@ -158,7 +158,7 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
     await closeEnvironmentPanel(page);
     await tabs.requestTab(REQUEST_NAME).click();
 
-    await configureGraphqlOAuth2ClientCredentials(page, {
+    await configureOAuth2ClientCredentials(page, {
       clientId: '{{clientId}}',
       clientSecret: '{{clientSecret}}'
     });
@@ -195,7 +195,7 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
     await closeEnvironmentPanel(page);
     await tabs.requestTab(REQUEST_NAME).click();
 
-    await configureGraphqlDigestAuth(page, {
+    await configureDigestAuth(page, {
       username: '{{digestUsername}}',
       password: '{{digestPassword}}'
     });
@@ -230,7 +230,7 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
     await closeEnvironmentPanel(page);
     await tabs.requestTab(REQUEST_NAME).click();
 
-    await configureGraphqlBearerAuth(page, {
+    await configureBearerAuth(page, {
       token: '{{bearerToken}}'
     });
 
@@ -274,7 +274,7 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
     await closeEnvironmentPanel(page);
     await tabs.requestTab(REQUEST_NAME).click();
 
-    await configureGraphqlBasicAuth(page, {
+    await configureBasicAuth(page, {
       username: '{{basicUsername}}',
       password: '{{basicPassword}}'
     });

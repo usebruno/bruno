@@ -3,7 +3,7 @@ import {
   openRunnerTabWithTagsReady,
   addRunnerTag,
   clearRunnerTags,
-  runnerConfigItem
+  getRequestItemByName
 } from '../../utils/page/runner';
 import { buildRunnerLocators } from '../../utils/page/index';
 
@@ -49,10 +49,10 @@ test.describe('Runner config panel — folder tags', () => {
     await test.step('Only the four requests under api/ stay enabled', async () => {
       await expect(locators.configCounter()).toHaveText('4 of 4 selected');
       for (const name of IN_API_SUBTREE) {
-        await expect(runnerConfigItem(page, name)).not.toHaveClass(/is-disabled/);
+        await expect(getRequestItemByName(page, name)).not.toHaveClass(/is-disabled/);
       }
       for (const name of OUTSIDE_API_SUBTREE) {
-        await expect(runnerConfigItem(page, name)).toHaveClass(/is-disabled/);
+        await expect(getRequestItemByName(page, name)).toHaveClass(/is-disabled/);
       }
     });
   });
@@ -68,10 +68,10 @@ test.describe('Runner config panel — folder tags', () => {
     await test.step('Everything under api/ is disabled, two levels deep', async () => {
       await expect(locators.configCounter()).toHaveText('4 of 4 selected');
       for (const name of IN_API_SUBTREE) {
-        await expect(runnerConfigItem(page, name)).toHaveClass(/is-disabled/);
+        await expect(getRequestItemByName(page, name)).toHaveClass(/is-disabled/);
       }
       for (const name of OUTSIDE_API_SUBTREE) {
-        await expect(runnerConfigItem(page, name)).not.toHaveClass(/is-disabled/);
+        await expect(getRequestItemByName(page, name)).not.toHaveClass(/is-disabled/);
       }
     });
   });
@@ -85,10 +85,10 @@ test.describe('Runner config panel — folder tags', () => {
 
     await test.step('The v2 subtree drops out of the api subtree', async () => {
       await expect(locators.configCounter()).toHaveText('2 of 2 selected');
-      await expect(runnerConfigItem(page, 'inherits-only')).not.toHaveClass(/is-disabled/);
-      await expect(runnerConfigItem(page, 'own-and-inherited')).not.toHaveClass(/is-disabled/);
-      await expect(runnerConfigItem(page, 'nested')).toHaveClass(/is-disabled/);
-      await expect(runnerConfigItem(page, 'reports-tags')).toHaveClass(/is-disabled/);
+      await expect(getRequestItemByName(page, 'inherits-only')).not.toHaveClass(/is-disabled/);
+      await expect(getRequestItemByName(page, 'own-and-inherited')).not.toHaveClass(/is-disabled/);
+      await expect(getRequestItemByName(page, 'nested')).toHaveClass(/is-disabled/);
+      await expect(getRequestItemByName(page, 'reports-tags')).toHaveClass(/is-disabled/);
     });
   });
 });

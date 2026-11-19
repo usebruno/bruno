@@ -2095,6 +2095,124 @@ const selectRequestPaneTab = async (page: Page, tabName: string) => {
   await selectPaneTab(page, '[data-testid="request-pane"] > .px-4', tabName);
 };
 
+const authFieldEditor = (page: Page, testId: string) => page.getByTestId(testId).locator('.CodeMirror').first();
+
+export const oauthField = {
+  clientId: 'oauth2-client-credentials-clientId',
+  clientSecret: 'oauth2-client-credentials-clientSecret'
+};
+
+export const oauthGrantType = {
+  clientCredentials: 'Client Credentials'
+};
+
+export type OAuth2ClientCredentials = {
+  clientId: string;
+  clientSecret: string;
+};
+
+/**
+ * Select OAuth 2.0 Client Credentials on the open request and fill the client id and secret.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Client id and client secret
+ */
+export const configureOAuth2ClientCredentials = async (page: Page, auth: OAuth2ClientCredentials) => {
+  await test.step('Configure OAuth 2.0 Client Credentials auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    const grantType = page.getByTestId('grant-type-dropdown');
+
+    await page.getByTestId('auth-mode-label').click();
+    await page.getByTestId('auth-mode-dropdown-oauth2').click();
+    await expect(grantType).toContainText('Authorization Code');
+
+    await grantType.click();
+    await page.getByTestId('grant-type-dropdown-client_credentials').click();
+    await expect(grantType).toContainText(oauthGrantType.clientCredentials);
+
+    await writeCodeMirrorValue(authFieldEditor(page, oauthField.clientId), auth.clientId);
+    await writeCodeMirrorValue(authFieldEditor(page, oauthField.clientSecret), auth.clientSecret);
+  });
+};
+
+export const digestField = {
+  username: 'auth-digest-username',
+  password: 'auth-digest-password'
+};
+
+export type DigestAuth = {
+  username: string;
+  password: string;
+};
+
+/**
+ * Select Digest auth on the open request and fill the username and password.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Digest username and password
+ */
+export const configureDigestAuth = async (page: Page, auth: DigestAuth) => {
+  await test.step('Configure Digest auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await page.getByTestId('auth-mode-label').click();
+    await page.getByTestId('auth-mode-dropdown-digest').click();
+
+    await writeCodeMirrorValue(authFieldEditor(page, digestField.username), auth.username);
+    await writeCodeMirrorValue(authFieldEditor(page, digestField.password), auth.password);
+  });
+};
+
+export const bearerField = {
+  token: 'auth-bearer-token'
+};
+
+export type BearerAuth = {
+  token: string;
+};
+
+/**
+ * Select Bearer Token auth on the open request and fill the token.
+ * Works for any request type that shares the Auth tab. The token may contain a `{{variable}}` token.
+ * @param page - The page object
+ * @param auth - Bearer token
+ */
+export const configureBearerAuth = async (page: Page, auth: BearerAuth) => {
+  await test.step('Configure Bearer Token auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await page.getByTestId('auth-mode-label').click();
+    await page.getByTestId('auth-mode-dropdown-bearer').click();
+
+    await writeCodeMirrorValue(authFieldEditor(page, bearerField.token), auth.token);
+  });
+};
+
+export const basicField = {
+  username: 'auth-basic-username',
+  password: 'auth-basic-password'
+};
+
+export type BasicAuth = {
+  username: string;
+  password: string;
+};
+
+/**
+ * Select Basic auth on the open request and fill the username and password.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Basic username and password
+ */
+export const configureBasicAuth = async (page: Page, auth: BasicAuth) => {
+  await test.step('Configure Basic auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    await page.getByTestId('auth-mode-label').click();
+    await page.getByTestId('auth-mode-dropdown-basic').click();
+
+    await writeCodeMirrorValue(authFieldEditor(page, basicField.username), auth.username);
+    await writeCodeMirrorValue(authFieldEditor(page, basicField.password), auth.password);
+  });
+};
+
 /**
  * Open a sidebar request's Settings tab and assert its Max Redirects value, as rendered.
  * `expected` is the on-screen text, so a large ceiling is its serialized form (e.g. '1e+31').
