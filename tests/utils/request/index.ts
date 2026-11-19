@@ -70,6 +70,14 @@ export const buildRequestLocators = (page: Page) => ({
     addRow: () => page.getByTestId('request-header-add-row'),
     count: () => page.getByTestId('request-pane').getByTestId('responsive-tab-headers').getByTestId('request-headers-count'),
     nameCell: (row: Locator) => row.getByTestId('column-name'),
+    valueCell: (row: Locator) => row.getByTestId('column-value'),
+    checkbox: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
+    cellText: (name: string, column: 'name' | 'value') =>
+      page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
+    keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor').locator('.CodeMirror-line'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -167,6 +175,17 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
   const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
   await valueEditor.click();
   await page.keyboard.type(value);
+};
+
+/**
+ * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
+ */
+export const appendRequestHeadersToBulkEditor = async (page: Page, lines: string[]) => {
+  const { headers } = buildRequestLocators(page);
+  const editor = headers.bulkEditor();
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
 /**
