@@ -90,10 +90,10 @@ const Sidebar = () => {
     }
     const rawWidth = e.clientX + 2;
     if (rawWidth < COLLAPSE_THRESHOLD) {
-      if (!dragCollapsed) setDragCollapsed(true);
+      setDragCollapsed(true);
       return;
     }
-    if (dragCollapsed) setDragCollapsed(false);
+    setDragCollapsed(false);
     const nextWidth = clamp(rawWidth, MIN_LEFT_SIDEBAR_WIDTH, MAX_LEFT_SIDEBAR_WIDTH);
     if (Math.abs(nextWidth - lastWidthRef.current) < 3) return;
     lastWidthRef.current = nextWidth;
@@ -105,7 +105,7 @@ const Sidebar = () => {
     setDragging(false);
     setDragCollapsed(false);
     // A plain click on the collapsed handle re-opens the sidebar
-    const shouldCollapse = movedRef.current ? dragCollapsed : false;
+    const shouldCollapse = movedRef.current && e.clientX + 2 < COLLAPSE_THRESHOLD;
     if (!!store.getState().app.sidebarCollapsed !== shouldCollapse) {
       dispatch(toggleSidebarCollapse());
     }
@@ -113,10 +113,10 @@ const Sidebar = () => {
     if (!shouldCollapse) {
       dispatch(
         updateLeftSidebarWidth({
-          leftSidebarWidth: asideWidth
+          leftSidebarWidth: lastWidthRef.current
         })
       );
-      setLocalStorageValue(SIDEBAR_WIDTH_KEY, asideWidth);
+      setLocalStorageValue(SIDEBAR_WIDTH_KEY, lastWidthRef.current);
     }
     dispatch(
       updateIsDragging({
@@ -148,7 +148,7 @@ const Sidebar = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging, asideWidth, dragCollapsed]);
+  }, [dragging]);
 
   if (leftSidebarWidth === null || sidebarCollapsed === null) {
     return null;
