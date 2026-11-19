@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-// TLS compatibility setting: keeps HTTPS working with older servers.
+// TLS compatibility: keep working with older servers while advertising X25519MLKEM768.
 //
-// Newer Node versions start secure connections in a way that some older
-// servers (for example, old nginx setups) can't handle, so requests fail.
-// This setting keeps the older, widely supported behaviour.
+// OpenSSL can advertise the group without a key share; BoringSSL cannot and retries instead.
+// See configureHybridTlsDefaults in bruno-requests/src/utils/hybrid-key-exchange.ts.
 //
-// WARNING (reaper): removing this is a BREAKING CHANGE. Mark that release as
-// breaking, because requests to those older servers will start failing.
-require('node:tls').DEFAULT_ECDH_CURVE = 'X25519:P-256:X448:P-521:P-384:ffdhe2048:ffdhe3072:ffdhe4096:ffdhe6144:ffdhe8192';
+// WARNING (reaper): removing this is a BREAKING CHANGE. Mark that release as breaking, because
+// requests to those older servers will start failing.
+const { configureHybridTlsDefaults } = require('@usebruno/requests');
+configureHybridTlsDefaults();
 
 require('../src').run();
