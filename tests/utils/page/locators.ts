@@ -33,6 +33,7 @@ import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
 import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
+import { buildUnsavedChangesModalLocators } from './unsaved-changes-modal';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
 
@@ -83,6 +84,7 @@ export const buildCommonLocators = (page: Page) => ({
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
   environment: buildEnvironmentLocators(page),
+  unsavedChangesModal: buildUnsavedChangesModalLocators(page),
   variablesTab: buildVariablesTabLocators(page),
   actions: {
     collectionActions: (collectionName: string) =>
@@ -100,6 +102,7 @@ export const buildCommonLocators = (page: Page) => ({
   },
   tabs: {
     allRequestTabs: () => page.locator('.request-tab'),
+    tabByName: (name: string) => page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) }),
     requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
     folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
     collectionSettingsTab: () =>
@@ -116,7 +119,9 @@ export const buildCommonLocators = (page: Page) => ({
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
     activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
-    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
+    tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+    tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient'),
+    tabLabel: (tab: Locator) => tab.locator('.tab-label')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
