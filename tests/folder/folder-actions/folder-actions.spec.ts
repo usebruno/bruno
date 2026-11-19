@@ -160,7 +160,7 @@ test.describe('Folder actions', () => {
       for (const { name, url } of requests) {
         await expect(sidebar.itemInFolder(pastedFolderName, name)).toBeVisible();
         await sidebar.itemInFolder(pastedFolderName, name).click();
-        await expect(request.urlLine()).toContainText(url);
+        await expect(request.urlLine()).toHaveText(url);
       }
     });
 
@@ -169,7 +169,7 @@ test.describe('Folder actions', () => {
       for (const { name, url } of requests) {
         await expect(sidebar.itemInFolder(folderName, name)).toBeVisible();
         await sidebar.itemInFolder(folderName, name).click();
-        await expect(request.urlLine()).toContainText(url);
+        await expect(request.urlLine()).toHaveText(url);
       }
     });
   });
