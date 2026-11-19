@@ -44,8 +44,8 @@ jest.mock('components/RequestPane/SendButton', () => {
   };
 });
 
-jest.mock('components/ToolHint', () => {
-  return function MockToolHint({ children }) {
+jest.mock('ui/Tooltip', () => {
+  return function MockTooltip({ children }) {
     return <>{children}</>;
   };
 });

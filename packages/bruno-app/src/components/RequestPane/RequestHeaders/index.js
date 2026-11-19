@@ -20,14 +20,13 @@ import {
 } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab, setFocusTableRow, updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
-import { Tooltip } from 'react-tooltip';
 import SingleLineEditor from 'components/SingleLineEditor';
 import EditableTable from 'components/EditableTable';
 import { createDescriptionColumn } from 'components/EditableTable/descriptionColumn';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
-import Portal from 'ui/Portal';
+import Tooltip from 'ui/Tooltip';
 import BulkEditor from '../../BulkEditor';
 import { headerNameRegex, headerValueRegex } from 'utils/common/regex';
 import { usePersistedState } from 'hooks/usePersistedState';
@@ -45,34 +44,6 @@ const ROW_TYPE = {
 };
 
 const isRequestRow = (row) => !row.rowType || row.rowType === ROW_TYPE.REQUEST;
-
-/** Portaled so overflow-hidden table cells cannot clip the hint. */
-const HEADER_HINT_STYLE = {
-  maxWidth: 220,
-  whiteSpace: 'normal',
-  overflowWrap: 'break-word',
-  wordWrap: 'break-word'
-};
-
-const HeaderHint = ({ id, text, className, place = 'top', testId, tooltipTestId, children }) => (
-  <>
-    <span id={id} className={className} data-testid={testId}>
-      {children}
-    </span>
-    <Portal>
-      <Tooltip
-        anchorId={id}
-        className="tooltip-mod"
-        content={text}
-        place={place}
-        positionStrategy="fixed"
-        opacity={1}
-        style={HEADER_HINT_STYLE}
-        render={tooltipTestId ? ({ content }) => <span data-testid={tooltipTestId}>{content}</span> : undefined}
-      />
-    </Portal>
-  </>
-);
 
 const getDefaultHeaderValue = (header, requestUrl) => {
   if (header.name === 'User-Agent') {
@@ -366,12 +337,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         : `collection “${sourceName}”`;
 
       return (
-        <HeaderHint
-          id={`inherited-header-source-hint-${row.uid}`}
-          text={`Open headers in ${sourceLabel}`}
-          className="inherited-header-source"
-          place="top-end"
-        >
+        <Tooltip content={`Open headers in ${sourceLabel}`} className="inherited-header-source" place="top-end">
           <button
             type="button"
             aria-label={`Open headers in ${sourceLabel}`}
@@ -380,7 +346,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           >
             <IconExternalLink size={16} strokeWidth={1.5} />
           </button>
-        </HeaderHint>
+        </Tooltip>
       );
     }
 
@@ -389,14 +355,12 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
     }
 
     return (
-      <HeaderHint
-        id={`default-header-info-hint-${row.uid}`}
-        text={row.omittable
+      <Tooltip
+        content={row.omittable
           ? 'Automatically added at runtime'
           : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
         className="default-header-info"
-        testId={`default-header-info-${row.name.toLowerCase()}`}
-        tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
+        data-testid={`default-header-info-${row.name.toLowerCase()}`}
         place="top-end"
       >
         <button
@@ -407,7 +371,7 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
         >
           <IconInfoCircle size={18} strokeWidth={1.5} aria-hidden="true" />
         </button>
-      </HeaderHint>
+      </Tooltip>
     );
   }, [navigateToHeaderSource]);
 

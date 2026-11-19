@@ -41,7 +41,7 @@ import MenuDropdown from 'ui/MenuDropdown';
 import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
@@ -695,7 +695,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
             <>
               {appAvailable && (
                 <div className="mode-toggle" data-testid="view-mode-toggle">
-                  <ToolHint text="Request" toolhintId="ViewModeRequestToolhintId" place="bottom">
+                  <Tooltip content="Request" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-request"
@@ -708,8 +708,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     >
                       <IconCode size={16} strokeWidth={1.5} />
                     </button>
-                  </ToolHint>
-                  <ToolHint text="App" toolhintId="ViewModeAppToolhintId" place="bottom">
+                  </Tooltip>
+                  <Tooltip content="App" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-app"
@@ -722,8 +722,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     >
                       <IconAppWindow size={16} strokeWidth={1.5} />
                     </button>
-                  </ToolHint>
-                  <ToolHint text="File" toolhintId="ViewModeFileToolhintId" place="bottom">
+                  </Tooltip>
+                  <Tooltip content="File" place="bottom">
                     <button
                       type="button"
                       data-testid="view-mode-file"
@@ -736,11 +736,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     >
                       <IconFileCode size={16} strokeWidth={1.5} />
                     </button>
-                  </ToolHint>
+                  </Tooltip>
                 </div>
               )}
               {isAiEnabled && (
-                <ToolHint text="AI Assistant" toolhintId="AiAssistantToolhintId" place="bottom">
+                <Tooltip content="AI Assistant" place="bottom">
                   <ActionIcon
                     onClick={() => dispatch(toggleAiSidebar())}
                     aria-label="AI Assistant"
@@ -750,7 +750,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   >
                     <IconSparkles size={16} strokeWidth={1.5} />
                   </ActionIcon>
-                </ToolHint>
+                </Tooltip>
               )}
               {collection.format === 'bru' && !migratePillDismissed && (
                 <div
@@ -779,9 +779,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               )}
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
-                <ToolHint
-                  text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
-                  toolhintId="OpenApiSyncToolhintId"
+                <Tooltip
+                  content={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                   place="bottom"
                 >
                   <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
@@ -790,14 +789,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                       <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
                     )}
                   </ActionIcon>
-                </ToolHint>
+                </Tooltip>
               )}
               {/* Runner - always visible */}
-              <ToolHint text="Runner" toolhintId="RunnerToolhintId" place="bottom">
+              <Tooltip content="Runner" place="bottom">
                 <ActionIcon onClick={handleRun} aria-label="Runner" size="sm" data-testid="runner">
                   <IconRun size={16} strokeWidth={1.5} />
                 </ActionIcon>
-              </ToolHint>
+              </Tooltip>
               {/* JS Sandbox Mode - always visible */}
               <JsSandboxMode collection={collection} />
               {/* Overflow menu */}

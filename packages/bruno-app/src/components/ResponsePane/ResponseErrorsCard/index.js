@@ -9,7 +9,7 @@ import {
   IconX
 } from '@tabler/icons';
 
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import ActionIcon from 'ui/ActionIcon';
 import useExpandedRows from 'hooks/useExpandedRows';
 import useTooltipId from 'hooks/useTooltipId';
@@ -68,7 +68,7 @@ const ResponseErrorsCard = ({ errors, item, collection, isCardFullPane, onToggle
       <div className="card-body scrollbar-hover" data-testid="response-errors-body">
         {body}
       </div>
-      <ToolHint tooltipId={tooltipId} place="top" positionStrategy="fixed" />
+      <Tooltip id={tooltipId} />
     </StyledWrapper>
   );
 };

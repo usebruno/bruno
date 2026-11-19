@@ -1,7 +1,7 @@
 import { IconTrash, IconSend, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import { resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import CodeEditor from 'components/CodeEditor/index';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 import { get } from 'lodash';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -57,7 +57,6 @@ export const SingleWSMessage = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(displayName);
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
-  const labelTooltipId = `ws-msg-label-${message.uid ?? index}`;
 
   // Auto-focus the name input when this is a newly created message
   useEffect(() => {
@@ -222,14 +221,12 @@ export const SingleWSMessage = ({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <ToolHint
-              text={displayName}
-              toolhintId={labelTooltipId}
+            <Tooltip
+              content={displayName}
               className="message-label-anchor"
               place="bottom-start"
-              positionStrategy="fixed"
-              tooltipTestId="ws-message-name-tooltip"
-              tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}
+              data-testid="ws-message-name"
+              maxWidth="320px"
             >
               <span
                 className="message-label"
@@ -239,22 +236,22 @@ export const SingleWSMessage = ({
               >
                 {displayName}
               </span>
-            </ToolHint>
+            </Tooltip>
           )}
         </div>
         <div className="accordion-actions" onClick={(e) => e.stopPropagation()}>
           <div className="hover-actions">
-            <ToolHint text="Send" toolhintId={`send-msg-${index}`} place="bottom">
+            <Tooltip content="Send" place="bottom">
               <button onClick={onSendMessage} className="hover-action-btn" data-testid={`ws-send-msg-${index}`}>
                 <IconSend size={14} strokeWidth={1.5} />
               </button>
-            </ToolHint>
+            </Tooltip>
             {(body.ws || []).length > 1 && (
-              <ToolHint text="Delete" toolhintId={`delete-msg-${index}`} place="bottom">
+              <Tooltip content="Delete" place="bottom">
                 <button onClick={onDeleteMessage} className="hover-action-btn delete" data-testid={`ws-delete-msg-${index}`}>
                   <IconTrash size={14} strokeWidth={1.5} />
                 </button>
-              </ToolHint>
+              </Tooltip>
             )}
           </div>
           <WSRequestBodyMode mode={displayMode} onModeChange={onUpdateMessageType} />

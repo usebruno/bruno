@@ -9,7 +9,7 @@ import ToggleSwitch from 'components/ToggleSwitch/index';
 import { IconInfoCircle } from '@tabler/icons';
 import moment from 'moment';
 import 'moment-timezone';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import { isEmpty } from 'lodash';
 import StyledWrapper from './StyledWrapper';
 
@@ -235,8 +235,7 @@ const ModifyCookieModal = ({ onClose, domain, cookie }) => {
                 <IconInfoCircle id="cookie-raw-info" size={16} strokeWidth={1.5} className="info-icon" />
                 <Tooltip
                   anchorId="cookie-raw-info"
-                  className="tooltip-mod"
-                  html="Key, Path, and Domain are immutable properties and cannot be modified for existing cookies"
+                  content="Key, Path, and Domain are immutable properties and cannot be modified for existing cookies"
                 />
               </div>
               <textarea

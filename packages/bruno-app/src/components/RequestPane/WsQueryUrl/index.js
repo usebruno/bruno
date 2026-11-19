@@ -12,7 +12,7 @@ import { isMacOS } from 'utils/common/platform';
 import { hasRequestChanges, getAllVariables } from 'utils/collections';
 import { closeWsConnection, getWsConnectionStatus } from 'utils/network/index';
 import StyledWrapper from './StyledWrapper';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import { interpolateUrl } from 'utils/url';
 import useDebounce from 'hooks/useDebounce';
 import get from 'lodash/get';
@@ -139,7 +139,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
             item={item}
           />
           <div className="flex items-center h-full cursor-pointer gap-3 mx-3">
-            <ToolHint text={`Save (${saveShortcut})`} toolhintId="ws-save-request" place="top" positionStrategy="fixed">
+            <Tooltip content="Save" shortcut={saveShortcut}>
               <div
                 className="flex items-center"
                 data-testid="save-request-button"
@@ -156,11 +156,11 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                   className={`${hasChanges ? 'cursor-pointer' : 'cursor-default'}`}
                 />
               </div>
-            </ToolHint>
+            </Tooltip>
 
             {(connectionStatus === CONNECTION_STATUS.CONNECTED || connectionStatus === CONNECTION_STATUS.DISCONNECTING) && (
               <div className="connection-controls relative flex items-center h-full">
-                <ToolHint text={connectionStatus === CONNECTION_STATUS.DISCONNECTING ? 'Disconnecting...' : 'Close Connection'} toolhintId="ws-close-connection" place="top" positionStrategy="fixed">
+                <Tooltip content={connectionStatus === CONNECTION_STATUS.DISCONNECTING ? 'Disconnecting...' : 'Close Connection'}>
                   <div className="flex items-center" onClick={(e) => connectionStatus === CONNECTION_STATUS.CONNECTED ? handleDisconnect(e, true) : null} data-testid="ws-disconnect-button">
                     <IconPlugConnectedX
                       color={theme.colors.text.danger}
@@ -171,13 +171,13 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                       })}
                     />
                   </div>
-                </ToolHint>
+                </Tooltip>
               </div>
             )}
 
             {(connectionStatus === CONNECTION_STATUS.CONNECTING || connectionStatus === CONNECTION_STATUS.DISCONNECTED) && (
               <div className="connection-controls relative flex items-center h-full">
-                <ToolHint text="Connect" toolhintId="ws-connect" place="top" positionStrategy="fixed">
+                <Tooltip content="Connect">
                   <div className="flex items-center" onClick={handleConnect} data-testid="ws-connect-button">
                     <IconPlugConnected
                       className={classnames('cursor-pointer', {
@@ -188,7 +188,7 @@ const WsQueryUrl = ({ item, collection, handleRun }) => {
                       size={20}
                     />
                   </div>
-                </ToolHint>
+                </Tooltip>
               </div>
             )}
           </div>

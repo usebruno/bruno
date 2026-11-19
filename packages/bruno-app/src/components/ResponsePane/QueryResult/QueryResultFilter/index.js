@@ -1,6 +1,6 @@
 import { IconFilter, IconX } from '@tabler/icons';
 import React, { useMemo, useRef, useState } from 'react';
-import { Tooltip as ReactInfotip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 
 const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, mode }) => {
   const inputRef = useRef(null);
@@ -27,7 +27,7 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
     }
   };
 
-  const infotipText = useMemo(() => {
+  const tooltipText = useMemo(() => {
     if (mode.includes('json')) {
       return 'Filter with JSONPath';
     }
@@ -55,7 +55,7 @@ const QueryResultFilter = ({ filter, filterExpanded, onChange, onExpandChange, m
     <div
       className="response-filter absolute bottom-2 w-full justify-end right-0 flex flex-row items-center gap-2 py-4 px-2 pointer-events-none"
     >
-      {infotipText && !isExpanded && <ReactInfotip anchorId="request-filter-icon" html={infotipText} />}
+      {tooltipText && !isExpanded && <Tooltip anchorId="request-filter-icon" content={tooltipText} />}
       <input
         ref={inputRef}
         type="text"

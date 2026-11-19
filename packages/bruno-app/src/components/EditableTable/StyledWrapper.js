@@ -225,13 +225,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .tooltip-mod {
-    max-width: 200px !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    white-space: normal !important;
-  }
-
   input[type='text'] {
     width: 100%;
     outline: none !important;

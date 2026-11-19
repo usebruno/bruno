@@ -36,7 +36,7 @@ test.describe('Rich Text Editor Edge Cases - Line Formatting', () => {
 
     await boldButton.hover();
 
-    await expect(locators.docs.tooltip('Bold')).toBeVisible();
+    await expect(locators.tooltip('Bold')).toBeVisible();
   });
 
   test('Text Formatting and Undo/Redo', async ({ page, createTmpDir }) => {

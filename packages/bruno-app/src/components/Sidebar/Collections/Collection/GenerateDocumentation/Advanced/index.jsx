@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 import { IconChevronRight, IconListCheck, IconGitBranch, IconInfoCircle } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import ToggleSwitch from 'components/ToggleSwitch';
 import RadioButton from 'components/RadioButton';
 import IncludeExcludeTags from 'components/IncludeExcludeTags';
@@ -80,7 +80,7 @@ const Advanced = ({
                 </div>
               </div>
 
-              <Tooltip id="docs-tags-hint" className="adv-hint-tooltip" />
+              <Tooltip id="docs-tags-hint" maxWidth="16rem" />
 
               {filterByTags && (
                 <IncludeExcludeTags

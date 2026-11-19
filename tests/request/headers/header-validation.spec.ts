@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import { closeAllCollections, createCollection, createRequest, openCollection, openRequest, saveRequest, selectRequestPaneTab } from '../../utils/page';
-import { getTableCell } from '../../utils/page/locators';
+import { buildCommonLocators, getTableCell } from '../../utils/page/locators';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
@@ -25,6 +25,8 @@ test.describe.serial('Header Validation', () => {
   });
 
   test('should show error icon when header name contains spaces', async ({ page, createTmpDir }) => {
+    const locators = buildCommonLocators(page);
+
     await test.step('Navigate to Headers tab', async () => {
       await selectRequestPaneTab(page, 'Headers');
     });
@@ -45,8 +47,7 @@ test.describe.serial('Header Validation', () => {
       await errorIcon.hover();
 
       // Verify the tooltip message
-      const tooltip = page.locator('.tooltip-mod');
-      await expect(tooltip).toContainText('Header name cannot contain spaces or newlines');
+      await expect(locators.tooltip('Header name cannot contain spaces or newlines')).toBeVisible();
     });
 
     await test.step('Enter valid header name and verify no error icon', async () => {
@@ -68,6 +69,8 @@ test.describe.serial('Header Validation', () => {
   });
 
   test('should show error icon when header value contains newlines', async ({ page }) => {
+    const locators = buildCommonLocators(page);
+
     await test.step('Navigate to Headers tab', async () => {
       await selectRequestPaneTab(page, 'Headers');
     });
@@ -88,8 +91,7 @@ test.describe.serial('Header Validation', () => {
       await errorIcon.hover();
 
       // Verify the tooltip message
-      const tooltip = page.locator('.tooltip-mod');
-      await expect(tooltip).toContainText('Header value cannot contain newlines');
+      await expect(locators.tooltip('Header value cannot contain newlines')).toBeVisible();
 
       // Save the request
       await page.keyboard.press(saveShortcut);

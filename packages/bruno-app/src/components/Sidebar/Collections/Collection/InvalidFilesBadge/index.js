@@ -1,5 +1,5 @@
 import { useDispatch } from 'react-redux';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { REQUESTS_NOT_LOADED_ID } from 'components/CollectionSettings/Overview/RequestsNotLoaded';
@@ -33,22 +33,21 @@ const InvalidFilesBadge = ({ count, collectionUid, rowUid }) => {
       <span onClick={stopRowEvent} onContextMenu={stopRowEvent}>
         <Tooltip
           id={tooltipId}
-          className="tooltip-mod"
+          variant="rich"
           place="bottom-start"
-          positionStrategy="fixed"
-          delayShow={200}
           clickable
-          noArrow
-          opacity={1}
-        >
-          <span data-testid="invalid-files-tooltip">
-            You have {count} invalid {count === 1 ? 'file' : 'files'}.
-            {' '}
-            <button type="button" className="text-link hover:underline" onClick={handleSeeHere} data-testid="invalid-files-see-here">
-              See here
-            </button>
-          </span>
-        </Tooltip>
+          arrow={false}
+          data-testid="invalid-files"
+          content={(
+            <>
+              You have {count} invalid {count === 1 ? 'file' : 'files'}.
+              {' '}
+              <button type="button" className="text-link" onClick={handleSeeHere} data-testid="invalid-files-see-here">
+                See here
+              </button>
+            </>
+          )}
+        />
       </span>
     </StyledWrapper>
   );

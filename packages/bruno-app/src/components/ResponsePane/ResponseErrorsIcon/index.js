@@ -1,18 +1,18 @@
 import React from 'react';
 import { IconAlertCircle } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import useTooltipId from 'hooks/useTooltipId';
 import { pluralizeWord } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseErrorsIcon = ({ count, onClick }) => {
-  const toolhintId = useTooltipId('response-errors-icon');
+  const anchorId = useTooltipId('response-errors-icon');
 
   return (
     <>
       <StyledWrapper
         type="button"
-        id={toolhintId}
+        id={anchorId}
         data-testid="response-errors-icon"
         onClick={onClick}
         aria-label={`Show ${count} ${pluralizeWord('error', count)}`}
@@ -20,7 +20,7 @@ const ResponseErrorsIcon = ({ count, onClick }) => {
         <IconAlertCircle size={16} strokeWidth={1.5} />
         <sup className="font-medium" data-testid="response-errors-icon-count">{count}</sup>
       </StyledWrapper>
-      <ToolHint toolhintId={toolhintId} text={`Show ${pluralizeWord('error', count)}`} place="bottom" />
+      <Tooltip anchorId={anchorId} content={`Show ${pluralizeWord('error', count)}`} place="bottom" />
     </>
   );
 };

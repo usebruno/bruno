@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Tippy from '@tippyjs/react';
 import { IconCheck, IconSun, IconMoon, IconDeviceDesktop } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import { useTheme } from 'providers/Theme';
 import { getLightThemes, getDarkThemes } from 'themes/index';
 import StyledWrapper from './StyledWrapper';
@@ -292,7 +292,7 @@ const ThemeDropdown = ({ children }) => {
   );
 
   return (
-    <ToolHint text="Theme" toolhintId="ThemeDropdown" place="top" offset={10} hidden={!tooltipEnabled}>
+    <Tooltip content="Theme" offset={10} hidden={!tooltipEnabled}>
       <Tippy
         content={menuContent}
         placement="top-start"
@@ -307,7 +307,7 @@ const ThemeDropdown = ({ children }) => {
           {children}
         </div>
       </Tippy>
-    </ToolHint>
+    </Tooltip>
   );
 };
 

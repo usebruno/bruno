@@ -340,10 +340,6 @@ const StyledWrapper = styled.div`
     opacity: 1;
   }
 
-  .tooltip-mod.tooltip-mod--error {
-    color: ${(props) => props.theme.status.danger.text} !important;
-  }
-
   .empty-state {
     padding: 12px 2px;
     color: ${(props) => props.theme.text};

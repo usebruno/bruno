@@ -4,7 +4,7 @@ import { selectActiveTab } from 'src/selectors/tab';
 import { IconSettings, IconCookie, IconTool, IconSearch, IconPalette, IconBrandGithub } from '@tabler/icons';
 import Mousetrap from 'mousetrap';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import Cookies from 'components/Cookies';
 import Notifications from 'components/Notifications';
 import Portal from 'components/Portal';
@@ -70,7 +70,7 @@ const StatusBar = () => {
       <div className="status-bar">
         <div className="status-bar-section">
           <div className="status-bar-group">
-            <ToolHint text="Preferences" toolhintId="Preferences" place="top-start" offset={10}>
+            <Tooltip content="Preferences" place="top-start" offset={10}>
               <button
                 className="status-bar-button preferences-button"
                 data-trigger="preferences"
@@ -80,7 +80,7 @@ const StatusBar = () => {
               >
                 <IconSettings size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
-            </ToolHint>
+            </Tooltip>
 
             <ThemeDropdown>
               <button
@@ -93,13 +93,13 @@ const StatusBar = () => {
               </button>
             </ThemeDropdown>
 
-            <ToolHint text="Notifications" toolhintId="Notifications" place="top" offset={10}>
+            <Tooltip content="Notifications" offset={10}>
               <div className="status-bar-button">
                 <Notifications />
               </div>
-            </ToolHint>
+            </Tooltip>
 
-            <ToolHint text="GitHub Repository" toolhintId="GitHub" place="top" offset={10}>
+            <Tooltip content="GitHub Repository" offset={10}>
               <button
                 className="status-bar-button"
                 onClick={() => {
@@ -110,7 +110,7 @@ const StatusBar = () => {
               >
                 <IconBrandGithub size={16} strokeWidth={1.5} aria-hidden="true" />
               </button>
-            </ToolHint>
+            </Tooltip>
           </div>
         </div>
 

@@ -1,15 +1,18 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import Help from './index';
 
-// Minimal theme with the tokens Help's StyledWrapper reads.
+// Minimal theme with the tokens ui/Tooltip reads.
 const theme = {
+  font: { size: { xs: '0.6875rem' } },
+  border: { radius: { sm: '4px', base: '6px' }, border1: '#e5e5e5' },
+  infoTip: { bg: '#ffffff', border: '#e5e5e5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
+  colors: { text: { muted: '#838383', subtext2: '#666666' } },
   text: '#343434',
-  font: { size: { sm: '0.75rem' } },
-  infoTip: { bg: '#ffffff', border: '1px solid #cccccc', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' }
+  bg: '#ffffff'
 };
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
@@ -43,7 +46,7 @@ describe('Help', () => {
     expect(await screen.findByText('Helpful text')).toBeInTheDocument();
 
     await user.unhover(trigger);
-    expect(screen.queryByText('Helpful text')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Helpful text')).not.toBeInTheDocument());
   });
 
   it('renders a custom icon component', () => {

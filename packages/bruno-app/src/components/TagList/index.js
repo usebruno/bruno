@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { IconX, IconTag, IconFolder, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 import { useTheme } from 'providers/Theme/index';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
@@ -110,15 +110,14 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
             <ul className="flex flex-wrap gap-1" data-testid="inherited-tag-list">
               {inheritedTags.map(({ tag, folder }, index) => (
                 <li key={`inherited-${tag}`}>
-                  <ToolHint
-                    text={`Inherited from folder "${folder.name}"`}
-                    toolhintId={`inherited-tag-${folder.uid}-${index}`}
+                  <Tooltip
+                    content={`Inherited from folder "${folder.name}"`}
                     className="tag-item inherited"
-                    dataTestId="inherited-tag"
+                    data-testid="inherited-tag"
                   >
                     <IconFolder size={12} className="tag-icon" aria-hidden="true" />
                     <span className="tag-text">{tag}</span>
-                  </ToolHint>
+                  </Tooltip>
                 </li>
               ))}
             </ul>

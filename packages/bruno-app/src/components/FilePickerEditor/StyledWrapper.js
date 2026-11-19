@@ -88,17 +88,6 @@ const StyledWrapper = styled.div`
       margin-right: 4px;
     }
 
-    .warning-tooltip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      svg {
-        color: ${(props) => props.theme.status.warning.text};
-        flex-shrink: 0;
-      }
-    }
-
     .file-name {
       flex: 1;
       font-size: 12px;

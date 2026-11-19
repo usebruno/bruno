@@ -81,11 +81,11 @@ test.describe('Folder Tags (YAML) — inheritance display', () => {
       await expect(locators.tags.inheritedItems()).toHaveCount(1);
       await expect(locators.tags.inheritedItem('api')).toBeVisible();
 
-      // react-tooltip renders into a portal after a show delay, so re-hover on each poll
+      // The tooltip appears after a show delay, so re-hover on each poll
       // rather than asserting once against a tooltip that may not have appeared yet.
       await expect(async () => {
         await locators.tags.inheritedItem('api').hover();
-        await expect(page.locator('.toolhint')).toContainText('Inherited from folder "api"', { timeout: 2000 });
+        await expect(locators.tooltip('Inherited from folder "api"')).toBeVisible({ timeout: 2000 });
       }).toPass({ timeout: 15000 });
     });
   });

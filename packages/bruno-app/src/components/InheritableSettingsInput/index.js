@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import FormField from 'ui/patterns/FormField';
 import StyledWrapper from './StyledWrapper';
 
@@ -118,7 +118,7 @@ const InheritableSettingsInput = ({
                   Inherit
                 </button>
                 {inheritTooltip && (
-                  <Tooltip anchorId={`${id}-inherit`} className="tooltip-mod font-normal" place="right" html={inheritTooltip} />
+                  <Tooltip anchorId={`${id}-inherit`} place="right" content={inheritTooltip} />
                 )}
               </>
             )}

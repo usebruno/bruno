@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import CodeMirrorSearch from './index';
 
-jest.mock('components/ToolHint', () => ({ children }) => <>{children}</>);
+jest.mock('ui/Tooltip', () => ({ children }) => <>{children}</>);
 
 const theme = {
   background: { base: '#1e1e1e' },

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { IconPlus, IconDownload, IconSettings } from '@tabler/icons';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import ColorBadge from 'components/ColorBadge';
 import SearchInput from 'components/SearchInput';
 
@@ -89,39 +89,27 @@ const EnvironmentListContent = ({
               <span className="w-2 shrink-0" />
               <span>No Environment</span>
             </div>
-            <ToolHint
-              tooltipId="environment-name-tooltip"
-              place="right"
-              positionStrategy="fixed"
-              tooltipStyle={{
-                maxWidth: '200px',
-                wordWrap: 'break-word'
-              }}
-              delayShow={1000}
-            >
-              <div>
-                {filteredEnvs.length === 0 && searchText ? (
-                  <div className="text-center text-xs opacity-50 py-2 italic" data-testid="env-no-results">
-                    No results found
-                  </div>
-                ) : (
-                  filteredEnvs.map((env) => (
-                    <div
-                      key={env.uid}
-                      className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
-                      onClick={() => onEnvironmentSelect(env)}
-                      data-tooltip-id="environment-name-tooltip"
-                      data-tooltip-content={env.name}
-                      data-tooltip-hidden={env.name?.length < 90}
-                      data-testid="env-list-item"
-                    >
-                      <ColorBadge color={env.color} size={8} />
-                      <span className="max-w-100% truncate no-wrap">{env.name}</span>
-                    </div>
-                  ))
-                )}
+            {filteredEnvs.length === 0 && searchText ? (
+              <div className="text-center text-xs opacity-50 py-2 italic" data-testid="env-no-results">
+                No results found
               </div>
-            </ToolHint>
+            ) : (
+              filteredEnvs.map((env) => (
+                <div
+                  key={env.uid}
+                  className={`dropdown-item ${env.uid === activeEnvironmentUid ? 'dropdown-item-active' : ''}`}
+                  onClick={() => onEnvironmentSelect(env)}
+                  data-tooltip-id="environment-name-tooltip"
+                  data-tooltip-content={env.name}
+                  data-tooltip-hidden={!env.name || env.name.length < 90}
+                  data-testid="env-list-item"
+                >
+                  <ColorBadge color={env.color} size={8} />
+                  <span className="max-w-100% truncate no-wrap">{env.name}</span>
+                </div>
+              ))
+            )}
+            <Tooltip id="environment-name-tooltip" place="right" maxWidth="200px" delayShow={1000} />
             <div className="dropdown-item configure-button">
               <button onClick={onSettingsClick} id="configure-env" data-testid="configure-env">
                 <IconSettings size={16} strokeWidth={1.5} />

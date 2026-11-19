@@ -25,7 +25,7 @@ import { BRUNO_VARIABLE_DATATYPES, valueToString, getDuplicateSecretNames } from
 import { variableNameRegex } from 'utils/common/regex';
 import { INVALID_VARIABLE_NAME_ERROR } from 'utils/common/variables';
 import toast from 'react-hot-toast';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import { getAllVariables, getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections';
 import {
   stripEnvVarUid,
@@ -236,7 +236,7 @@ const ErrorMessage = React.memo(({ id, error }) => {
   return (
     <span>
       <IconAlertCircle id={id} data-testid="env-var-name-error" className="text-red-600 cursor-pointer" size={20} />
-      <Tooltip className="tooltip-mod" anchorId={id} html={error} />
+      <Tooltip delayShow={0} anchorId={id} content={error} />
     </span>
   );
 });

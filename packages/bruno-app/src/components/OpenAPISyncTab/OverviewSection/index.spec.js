@@ -41,26 +41,26 @@ describe('OverviewSection', () => {
     expect(detailValue(getByText, 'Auth Placement')).toBe(label);
   });
 
-  it('explains Request Naming in a tooltip on its heading', () => {
-    const { getByText } = renderOverview({ requestNameSource: 'summary' });
+  it('explains Request Naming in a tooltip on its heading', async () => {
+    const { getByText, findByText } = renderOverview({ requestNameSource: 'summary' });
 
     fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
 
-    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
+    expect(await findByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
   });
 
   it.each([
     ['collection', 'Authentication is set at the collection level and inherited by each request.'],
     ['request', 'Authentication is set separately on each request.']
-  ])('explains the %s auth placement in a tooltip next to its value, not on the heading', (authPlacement, explanation) => {
-    const { getByText } = renderOverview({ authPlacement });
+  ])('explains the %s auth placement in a tooltip next to its value, not on the heading', async (authPlacement, explanation) => {
+    const { getByText, findByText } = renderOverview({ authPlacement });
     const value = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
 
     expect(getByText('Auth Placement').querySelector('svg')).toBeNull();
 
     fireEvent.mouseEnter(value.querySelector('svg').parentElement);
 
-    expect(getByText(explanation)).toBeInTheDocument();
+    expect(await findByText(explanation)).toBeInTheDocument();
   });
 
   it('hides naming and auth placement when the sync settings have neither', () => {
@@ -77,12 +77,12 @@ describe('OverviewSection', () => {
     expect(queryByText('Auto Check for Updates')).not.toBeInTheDocument();
   });
 
-  it('explains the auto-check interval in a tooltip on the badge', () => {
-    const { getByText } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
+  it('explains the auto-check interval in a tooltip on the badge', async () => {
+    const { getByText, findByText } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
 
     fireEvent.mouseEnter(getByText('Auto-check every 15 min').querySelector('svg').parentElement);
 
-    expect(getByText('Bruno checks the spec for changes every 15 minutes.', { exact: false })).toBeInTheDocument();
+    expect(await findByText('Bruno checks the spec for changes every 15 minutes.', { exact: false })).toBeInTheDocument();
   });
 
   it('shows that auto-check is off next to the last synced time', () => {

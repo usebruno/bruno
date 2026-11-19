@@ -78,7 +78,7 @@ export const buildRequestLocators = (page: Page) => ({
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
-    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-tooltip-${name.toLowerCase()}`)
+    defaultInfoTooltip: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}-tooltip`)
   },
   queryParams: buildQueryParamsLocators(page)
 });

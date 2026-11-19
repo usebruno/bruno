@@ -5,7 +5,7 @@ import { moveVar, setRequestVars } from 'providers/ReduxStore/slices/collections
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
 import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
@@ -91,7 +91,7 @@ const VarsTable = ({ item, collection, vars, varType, initialScroll = 0, isDraft
       name: varType === 'request' ? 'Value' : (
         <div className="flex items-center">
           <span>Expr</span>
-          <InfoTip className="tooltip-mod" content="You can write any valid JS expression here" infotipId={`request-${varType}-var`} />
+          <Help placement="top" className="ml-2">You can write any valid JS expression here</Help>
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',

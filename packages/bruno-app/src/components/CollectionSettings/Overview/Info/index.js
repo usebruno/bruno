@@ -7,7 +7,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import ChangeCollectionVersion from 'components/Sidebar/Collections/Collection/ChangeCollectionVersion';
-import ToolHint from 'components/ToolHint';
+import Tooltip from 'ui/Tooltip';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import StyledWrapper from './StyledWrapper';
 import Migration from '../Migration';
@@ -67,12 +67,10 @@ const Info = ({ collection }) => {
               <div className="font-medium h-fit my-auto">Version</div>
               <div className="flex flex-wrap items-center gap-2">
                 {collectionVersion ? (
-                  <ToolHint
-                    text={collectionVersion}
-                    toolhintId={`info-version-value-${collection.uid}`}
+                  <Tooltip
+                    content={collectionVersion}
                     hidden={!isVersionOverflowing}
-                    place="top"
-                    tooltipStyle={{ maxWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-all' }}
+                    maxWidth="320px"
                     className="version-value-wrap"
                   >
                     <span
@@ -83,7 +81,7 @@ const Info = ({ collection }) => {
                     >
                       {collectionVersion}
                     </span>
-                  </ToolHint>
+                  </Tooltip>
                 ) : (
                   <span className="text-muted italic" data-testid="info-version-value">Not Set</span>
                 )}

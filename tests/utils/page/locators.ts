@@ -46,6 +46,11 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
+  // Open tooltips only: a closing one stays in the DOM at opacity 0, which Playwright counts as visible.
+  tooltip: (text?: string) => {
+    const open = page.getByRole('tooltip').and(page.locator('.react-tooltip__show'));
+    return text ? open.filter({ hasText: text }) : open;
+  },
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   collectionApp: buildCollectionAppLocators(page),
@@ -280,7 +285,6 @@ export const buildCommonLocators = (page: Page) => ({
     advancedToggle: () => page.locator('.bruno-modal').getByTestId('docs-advanced-toggle'),
     allRequestsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-all'),
     filterByTagsRadio: () => page.locator('.bruno-modal').getByTestId('docs-requests-filter'),
-    tooltip: (text: string) => page.locator('.react-tooltip').filter({ hasText: text }),
     includeTagsInput: () => page.locator('.bruno-modal').getByLabel('Include Tags'),
     excludeTagsInput: () => page.locator('.bruno-modal').getByLabel('Exclude Tags'),
     tagChip: (name: string) => page.locator('.bruno-modal').getByTestId('tag-picker-item').filter({ hasText: name }),

@@ -11,18 +11,6 @@ const StyledWrapper = styled.div`
       border-color: ${(props) => props.theme.colors.text.danger};
     }
   }
-
-  .tooltip-mod {
-    width: 150px !important;
-
-    & ul {
-      padding-left: 4px;
-    }
-
-    & ul > li {
-      list-style: circle;
-    }
-  }
 `;
 
 export default StyledWrapper;

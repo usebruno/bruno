@@ -4,7 +4,7 @@ import { useTheme } from 'providers/Theme';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
 import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
@@ -78,7 +78,7 @@ const VarsTable = ({ collection, vars, varType, initialScroll = 0, isDraft }) =>
       name: varType === 'request' ? 'Value' : (
         <div className="flex items-center">
           <span>Expr</span>
-          <InfoTip content="You can write any valid JS Template Literal here" infotipId={`collection-${varType}-var`} />
+          <Help placement="top" className="ml-2">You can write any valid JS Template Literal here</Help>
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',

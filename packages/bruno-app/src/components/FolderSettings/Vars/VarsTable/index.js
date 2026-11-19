@@ -4,7 +4,7 @@ import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import MultiLineEditor from 'components/MultiLineEditor';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import DataTypeSelector from 'components/DataTypeSelector';
 import VarValueCell from 'components/VarValueCell';
 import SensitiveWarningPopover from 'components/SensitiveFieldWarning/SensitiveWarningPopover';
@@ -85,7 +85,7 @@ const VarsTable = ({ folder, collection, vars, varType, initialScroll = 0, isDra
       name: varType === 'request' ? 'Value' : (
         <div className="flex items-center">
           <span>Expr</span>
-          <InfoTip content="You can write any valid JS expression here" infotipId={`folder-${varType}-var`} />
+          <Help placement="top" className="ml-2">You can write any valid JS expression here</Help>
         </div>
       ),
       placeholder: varType === 'request' ? 'Value' : 'Expr',

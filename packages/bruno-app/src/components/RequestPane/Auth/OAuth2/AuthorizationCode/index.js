@@ -1,6 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
+import Tooltip from 'ui/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -17,11 +18,7 @@ import toast from 'react-hot-toast';
 const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection, folder, readOnly }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
-  const { storedTheme, theme } = useTheme();
-  const tooltipStyle = {
-    backgroundColor: theme?.background?.surface0,
-    color: theme?.text
-  };
+  const { storedTheme } = useTheme();
   const useSystemBrowser = get(preferences, 'request.oauth2.useSystemBrowser', false);
   const oAuth = get(request, 'auth.oauth2', {});
   const {
@@ -202,12 +199,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
             <label className="min-w-[140px] flex items-center gap-4">
               {label}
               {tooltip && (
-                <div className="relative group cursor-pointer inline-flex items-center">
+                <Tooltip content={tooltip} place="bottom" className="inline-flex cursor-pointer">
                   <IconHelp size={16} className="text-gray-500" />
-                  <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 top-full mt-1 w-max p-2 text-xs rounded-md transition-opacity duration-200 z-10" style={tooltipStyle}>
-                    {tooltip}
-                  </span>
-                </div>
+                </Tooltip>
               )}
             </label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
@@ -401,12 +395,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
         <label className="block min-w-[140px]">Automatically fetch token if not found</label>
         <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
+          <Tooltip content="Automatically fetch a new token when you try to access a resource and don't have one." place="top" className="inline-flex cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
-              Automatically fetch a new token when you try to access a resource and don't have one.
-            </span>
-          </div>
+          </Tooltip>
         </div>
       </div>
 
@@ -421,12 +412,9 @@ const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAu
         />
         <label className={`block min-w-[140px] ${isAutoRefreshDisabled ? 'text-gray-500' : ''}`}>Auto refresh token (with refresh URL)</label>
         <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
+          <Tooltip content="Automatically refresh your token using the refresh URL when it expires." place="top" className="inline-flex cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 text-xs rounded-md transition-opacity duration-200" style={tooltipStyle}>
-              Automatically refresh your token using the refresh URL when it expires.
-            </span>
-          </div>
+          </Tooltip>
         </div>
       </div>
       <AdditionalParams

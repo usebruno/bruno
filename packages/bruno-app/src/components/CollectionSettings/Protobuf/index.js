@@ -9,7 +9,7 @@ import {
   IconFolder
 } from '@tabler/icons';
 import { getBasename } from 'utils/common/path';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import useProtoFileManagement from '../../../hooks/useProtoFileManagement';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import Button from 'ui/Button';
@@ -120,11 +120,7 @@ const ProtobufSettings = ({ collection }) => {
               <span id="proto-files-tooltip" className="ml-2">
                 <IconAlertCircle size={16} className="tooltip-icon" />
               </span>
-              <Tooltip
-                anchorId="proto-files-tooltip"
-                className="tooltip-mod font-normal"
-                html="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection."
-              />
+              <Tooltip anchorId="proto-files-tooltip" content="Keep your proto files within the collection folder or the corresponding git repository to ensure paths remain valid when sharing the collection." />
             </label>
           </div>
         </div>
@@ -227,11 +223,7 @@ const ProtobufSettings = ({ collection }) => {
               <span id="import-paths-tooltip" className="ml-2">
                 <IconAlertCircle size={16} className="tooltip-icon" />
               </span>
-              <Tooltip
-                anchorId="import-paths-tooltip"
-                className="tooltip-mod font-normal"
-                html="Add directories that contain proto files to be imported. These paths help resolve import statements in your proto files."
-              />
+              <Tooltip anchorId="import-paths-tooltip" content="Add directories that contain proto files to be imported. These paths help resolve import statements in your proto files." />
             </label>
           </div>
         </div>

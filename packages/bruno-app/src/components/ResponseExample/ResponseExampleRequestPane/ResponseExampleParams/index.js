@@ -7,7 +7,7 @@ import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
 import EditableTable from 'components/EditableTable';
 import SingleLineEditor from 'components/SingleLineEditor';
 import BulkEditor from 'components/BulkEditor';
-import InfoTip from 'components/InfoTip';
+import Help from 'components/Help';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
@@ -227,7 +227,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
         <>
           <div className="mb-3 title text-xs font-bold flex items-stretch mt-4">
             <span>Path parameters</span>
-            <InfoTip infotipId="path-param-InfoTip">
+            <Help placement="top" className="ml-2" width={300}>
               <div>
                 Path variables are automatically added whenever the
                 <code className="font-mono mx-2">:name</code>
@@ -236,7 +236,7 @@ const ResponseExampleParams = ({ editMode, item, collection, exampleUid }) => {
                   https://example.com/v1/users/<span>:id</span>
                 </code>
               </div>
-            </InfoTip>
+            </Help>
           </div>
           <EditableTable
             tableId="example-path-params"

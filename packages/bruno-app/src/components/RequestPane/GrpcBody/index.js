@@ -12,7 +12,7 @@ import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { IconSend, IconRefresh, IconWand, IconPlus, IconTrash } from '@tabler/icons';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 import { toastError } from 'utils/common/error';
 import toast from 'react-hot-toast';
 import { getAbsoluteFilePath } from 'utils/common/path';
@@ -34,20 +34,20 @@ const MessageToolbar = ({
     <div className="message-toolbar">
       <span className="message-label">Message {index + 1}</span>
       <div className="toolbar-actions mr-2">
-        <ToolHint text="Format JSON" toolhintId={`prettify-msg-${index}`}>
+        <Tooltip content="Format JSON">
           <button onClick={onPrettify} className="toolbar-btn">
             <IconWand size={16} strokeWidth={1.5} />
           </button>
-        </ToolHint>
+        </Tooltip>
 
-        <ToolHint text="Generate sample" toolhintId={`regenerate-msg-${index}`}>
+        <Tooltip content="Generate sample">
           <button onClick={onRegenerateMessage} className="toolbar-btn" data-testid={`grpc-regenerate-message-${index}`}>
             <IconRefresh size={16} strokeWidth={1.5} />
           </button>
-        </ToolHint>
+        </Tooltip>
 
         {canClientStream && (
-          <ToolHint text={isConnectionActive ? 'Send message' : 'Connection not active'} toolhintId={`send-msg-${index}`}>
+          <Tooltip content={isConnectionActive ? 'Send message' : 'Connection not active'}>
             <button
               onClick={onSend}
               disabled={!isConnectionActive}
@@ -56,15 +56,15 @@ const MessageToolbar = ({
             >
               <IconSend size={16} strokeWidth={1.5} />
             </button>
-          </ToolHint>
+          </Tooltip>
         )}
 
         {showDelete && (
-          <ToolHint text="Delete message" toolhintId={`delete-msg-${index}`}>
+          <Tooltip content="Delete message">
             <button onClick={onDeleteMessage} className="toolbar-btn delete">
               <IconTrash size={16} strokeWidth={1.5} />
             </button>
-          </ToolHint>
+          </Tooltip>
         )}
       </div>
     </div>

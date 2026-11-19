@@ -3,10 +3,11 @@ import { getRelativePathWithinBasePath, getBasename } from 'utils/common/path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX, IconUpload, IconFile } from '@tabler/icons';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import IconAlertTriangleFilled from 'components/Icons/IconAlertTriangleFilled';
 import useMissingFileCheck from 'hooks/useMissingFileCheck';
 import useTooltipId from 'hooks/useTooltipId';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 /**
@@ -34,6 +35,7 @@ const FilePickerEditor = ({
 }) => {
   const dispatch = useDispatch();
   const warningTooltipId = useTooltipId('file-picker-warning');
+  const { theme } = useTheme();
 
   const filePaths = (isSingleFilePicker ? [value] : value || []).filter((v) => v != null && v != '');
   const filenames = filePaths.map((v) => getBasename(collection.pathname, v));
@@ -130,14 +132,16 @@ const FilePickerEditor = ({
           {hasMissingFiles && (
             <Tooltip
               id={warningTooltipId}
-              className="tooltip-mod max-w-lg"
               place="bottom-end"
-            >
-              <div className="warning-tooltip" data-testid="file-picker-warning-tooltip">
-                <IconAlertTriangleFilled size={14} />
-                <span>The file above is not in the given directory, please upload it again.</span>
-              </div>
-            </Tooltip>
+              delayShow={0}
+              data-testid="file-picker-warning"
+              content={(
+                <span className="flex items-center gap-1.5">
+                  <IconAlertTriangleFilled size={14} className="shrink-0" style={{ color: theme.status.warning.text }} />
+                  The file above is not in the given directory, please upload it again.
+                </span>
+              )}
+            />
           )}
         </div>
       </StyledWrapper>

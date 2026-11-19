@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
+import Tooltip from 'ui/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconCaretDown, IconSettings, IconKey, IconHelp, IconAdjustmentsHorizontal } from '@tabler/icons';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -297,12 +298,9 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
         />
         <label className="block min-w-[140px]">Auto fetch token</label>
         <div className="flex items-center gap-2">
-          <div className="relative group cursor-pointer">
+          <Tooltip content="Automatically fetch a new token when the current one expires." place="top" className="inline-flex cursor-pointer">
             <IconHelp size={16} className="text-gray-500" />
-            <span className="group-hover:opacity-100 pointer-events-none opacity-0 max-w-60 absolute left-0 bottom-full mb-1 w-max p-2 bg-gray-700 text-white text-xs rounded-md transition-opacity duration-200">
-              Automatically fetch a new token when the current one expires.
-            </span>
-          </div>
+          </Tooltip>
         </div>
       </div>
 

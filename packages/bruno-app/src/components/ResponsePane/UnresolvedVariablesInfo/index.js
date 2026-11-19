@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+// A controlled, interactive popover styled like a dropdown, not a tooltip: it uses
+// react-tooltip directly so .variable-popover in this component's StyledWrapper applies.
 import { Tooltip } from 'react-tooltip';
 import { IconCheck, IconCopy, IconInfoCircle, IconX } from '@tabler/icons';
 import { dismissUnresolvedVariables } from 'providers/ReduxStore/slices/collections';

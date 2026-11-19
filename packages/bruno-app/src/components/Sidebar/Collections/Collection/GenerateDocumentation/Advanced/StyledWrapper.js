@@ -107,10 +107,6 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.subtext0};
   }
 
-  .adv-hint-tooltip {
-    max-width: 16rem;
-  }
-
   .adv-tags {
     margin-top: 0.75rem;
     margin-left: 1.125rem;

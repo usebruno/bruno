@@ -13,3 +13,4 @@ export { default as MethodBadge } from './MethodBadge';
 export { default as ResponsiveTabs } from './ResponsiveTabs';
 export { default as SegmentedControl } from './SegmentedControl';
 export { default as StatusBadge } from './StatusBadge';
+export { default as Tooltip } from './Tooltip';

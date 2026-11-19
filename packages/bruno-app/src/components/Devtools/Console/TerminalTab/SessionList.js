@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconTerminal, IconX } from '@tabler/icons';
 import styled from 'styled-components';
-import ToolHint from 'components/ToolHint/index';
+import Tooltip from 'ui/Tooltip';
 
 const StyledSessionList = styled.div`
   .session-list-item {
@@ -116,10 +116,9 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
       {sessions.map((session, idx) => {
         const { name } = getSessionDisplayInfo(session);
         return (
-          <ToolHint
+          <Tooltip
             key={session.sessionId}
-            text={getFullPath(session)}
-            toolhintId={`session-path-${session.sessionId}`}
+            content={getFullPath(session)}
             place="bottom-start"
             delayShow={100}
           >
@@ -143,7 +142,7 @@ const SessionList = ({ sessions, activeSessionId, onSelectSession, onCloseSessio
                 <IconX size={14} />
               </div>
             </div>
-          </ToolHint>
+          </Tooltip>
         );
       })}
     </StyledSessionList>

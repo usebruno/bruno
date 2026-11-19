@@ -8,8 +8,16 @@ import toast from 'react-hot-toast';
 import ModifyCookieModal from 'components/Cookies/ModifyCookieModal/index';
 import StyledWrapper from './StyledWrapper';
 import moment from 'moment';
-import { Tooltip } from 'react-tooltip';
+import Tooltip from 'ui/Tooltip';
 import Button from 'ui/Button';
+
+const renderExpires = (expires) => {
+  if (!expires || !moment(expires).isValid()) {
+    return 'Session';
+  }
+  const label = new Date(expires).toLocaleString();
+  return <Tooltip content={label}>{label}</Tooltip>;
+};
 
 const ClearDomainCookiesModal = ({ onClose, domain, onClear }) => (
   <Modal onClose={onClose} handleCancel={onClose} title="Clear Domain Cookies" hideFooter={true}>
@@ -236,35 +244,14 @@ const CollectionProperties = ({ onClose }) => {
                             {domainWithCookies.cookies.map((cookie) => (
                               <tr key={cookie.key}>
                                 <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-key-${cookie.key}`}>{cookie.key}</span>
-                                  <Tooltip
-                                    anchorId={`cookie-key-${cookie.key}`}
-                                    className="tooltip-mod"
-                                    html={cookie.key}
-                                  />
+                                  <Tooltip content={cookie.key}>{cookie.key}</Tooltip>
                                 </td>
                                 <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-value-${cookie.key}`}>{cookie.value}</span>
-                                  <Tooltip
-                                    anchorId={`cookie-value-${cookie.key}`}
-                                    className="tooltip-mod"
-                                    html={cookie.value}
-                                  />
+                                  <Tooltip content={cookie.value}>{cookie.value}</Tooltip>
                                 </td>
                                 <td className="py-2 px-4 truncate">{cookie.path || '/'}</td>
                                 <td className="py-2 px-4 truncate">
-                                  <span id={`cookie-expires-${cookie.key}`}>
-                                    {cookie.expires && moment(cookie.expires).isValid()
-                                      ? new Date(cookie.expires).toLocaleString()
-                                      : 'Session'}
-                                  </span>
-                                  {cookie.expires && moment(cookie.expires).isValid() && (
-                                    <Tooltip
-                                      anchorId={`cookie-expires-${cookie.key}`}
-                                      className="tooltip-mod"
-                                      html={new Date(cookie.expires).toLocaleString()}
-                                    />
-                                  )}
+                                  {renderExpires(cookie.expires)}
                                 </td>
                                 <td className="py-2 px-4 text-center">{cookie.secure ? '✓' : ''}</td>
                                 <td className="py-2 px-4 text-center">{cookie.httpOnly ? '✓' : ''}</td>
