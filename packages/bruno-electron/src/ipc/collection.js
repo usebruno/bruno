@@ -89,6 +89,7 @@ const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
+const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
 const {
   validateWorkspacePath,
   normalizeCollectionEntry,
@@ -259,6 +260,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, persistedConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, persistedConfig);
+        recordRecentCollections([{ path: dirPath, name: persistedConfig.name }], 'opened');
       } catch (error) {
         return Promise.reject(error);
       }
@@ -331,6 +333,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
+      recordRecentCollections([{ path: dirPath, name: brunoConfig.name }], 'opened');
 
       return { pathname: dirPath, name: path.basename(dirPath) };
     }
@@ -443,6 +446,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         console.error('Error updating last opened collections after move:', error);
       }
 
+      moveRecentCollection(collectionPath, newPath);
+
       // process env cleanup for the old uid
       try {
         const { clearCollectionWorkspace } = require('../store/process-env');
@@ -491,6 +496,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         collectionPathname,
         newName
       });
+      renameRecentCollection(collectionPathname, newName);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -1352,7 +1358,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:open-multiple-collections', async (e, collectionPaths, options = {}) => {
     if (watcher && mainWindow) {
-      const result = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
+      const { openedCollections, ...result } = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
+      if (options.recordRecent === true) {
+        recordRecentCollections(openedCollections, 'opened');
+        forgetMissingRecentCollections(result.invalid);
+      }
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');
         const { generateUidBasedOnHash } = require('../utils/common');
@@ -1379,7 +1389,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     }
   });
 
-  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath) => {
+  ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath, collectionName) => {
+    recordRecentCollectionClose(collectionPath, collectionName);
+
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
     }
@@ -1412,6 +1424,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     let completedImports = 0;
     let failedImports = 0;
     const successfulImports = [];
+    const openedCollections = [];
 
     for (const coll of collections) {
       try {
@@ -1565,6 +1578,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           path: collectionPath,
           name: coll.name
         });
+        openedCollections.push({ path: collectionPath, name: brunoConfig.name });
         // Increment completed imports
         completedImports++;
       } catch (error) {
@@ -1580,6 +1594,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         continue;
       }
     }
+
+    recordRecentCollections(openedCollections, 'opened');
 
     // Send final status when all collections have been processed (either succeeded or failed)
     if ((completedImports + failedImports) === collections.length) {
@@ -2789,6 +2805,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
         mainWindow.webContents.send('main:collection-opened', finalCollectionPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, finalCollectionPath, uid, brunoConfig);
+        recordRecentCollections([{ path: finalCollectionPath, name: brunoConfig.name }], 'opened');
 
         return finalCollectionPath;
       } catch (error) {

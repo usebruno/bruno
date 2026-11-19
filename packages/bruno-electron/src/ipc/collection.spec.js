@@ -1,9 +1,11 @@
 const { ipcMain, app } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const fsExtra = require('fs-extra');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const jsyaml = require('js-yaml');
+const AdmZip = require('adm-zip');
 
 jest.mock('electron', () => {
   const handlers = {};
@@ -63,6 +65,14 @@ jest.mock('@usebruno/filestore', () => ({
   stringifyCollection: jest.fn(async () => 'mock-collection-stringified')
 }));
 
+jest.mock('./recent-collections', () => ({
+  recordRecentCollections: jest.fn(),
+  recordRecentCollectionClose: jest.fn(),
+  forgetMissingRecentCollections: jest.fn(),
+  moveRecentCollection: jest.fn(),
+  renameRecentCollection: jest.fn()
+}));
+
 const fsPromises = require('node:fs').promises;
 jest.spyOn(fsPromises, 'writeFile').mockImplementation(async () => {});
 jest.spyOn(fsPromises, 'readFile').mockImplementation(async () => 'mock-content');
@@ -72,6 +82,7 @@ const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
+const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
 
 describe('IPC collection handlers', () => {
   let mainWindow;
@@ -227,6 +238,23 @@ describe('IPC collection handlers', () => {
       expect(sentConfig).toEqual(readSyncConfig('Orders API'));
     });
 
+    it('records the imported collections in Recents once, under the names they were saved with', async () => {
+      fs.mkdirSync(path.join(collectionLocation, 'Orders API'));
+
+      await importCollectionHandler({}, [
+        openApiCollection('orders', 'Orders API'),
+        { uid: 'postman', name: 'Postman Collection', items: [], environments: [] }
+      ], collectionLocation, { format: 'bru' });
+
+      expect(recordRecentCollections.mock.calls).toEqual([[
+        [
+          { path: path.join(collectionLocation, 'Orders API - 1'), name: 'Orders API' },
+          { path: path.join(collectionLocation, 'Postman Collection'), name: 'Postman Collection' }
+        ],
+        'opened'
+      ]]);
+    });
+
     describe('request files', () => {
       const requestItem = (name, method, filename) => ({
         uid: `${method} ${name}`,
@@ -282,6 +310,197 @@ describe('IPC collection handlers', () => {
 
         expect(requestFilesIn('pet')).toEqual(['Pet-{petId} (2).yml', 'pet-{petId} (1).yml', 'pet-{petId}.yml']);
       });
+    });
+  });
+
+  describe('renderer:open-multiple-collections', () => {
+    let collectionsFolder;
+    let ordersCollection;
+    let folderWithoutCollection;
+    let deletedFolder;
+    let watcher;
+    let openMultipleCollectionsHandler;
+    let consoleError;
+
+    beforeEach(() => {
+      collectionsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-open-multiple-'));
+      ordersCollection = path.join(collectionsFolder, 'orders');
+      fs.mkdirSync(ordersCollection);
+      fs.writeFileSync(path.join(ordersCollection, 'bruno.json'), JSON.stringify({ version: '1', name: 'Orders API', type: 'collection' }));
+      folderWithoutCollection = path.join(collectionsFolder, 'notes');
+      fs.mkdirSync(folderWithoutCollection);
+      deletedFolder = path.join(collectionsFolder, 'deleted');
+      watcher = { hasWatcher: jest.fn(() => false) };
+      registerCollectionsIpc(mainWindow, watcher);
+      openMultipleCollectionsHandler = ipcMain._getHandler('renderer:open-multiple-collections');
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleError.mockRestore();
+      fs.rmSync(collectionsFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    });
+
+    it('records what the user opened and forgets missing folders, keeping ones that failed to load', async () => {
+      const result = await openMultipleCollectionsHandler({}, [ordersCollection, folderWithoutCollection, deletedFolder], {
+        silent: true,
+        recordRecent: true
+      });
+
+      expect(result).toEqual({
+        opened: [ordersCollection],
+        failed: [{ path: folderWithoutCollection, error: 'The collection is not valid (neither bruno.json nor opencollection.yml found)' }],
+        invalid: [deletedFolder]
+      });
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: ordersCollection, name: 'Orders API' }], 'opened');
+      expect(forgetMissingRecentCollections).toHaveBeenCalledWith([deletedFolder]);
+    });
+
+    it('replies without waiting for Recents to check the volumes of missing folders', async () => {
+      forgetMissingRecentCollections.mockReturnValueOnce(new Promise(() => {}));
+
+      await expect(openMultipleCollectionsHandler({}, [deletedFolder], { recordRecent: true })).resolves.toEqual({
+        opened: [],
+        failed: [],
+        invalid: [deletedFolder]
+      });
+    });
+
+    it('records a collection the user opened that is already loaded for another workspace', async () => {
+      watcher.hasWatcher.mockReturnValue(true);
+
+      await openMultipleCollectionsHandler({}, [ordersCollection], { recordRecent: true });
+
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: ordersCollection, name: 'Orders API' }], 'opened');
+    });
+
+    it.each([
+      ['an open without options', undefined],
+      ['a workspace load', { workspacePath: '/workspaces/team', dontSendDisplayErrors: true }],
+      ['a recordRecent flag that is not true', { recordRecent: 'true' }]
+    ])('records and forgets nothing for %s', async (_label, options) => {
+      await openMultipleCollectionsHandler({}, [ordersCollection, deletedFolder], options);
+
+      expect(recordRecentCollections).not.toHaveBeenCalled();
+      expect(forgetMissingRecentCollections).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('renderer:remove-collection', () => {
+    const collectionPath = path.join(os.tmpdir(), 'fake', 'orders');
+    let watcher;
+    let removeCollectionHandler;
+
+    beforeEach(() => {
+      watcher = { removeWatcher: jest.fn() };
+      registerCollectionsIpc(mainWindow, watcher);
+      removeCollectionHandler = ipcMain._getHandler('renderer:remove-collection');
+    });
+
+    it('hands the close to Recents before the rest of the close runs, with the collection name the window sends', async () => {
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+
+      expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 'Orders');
+      expect(recordRecentCollectionClose.mock.invocationCallOrder[0]).toBeLessThan(watcher.removeWatcher.mock.invocationCallOrder[0]);
+    });
+
+    it('closes without waiting for Recents, so a share that stops answering cannot hold up the close', async () => {
+      recordRecentCollectionClose.mockReturnValueOnce(new Promise(() => {}));
+
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+
+      expect(watcher.removeWatcher).toHaveBeenCalledWith(collectionPath, mainWindow, 'orders-uid');
+    });
+
+    it('never reads the collection folder synchronously, so a share that stops answering cannot freeze the app', async () => {
+      const syncReads = [fs, fsExtra].flatMap((fsModule) => ['existsSync', 'lstatSync', 'statSync'].map((name) => jest.spyOn(fsModule, name)));
+
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+      const pathsReadSynchronously = syncReads.flatMap((syncRead) => syncRead.mock.calls.map(([filePath]) => filePath));
+      syncReads.forEach((syncRead) => syncRead.mockRestore());
+
+      expect(pathsReadSynchronously).not.toContain(collectionPath);
+    });
+
+    it('passes along whatever name the window sends, leaving names that are not strings to Recents', async () => {
+      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 42);
+
+      expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 42);
+    });
+  });
+
+  describe('Recents', () => {
+    let collectionsFolder;
+
+    const writeCollection = (folderName, name) => {
+      const collectionPath = path.join(collectionsFolder, folderName);
+      fs.mkdirSync(collectionPath);
+      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), JSON.stringify({ version: '1', name, type: 'collection' }));
+      return collectionPath;
+    };
+
+    beforeEach(() => {
+      collectionsFolder = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-recents-hooks-'));
+    });
+
+    afterEach(() => {
+      app.getPath.mockReturnValue(os.tmpdir());
+      fs.rmSync(collectionsFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    });
+
+    it('records a collection it creates', async () => {
+      await ipcMain._getHandler('renderer:create-collection')({}, 'Orders API', 'orders', collectionsFolder, { format: 'bru' });
+
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: path.join(collectionsFolder, 'orders'), name: 'Orders API' }], 'opened');
+    });
+
+    it('records a collection it clones under the new name', async () => {
+      const ordersCollection = writeCollection('orders', 'Orders API');
+
+      await ipcMain._getHandler('renderer:clone-collection')({}, 'Orders API copy', 'orders copy', collectionsFolder, ordersCollection);
+
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: path.join(collectionsFolder, 'orders copy'), name: 'Orders API copy' }], 'opened');
+    });
+
+    it('records a collection it imports from a ZIP file', async () => {
+      const zipPath = path.join(collectionsFolder, 'orders.zip');
+      const zip = new AdmZip();
+      zip.addFile('orders/bruno.json', Buffer.from(JSON.stringify({ version: '1', name: 'Orders API', type: 'collection' })));
+      zip.writeZip(zipPath);
+
+      await ipcMain._getHandler('renderer:import-collection-zip')({}, zipPath, collectionsFolder);
+
+      expect(recordRecentCollections).toHaveBeenCalledWith([{ path: path.join(collectionsFolder, 'Orders API'), name: 'Orders API' }], 'opened');
+    });
+
+    it('renames the row of a collection it renames', async () => {
+      const ordersCollection = writeCollection('orders', 'Orders API');
+
+      await ipcMain._getHandler('renderer:rename-collection')({}, 'Orders', ordersCollection);
+
+      expect(renameRecentCollection).toHaveBeenCalledWith(ordersCollection, 'Orders');
+    });
+
+    it('points the row of a collection it moves into a workspace at the new folder', async () => {
+      const workspacePath = path.join(collectionsFolder, 'team');
+      fs.mkdirSync(workspacePath);
+      fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), jsyaml.dump({
+        opencollection: '1.0.0',
+        info: { name: 'Team', type: 'workspace' },
+        collections: []
+      }));
+      const ordersCollection = writeCollection('orders', 'Orders API');
+      app.getPath.mockReturnValue(collectionsFolder);
+      registerCollectionsIpc(mainWindow, { removeWatcher: jest.fn() });
+
+      await ipcMain._getHandler('renderer:move-collection-to-workspace')({}, {
+        workspacePath,
+        collectionPath: ordersCollection,
+        collectionUid: 'orders-uid',
+        collectionName: 'Orders API'
+      });
+
+      expect(moveRecentCollection).toHaveBeenCalledWith(ordersCollection, path.join(workspacePath, 'collections', 'orders'));
     });
   });
 });

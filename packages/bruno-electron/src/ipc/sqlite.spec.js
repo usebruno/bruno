@@ -4,10 +4,12 @@ jest.mock('electron', () => ({
 
 jest.mock('../services/sqlite', () => ({ getStatements: jest.fn() }));
 jest.mock('../services/runner-exchange', () => ({ readRunnerExchange: jest.fn(), clearRunnerResponses: jest.fn() }));
+jest.mock('../services/recent-collections', () => ({ list: jest.fn() }));
 
 const { ipcMain } = require('electron');
 const { getStatements } = require('../services/sqlite');
 const { readRunnerExchange, clearRunnerResponses } = require('../services/runner-exchange');
+const recentCollections = require('../services/recent-collections');
 const { registerSqliteIpc } = require('./sqlite');
 
 describe('registerSqliteIpc', () => {
@@ -29,7 +31,8 @@ describe('registerSqliteIpc', () => {
       'datastore:file-index:file_index_size',
       'datastore:file-index:file_index_clear',
       'datastore:runner_responses:get_runner_response',
-      'datastore:runner_responses:delete_runner_responses_for_collection'
+      'datastore:runner_responses:delete_runner_responses_for_collection',
+      'datastore:recent_collections:list_recent_collections'
     ]);
   });
 
@@ -101,5 +104,32 @@ describe('registerSqliteIpc', () => {
         expect(clearRunnerResponses).not.toHaveBeenCalled();
       }
     );
+  });
+
+  describe('list_recent_collections', () => {
+    const channel = 'datastore:recent_collections:list_recent_collections';
+
+    beforeEach(() => {
+      recentCollections.list.mockReset();
+    });
+
+    it('returns the rows the service lists, ignoring what the window sends', () => {
+      const rows = [
+        { path: '/projects/orders', name: 'Orders API', usedAt: 2, lastEvent: 'opened' },
+        { path: '/projects/users', name: 'Users API', usedAt: 1, lastEvent: 'closed' }
+      ];
+      recentCollections.list.mockReturnValue(rows);
+
+      expect(invoke(channel, { max_rows: 1000 })).toBe(rows);
+      expect(recentCollections.list).toHaveBeenCalledWith();
+    });
+
+    it('surfaces the error when the rows cannot be read', () => {
+      recentCollections.list.mockImplementation(() => {
+        throw new Error('The database is unavailable, cannot run statement "list_recent_collections"');
+      });
+
+      expect(() => invoke(channel)).toThrow('The database is unavailable');
+    });
   });
 });
