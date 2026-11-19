@@ -1,7 +1,7 @@
 {
   "collections": [
     {
-      "path": "{{projectRoot}}/tests/grpc/make-request/fixtures/collection",
+      "path": "{{collectionPath}}",
       "securityConfig": {
         "jsSandboxMode": "safe"
       }
