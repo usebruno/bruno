@@ -13,7 +13,7 @@ import {
   collectionName,
   collectionTab,
   draftIndicator,
-  draftRequestUrl,
+  editRequestUrlWithoutSaving,
   environmentTab,
   environmentTabCloseGradient,
   expectCollectionFilesUnchanged,
@@ -45,11 +45,11 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await closeAllCollections(page);
   });
 
-  test('Close Others lists only the drafts in range; Cancel keeps every tab', async ({ page }) => {
+  test('Close Others - lists all the tabs in draft state; Cancel - keeps every tab', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await draftRequestUrl(page, 'req-1', '/req-1');
-    await draftRequestUrl(page, 'req-2', '/req-2');
-    await draftRequestUrl(page, 'req-3', '/req-3');
+    await editRequestUrlWithoutSaving(page, 'req-1', '/req-1');
+    await editRequestUrlWithoutSaving(page, 'req-2', '/req-2');
+    await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
 
     await selectTabContextMenuItem(page, 'req-2', 'close-others');
 
@@ -72,10 +72,10 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Close Others with Don\'t Save discards and closes the tabs in range', async ({ page }) => {
+  test('Close Others - with "Don\'t Save" discards and closes all other tabs', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await draftRequestUrl(page, 'req-1', '/req-1');
-    await draftRequestUrl(page, 'req-2', '/req-2');
+    await editRequestUrlWithoutSaving(page, 'req-1', '/req-1');
+    await editRequestUrlWithoutSaving(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-2', 'close-others');
     const modal = unsavedModal(page).root();
@@ -97,14 +97,14 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Close to the Right with Save saves and closes the tabs in range', async ({ page }) => {
+  test('Close to the Right - with Save saves and closes the tabs in range', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await draftRequestUrl(page, 'req-3', '/req-3');
-    await draftRequestUrl(page, 'req-1', '/req-1');
+    await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
+    await editRequestUrlWithoutSaving(page, 'req-1', '/req-1');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-right');
     const modal = unsavedModal(page).root();
-    await test.step('Modal lists req-3 but not the clicked tab req-1', async () => {
+    await test.step('Modal lists req-3 only, not the clicked tab req-1', async () => {
       await expect(modal).toBeVisible({ timeout: 3000 });
       await expect(modal).toContainText('Request: req-3');
       await expect(modal).not.toContainText('Request: req-1');
@@ -126,34 +126,9 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Inspect tab in the modal focuses that tab and keeps everything open', async ({ page }) => {
+  test('Close to the Left - closes immediately when nothing in range is unsaved', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await draftRequestUrl(page, 'req-3', '/req-3');
-    await tab(page, 'req-1').click();
-    await expect(tab(page, 'req-1')).toHaveClass(/active/);
-
-    await selectTabContextMenuItem(page, 'req-1', 'close-right');
-    const modal = unsavedModal(page).root();
-    await expect(modal).toBeVisible({ timeout: 3000 });
-
-    await test.step('Inspect req-3 from the modal', async () => {
-      await unsavedModal(page).item('Request: req-3').hover();
-      await unsavedModal(page).inspectTabButton('Request: req-3').click();
-    });
-
-    await test.step('Modal closes, req-3 is active and every tab is still open', async () => {
-      await expect(modal).not.toBeVisible();
-      await expect(tab(page, 'req-3')).toHaveClass(/active/);
-      for (const name of ['req-1', 'req-2', 'req-3']) {
-        await expect(tab(page, name)).toBeVisible();
-      }
-      await expect(draftIndicator(page, 'req-3')).toBeVisible();
-    });
-  });
-
-  test('Close to the Left closes immediately when nothing in range is unsaved', async ({ page }) => {
-    await openRequests(page, ['req-1', 'req-2', 'req-3']);
-    await draftRequestUrl(page, 'req-3', '/req-3');
+    await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
 
     await selectTabContextMenuItem(page, 'req-3', 'close-left');
 
@@ -166,9 +141,9 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Close All from the tab menu asks before closing unsaved tabs', async ({ page }) => {
+  test('Close All - from the tab menu asks before closing unsaved tabs', async ({ page }) => {
     await openRequests(page, ['req-1', 'req-2']);
-    await draftRequestUrl(page, 'req-2', '/req-2');
+    await editRequestUrlWithoutSaving(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-all');
     const modal = unsavedModal(page).root();
@@ -186,12 +161,12 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Close to the Left prompts for collection, folder and environment drafts; Don\'t Save discards them', async ({ page }) => {
+  test('Close to the Left - lists collection, folder and environment drafts; Don\'t Save discards them', async ({ page }) => {
     await openCollectionSettingsWithDraft(page);
     await openFolderSettingsWithDraft(page);
     await openEnvironmentWithDraft(page, 'http://draft-left');
     await openRequests(page, ['req-1', 'req-2']);
-    await draftRequestUrl(page, 'req-2', '/req-2');
+    await editRequestUrlWithoutSaving(page, 'req-2', '/req-2');
 
     await selectTabContextMenuItem(page, 'req-1', 'close-left');
 
@@ -204,7 +179,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
       await expect(modal).not.toContainText('Request:');
     });
 
-    await test.step('Cancel keeps every settings draft', async () => {
+    await test.step('Cancel - keeps every settings draft', async () => {
       await unsavedModal(page).button('Cancel').click();
       await expect(modal).not.toBeVisible();
       await expect(settingsTabDraftIndicator(page, collectionTab(page))).toBeVisible();
@@ -212,7 +187,7 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
       await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
     });
 
-    await test.step('Don\'t Save closes the settings tabs and keeps the request tabs', async () => {
+    await test.step('Don\'t Save - discards the settings tabs and keeps the request tabs', async () => {
       await selectTabContextMenuItem(page, 'req-1', 'close-left');
       await expect(modal).toBeVisible({ timeout: 3000 });
       await unsavedModal(page).button('Don\'t Save').click();
@@ -236,10 +211,10 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     });
   });
 
-  test('Close to the Right prompts for collection, folder and environment drafts; Save All saves them', async ({ page }) => {
+  test('Close to the Right - lists collection, folder and environment drafts; Save All saves them', async ({ page }) => {
     const { environment } = buildCommonLocators(page);
     await openRequests(page, ['req-1']);
-    await draftRequestUrl(page, 'req-1', '/req-1');
+    await editRequestUrlWithoutSaving(page, 'req-1', '/req-1');
     await openCollectionSettingsWithDraft(page);
     await openFolderSettingsWithDraft(page);
     await openEnvironmentWithDraft(page, 'http://saved-right');
@@ -277,6 +252,31 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
       await expect(environmentTab(page)).toBeVisible({ timeout: 3000 });
       await expect(environment.variableValue('host')).toContainText('http://saved-right');
       await expect(environmentTabCloseGradient(page)).not.toHaveClass(/has-changes/);
+    });
+
+    test('Inspect tab option in the modal focuses that tab and keeps everything open', async ({ page }) => {
+      await openRequests(page, ['req-1', 'req-2', 'req-3']);
+      await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
+      await tab(page, 'req-1').click();
+      await expect(tab(page, 'req-1')).toHaveClass(/active/);
+
+      await selectTabContextMenuItem(page, 'req-1', 'close-right');
+      const modal = unsavedModal(page).root();
+      await expect(modal).toBeVisible({ timeout: 3000 });
+
+      await test.step('Inspect req-3 from the modal', async () => {
+        await unsavedModal(page).item('Request: req-3').hover();
+        await unsavedModal(page).inspectTabButton('Request: req-3').click();
+      });
+
+      await test.step('Modal closes, req-3 is active and every tab is still open', async () => {
+        await expect(modal).not.toBeVisible();
+        await expect(tab(page, 'req-3')).toHaveClass(/active/);
+        for (const name of ['req-1', 'req-2', 'req-3']) {
+          await expect(tab(page, name)).toBeVisible();
+        }
+        await expect(draftIndicator(page, 'req-3')).toBeVisible();
+      });
     });
   });
 });

@@ -60,7 +60,7 @@ export const openEnvironmentWithDraft = async (page: Page, value: string) => {
   await expect(environmentTabCloseGradient(page)).toHaveClass(/has-changes/);
 };
 
-export const draftRequestUrl = async (page: Page, name: string, url: string) => {
+export const editRequestUrlWithoutSaving = async (page: Page, name: string, url: string) => {
   await switchToOpenTab(page, name);
   await fillRequestUrl(page, url);
   await expect(draftIndicator(page, name)).toBeVisible();
