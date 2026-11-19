@@ -11,6 +11,7 @@ test('restores the copied background and preserves existing preferences', async 
   const preferencesPath = path.join(userDataPath, 'preferences.json');
   const imageDirectory = path.join(userDataPath, 'background-images');
   const originalFile = path.join(userDataPath, 'wallpaper.png');
+  const jpegFile = path.join(userDataPath, 'wallpaper.jpg');
   const invalidFile = path.join(userDataPath, 'corrupt.png');
 
   await writeFile(preferencesPath, JSON.stringify({
@@ -24,20 +25,26 @@ test('restores the copied background and preserves existing preferences', async 
 
   const firstApp = await launchElectronApp({ userDataPath });
   const firstPage = await waitForReadyPage(firstApp);
-  const png = await firstPage.evaluate(() => {
+  const [png, jpeg] = await firstPage.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 32;
     canvas.height = 32;
     const context = canvas.getContext('2d')!;
     context.fillStyle = '#8750cf';
     context.fillRect(0, 0, 32, 32);
-    return canvas.toDataURL().split(',')[1];
+    return [canvas.toDataURL('image/png'), canvas.toDataURL('image/jpeg')].map((dataUrl) => dataUrl.split(',')[1]);
   });
   await writeFile(originalFile, Buffer.from(png, 'base64'));
+  await writeFile(jpegFile, Buffer.from(jpeg, 'base64'));
   await writeFile(invalidFile, 'this is not an image');
 
   await openBackgroundImagePreferences(firstPage);
   const background = buildPreferencesLocators(firstPage).backgroundImage;
+  await stubOpenDialog(firstApp, [jpegFile]);
+  await background.chooseButton().click();
+  await expect(background.fileName('wallpaper.jpg')).toBeVisible();
+  await expect(background.layer()).toBeVisible();
+
   await stubOpenDialog(firstApp, [originalFile]);
   await background.chooseButton().click();
   await expect(background.layer()).toBeVisible();

@@ -9,7 +9,41 @@ const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 40_000_000;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
+const JPEG_FRAME_MARKERS = new Set([
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf
+]);
 const ASSET_ID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\.(png|jpg)$/;
+
+function readPngDimensions(bytes) {
+  // The first PNG chunk is IHDR, with a 13-byte body and a 4-byte CRC.
+  if (bytes.length < 33 || bytes.readUInt32BE(8) !== 13 || bytes.toString('latin1', 12, 16) !== 'IHDR') {
+    return null;
+  }
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+function readJpegDimensions(bytes) {
+  // Skip length-delimited metadata segments after SOI to find the frame header.
+  let offset = 2;
+  while (offset < bytes.length && bytes[offset] === 0xff) {
+    while (bytes[offset] === 0xff) offset++;
+    const marker = bytes[offset++];
+
+    if (marker === 0x01) continue; // TEM is a standalone marker.
+    if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xda) || offset + 2 > bytes.length) break;
+
+    const length = bytes.readUInt16BE(offset);
+    if (length < 2 || offset + length > bytes.length) break;
+
+    if (JPEG_FRAME_MARKERS.has(marker)) {
+      if (length < 11 || length !== 8 + 3 * bytes[offset + 7]) break;
+      return { width: bytes.readUInt16BE(offset + 5), height: bytes.readUInt16BE(offset + 3) };
+    }
+
+    offset += length;
+  }
+  return null;
+}
 
 function backgroundDirectory() {
   return path.join(app.getPath('userData'), 'background-images');
@@ -37,13 +71,26 @@ async function readImage(filePath) {
     if (offset !== size || (await file.stat()).size !== size) {
       throw new Error('The image changed while it was being read. Please select it again.');
     }
+    let format;
+    let dimensions;
     if (bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
-      return { bytes, type: 'image/png', extension: 'png' };
+      format = { type: 'image/png', extension: 'png' };
+      dimensions = readPngDimensions(bytes);
+    } else if (bytes.subarray(0, JPEG_SIGNATURE.length).equals(JPEG_SIGNATURE)) {
+      format = { type: 'image/jpeg', extension: 'jpg' };
+      dimensions = readJpegDimensions(bytes);
+    } else {
+      throw new Error('Choose a PNG or JPEG image.');
     }
-    if (bytes.subarray(0, JPEG_SIGNATURE.length).equals(JPEG_SIGNATURE)) {
-      return { bytes, type: 'image/jpeg', extension: 'jpg' };
+
+    if (!dimensions || !dimensions.width || !dimensions.height) {
+      throw new Error('The selected image has an invalid or unsupported header.');
     }
-    throw new Error('Choose a PNG or JPEG image.');
+    // Limit the decoded size before passing bytes to Electron or the renderer.
+    if (dimensions.width * dimensions.height > MAX_IMAGE_PIXELS) {
+      throw new Error('Background images must be 40 megapixels or smaller.');
+    }
+    return { bytes, ...format };
   } finally {
     await file.close();
   }
@@ -89,11 +136,6 @@ function registerBackgroundImageIpc(mainWindow) {
     if (decoded.isEmpty()) {
       throw new Error('The selected image could not be decoded.');
     }
-    const { width, height } = decoded.getSize();
-    if (width * height > MAX_IMAGE_PIXELS) {
-      throw new Error('Background images must be 40 megapixels or smaller.');
-    }
-
     const id = `${randomUUID()}.${image.extension}`;
     const fileName = path.basename(filePath);
     await fs.mkdir(backgroundDirectory(), { recursive: true });
