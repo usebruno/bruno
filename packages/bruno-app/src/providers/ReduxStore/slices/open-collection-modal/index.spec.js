@@ -22,6 +22,7 @@ import reducer, {
   myComputerScanFinished,
   myComputerScanFailed
 } from 'providers/ReduxStore/slices/open-collection-modal';
+import { DEFAULT_OPEN_COLLECTION_PAGE, OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 
 const initialState = reducer(undefined, { type: 'init' });
 
@@ -36,10 +37,11 @@ const listResult = {
 const applyActions = (actions) => actions.reduce(reducer, initialState);
 
 describe('openCollectionModal slice', () => {
-  it('starts closed with no page and nothing in progress', () => {
+  it('starts closed with no page and nothing in progress, ready to open on the default page', () => {
     expect(initialState).toEqual({
       isOpen: false,
       page: null,
+      lastPage: DEFAULT_OPEN_COLLECTION_PAGE,
       openingId: null,
       importLoadId: null,
       chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null },
@@ -49,29 +51,49 @@ describe('openCollectionModal slice', () => {
   });
 
   it('showOpenCollectionModal opens the modal on the given page', () => {
-    expect(reducer(initialState, showOpenCollectionModal('import'))).toMatchObject({ isOpen: true, page: 'import' });
+    expect(reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT))).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT });
   });
 
   it('showOpenCollectionModal switches the page when the modal is already open', () => {
-    const open = reducer(initialState, showOpenCollectionModal('choose-folder'));
+    const open = reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
 
-    expect(reducer(open, showOpenCollectionModal('recents'))).toMatchObject({ isOpen: true, page: 'recents' });
+    expect(reducer(open, showOpenCollectionModal(OPEN_COLLECTION_PAGE.RECENTS))).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.RECENTS });
   });
 
   it('showOpenCollectionPage changes the page', () => {
-    const open = reducer(initialState, showOpenCollectionModal('choose-folder'));
+    const open = reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
 
-    expect(reducer(open, showOpenCollectionPage('my-computer'))).toEqual({ ...open, page: 'my-computer' });
+    expect(reducer(open, showOpenCollectionPage(OPEN_COLLECTION_PAGE.MY_COMPUTER))).toEqual({
+      ...open,
+      page: OPEN_COLLECTION_PAGE.MY_COMPUTER,
+      lastPage: OPEN_COLLECTION_PAGE.MY_COMPUTER
+    });
+  });
+
+  it.each(Object.values(OPEN_COLLECTION_PAGE))('remembers the menu page %s and keeps it when the modal closes', (page) => {
+    const closed = applyActions([showOpenCollectionModal(page), hideOpenCollectionModal()]);
+
+    expect(closed).toEqual({ ...initialState, lastPage: page });
+  });
+
+  it('keeps the menu page a sub page was opened from, never the sub page', () => {
+    const closed = applyActions([
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER),
+      showOpenCollectionPage(OPEN_COLLECTION_SUB_PAGE.LOCATIONS),
+      hideOpenCollectionModal()
+    ]);
+
+    expect(closed.lastPage).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
   });
 
   it('showOpenCollectionPage drops the note and keeps the rest of the result', () => {
     const found = applyActions([
-      showOpenCollectionModal('choose-folder'),
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER),
       folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' }),
       folderSearchFinished({ searchId: 'search-1', result: listResult })
     ]);
 
-    expect(reducer(found, showOpenCollectionPage('choose-folder')).chooseFolder.result).toEqual({ ...listResult, note: null });
+    expect(reducer(found, showOpenCollectionPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)).chooseFolder.result).toEqual({ ...listResult, note: null });
   });
 
   it('tracks a folder pick and search, then keeps the result', () => {
@@ -161,7 +183,7 @@ describe('openCollectionModal slice', () => {
   });
 
   describe('importLoadId', () => {
-    const importLoadId = (actions) => applyActions([showOpenCollectionModal('import'), ...actions]).importLoadId;
+    const importLoadId = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT), ...actions]).importLoadId;
 
     it('tracks the load that is running', () => {
       expect(importLoadId([importLoadStarted('load-1')])).toBe('load-1');
@@ -171,14 +193,14 @@ describe('openCollectionModal slice', () => {
     it('forgets the load when the page changes but not when the same page is shown again', () => {
       const loading = [importLoadStarted('load-1')];
 
-      expect(importLoadId([...loading, showOpenCollectionPage('import')])).toBe('load-1');
-      expect(importLoadId([...loading, showOpenCollectionPage('recents')])).toBeNull();
+      expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT)])).toBe('load-1');
+      expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.RECENTS)])).toBeNull();
     });
   });
 
   describe('recents', () => {
     const items = [{ path: '/work/api', name: 'API', usedAt: 1700000000000, lastEvent: 'closed' }];
-    const recents = (actions) => applyActions([showOpenCollectionModal('recents'), ...actions]).recents;
+    const recents = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.RECENTS), ...actions]).recents;
     const loaded = [recentsLoadStarted('load-1'), recentsLoadFinished({ loadId: 'load-1', items })];
     const failed = [recentsLoadStarted('load-1'), recentsLoadFailed({ loadId: 'load-1', error: 'disk failure' })];
 
@@ -228,7 +250,7 @@ describe('openCollectionModal slice', () => {
     ];
     const secondScanStarted = [...firstScan, myComputerScanStarted('scan-2')];
 
-    const scannedModal = (actions) => applyActions([showOpenCollectionModal('my-computer'), ...actions]);
+    const scannedModal = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER), ...actions]);
     const myComputer = (actions) => scannedModal(actions).myComputer;
 
     it('shows a first scan as scanning with no locations until the main process answers', () => {
@@ -386,7 +408,7 @@ describe('openCollectionModal slice', () => {
 
   it('hideOpenCollectionModal resets everything so the next open starts fresh', () => {
     const busy = applyActions([
-      showOpenCollectionModal('choose-folder'),
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER),
       collectionsOpeningStarted('opening-1'),
       folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' })
     ]);

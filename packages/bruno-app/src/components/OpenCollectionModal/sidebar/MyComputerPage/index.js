@@ -16,6 +16,7 @@ import {
   selectOpenCollectionPathKeys,
   selectSearchWholeComputer
 } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
+import { OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse, formatRelativeTime } from '../../utils/relative-time';
@@ -51,7 +52,7 @@ const MyComputerPage = () => {
   };
 
   const openFolderButton = (
-    <Button color="primary" fullWidth onClick={() => showPage('choose-folder')} data-testid="my-computer-open-folder">
+    <Button color="primary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)} data-testid="my-computer-open-folder">
       Open a collection folder…
     </Button>
   );
@@ -94,7 +95,7 @@ const MyComputerPage = () => {
         actions={(
           <>
             {openFolderButton}
-            <Button variant="outline" color="secondary" fullWidth onClick={() => showPage('locations')} data-testid="my-computer-manage-locations">
+            <Button variant="outline" color="secondary" fullWidth onClick={() => showPage(OPEN_COLLECTION_SUB_PAGE.LOCATIONS)} data-testid="my-computer-manage-locations">
               Manage search locations
             </Button>
           </>
@@ -105,7 +106,7 @@ const MyComputerPage = () => {
             <button
               type="button"
               className="text-link hover:underline whitespace-nowrap"
-              onClick={() => showPage('import')}
+              onClick={() => showPage(OPEN_COLLECTION_PAGE.IMPORT)}
               data-testid="my-computer-import"
             >
               Import it
@@ -125,11 +126,11 @@ const MyComputerPage = () => {
       openPathKeys={openPathKeys}
       getMeta={getMeta}
       searchPlaceholder={`Search ${countOf(collections.length, 'collection')}`}
-      banner={searchWholeComputer ? null : <SearchLocationsBanner onManage={() => showPage('locations')} />}
+      banner={searchWholeComputer ? null : <SearchLocationsBanner onManage={() => showPage(OPEN_COLLECTION_SUB_PAGE.LOCATIONS)} />}
       emptyText="Looking for collections…"
       noMatchText="Bruno may not search the folder it lives in. Choose its folder to open it, or add the folder to your search locations."
       testIdPrefix="my-computer"
-      onChooseFolder={() => showPage('choose-folder')}
+      onChooseFolder={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)}
       onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
       onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}
       onCancel={() => dispatch(closeOpenCollectionModal())}

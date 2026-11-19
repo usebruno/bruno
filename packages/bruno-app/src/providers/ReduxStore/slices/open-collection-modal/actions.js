@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import { callIpc } from 'utils/common/ipc';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { selectCollections } from 'src/selectors/collections';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectories, browseDirectory, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
@@ -33,11 +34,6 @@ import { selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
 import { readImportableFile, readImportFiles, readImportText } from './import-sources';
-
-const CHOOSE_FOLDER_PAGE = 'choose-folder';
-const IMPORT_PAGE = 'import';
-const RECENTS_PAGE = 'recents';
-const MY_COMPUTER_PAGE = 'my-computer';
 
 const getSearchLabel = (folderPaths) =>
   folderPaths.length === 1 ? getFolderName(folderPaths[0]) : `${folderPaths.length} folders`;
@@ -130,8 +126,8 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
 
   const outcome = getFolderSearchOutcome(searchResult, new Set(selectOpenCollectionPathKeys(getState())), droppedFileCount);
   if (outcome.type === 'list' || outcome.type === 'message') {
-    if (getState().openCollectionModal.page !== CHOOSE_FOLDER_PAGE) {
-      dispatch(showOpenCollectionPage(CHOOSE_FOLDER_PAGE));
+    if (getState().openCollectionModal.page !== OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) {
+      dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
     }
     dispatch(folderSearchFinished({ searchId, result: { id: searchId, ...outcome } }));
     return;
@@ -192,7 +188,7 @@ export const loadImportFiles = (files) => async (dispatch) => {
 export const loadImportText = (text) => loadImportData(() => readImportText(text));
 
 export const loadImportableFile = (file) => (dispatch) => {
-  dispatch(showOpenCollectionPage(IMPORT_PAGE));
+  dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT));
   return dispatch(loadImportData(() => readImportableFile(file)));
 };
 
@@ -205,10 +201,10 @@ export const openDroppedItems = ({ folderPaths, hasFolders, files }) => async (d
     return;
   }
   if (folderPaths.length > 0) {
-    dispatch(showOpenCollectionPage(CHOOSE_FOLDER_PAGE));
+    dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
     await dispatch(findCollectionsInFolders(folderPaths, files.length));
   } else if (files.length > 0) {
-    dispatch(showOpenCollectionPage(IMPORT_PAGE));
+    dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT));
     return dispatch(loadImportFiles(files));
   }
 };
@@ -358,15 +354,15 @@ export const addFolderResultToSearch = () => async (dispatch, getState) => {
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder, myComputer } = getState().openCollectionModal;
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
-  if (page === RECENTS_PAGE) {
+  if (page === OPEN_COLLECTION_PAGE.RECENTS) {
     dispatch(loadRecentCollections());
   }
-  if (page === MY_COMPUTER_PAGE && myComputer.status === 'idle') {
+  if (page === OPEN_COLLECTION_PAGE.MY_COMPUTER && myComputer.status === 'idle') {
     dispatch(loadRecentCollections());
     dispatch(scanMyComputer());
   }
 
-  if (page !== CHOOSE_FOLDER_PAGE || openingId) {
+  if (page !== OPEN_COLLECTION_PAGE.CHOOSE_FOLDER || openingId) {
     return;
   }
   if (chooseFolder.result) {
@@ -376,6 +372,9 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
     dispatch(pickCollectionFolders());
   }
 };
+
+export const openCollectionModalOnLastPage = () => (dispatch, getState) =>
+  dispatch(openCollectionModal(getState().openCollectionModal.lastPage));
 
 export const recentCollectionsChangedEvent = () => (dispatch, getState) => {
   if (getState().openCollectionModal.isOpen) {

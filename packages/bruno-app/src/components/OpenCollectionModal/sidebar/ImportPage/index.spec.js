@@ -6,6 +6,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
 import { readImportFiles, readImportText } from 'providers/ReduxStore/slices/open-collection-modal/import-sources';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { ImportHandoffContext } from '../../components/ImportHandoff/context';
 import ImportPage from './index';
 
@@ -26,7 +27,7 @@ const closedState = openCollectionModalReducer(undefined, { type: 'init' });
 const renderPage = () => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
-    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: 'import' } }
+    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT } }
   });
   const importFrom = jest.fn((load) => store.dispatch(load));
   render(

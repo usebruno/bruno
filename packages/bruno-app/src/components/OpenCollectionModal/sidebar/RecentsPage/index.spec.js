@@ -10,6 +10,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import appReducer from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
 import { openCollectionModal, recentCollectionsChangedEvent } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import RecentsPage from './index';
 
 jest.mock('nanoid', () => {
@@ -59,7 +60,7 @@ const renderPage = () => {
         return next(action);
       })
   });
-  store.dispatch(openCollectionModal('recents'));
+  store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
   render(
     <Provider store={store}>
       <ThemeProvider>
@@ -179,7 +180,7 @@ describe('RecentsPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId('recents-no-match-choose-folder'));
     });
-    expect(modalState(store).page).toBe('choose-folder');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
   });
 
@@ -195,16 +196,16 @@ describe('RecentsPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open a collection folder…' }));
     });
-    expect(modalState(store).page).toBe('choose-folder');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Show collections on this computer' }));
     });
-    expect(modalState(store).page).toBe('my-computer');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
 
     fireEvent.click(screen.getByRole('button', { name: 'Import it' }));
-    expect(modalState(store).page).toBe('import');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.IMPORT);
   });
 
   it('says why Recents is not available and lists the collections after trying again', async () => {

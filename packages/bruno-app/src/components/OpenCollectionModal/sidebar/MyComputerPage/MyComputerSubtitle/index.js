@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconRefresh } from '@tabler/icons';
 import { openCollectionModal, scanMyComputer } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
+import { OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import { countSearchLocations, searchesWholeComputer } from '../../../utils/search-locations';
 import StyledWrapper from './StyledWrapper';
 
@@ -31,7 +32,7 @@ const MyComputerSubtitle = () => {
       <button
         type="button"
         className="subtitle-manage text-link hover:underline whitespace-nowrap"
-        onClick={() => dispatch(openCollectionModal('locations'))}
+        onClick={() => dispatch(openCollectionModal(OPEN_COLLECTION_SUB_PAGE.LOCATIONS))}
         data-testid="my-computer-manage"
       >
         Manage

@@ -5,6 +5,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import { callIpc } from 'utils/common/ipc';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import MyComputerSubtitle from './index';
 
 jest.mock('nanoid', () => {
@@ -32,7 +33,7 @@ const renderSubtitle = (myComputer) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
     preloadedState: {
-      openCollectionModal: { ...closedState, isOpen: true, page: 'my-computer', myComputer: { ...closedState.myComputer, scanId: 'scan-1', ...myComputer } }
+      openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.MY_COMPUTER, myComputer: { ...closedState.myComputer, scanId: 'scan-1', ...myComputer } }
     }
   });
   const { container } = render(
@@ -114,7 +115,7 @@ describe('MyComputerSubtitle', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
 
-    expect(store.getState().openCollectionModal.page).toBe('locations');
+    expect(store.getState().openCollectionModal.page).toBe(OPEN_COLLECTION_SUB_PAGE.LOCATIONS);
   });
 
   it('keeps Rescan in reach while searching, spinning, but ignores it', () => {

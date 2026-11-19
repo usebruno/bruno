@@ -1,9 +1,20 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { DEFAULT_OPEN_COLLECTION_PAGE, OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { mergeFoundCollections } from './found-collections';
+
+const MENU_PAGES = Object.values(OPEN_COLLECTION_PAGE);
+
+const showPage = (state, page) => {
+  state.page = page;
+  if (MENU_PAGES.includes(page)) {
+    state.lastPage = page;
+  }
+};
 
 const initialState = {
   isOpen: false,
   page: null,
+  lastPage: DEFAULT_OPEN_COLLECTION_PAGE,
   openingId: null,
   importLoadId: null,
   chooseFolder: {
@@ -34,18 +45,18 @@ export const openCollectionModalSlice = createSlice({
   reducers: {
     showOpenCollectionModal: (state, action) => {
       state.isOpen = true;
-      state.page = action.payload;
+      showPage(state, action.payload);
     },
     showOpenCollectionPage: (state, action) => {
       if (state.page !== action.payload) {
         state.importLoadId = null;
       }
-      state.page = action.payload;
+      showPage(state, action.payload);
       if (state.chooseFolder.result) {
         state.chooseFolder.result.note = null;
       }
     },
-    hideOpenCollectionModal: () => initialState,
+    hideOpenCollectionModal: (state) => ({ ...initialState, lastPage: state.lastPage }),
     folderPickStarted: (state) => {
       state.chooseFolder.status = 'picking';
     },

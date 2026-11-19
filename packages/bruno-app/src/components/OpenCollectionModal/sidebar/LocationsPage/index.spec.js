@@ -7,6 +7,7 @@ import { callIpc } from 'utils/common/ipc';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import appReducer, { updatePreferences } from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer, { myComputerScanStarted } from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import LocationsPage from './index';
 
 jest.mock('nanoid', () => {
@@ -52,7 +53,7 @@ const renderPage = ({ locations = searchedLocations, error = null, searchWholeCo
       openCollectionModal: {
         ...closedState,
         isOpen: true,
-        page: 'locations',
+        page: OPEN_COLLECTION_SUB_PAGE.LOCATIONS,
         myComputer: { ...closedState.myComputer, status: 'done', scanId: 'scan-1', locations, error }
       }
     }

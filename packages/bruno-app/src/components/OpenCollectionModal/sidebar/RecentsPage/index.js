@@ -10,6 +10,7 @@ import {
   switchToCollection
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse } from '../../utils/relative-time';
@@ -23,7 +24,7 @@ const RecentsPage = () => {
   const showPage = (page) => dispatch(openCollectionModal(page));
 
   const openFolderButton = (
-    <Button color="primary" fullWidth onClick={() => showPage('choose-folder')} data-testid="recents-open-folder">
+    <Button color="primary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)} data-testid="recents-open-folder">
       Open a collection folder…
     </Button>
   );
@@ -66,7 +67,7 @@ const RecentsPage = () => {
         actions={(
           <>
             {openFolderButton}
-            <Button variant="outline" color="secondary" fullWidth onClick={() => showPage('my-computer')} data-testid="recents-show-my-computer">
+            <Button variant="outline" color="secondary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.MY_COMPUTER)} data-testid="recents-show-my-computer">
               Show collections on this computer
             </Button>
           </>
@@ -77,7 +78,7 @@ const RecentsPage = () => {
             <button
               type="button"
               className="text-link hover:underline whitespace-nowrap"
-              onClick={() => showPage('import')}
+              onClick={() => showPage(OPEN_COLLECTION_PAGE.IMPORT)}
               data-testid="recents-import"
             >
               Import it
@@ -98,7 +99,7 @@ const RecentsPage = () => {
       getMeta={describeLastUse}
       noMatchText="Recents only lists collections you have opened before. If it lives somewhere else, choose its folder."
       testIdPrefix="recents"
-      onChooseFolder={() => showPage('choose-folder')}
+      onChooseFolder={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)}
       onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
       onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}
       onCancel={() => dispatch(closeOpenCollectionModal())}

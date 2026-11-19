@@ -9,6 +9,7 @@ import { callIpc } from 'utils/common/ipc';
 import { browseDirectories, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import appReducer from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer, { folderSearchStarted } from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import ChooseFolderPage from './index';
 
 jest.mock('nanoid', () => ({ customAlphabet: () => () => 'mock-id' }));
@@ -48,7 +49,7 @@ const renderPage = ({ preferences = {}, chooseFolder = {} } = {}) => {
       openCollectionModal: {
         ...closedModal,
         isOpen: true,
-        page: 'choose-folder',
+        page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
         chooseFolder: { ...closedModal.chooseFolder, ...chooseFolder }
       },
       app: { ...appReducer(undefined, { type: 'init' }), preferences }

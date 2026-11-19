@@ -13,6 +13,7 @@ import openCollectionModalReducer, {
   myComputerScanFinished
 } from 'providers/ReduxStore/slices/open-collection-modal';
 import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import MyComputerPage from './index';
 
 jest.mock('nanoid', () => {
@@ -87,7 +88,7 @@ const renderPage = ({ searchWholeComputer = false } = {}) => {
   if (searchWholeComputer) {
     store.dispatch(updatePreferences({ ...store.getState().app.preferences, openCollection: { searchWholeComputer } }));
   }
-  store.dispatch(openCollectionModal('my-computer'));
+  store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER));
   render(
     <Provider store={store}>
       <ThemeProvider>
@@ -199,7 +200,7 @@ describe('MyComputerPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId('my-computer-no-match-choose-folder'));
     });
-    expect(modalState(store).page).toBe('choose-folder');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
   });
 
@@ -217,14 +218,14 @@ describe('MyComputerPage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open a collection folder…' }));
     });
-    expect(modalState(store).page).toBe('choose-folder');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage search locations' }));
-    expect(modalState(store).page).toBe('locations');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_SUB_PAGE.LOCATIONS);
 
     fireEvent.click(screen.getByRole('button', { name: 'Import it' }));
-    expect(modalState(store).page).toBe('import');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.IMPORT);
   });
 
   it('says it searched its default locations when it had nowhere else to look', async () => {
@@ -301,7 +302,7 @@ describe('MyComputerPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage locations' }));
 
-    expect(modalState(store).page).toBe('locations');
+    expect(modalState(store).page).toBe(OPEN_COLLECTION_SUB_PAGE.LOCATIONS);
   });
 
   it('opens the ticked collections and has them recorded in Recents', async () => {

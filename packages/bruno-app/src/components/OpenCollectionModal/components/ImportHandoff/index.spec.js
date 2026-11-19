@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { isDirectory } from 'utils/filesystem';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { useImportHandoff } from './context';
 import ImportHandoff from './index';
 
@@ -49,7 +50,7 @@ const Starter = ({ loaded }) => {
 const renderHandoff = (loaded) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
-    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: 'import' } }
+    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT } }
   });
   render(
     <Provider store={store}>

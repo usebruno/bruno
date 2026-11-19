@@ -6,6 +6,7 @@ import {
   IconDownload,
   IconFolder
 } from '@tabler/icons';
+import { DEFAULT_OPEN_COLLECTION_PAGE, OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import ChooseFolderPage from './ChooseFolderPage';
 import ImportPage from './ImportPage';
 import RecentsPage from './RecentsPage';
@@ -32,7 +33,7 @@ import ApiCatalogPage from './ApiCatalogPage';
 /** @type {OpenCollectionPage[]} */
 export const OPEN_COLLECTION_PAGES = [
   {
-    id: 'choose-folder',
+    id: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
     label: 'Choose folder…',
     title: 'Choose folder',
     description: 'Pick one or more collection folders to open them in the current workspace.',
@@ -40,7 +41,7 @@ export const OPEN_COLLECTION_PAGES = [
     component: ChooseFolderPage
   },
   {
-    id: 'import',
+    id: OPEN_COLLECTION_PAGE.IMPORT,
     label: 'Import file or URL',
     title: 'Import',
     description: 'From Postman, Insomnia, OpenAPI, WSDL or a Bruno export file',
@@ -48,7 +49,7 @@ export const OPEN_COLLECTION_PAGES = [
     component: ImportPage
   },
   {
-    id: 'recents',
+    id: OPEN_COLLECTION_PAGE.RECENTS,
     label: 'Recents',
     title: 'Recents',
     description: 'Collections you opened recently, including ones you closed',
@@ -56,7 +57,7 @@ export const OPEN_COLLECTION_PAGES = [
     component: RecentsPage
   },
   {
-    id: 'my-computer',
+    id: OPEN_COLLECTION_PAGE.MY_COMPUTER,
     label: 'My computer',
     title: 'My computer',
     subtitle: MyComputerSubtitle,
@@ -65,7 +66,7 @@ export const OPEN_COLLECTION_PAGES = [
     component: MyComputerPage
   },
   {
-    id: 'registry',
+    id: OPEN_COLLECTION_PAGE.REGISTRY,
     label: 'Registry',
     title: 'Registry',
     description: 'Collections published to your team’s private registry',
@@ -74,7 +75,7 @@ export const OPEN_COLLECTION_PAGES = [
     component: RegistryPage
   },
   {
-    id: 'api-catalog',
+    id: OPEN_COLLECTION_PAGE.API_CATALOG,
     label: 'API Catalog',
     title: 'API Catalog',
     description: 'Every public Bruno collection indexed from GitHub',
@@ -97,12 +98,13 @@ export const OPEN_COLLECTION_PAGES = [
 /** @type {OpenCollectionSubPage[]} */
 const OPEN_COLLECTION_SUB_PAGES = [
   {
-    id: 'locations',
-    parent: 'my-computer',
+    id: OPEN_COLLECTION_SUB_PAGE.LOCATIONS,
+    parent: OPEN_COLLECTION_PAGE.MY_COMPUTER,
     title: 'Locations',
     component: LocationsPage
   }
 ];
 
-export const findOpenCollectionPage = (pageId) =>
-  [...OPEN_COLLECTION_PAGES, ...OPEN_COLLECTION_SUB_PAGES].find(({ id }) => id === pageId) || OPEN_COLLECTION_PAGES[0];
+const findPage = (pageId) => [...OPEN_COLLECTION_PAGES, ...OPEN_COLLECTION_SUB_PAGES].find(({ id }) => id === pageId);
+
+export const findOpenCollectionPage = (pageId) => findPage(pageId) || findPage(DEFAULT_OPEN_COLLECTION_PAGE);
