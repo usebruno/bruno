@@ -1,5 +1,6 @@
 import { test, expect, Page, ElectronApplication } from '../../playwright';
 import { buildTableLocator } from '../shared-ui/table';
+import { mockBrowseFiles } from './body';
 
 /**
  * Locators for the multipart form table on the request Body tab.
@@ -7,19 +8,20 @@ import { buildTableLocator } from '../shared-ui/table';
  */
 export const buildMultipartFormLocators = (page: Page) => {
   const table = buildTableLocator(page)('multipart-form-table');
-  const file = (testId: string) => table.container().getByTestId(testId);
 
   return {
-    uploadButton: () => table.allRows().last().getByTestId('multipart-file-upload'),
+    uploadButton: (rowIndex: number) => table.row(rowIndex).getByTestId('multipart-file-upload'),
     // .first() keeps toBeVisible strict when several chips are on screen.
-    selectedFiles: () => file('multipart-file-chip').or(file('multipart-file-summary')).first(),
+    selectedFiles: (rowIndex: number) => {
+      const row = table.row(rowIndex);
+      return row.getByTestId('multipart-file-chip').or(row.getByTestId('multipart-file-summary')).first();
+    },
     fieldName: (rowIndex: number) => table.row(rowIndex).getByTestId('column-name').getByRole('textbox')
   };
 };
 
 /**
- * Choose files for the last multipart row and name that field.
- * The spec must already stub `dialog.showOpenDialog` to return `(global).__mockFilePaths`.
+ * Choose files for the empty multipart row at `rowIndex` and name that field.
  */
 export const selectMultipartFiles = async (
   page: Page,
@@ -29,13 +31,10 @@ export const selectMultipartFiles = async (
   rowIndex = 0
 ) => {
   await test.step('Multi-select the files onto one form field', async () => {
-    await electronApp.evaluate((_, paths) => {
-      (global as any).__mockFilePaths = paths;
-    }, filePaths);
-
     const form = buildMultipartFormLocators(page);
-    await form.uploadButton().click();
-    await expect(form.selectedFiles()).toBeVisible();
+    await mockBrowseFiles(electronApp, filePaths);
+    await form.uploadButton(rowIndex).click();
+    await expect(form.selectedFiles(rowIndex)).toBeVisible();
     await form.fieldName(rowIndex).fill(fieldName);
   });
 };

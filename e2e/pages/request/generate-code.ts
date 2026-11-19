@@ -34,6 +34,7 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
     await request.generateCodeButton().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
+    await expect.poll(() => readGeneratedSnippet(page)).not.toBe('');
     return await readGeneratedSnippet(page);
   });
 };
