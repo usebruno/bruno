@@ -19,11 +19,9 @@ import {
 import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { openCollectionModal, openCollectionModalOnLastPage } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
-import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
@@ -185,7 +183,7 @@ const CollectionsSection = () => {
   };
 
   const handleOpenCollection = () => {
-    dispatch(openCollectionModalOnLastPage());
+    dispatch(setIsOpeningCollection(true));
   };
 
   const handleStartRequest = () => {
@@ -348,7 +346,7 @@ const CollectionsSection = () => {
           }}
           onOpenCollection={() => {
             handleDismissWelcomeModal();
-            dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER));
+            handleOpenCollection();
           }}
           onStartRequest={() => {
             handleDismissWelcomeModal();
