@@ -39,6 +39,8 @@ export const buildSidebarLocators = (page: Page) => {
       return page.locator(`[data-parent-name="${folderName}"]`).locator('.collection-item-name').filter({ hasText: requestName });
     },
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
+    collectionsActionsMenu: () => page.getByTestId('collections-header-actions-menu'),
+    saveAllButton: () => page.getByTestId('collections-header-actions-menu-save-all'),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
     invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),

@@ -1,0 +1,44 @@
+info:
+  name: rich-request
+  type: http
+  seq: 10
+  tags:
+    - hello
+
+http:
+  method: GET
+  url: localhost:4000/posts
+  headers:
+    - name: x-api-key
+      value: admin
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: console.log('tests')
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+examples:
+  - name: rich-example
+    description: an example
+    request:
+      url: localhost:4000/posts
+      method: GET
+      headers:
+        - name: x-api-key
+          value: admin
+    response:
+      status: 200
+      statusText: OK
+      body:
+        type: text
+        data: ""
+
+docs: hello docs

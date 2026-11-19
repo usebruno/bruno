@@ -2588,6 +2588,105 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
   });
 };
 
+const hasAnyExampleChanges = (item) => Boolean(item.draft) && !isEqual(item.examples || [], item.draft.examples || []);
+
+const unsavedItemChangesCache = new WeakMap();
+
+const hasUnsavedItemChanges = (item) => {
+  if (!item.draft || !(isItemARequest(item) || item.type === 'app')) {
+    return false;
+  }
+
+  if (!unsavedItemChangesCache.has(item)) {
+    unsavedItemChangesCache.set(item, hasRequestChanges(item) || hasAnyExampleChanges(item));
+  }
+
+  return unsavedItemChangesCache.get(item);
+};
+
+const hasUnsavedFolderSettings = (item) => item.type === 'folder' && Boolean(item.draft);
+
+const hasUnsavedFileContent = (collection, item) =>
+  Boolean(collection.fileMode) && !item.isTransient && typeof item.draft?.raw === 'string';
+
+const getEnvironmentDraft = (collection) => {
+  const { environmentUid, variables } = collection.environmentsDraft || {};
+  if (!variables || !findEnvironmentInCollection(collection, environmentUid)) {
+    return null;
+  }
+
+  return { environmentUid, variables, collectionUid: collection.uid };
+};
+
+const findScratchCollection = (collections, activeWorkspace) =>
+  activeWorkspace ? collections.find((collection) => collection.uid === activeWorkspace.scratchCollectionUid) : undefined;
+
+const someItem = (items = [], predicate) => items.some((item) => predicate(item) || someItem(item.items, predicate));
+
+export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  const drafts = {
+    collectionDrafts: [],
+    folderDrafts: [],
+    requestDrafts: [],
+    fileDrafts: [],
+    environmentDrafts: [],
+    transientRequestDrafts: []
+  };
+
+  getWorkspaceCollections({ collections, workspaces, activeWorkspace }).forEach((collection) => {
+    const collectionUid = collection.uid;
+
+    if (collection.draft) {
+      drafts.collectionDrafts.push({ collectionUid });
+    }
+
+    const environmentDraft = getEnvironmentDraft(collection);
+    if (environmentDraft) {
+      drafts.environmentDrafts.push(environmentDraft);
+    }
+
+    flattenItems(collection.items).forEach((item) => {
+      if (hasUnsavedFileContent(collection, item)) {
+        drafts.fileDrafts.push({ itemUid: item.uid, collectionUid, content: item.draft.raw });
+      } else if (hasUnsavedFolderSettings(item)) {
+        drafts.folderDrafts.push({ folderUid: item.uid, collectionUid });
+      } else if (hasUnsavedItemChanges(item)) {
+        const itemDrafts = item.isTransient ? drafts.transientRequestDrafts : drafts.requestDrafts;
+        itemDrafts.push({ ...item, collectionUid });
+      }
+    });
+  });
+
+  const scratchCollection = findScratchCollection(collections, activeWorkspace);
+  if (scratchCollection) {
+    flattenItems(scratchCollection.items).forEach((item) => {
+      if (item.isTransient && hasUnsavedItemChanges(item)) {
+        drafts.transientRequestDrafts.push({ ...item, collectionUid: scratchCollection.uid });
+      }
+    });
+  }
+
+  return drafts;
+};
+
+export const hasWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  const hasDrafts = (collection) =>
+    Boolean(collection.draft)
+    || Boolean(getEnvironmentDraft(collection))
+    || someItem(
+      collection.items,
+      (item) => hasUnsavedFileContent(collection, item) || hasUnsavedFolderSettings(item) || hasUnsavedItemChanges(item)
+    );
+
+  if (getWorkspaceCollections({ collections, workspaces, activeWorkspace }).some(hasDrafts)) {
+    return true;
+  }
+
+  const scratchCollection = findScratchCollection(collections, activeWorkspace);
+  return Boolean(scratchCollection)
+    && someItem(scratchCollection.items, (item) => Boolean(item.isTransient) && hasUnsavedItemChanges(item));
+};
+
 export const isSelectionEntryCollapsed = (entry) =>
   entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
 
