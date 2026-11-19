@@ -115,11 +115,11 @@ describe('the unsaved changes dialog shown while quitting', () => {
     renderModal({
       collections: [{ uid: 'c1', name: 'My Collection', draft: { name: 'My Collection' }, items: [] }],
       apiSpecs: [{ uid: 'spec-1', name: 'Petstore', pathname: SPEC_PATHNAME, raw: 'openapi: 3.0.0', draft: 'openapi: 3.1.0' }],
-      tabs: [{ uid: 'c1', collectionUid: 'c1', type: 'collection-settings' }, specTab(SPEC_PATHNAME)]
+      tabs: [specTab(SPEC_PATHNAME), { uid: 'c1', collectionUid: 'c1', type: 'collection-settings' }]
     });
 
     const entries = screen.getAllByRole('listitem').map((node) => node.textContent);
-    expect(entries).toEqual(['Collection: My Collection', 'API Spec: Petstore']);
+    expect(entries).toEqual(['API Spec: Petstore', 'Collection: My Collection']);
   });
 
   it('names every spec it could not save in one message and stays open', async () => {
