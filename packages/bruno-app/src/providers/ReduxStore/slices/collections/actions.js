@@ -439,7 +439,7 @@ export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
 export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   const state = getState();
   const { workspaces, activeWorkspaceUid } = state.workspaces;
-  const { collectionDrafts, folderDrafts, requestDrafts, environmentDrafts, transientRequestDrafts } = getWorkspaceDrafts({
+  const { collectionDrafts, folderDrafts, requestDrafts, fileDrafts, environmentDrafts, transientRequestDrafts } = getWorkspaceDrafts({
     collections: state.collections.collections,
     workspaces,
     activeWorkspace: workspaces.find((w) => w.uid === activeWorkspaceUid)
@@ -474,6 +474,14 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
           }
           throw err;
         })
+    );
+  });
+  fileDrafts.forEach(({ content, itemUid, collectionUid }) => {
+    saves.push(
+      dispatch(saveFile(content, itemUid, collectionUid, true)).catch((err) => {
+        toast.error('Failed to save file!');
+        throw err;
+      })
     );
   });
   environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {

@@ -2606,6 +2606,9 @@ const hasUnsavedItemChanges = (item) => {
 
 const hasUnsavedFolderSettings = (item) => item.type === 'folder' && Boolean(item.draft);
 
+const hasUnsavedFileContent = (collection, item) =>
+  Boolean(collection.fileMode) && !item.isTransient && typeof item.draft?.raw === 'string';
+
 const getEnvironmentDraft = (collection) => {
   const { environmentUid, variables } = collection.environmentsDraft || {};
   if (!variables || !findEnvironmentInCollection(collection, environmentUid)) {
@@ -2625,6 +2628,7 @@ export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
     collectionDrafts: [],
     folderDrafts: [],
     requestDrafts: [],
+    fileDrafts: [],
     environmentDrafts: [],
     transientRequestDrafts: []
   };
@@ -2642,7 +2646,9 @@ export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
     }
 
     flattenItems(collection.items).forEach((item) => {
-      if (hasUnsavedFolderSettings(item)) {
+      if (hasUnsavedFileContent(collection, item)) {
+        drafts.fileDrafts.push({ itemUid: item.uid, collectionUid, content: item.draft.raw });
+      } else if (hasUnsavedFolderSettings(item)) {
         drafts.folderDrafts.push({ folderUid: item.uid, collectionUid });
       } else if (hasUnsavedItemChanges(item)) {
         const itemDrafts = item.isTransient ? drafts.transientRequestDrafts : drafts.requestDrafts;
@@ -2667,7 +2673,10 @@ export const hasWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
   const hasDrafts = (collection) =>
     Boolean(collection.draft)
     || Boolean(getEnvironmentDraft(collection))
-    || someItem(collection.items, (item) => hasUnsavedFolderSettings(item) || hasUnsavedItemChanges(item));
+    || someItem(
+      collection.items,
+      (item) => hasUnsavedFileContent(collection, item) || hasUnsavedFolderSettings(item) || hasUnsavedItemChanges(item)
+    );
 
   if (getWorkspaceCollections({ collections, workspaces, activeWorkspace }).some(hasDrafts)) {
     return true;

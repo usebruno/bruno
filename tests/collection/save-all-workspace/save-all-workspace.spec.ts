@@ -23,7 +23,9 @@ import {
   saveTransientViaModal,
   selectAppView,
   selectPreferencesTab,
-  setCodeMirrorValue
+  setCodeMirrorValue,
+  setUrlInFileModeRaw,
+  switchToFileMode
 } from '../../utils/page';
 
 const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -353,6 +355,28 @@ test.describe('Save all across the workspace', () => {
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('saveAllFolderScript');
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('save-all-env-value');
       await expectSaveAllDisabled(page);
+    });
+  });
+
+  test('shortcut saves an edit made in File Mode', async ({ page }) => {
+    const { tabs, toast, fileMode } = buildCommonLocators(page);
+
+    await test.step('Edit the request file in File Mode without saving', async () => {
+      await openRequest(page, firstCollection, 'req-one', { persist: true });
+      await switchToFileMode(page);
+      await setUrlInFileModeRaw(page, 'https://example.com/file-mode-edit');
+      await expect(tabs.draftIndicator()).toBeVisible();
+    });
+
+    await test.step('Press the workspace save-all shortcut', async () => {
+      await page.keyboard.press(saveAllInWorkspaceShortcut);
+      await expect(toast.byMessage(savedToast).last()).toBeVisible();
+    });
+
+    await test.step('The edit is on disk, still in the editor, and the tab is clean', async () => {
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/file-mode-edit');
+      await expect(fileMode.editorContent()).toContainText('https://example.com/file-mode-edit');
+      await expect(tabs.draftIndicator()).not.toBeVisible();
     });
   });
 });
