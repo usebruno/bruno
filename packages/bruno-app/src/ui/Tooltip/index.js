@@ -38,7 +38,7 @@ const Tooltip = ({
 
   const renderBody = ({ content: anchorContent }) => {
     const body = anchorContent || content;
-    if (body === null || body === undefined || body === '') {
+    if (body == null || body === false || body === '') {
       return null;
     }
     return (

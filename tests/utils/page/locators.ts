@@ -48,8 +48,11 @@ const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'globa
     .filter({ hasText: scopeType === 'global' ? 'Global Environment' : 'Collection Environment' });
 
 export const buildCommonLocators = (page: Page) => ({
-  // Visible only: hidden tooltips can linger in the DOM while fading out.
-  tooltip: (text?: string) => page.getByRole('tooltip').filter(text ? { hasText: text, visible: true } : { visible: true }),
+  // Open tooltips only: a closing one stays in the DOM at opacity 0, which Playwright counts as visible.
+  tooltip: (text?: string) => {
+    const open = page.getByRole('tooltip').and(page.locator('.react-tooltip__show'));
+    return text ? open.filter({ hasText: text }) : open;
+  },
   titleBar: buildTitleBarLocators(page),
   collectionHeader: buildCollectionHeaderLocators(page),
   collectionApp: buildCollectionAppLocators(page),

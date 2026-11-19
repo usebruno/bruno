@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import Tooltip from './index';
@@ -117,5 +117,26 @@ describe('Tooltip', () => {
 
     await user.hover(screen.getByTestId('anchor'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent('From anchor');
+  });
+
+  it('hides for false content, shows the message, then hides again (cond && message)', async () => {
+    const renderWith = (content) => (
+      <ThemeProvider theme={theme}>
+        <Tooltip content={content} isOpen anchorId="external" />
+      </ThemeProvider>
+    );
+    const { rerender } = render(renderWith(false));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    rerender(renderWith('Timeout must be a number'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Timeout must be a number');
+
+    rerender(renderWith(false));
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
+  });
+
+  it('shows numeric 0 as content', async () => {
+    renderWithTheme(<Tooltip content={0} isOpen anchorId="external" />);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('0');
   });
 });

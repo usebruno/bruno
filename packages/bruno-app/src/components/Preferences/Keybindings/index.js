@@ -871,7 +871,7 @@ const Keybindings = () => {
                                     anchorSelect={`#${inputId}`}
                                     place="bottom-start"
                                     isOpen={true}
-                                    content={<span style={{ color: theme.status.danger.text }}>{errorMessage}</span>}
+                                    content={errorMessage}
                                   />
                                 )}
                               </div>
