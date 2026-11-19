@@ -96,7 +96,7 @@ test.describe.serial('File / Binary body upload', () => {
     await closeAllCollections(page);
   });
 
-  test('TC-2228: Verify execution using a large Binary file', { tag: '@sanity' }, async ({
+  test('TC-2227: Verify execution using a large JSON file as request payload', { tag: '@sanity' }, async ({
     page,
     electronApp
   }) => {
