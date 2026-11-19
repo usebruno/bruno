@@ -10,6 +10,9 @@ const Wrapper = styled.div`
     min-width: 0;
   }
 
+  .repeat-on-interval-indicator {
+    color: ${(props) => props.theme.primary.text};
+  }
 `;
 
 export default Wrapper;

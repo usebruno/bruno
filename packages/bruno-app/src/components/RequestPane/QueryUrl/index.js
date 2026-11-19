@@ -21,7 +21,7 @@ import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconCode, IconChevronDown, IconRepeat } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import SendButton from 'components/RequestPane/SendButton';
-import ScheduleSendModal from 'components/RequestPane/ScheduleSendModal';
+import ScheduleSendModal from './ScheduleSendModal';
 import MenuDropdown from 'ui/MenuDropdown';
 import useScheduledSend from 'hooks/useScheduledSend';
 import { startScheduledSend, stopScheduledSend } from 'providers/ReduxStore/slices/collections/scheduled-send';
@@ -411,6 +411,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       dispatch(cancelRequest(item.cancelTokenUid, item, collection));
     }
   };
+
   const scheduleMenuItems = [
     { id: 'repeat-on-interval', label: 'Repeat on Interval', onClick: () => setScheduleModalOpen(true) }
   ];
@@ -480,8 +481,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           positionStrategy="fixed"
         >
           <div
-            className="flex items-center gap-1 ml-2 text-xs whitespace-nowrap"
-            style={{ color: theme.primary.text }}
+            className="repeat-on-interval-indicator flex items-center gap-1 ml-2 text-xs whitespace-nowrap"
             data-testid="repeat-on-interval-indicator"
           >
             <IconRepeat size={14} strokeWidth={1.5} />

@@ -7,15 +7,18 @@ const UNIT_MS = {
   minutes: 60 * 1000
 };
 
+const MIN_INTERVAL_MS = 1000;
+
 const ScheduleSendModal = ({ onConfirm, onClose }) => {
   const [value, setValue] = useState('5');
   const [unit, setUnit] = useState('seconds');
   const amount = Number(value);
-  const isValid = Number.isFinite(amount) && amount > 0;
+  const intervalMs = Math.round(amount * UNIT_MS[unit]);
+  const isValid = Number.isFinite(intervalMs) && intervalMs >= MIN_INTERVAL_MS;
 
   const handleConfirm = () => {
     if (!isValid) return;
-    onConfirm(Math.max(1000, Math.round(amount * UNIT_MS[unit])));
+    onConfirm(intervalMs);
   };
 
   return (
@@ -43,7 +46,7 @@ const ScheduleSendModal = ({ onConfirm, onClose }) => {
             <input
               id="schedule-send-value"
               type="number"
-              min="1"
+              step="any"
               autoFocus
               className="block textbox w-full"
               data-testid="schedule-send-value"
@@ -60,6 +63,11 @@ const ScheduleSendModal = ({ onConfirm, onClose }) => {
               <option value="minutes">minutes</option>
             </select>
           </div>
+          {!isValid && (
+            <div className="text-red-500 mt-2" data-testid="schedule-send-error">
+              The interval must be at least 1 second
+            </div>
+          )}
         </form>
       </Modal>
     </Portal>
