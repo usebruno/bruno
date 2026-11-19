@@ -69,7 +69,7 @@ export const buildRequestLocators = (page: Page) => ({
     nameCell: (row: Locator) => row.getByTestId('column-name'),
     valueCell: (row: Locator) => row.getByTestId('column-value'),
     checkbox: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
-    cellText: (name: string, column: 'name' | 'value') => 
+    cellText: (name: string, column: 'name' | 'value') =>
       page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
     bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
     keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
