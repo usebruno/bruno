@@ -9,21 +9,24 @@ const MyComputerSubtitle = () => {
   const dispatch = useDispatch();
   const status = useSelector((state) => state.openCollectionModal.myComputer.status);
   const locations = useSelector((state) => state.openCollectionModal.myComputer.locations);
+  const error = useSelector((state) => state.openCollectionModal.myComputer.error);
 
   if (locations === null) {
     return <StyledWrapper />;
   }
 
   const isScanning = status === 'scanning';
+  const hasFailed = status === 'error';
   const isWholeComputer = searchesWholeComputer(locations);
   const locationCountText = countOf(countSearchLocations(locations), 'location');
   const scanningText = isWholeComputer ? 'Searching my computer…' : `Searching ${locationCountText}…`;
   const doneText = `Collections found in ${isWholeComputer ? 'this computer' : locationCountText} ·`;
+  const failedText = 'Search didn’t finish ·';
 
   return (
     <StyledWrapper data-testid="my-computer-subtitle">
-      <span className="subtitle-text" role="status">
-        {isScanning ? scanningText : doneText}
+      <span className="subtitle-text" role="status" title={hasFailed ? error : undefined}>
+        {isScanning ? scanningText : hasFailed ? failedText : doneText}
       </span>
       <button
         type="button"

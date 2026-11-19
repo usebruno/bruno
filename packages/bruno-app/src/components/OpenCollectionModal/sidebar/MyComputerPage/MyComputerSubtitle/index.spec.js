@@ -94,6 +94,21 @@ describe('MyComputerSubtitle', () => {
     expect(status).toHaveTextContent(scanningText);
   });
 
+  it('says the search did not finish when it stopped with an error, with the reason on hover, and searches again from Rescan', () => {
+    const { store } = renderSubtitle({ status: 'error', error: 'The collection scan stopped unexpectedly.', locations: searchedLocations });
+    const status = screen.getByRole('status');
+
+    expect(subtitle()).toHaveTextContent(/^Search didn’t finish ·Manage$/);
+    expect(status).toHaveAttribute('title', 'The collection scan stopped unexpectedly.');
+    expect(rescanButton()).toHaveAttribute('aria-disabled', 'false');
+
+    fireEvent.click(rescanButton());
+
+    expect(callIpc).toHaveBeenCalledWith(START_SCAN, { scanId: store.getState().openCollectionModal.myComputer.scanId });
+    expect(status).toHaveTextContent(/^Searching 3 locations…$/);
+    expect(status).not.toHaveAttribute('title');
+  });
+
   it('opens Locations from Manage', () => {
     const { store } = renderSubtitle({ status: 'done', locations: searchedLocations });
 
