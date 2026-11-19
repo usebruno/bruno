@@ -1,36 +1,44 @@
 // Hybrid key exchange (X25519MLKEM768). OpenSSL can advertise the group without a key share
 // (`?X25519MLKEM768`); BoringSSL cannot, so we start classical and retry once with hybrid.
-// Strategy is selected by a createSecureContext probe, not by product/runtime identity.
+// Strategy is selected by createSecureContext probes, not by product/runtime identity.
 import { once } from 'node:events';
 import tls, { TLSSocket, type SecureContext } from 'node:tls';
 
 const HYBRID_ECDH_CURVE = 'X25519:X25519MLKEM768:P-256:P-384';
 const ADVERTISE_HYBRID_WITHOUT_SHARE = 'DEFAULT:-X25519MLKEM768:?X25519MLKEM768';
 
-const probeSupportsHybridAdvertiseWithoutShare = (): boolean => {
+// advertise = OpenSSL 3.5+; retry = BoringSSL+PQ; none = OpenSSL < 3.5 (do not arm hybrid retry).
+type HybridTlsCapability = 'advertise' | 'retry' | 'none';
+
+const probeEcdhCurve = (ecdhCurve: string): boolean => {
   try {
-    tls.createSecureContext({ ecdhCurve: ADVERTISE_HYBRID_WITHOUT_SHARE });
+    tls.createSecureContext({ ecdhCurve });
     return true;
   } catch {
     return false;
   }
 };
 
-let supportsHybridAdvertiseWithoutShare = probeSupportsHybridAdvertiseWithoutShare();
+const probeHybridTlsCapability = (): HybridTlsCapability => {
+  if (probeEcdhCurve(ADVERTISE_HYBRID_WITHOUT_SHARE)) {
+    return 'advertise';
+  }
+  if (probeEcdhCurve(HYBRID_ECDH_CURVE)) {
+    return 'retry';
+  }
+  return 'none';
+};
+
+let hybridTlsCapability = probeHybridTlsCapability();
 
 function configureHybridTlsDefaults(): void {
-  if (!supportsHybridAdvertiseWithoutShare) {
-    return;
+  if (hybridTlsCapability === 'advertise') {
+    tls.DEFAULT_ECDH_CURVE = ADVERTISE_HYBRID_WITHOUT_SHARE;
   }
-  tls.DEFAULT_ECDH_CURVE = ADVERTISE_HYBRID_WITHOUT_SHARE;
 }
 
-function setSupportsHybridAdvertiseWithoutShareForTests(value: boolean): void {
-  supportsHybridAdvertiseWithoutShare = value;
-}
-
-function resetSupportsHybridAdvertiseWithoutShareForTests(): void {
-  supportsHybridAdvertiseWithoutShare = probeSupportsHybridAdvertiseWithoutShare();
+function setHybridTlsCapabilityForTests(capability: HybridTlsCapability | null): void {
+  hybridTlsCapability = capability ?? probeHybridTlsCapability();
 }
 
 // Carries the ClientRequest through Agent.createSocket → createConnection so an in-flight
@@ -129,6 +137,16 @@ async function connectWithKeyExchangeFallback(
 
   const stopWatching = watchRequestCancellation(request, cancel);
 
+  // Deferred secureConnect handoff also defers req.emit('socket'), so ClientRequest.setTimeout
+  // never arms. Mirror the request timeout here while the handshake is still ours.
+  const timeoutTimer
+    = request?.timeout > 0
+      ? setTimeout(() => {
+          request.emit('timeout');
+          cancel();
+        }, request.timeout)
+      : undefined;
+
   const whenCancelled = () =>
     new Promise<never>((_, reject) => {
       if (cancelled) {
@@ -180,6 +198,9 @@ async function connectWithKeyExchangeFallback(
       return socket;
     }
   } finally {
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+    }
     stopWatching();
   }
 }
@@ -201,6 +222,10 @@ const withEcdhCurve = <T extends object>(options: T, ecdhCurve: string | undefin
   (ecdhCurve ? applyEcdhCurveToSecureContext({ ...options, ecdhCurve }) : options);
 
 function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
+  if (hybridTlsCapability !== 'retry') {
+    return BaseAgentClass;
+  }
+
   const usesAgentBase = typeof (BaseAgentClass as any).prototype.connect === 'function';
 
   return class HybridKeyExchangeFallbackAgent extends (BaseAgentClass as any) {
@@ -227,14 +252,14 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
     }
 
     createSocket(req: any, options: any, callback: any) {
-      if (usesAgentBase || supportsHybridAdvertiseWithoutShare) {
+      if (usesAgentBase) {
         return super.createSocket(req, options, callback);
       }
       return super.createSocket(req, { ...options, [hybridRequest]: req }, callback);
     }
 
     createConnection(options: any, callback?: (error: Error | null, socket?: TLSSocket) => void) {
-      if (usesAgentBase || !callback || supportsHybridAdvertiseWithoutShare) {
+      if (usesAgentBase || !callback) {
         return super.createConnection(options, callback);
       }
 
@@ -247,7 +272,7 @@ function withHybridKeyExchangeFallback<T>(BaseAgentClass: T): T {
     }
 
     async connect(req: any, options: any) {
-      if (!options.secureEndpoint || supportsHybridAdvertiseWithoutShare) {
+      if (!options.secureEndpoint) {
         return super.connect(req, options);
       }
 
@@ -272,8 +297,7 @@ export {
   ADVERTISE_HYBRID_WITHOUT_SHARE,
   MAX_HYBRID_KEY_EXCHANGE_ENDPOINTS,
   configureHybridTlsDefaults,
-  setSupportsHybridAdvertiseWithoutShareForTests,
-  resetSupportsHybridAdvertiseWithoutShareForTests,
+  setHybridTlsCapabilityForTests,
   connectWithKeyExchangeFallback,
   withHybridKeyExchangeFallback,
   clearHybridKeyExchangeEndpoints,

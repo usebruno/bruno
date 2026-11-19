@@ -7,14 +7,14 @@ import {
   connectWithKeyExchangeFallback,
   withHybridKeyExchangeFallback,
   clearHybridKeyExchangeEndpoints,
-  setSupportsHybridAdvertiseWithoutShareForTests,
-  resetSupportsHybridAdvertiseWithoutShareForTests
+  setHybridTlsCapabilityForTests
 } from './hybrid-key-exchange';
 import { clearAgentCache } from './agent-cache';
 
-const fakeRequest = () => {
-  const request = new EventEmitter() as EventEmitter & { destroyed: boolean; destroy: () => void };
+const fakeRequest = (timeout = 0) => {
+  const request = new EventEmitter() as EventEmitter & { destroyed: boolean; destroy: () => void; timeout: number };
   request.destroyed = false;
+  request.timeout = timeout;
   request.destroy = () => {
     if (request.destroyed) {
       return;
@@ -166,9 +166,7 @@ describe('connectWithKeyExchangeFallback', () => {
 
   it('destroys the in-flight handshake when the request is cancelled', async () => {
     const request = fakeRequest();
-    const connect = jest.fn(() => fakeTlsSocket(handshakeFailure));
-    // Never settle the first handshake until we cancel.
-    connect.mockImplementationOnce(() => {
+    const connect = jest.fn(() => {
       const socket = new TLSSocket(new net.Socket());
       createdSockets.push(socket);
       return socket;
@@ -180,6 +178,20 @@ describe('connectWithKeyExchangeFallback', () => {
 
     await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(connect).toHaveBeenCalledTimes(1);
+    expect(createdSockets[0].destroyed).toBe(true);
+  });
+
+  it('emits request timeout while the handshake is still pending', async () => {
+    const request = fakeRequest(50);
+    const connect = jest.fn(() => {
+      const socket = new TLSSocket(new net.Socket());
+      createdSockets.push(socket);
+      return socket;
+    });
+
+    const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
+    await expect(new Promise((resolve) => request.once('timeout', () => resolve('timeout')))).resolves.toBe('timeout');
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(createdSockets[0].destroyed).toBe(true);
   });
 });
@@ -209,12 +221,12 @@ describe('withHybridKeyExchangeFallback', () => {
   });
 
   afterEach(() => {
-    resetSupportsHybridAdvertiseWithoutShareForTests();
+    setHybridTlsCapabilityForTests(null);
     createdSockets.splice(0).forEach((socket) => socket.destroy());
   });
 
   it('retries before handing the socket to the caller and logs to the timeline', async () => {
-    setSupportsHybridAdvertiseWithoutShareForTests(false);
+    setHybridTlsCapabilityForTests('retry');
     const Agent = withHybridKeyExchangeFallback(PqOnlyAgent) as any;
     const agent = new Agent();
     agent.timeline = [];
@@ -225,18 +237,18 @@ describe('withHybridKeyExchangeFallback', () => {
     expect(agent.timeline.map((entry: any) => entry.message)).toEqual(['TLS handshake failed; retrying with post-quantum key exchange (X25519MLKEM768)']);
   });
 
-  it('leaves advertise-without-share runtimes to their own key exchange settings', async () => {
-    setSupportsHybridAdvertiseWithoutShareForTests(true);
-    const Agent = withHybridKeyExchangeFallback(PqOnlyAgent) as any;
-    const agent = new Agent();
+  it('leaves advertise and unsupported runtimes unwrapped', async () => {
+    for (const capability of ['advertise', 'none'] as const) {
+      setHybridTlsCapabilityForTests(capability);
+      const agent = new (withHybridKeyExchangeFallback(PqOnlyAgent) as any)();
 
-    await expect(createConnection(agent)).rejects.toBe(handshakeFailure);
-
-    expect(agent.offeredCurves).toEqual([undefined]);
+      await expect(createConnection(agent)).rejects.toBe(handshakeFailure);
+      expect(agent.offeredCurves).toEqual([undefined]);
+    }
   });
 
   it('retries a SOCKS TLS failure without destroying the real request', async () => {
-    setSupportsHybridAdvertiseWithoutShareForTests(false);
+    setHybridTlsCapabilityForTests('retry');
 
     // Mirrors socks-proxy-agent 8.0.5: TLS errors destroy `req` before the hybrid wrapper sees them.
     class SocksLikeAgent {
@@ -265,7 +277,7 @@ describe('withHybridKeyExchangeFallback', () => {
   });
 
   it('retries an HTTPS proxy TLS failure with the real request so CONNECT can resume', async () => {
-    setSupportsHybridAdvertiseWithoutShareForTests(false);
+    setHybridTlsCapabilityForTests('retry');
 
     // Mirrors https-proxy-agent: resume the tunneled socket when the request emits `socket`.
     class HttpsProxyLikeAgent {
@@ -278,11 +290,10 @@ describe('withHybridKeyExchangeFallback', () => {
         this.offeredCurves.push(options.ecdhCurve);
         this.receivedRequests.push(req);
         const socket = fakeTlsSocket(options.ecdhCurve ? 'secure' : handshakeFailure);
-        const resume = (attached: TLSSocket) => {
+        req.once('socket', (attached: TLSSocket) => {
           this.resumedSockets.push(attached);
           attached.resume?.();
-        };
-        req.once('socket', resume);
+        });
         return socket;
       }
     }
@@ -297,13 +308,12 @@ describe('withHybridKeyExchangeFallback', () => {
     expect(request.destroyed).toBe(false);
     expect(agent.offeredCurves).toEqual([undefined, HYBRID_ECDH_CURVE]);
     expect(agent.receivedRequests).toEqual([request, request]);
-    // Both CONNECT attempts register a resume listener; both fire for the handed-off socket.
     expect(agent.resumedSockets.length).toBeGreaterThan(0);
     expect(agent.resumedSockets.every((resumed: TLSSocket) => resumed === socket)).toBe(true);
   });
 
   it('destroys a pending SOCKS handshake when the request is cancelled', async () => {
-    setSupportsHybridAdvertiseWithoutShareForTests(false);
+    setHybridTlsCapabilityForTests('retry');
 
     class HangingSocksAgent {
       lastSocket: TLSSocket | undefined;
