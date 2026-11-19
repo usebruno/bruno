@@ -30,8 +30,11 @@ test.describe.serial('Repeat on Interval', () => {
   });
 
   test.afterAll(async ({ page }) => {
-    await closeAllCollections(page);
-    server?.close();
+    try {
+      await closeAllCollections(page);
+    } finally {
+      server?.close();
+    }
   });
 
   test('sends the request repeatedly and stops on Cancel', async ({ page }) => {
