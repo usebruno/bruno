@@ -2551,8 +2551,8 @@ const closeAllTabs = async (page: Page) => {
  */
 const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
   await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
-    const tabLabel = buildCommonLocators(page).tabs.tabByName(tabName).locator('.tab-label');
-    await clickTabContextMenuItem(page, tabLabel, itemId);
+    const { tabs } = buildCommonLocators(page);
+    await clickTabContextMenuItem(page, tabs.tabLabel(tabs.tabByName(tabName)), itemId);
   });
 };
 

@@ -120,7 +120,8 @@ export const buildCommonLocators = (page: Page) => ({
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
     activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
-    tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient')
+    tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient'),
+    tabLabel: (tab: Locator) => tab.locator('.tab-label')
   },
   paneTabs: {
     responsiveTab: (key: string) => page.getByTestId(`responsive-tab-${key}`),
