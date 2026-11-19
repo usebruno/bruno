@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "Run Request From Another Collection Workspace"
+  type: workspace
+
+collections:
+  - name: "Orders"
+    path: "collections/orders"
+  - name: "Auth API"
+    path: "collections/auth"
+
+specs:
+
+docs: ''

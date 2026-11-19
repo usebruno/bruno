@@ -126,17 +126,22 @@ export interface Bru {
    */
   utils: Utils;
   /**
-   * Run another request of the collection and wait for its response.
+   * Run another request of the collection, or of another collection in the workspace, and
+   * wait for its response.
    *
    * In a gRPC hook it rejects: a gRPC script can't run another request.
    *
    * @param requestPathName - The request's path from the collection's folder, with or without its file extension, such as `'auth/login'`.
+   * @param options - Set `collection` to run the request from another collection of the workspace.
    * @example
    * const login = await bru.runRequest('auth/login');
    * bru.setVar('token', login.data.token);
+   * @example
+   * const login = await bru.runRequest('auth/login', { collection: 'Auth API' });
+   * bru.setVar('token', login.data.token);
    * @category Requests
    */
-  runRequest(requestPathName: string): Promise<RunRequestResponse>;
+  runRequest(requestPathName: string, options?: RunRequestOptions): Promise<RunRequestResponse>;
   /**
    * Get the results of the `test()` calls this script has made so far.
    *
@@ -1249,6 +1254,22 @@ export interface Utils {
    * an XML string. Throws on invalid XML.
    */
   minifyXml(xml: string): string;
+}
+
+/**
+ * The options of `bru.runRequest`.
+ *
+ * @category Types
+ */
+export interface RunRequestOptions {
+  /**
+   * The name of another collection in the same workspace (the
+   * name `bru.getCollectionName()` returns there) to run the request from. The request runs from
+   * its saved file, with that collection's own auth, headers, scripts, settings and `.env`, and
+   * the environment whose name matches the active one. Variables its scripts set stay inside
+   * that run.
+   */
+  collection?: string;
 }
 
 /**

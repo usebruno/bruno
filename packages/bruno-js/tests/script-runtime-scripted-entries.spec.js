@@ -123,6 +123,25 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
       );
     });
 
+    test.each(['nodevm', 'quickjs'])('bru.runRequest forwards its options to the host (%s)', async (runtimeName) => {
+      const host = jest.fn(async () => ({ status: 200, data: { token: 'abc' } }));
+      const script = `
+        const plain = await bru.runRequest('local/ping');
+        const login = await bru.runRequest('auth/login', { collection: 'Auth API' });
+        bru.setVar('token', login.data.token);
+      `;
+      const runtime = new ScriptRuntime({ runtime: runtimeName });
+      // The QuickJS sandbox installs `console` only when a log callback is provided.
+      const onConsoleLog = () => {};
+      const result = await runtime.runRequestScript(
+        script, { ...baseRequest }, {}, {}, '.', onConsoleLog, process.env, {}, host
+      );
+
+      expect(host).toHaveBeenNthCalledWith(1, 'local/ping', expect.anything(), undefined);
+      expect(host).toHaveBeenNthCalledWith(2, 'auth/login', expect.anything(), { collection: 'Auth API' });
+      expect(result.runtimeVariables.token).toBe('abc');
+    });
+
     test('cached npm modules preserve bru.runRequest attribution', async () => {
       const collectionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-script-runtime-'));
       try {
@@ -159,7 +178,7 @@ describe('ScriptRuntime — scripted entries across the three script phases', ()
           host
         );
 
-        expect(host).toHaveBeenCalledWith('cached-target.bru', expect.anything());
+        expect(host).toHaveBeenCalledWith('cached-target.bru', expect.anything(), undefined);
         expect(result.scriptedRequestEntries).toEqual([
           expect.objectContaining({
             source: 'runRequest',

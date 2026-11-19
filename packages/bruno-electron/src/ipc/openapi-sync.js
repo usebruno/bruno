@@ -14,7 +14,7 @@ const {
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
-const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
+const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath, isPathInsideCollection } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
@@ -64,16 +64,6 @@ const prettyPrintSpec = (content) => {
 const generateSpecHash = (spec) => {
   if (!spec) return null;
   return crypto.createHash('md5').update(JSON.stringify(spec)).digest('hex');
-};
-
-/**
- * Validate that a target path is inside the collection directory.
- * Prevents path traversal attacks via ../../ in user-supplied paths.
- */
-const isPathInsideCollection = (targetPath, collectionPath) => {
-  const resolvedTarget = path.resolve(targetPath);
-  const resolvedCollection = path.resolve(collectionPath);
-  return resolvedTarget.startsWith(resolvedCollection + path.sep) || resolvedTarget === resolvedCollection;
 };
 
 /**

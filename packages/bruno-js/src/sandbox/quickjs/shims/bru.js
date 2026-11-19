@@ -296,10 +296,10 @@ const addBruShimToContext = (vm, bru) => {
   });
   getAssertionResults.consume((handle) => vm.setProp(bruObject, 'getAssertionResults', handle));
 
-  let runRequestHandle = vm.newFunction('runRequest', (args) => {
+  let runRequestHandle = vm.newFunction('runRequest', (requestPathName, options) => {
     const promise = vm.newPromise();
     bru
-      .runRequest(vm.dump(args))
+      .runRequest(vm.dump(requestPathName), options ? vm.dump(options) : undefined)
       .then((response) => {
         promise.resolve(marshallToVm(cleanCircularJson(response), vm));
       })

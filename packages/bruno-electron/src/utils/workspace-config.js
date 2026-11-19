@@ -578,6 +578,8 @@ const reorderWorkspaceCollections = async (workspacePath, collectionPaths) => {
   });
 };
 
+// The CLI resolves workspace.yml collection paths the same way, in getWorkspaceCollectionPaths
+// (bruno-cli/src/utils/workspace.js); keep the two in sync.
 const resolveWorkspaceCollectionPaths = (workspacePath, rawCollections) => {
   const seenPaths = new Set();
 

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const { parseEnvironment } = require('@usebruno/filestore');
+const { parseEnvironment, parseDotEnv } = require('@usebruno/filestore');
 const { getEnvVars } = require('../utils/bru');
 const { resolveEnvironmentInheritance: resolveEnvironmentInheritanceCommon } = require('@usebruno/common').utils;
 
@@ -146,9 +146,16 @@ const loadEnvironmentFromFile = ({ filePath, name, resolveInheritance = true }) 
   };
 };
 
+// The variables of the .env file at the root of a collection, or none when it has no .env.
+const readDotEnvVars = (collectionPath) => {
+  const dotEnvPath = path.join(collectionPath, '.env');
+  return fs.existsSync(dotEnvPath) ? parseDotEnv(fs.readFileSync(dotEnvPath, 'utf8')) : {};
+};
+
 module.exports = {
   parseEnvironmentJson,
   loadEnvironments,
   resolveEnvironmentInheritance,
-  loadEnvironmentFromFile
+  loadEnvironmentFromFile,
+  readDotEnvVars
 };
