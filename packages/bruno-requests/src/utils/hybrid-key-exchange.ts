@@ -84,7 +84,35 @@ const watchRequestCancellation = (request: any, onCancel: () => void): (() => vo
   }
   const onClose = () => onCancel();
   request.once('close', onClose);
-  return () => request.off('close', onClose);
+
+  // ClientRequest destroyed before it has a socket emits neither close nor error.
+  const previousDestroy = request.destroy;
+  let cancelOnDestroy = typeof previousDestroy === 'function';
+  if (cancelOnDestroy) {
+    request.destroy = ((...args: unknown[]) => {
+      const result = previousDestroy.apply(request, args);
+      onCancel();
+      return result;
+    }) as typeof request.destroy;
+  }
+
+  const signal = request.signal as AbortSignal | undefined;
+  const onAbort = () => onCancel();
+  if (signal) {
+    if (signal.aborted) {
+      onCancel();
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  }
+
+  return () => {
+    request.off('close', onClose);
+    if (cancelOnDestroy) {
+      request.destroy = previousDestroy;
+    }
+    signal?.removeEventListener('abort', onAbort);
+  };
 };
 
 // Bounded by insertion order (FIFO). Cleared with the agent cache on SSL/proxy preference changes;
@@ -157,12 +185,12 @@ async function connectWithKeyExchangeFallback(
     });
 
   const attempt = async (offerHybrid: boolean) => {
-    if (cancelled) {
+    if (cancelled || request?.destroyed) {
       throw cancellationError();
     }
     const socket = await connect(offerHybrid ? HYBRID_ECDH_CURVE : undefined);
     activeSocket = socket;
-    if (cancelled) {
+    if (cancelled || request?.destroyed) {
       socket.destroy?.();
       throw cancellationError();
     }
@@ -183,8 +211,8 @@ async function connectWithKeyExchangeFallback(
     try {
       return await attempt(offerHybrid);
     } catch (error) {
-      if (cancelled || !isRetryableKeyExchangeError(error, offerHybrid)) {
-        throw cancelled ? cancellationError() : error;
+      if (cancelled || request?.destroyed || !isRetryableKeyExchangeError(error, offerHybrid)) {
+        throw cancelled || request?.destroyed ? cancellationError() : error;
       }
       onRetry?.(!offerHybrid);
       const socket = await attempt(!offerHybrid);

@@ -20,7 +20,6 @@ const fakeRequest = (timeout = 0) => {
       return;
     }
     request.destroyed = true;
-    request.emit('close');
   };
   return request;
 };
@@ -175,6 +174,36 @@ describe('connectWithKeyExchangeFallback', () => {
     const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
     await Promise.resolve();
     request.destroy();
+
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(createdSockets[0].destroyed).toBe(true);
+  });
+
+  it('does not retry after a handshake failure when the request was already cancelled', async () => {
+    const request = fakeRequest();
+    const connect = jest.fn((ecdhCurve?: string) => fakeTlsSocket(ecdhCurve ? 'secure' : handshakeFailure));
+
+    const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
+    await Promise.resolve();
+    request.destroy();
+    await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
+
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops when the request abort signal fires before the socket is attached', async () => {
+    const abortController = new AbortController();
+    const request = Object.assign(fakeRequest(), { signal: abortController.signal });
+    const connect = jest.fn(() => {
+      const socket = new TLSSocket(new net.Socket());
+      createdSockets.push(socket);
+      return socket;
+    });
+
+    const pending = connectWithKeyExchangeFallback(endpoint, connect, { request });
+    await Promise.resolve();
+    abortController.abort();
 
     await expect(pending).rejects.toMatchObject({ code: 'ECONNRESET' });
     expect(connect).toHaveBeenCalledTimes(1);
