@@ -19,11 +19,15 @@ const {
   canUseHttp2,
   applyHttp2Transport,
   getHttp2RequestDetails,
-  addHttp2RetryInterceptor
+  addHttp2RetryInterceptor,
+  configureHybridTlsDefaults
 } = require('@usebruno/requests');
 const { STATUS_CODES } = require('http');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
 const { applyOmitHeaders, HttpVersionMode } = require('@usebruno/common');
+
+// Same entry as CLI (bru.js): OpenSSL advertise-without-share when supported; no-op on BoringSSL.
+configureHybridTlsDefaults();
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';

@@ -5,6 +5,7 @@ import {
   closeAllCollections,
   createCollection,
   createRequest,
+  openNewRequestModal,
   openRequest,
   selectRequestPaneTab,
   selectAuthMode,
@@ -339,6 +340,32 @@ test.describe('Variable autocomplete dropdown interaction', () => {
     await page.keyboard.press('Enter');
     await expect(widget()).toHaveCount(0);
     await expect.poll(() => readEditorValue(valueEditor)).toBe(`{{${activeName}}}`);
+  });
+
+  test('closing the New Request dialog with its X button also closes an open variable list', async ({
+    page,
+    createTmpDir
+  }) => {
+    const collectionName = 'autocomplete-dropdown-modal-close';
+    await createCollection(page, collectionName, await createTmpDir());
+
+    const { modal, request } = buildCommonLocators(page);
+    const { widget } = buildAutocompleteLocators(page);
+
+    await test.step('open a variable list in the dialog URL field', async () => {
+      await openNewRequestModal(page, collectionName);
+      await request.newRequestUrl().click();
+      await page.keyboard.type('{{');
+
+      await expect(widget()).toBeVisible();
+    });
+
+    await test.step('closing the dialog removes the list too', async () => {
+      await modal.closeButton().click();
+
+      await expect(modal.any()).toHaveCount(0);
+      await expectAutocompleteStaysClosed(page);
+    });
   });
 });
 
