@@ -7,10 +7,11 @@ import Tooltip from './index';
 
 const theme = {
   font: { size: { xs: '0.6875rem' } },
-  border: { radius: { sm: '4px' }, border1: '#e5e5e5' },
+  border: { radius: { sm: '4px', base: '6px' }, border1: '#e5e5e5' },
   infoTip: { bg: '#ffffff', border: '#e5e5e5', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
-  colors: { text: { muted: '#838383' } },
-  text: '#343434'
+  colors: { text: { muted: '#838383', subtext2: '#666666' } },
+  text: '#343434',
+  bg: '#ffffff'
 };
 
 const renderWithTheme = (ui) => render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);

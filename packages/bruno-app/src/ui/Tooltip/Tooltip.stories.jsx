@@ -14,7 +14,7 @@ export default {
     variant: {
       control: 'select',
       options: ['default', 'rich'],
-      description: 'Visual variant; colors invert `theme.text` and `theme.bg`'
+      description: 'Visual variant; both invert `theme.text` and `theme.bg`, rich adds padding, link and inline-code styles'
     },
     content: { control: 'text', description: 'Tooltip body' },
     shortcut: { control: 'text', description: 'Keyboard shortcut shown muted after the content' },

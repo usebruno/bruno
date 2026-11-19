@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from 'styled-components';
 import useTooltipId from 'hooks/useTooltipId';
 import Portal from 'ui/Portal';
 import StyledTooltip from './StyledWrapper';
@@ -30,7 +29,6 @@ const Tooltip = ({
   className,
   'data-testid': dataTestId
 }) => {
-  const theme = useTheme();
   const generatedAnchorId = useTooltipId('tooltip-anchor');
   const wrapsChildren = Boolean(children);
   const anchorElementId = wrapsChildren ? anchorId || generatedAnchorId : anchorId;
@@ -72,7 +70,6 @@ const Tooltip = ({
           clickable={clickable}
           positionStrategy="fixed"
           noArrow={!arrow}
-          border={`1px solid ${theme.border.border1}`}
           opacity={1}
         />
       </Portal>
