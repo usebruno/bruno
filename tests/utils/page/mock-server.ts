@@ -133,6 +133,18 @@ export const startMockServer = async (page: Page): Promise<string> => {
   });
 };
 
+export const scrollRequestLogToOldest = async (page: Page) => {
+  await test.step('Scroll the Request Log to its oldest entries', async () => {
+    await page.getByTestId('mock-server-log-table').evaluate((table) => {
+      let parent = table.parentElement;
+      while (parent && !['auto', 'scroll'].includes(getComputedStyle(parent).overflowY)) {
+        parent = parent.parentElement;
+      }
+      parent?.scrollTo({ top: parent.scrollHeight });
+    });
+  });
+};
+
 // Stop the mock server and wait until status shows Stopped.
 export const stopMockServer = async (page: Page) => {
   await test.step('Stop mock server', async () => {

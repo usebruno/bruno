@@ -1248,6 +1248,15 @@ const scrollEnvironmentTableTo = async (page: Page, target: Locator) => {
   }
 };
 
+const expectEnvVarValue = async (page: Page, name: string, value: string | RegExp) => {
+  const valueLine = buildCommonLocators(page).environment.varRowLine(name);
+
+  await expect(async () => {
+    await scrollEnvironmentTableTo(page, valueLine);
+    await expect(valueLine).toHaveText(value, { timeout: 1000 });
+  }).toPass({ timeout: 15000 });
+};
+
 /**
  * The trailing empty row's Name input, scrolled into the rendered window first. Only the empty
  * row carries the `Name` placeholder, so a match is always the row a new variable goes into.
@@ -1368,9 +1377,24 @@ const setEnvironmentVariableValue = async (page: Page, name: string, value: stri
 const disableEnvironmentVariable = async (page: Page, name: string) => {
   await test.step(`Disable environment variable "${name}"`, async () => {
     const checkbox = buildCommonLocators(page).environment.varRowEnabledCheckbox(name);
-    await scrollEnvironmentTableTo(page, checkbox);
-    await checkbox.click();
-    await expect(checkbox).not.toBeChecked();
+    await expect(async () => {
+      await scrollEnvironmentTableTo(page, checkbox);
+      if (await checkbox.isChecked({ timeout: 2000 })) {
+        await checkbox.click({ timeout: 2000 });
+      }
+      await expect(checkbox).not.toBeChecked({ timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+  });
+};
+
+const clickInheritedVarSource = async (page: Page, name: string) => {
+  await test.step(`Click the source arrow of inherited variable "${name}"`, async () => {
+    const source = buildCommonLocators(page).environment.inheritedVarSource(name);
+
+    await expect(async () => {
+      await scrollEnvironmentTableTo(page, source);
+      await source.click({ timeout: 2000 });
+    }).toPass({ timeout: 15000 });
   });
 };
 
@@ -4187,6 +4211,8 @@ export {
   addEnvironmentVariable,
   addEnvironmentVariables,
   addRowToActiveTab,
+  expectEnvVarValue,
+  clickInheritedVarSource,
   cycleVariableSort,
   getVisibleVariableNames,
   dragVariableRow,

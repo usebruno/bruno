@@ -8,6 +8,7 @@ import {
   createMockServerFromCollection,
   openMockServerFromSidebar,
   openMockServerTab,
+  scrollRequestLogToOldest,
   startMockServer,
   stopMockServer,
   syncResponsesFromExamples
@@ -109,6 +110,8 @@ test.describe.serial('Mock server CORS preflight', () => {
     const plainOptionsRows = ms.logRows().filter({ hasText: 'Automatic OPTIONS response' });
 
     await test.step('Every automatically answered preflight is logged', async () => {
+      // The preflights were sent first, so they sit at the end of the newest-first log.
+      await scrollRequestLogToOldest(page);
       await expect(preflightRows).toHaveCount(3);
     });
 
