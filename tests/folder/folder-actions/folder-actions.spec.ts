@@ -77,7 +77,6 @@ test.describe('Folder actions', () => {
     await test.step('Select New Request from the folder actions menu', async () => {
       await openItemActionsMenu(page, folderName);
       await sidebar.rowMenu(folderName).item('new-request').click();
-      await request.requestNameInput().waitFor({ state: 'visible' });
     });
 
     await test.step('Verify that the new request modal and the request name input are visible', async () => {
@@ -131,7 +130,7 @@ test.describe('Folder actions', () => {
       { name: 'list-items', url: 'http://localhost:8081/api/echo/anything/items' },
       { name: 'get-item', url: 'http://localhost:8081/api/echo/anything/items/1' }
     ];
-    const { sidebar, tabs, toast } = buildCommonLocators(page);
+    const { sidebar, tabs, toast, request } = buildCommonLocators(page);
 
     await test.step('Arrange: the collection has a folder with requests', async () => {
       await expandCollection(page, collectionName);
@@ -158,15 +157,19 @@ test.describe('Folder actions', () => {
       await sidebar.itemByName(pastedFolderName).click();
       await expect(tabs.activeRequestTab()).toContainText(pastedFolderName);
       await expandFolder(page, pastedFolderName);
-      for (const { name } of requests) {
+      for (const { name, url } of requests) {
         await expect(sidebar.itemInFolder(pastedFolderName, name)).toBeVisible();
+        await sidebar.itemInFolder(pastedFolderName, name).click();
+        await expect(request.urlLine()).toContainText(url);
       }
     });
 
     await test.step('Verify the original folder still contains the requests', async () => {
       await expandFolder(page, folderName);
-      for (const { name } of requests) {
+      for (const { name, url } of requests) {
         await expect(sidebar.itemInFolder(folderName, name)).toBeVisible();
+        await sidebar.itemInFolder(folderName, name).click();
+        await expect(request.urlLine()).toContainText(url);
       }
     });
   });
