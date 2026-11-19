@@ -119,7 +119,7 @@ export default function Main() {
       >
         <StyledWrapper className={className} style={{ height: '100%', zIndex: 1 }}>
           <Sidebar />
-          <section className="flex flex-grow flex-col overflow-hidden">
+          <section className="bruno-workspace-surface flex flex-grow flex-col overflow-hidden">
             {showManageWorkspacePage ? (
               <ManageWorkspace />
             ) : (

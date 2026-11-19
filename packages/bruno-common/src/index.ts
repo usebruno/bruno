@@ -2,6 +2,13 @@ export { mockDataFunctions, timeBasedDynamicVars } from './utils/faker-functions
 export { default as interpolate, interpolateObject } from './interpolate';
 export { percentageToZoomLevel } from './zoom';
 export {
+  BACKGROUND_IMAGE_MODES,
+  DEFAULT_BACKGROUND_DISPLAY,
+  MAX_BACKGROUND_BLUR,
+  MAX_BACKGROUND_TRANSPARENCY,
+  normalizeBackgroundDisplay
+} from './background-image';
+export {
   default as isRequestTagsIncluded,
   normalizeTags,
   getFolderTags,

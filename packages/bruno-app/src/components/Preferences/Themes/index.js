@@ -4,6 +4,7 @@ import { useTheme } from 'providers/Theme';
 import themes, { getLightThemes, getDarkThemes } from 'themes/index';
 import { IconBrightnessUp, IconMoon, IconDeviceDesktop } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
+import BackgroundImageSettings from './BackgroundImageSettings';
 
 const ThemePreview = ({ themeId, isDark }) => {
   const theme = themes[themeId] || themes[isDark ? 'dark' : 'light'];
@@ -101,6 +102,7 @@ const Themes = () => {
           })}
         </div>
 
+        <BackgroundImageSettings />
         <div className="section-divider" />
 
         {storedTheme === 'light' && (

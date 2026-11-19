@@ -25,6 +25,17 @@ export const buildPreferencesLocators = (page: Page) => ({
     input: (action: string) => page.getByTestId(`keybinding-input-${action}`),
     resetButton: (action: string) => page.getByTestId(`keybinding-reset-${action}`)
   },
+  backgroundImage: {
+    chooseButton: () => page.getByRole('button', { name: 'Choose image…', exact: true }),
+    clearButton: () => page.getByRole('button', { name: 'Clear', exact: true }),
+    fileName: (name: string) => page.getByText(name, { exact: true }),
+    mode: () => page.getByLabel('Display mode'),
+    transparency: () => page.getByRole('slider', { name: 'Transparency' }),
+    blur: () => page.getByRole('slider', { name: 'Blur' }),
+    layer: () => page.getByTestId('background-image-layer'),
+    invalidImageMessage: () => page.getByText('Choose a PNG or JPEG image.', { exact: false }),
+    missingImageMessage: () => page.getByText('The background image could not be loaded.', { exact: false })
+  },
   /** The open Preferences tab in the tab bar */
   openTab: () => page.locator('.request-tab').filter({ hasText: 'Preferences' }),
   /** Close control on the open Preferences tab */
@@ -64,6 +75,12 @@ export const selectPreferencesTab = async (page: Page, name: string) => {
     const preferences = buildPreferencesLocators(page);
     await preferences.tab(name).click();
   });
+};
+
+export const openBackgroundImagePreferences = async (page: Page) => {
+  await expect(page.locator('.request-tab').filter({ hasText: 'Overview' })).toBeVisible();
+  await openPreferences(page);
+  await selectPreferencesTab(page, 'Themes');
 };
 
 /**

@@ -390,6 +390,10 @@ const getPreferences = () => {
   return preferencesStore.getPreferences();
 };
 
+// Keep wallpaper metadata outside the preferences object sent by general settings.
+const getBackgroundImage = () => preferencesStore.store.get('backgroundImage') || {};
+const saveBackgroundImage = (backgroundImage) => preferencesStore.store.set('backgroundImage', backgroundImage);
+
 const savePreferences = async (newPreferences) => {
   return new Promise((resolve, reject) => {
     preferencesSchema
@@ -468,5 +472,7 @@ const preferencesUtil = {
 module.exports = {
   getPreferences,
   savePreferences,
+  getBackgroundImage,
+  saveBackgroundImage,
   preferencesUtil
 };
