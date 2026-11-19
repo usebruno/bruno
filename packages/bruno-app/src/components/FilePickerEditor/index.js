@@ -134,7 +134,7 @@ const FilePickerEditor = ({
               id={warningTooltipId}
               place="bottom-end"
               delayShow={0}
-              tooltipTestId="file-picker-warning-tooltip"
+              data-testid="file-picker-warning"
               content={(
                 <span className="flex items-center gap-1.5">
                   <IconAlertTriangleFilled size={14} className="shrink-0" style={{ color: theme.status.warning.text }} />

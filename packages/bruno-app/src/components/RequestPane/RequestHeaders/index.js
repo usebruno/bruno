@@ -361,7 +361,6 @@ const RequestHeaders = ({ item, collection, addHeaderText }) => {
           : 'Automatically added at runtime. Required by HTTP, cannot be omitted'}
         className="default-header-info"
         data-testid={`default-header-info-${row.name.toLowerCase()}`}
-        tooltipTestId={`default-header-info-tooltip-${row.name.toLowerCase()}`}
         place="top-end"
       >
         <button

@@ -37,7 +37,7 @@ const InvalidFilesBadge = ({ count, collectionUid, rowUid }) => {
           place="bottom-start"
           clickable
           arrow={false}
-          tooltipTestId="invalid-files-tooltip"
+          data-testid="invalid-files"
           content={(
             <>
               You have {count} invalid {count === 1 ? 'file' : 'files'}.

@@ -28,8 +28,7 @@ const Tooltip = ({
   isOpen,
   clickable = false,
   className,
-  'data-testid': dataTestId,
-  tooltipTestId
+  'data-testid': dataTestId
 }) => {
   const theme = useTheme();
   const generatedAnchorId = useTooltipId('tooltip-anchor');
@@ -43,7 +42,7 @@ const Tooltip = ({
     }
     return (
       <>
-        {tooltipTestId ? <span data-testid={tooltipTestId}>{body}</span> : body}
+        {dataTestId ? <span data-testid={`${dataTestId}-tooltip`}>{body}</span> : body}
         {shortcut && <kbd className="tooltip-shortcut">{shortcut}</kbd>}
       </>
     );

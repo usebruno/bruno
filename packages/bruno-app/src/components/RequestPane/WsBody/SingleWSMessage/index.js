@@ -225,7 +225,7 @@ export const SingleWSMessage = ({
               content={displayName}
               className="message-label-anchor"
               place="bottom-start"
-              tooltipTestId="ws-message-name-tooltip"
+              data-testid="ws-message-name"
               maxWidth="320px"
             >
               <span

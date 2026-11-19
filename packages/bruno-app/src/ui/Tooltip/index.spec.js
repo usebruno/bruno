@@ -76,9 +76,19 @@ describe('Tooltip', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('applies tooltipTestId to the body', async () => {
-    renderWithTheme(<Tooltip content="Body" isOpen anchorId="external" tooltipTestId="tooltip-body" />);
-    expect(await screen.findByTestId('tooltip-body')).toHaveTextContent('Body');
+  it('names the anchor with data-testid and the body with data-testid + -tooltip', async () => {
+    renderWithTheme(
+      <Tooltip content="Body" isOpen data-testid="save">
+        <button type="button">Save</button>
+      </Tooltip>
+    );
+    expect(screen.getByTestId('save')).toHaveTextContent('Save');
+    expect(await screen.findByTestId('save-tooltip')).toHaveTextContent('Body');
+  });
+
+  it('names the body from data-testid when anchored externally', async () => {
+    renderWithTheme(<Tooltip content="Body" isOpen anchorId="external" data-testid="external" />);
+    expect(await screen.findByTestId('external-tooltip')).toHaveTextContent('Body');
   });
 
   it('shows an arrow by default and hides it with arrow={false}', async () => {
