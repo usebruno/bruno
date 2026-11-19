@@ -8,7 +8,7 @@ const { resolveDefaultLocation } = require('../utils/default-location');
 const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
-const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
+const { clearAgentCache, clearPacCache, closeAllSessions: closeAllHttp2Sessions } = require('@usebruno/requests');
 const mockServer = require('../app/mock-server/mock-server');
 
 const registerPreferencesIpc = (mainWindow) => {
@@ -67,6 +67,7 @@ const registerPreferencesIpc = (mainWindow) => {
   ipcMain.handle('renderer:clear-http-https-agent-cache', async () => {
     try {
       clearAgentCache();
+      closeAllHttp2Sessions();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -76,6 +77,7 @@ const registerPreferencesIpc = (mainWindow) => {
     try {
       clearPacCache();
       clearAgentCache();
+      closeAllHttp2Sessions();
     } catch (error) {
       return Promise.reject(error);
     }
@@ -98,6 +100,7 @@ const registerPreferencesIpc = (mainWindow) => {
     const variables = await fetchSystemProxy({ refresh: true });
     clearPacCache();
     clearAgentCache();
+    closeAllHttp2Sessions();
     return variables;
   });
 };

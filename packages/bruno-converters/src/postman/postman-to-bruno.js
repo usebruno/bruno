@@ -648,6 +648,17 @@ const importPostmanV2CollectionItem = (brunoParent, item, { preserveScripts = fa
           }
         }
 
+        const protocolVersion = i.protocolProfileBehavior?.protocolVersion;
+        if (['http1', 'http2', 'auto'].includes(protocolVersion)) {
+          settings.httpVersion = protocolVersion;
+        } else if (protocolVersion !== undefined) {
+          issues.push({
+            path: itemPath,
+            severity: 'warning',
+            message: `Unsupported protocolVersion "${protocolVersion}", ignored (expected http1, http2, or auto)`
+          });
+        }
+
         brunoRequestItem.settings = settings;
 
         if (i.event) {
@@ -991,9 +1002,9 @@ const searchLanguageByHeader = (headers) => {
   let contentType;
   each(normalizeHeaders(headers), (header) => {
     if (header.key?.toLowerCase() === 'content-type' && !header.disabled) {
-      if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
+      if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
         contentType = 'json';
-      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+      } else if (typeof header.value === 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
         contentType = 'xml';
       }
       return false;

@@ -29,6 +29,15 @@ export type {
 } from './api-docs';
 export { HTTP_SCRIPT_KEYS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from './scripts';
 
+export {
+  HttpVersionMode,
+  HttpVersionSetting,
+  HTTP_VERSION_MODES,
+  HTTP_VERSION_SETTINGS,
+  isHttpVersionMode,
+  isHttpVersionSetting
+} from './http-version';
+
 export { buildHar } from './generate-code/har';
 export type {
   BuildHarInput,
@@ -43,6 +52,7 @@ export type {
 
 export {
   BRUNO_DEFAULT_HEADERS,
+  getBrunoDefaultHeaders,
   getBrunoDefaultHeaderNames,
   applyOmitHeaders,
   shouldOmitConnection,
@@ -52,6 +62,7 @@ export {
 export type {
   BrunoDefaultHeader,
   BrunoDefaultHeaderSource,
+  BrunoHttpVersion,
   ApplyOmitHeadersResult,
   OmitHeadersOptions
 } from './headers/default-headers';

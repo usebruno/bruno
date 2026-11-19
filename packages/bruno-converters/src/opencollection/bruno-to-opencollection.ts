@@ -170,6 +170,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     presets?: BrunoPresets;
     scripts?: { flow?: 'sandwich' | 'sequential' };
     openapi?: BrunoConfig['openapi'];
+    http?: { version?: string };
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -198,6 +199,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig?.openapi);
   if (openApiEntries.length > 0) {
     brunoExtension.openapi = openApiEntries;
+  }
+
+  const httpVersion = (brunoConfig as any)?.http?.version;
+  if (httpVersion) {
+    brunoExtension.http = { version: httpVersion };
   }
 
   if (Object.keys(brunoExtension).length > 0) {

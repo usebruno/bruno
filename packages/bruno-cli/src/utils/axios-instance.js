@@ -4,24 +4,27 @@ const { addCookieToJar, getCookieStringForUrl } = require('./cookies');
 const { createFormData } = require('./form-data');
 const { setupProxyAgents } = require('./proxy-util');
 const { isSameOrigin, DEFAULT_MAX_REDIRECTS } = require('@usebruno/common').utils;
-const { applyOmitHeaders, shouldOmitConnection } = require('@usebruno/common');
+const { applyOmitHeaders, shouldOmitConnection, HttpVersionMode } = require('@usebruno/common');
 const {
   getSentHeaders,
   applyOmitConnectionToAxiosConfig,
   handleNtlmRedirect,
   startHop,
-  completeHop
+  completeHop,
+  applyHttp2Transport,
+  addHttp2RetryInterceptor
 } = require('@usebruno/requests');
+const { STATUS_CODES } = require('http');
 
 const redirectResponseCodes = [301, 302, 303, 307, 308];
 const METHOD_CHANGING_REDIRECTS = [301, 302, 303];
 
 const saveCookies = (url, headers) => {
   if (headers['set-cookie']) {
-    let setCookieHeaders = Array.isArray(headers['set-cookie'])
+    const setCookieHeaders = Array.isArray(headers['set-cookie'])
       ? headers['set-cookie']
       : [headers['set-cookie']];
-    for (let setCookieHeader of setCookieHeaders) {
+    for (const setCookieHeader of setCookieHeaders) {
       if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
         addCookieToJar(setCookieHeader, url);
       }
@@ -93,7 +96,8 @@ function makeAxiosInstance({
   systemProxyConfig,
   httpsAgentRequestFields,
   interpolationOptions,
-  disableCache
+  disableCache,
+  httpVersion = HttpVersionMode.Http1
 } = {}) {
   let redirectCount = 0;
 
@@ -110,7 +114,7 @@ function makeAxiosInstance({
   // rely on content-negotiation to receive requests with no Accept header.
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
-  instance.interceptors.request.use((config) => {
+  instance.interceptors.request.use(async (config) => {
     config.metadata = config.metadata || {};
 
     // Omit listed defaults and script-deleted headers. set(null) so Axios
@@ -135,6 +139,9 @@ function makeAxiosInstance({
       }
     }
 
+    // Attach the custom HTTP/2 transport. On http2 it's forced; on auto we await the ALPN probe.
+    await applyHttp2Transport({ config, mode: httpVersion });
+
     startHop(config.metadata);
     return config;
   });
@@ -146,6 +153,9 @@ function makeAxiosInstance({
       redirectCount = 0;
       response.sentHeaders = getSentHeaders(response.request);
 
+      // HTTP/2 has no reason phrase (only :status); fill statusText so summaries don't show "undefined".
+      if (!response.statusText) response.statusText = STATUS_CODES[response.status] || '';
+
       return response;
     },
     async (error) => {
@@ -153,6 +163,7 @@ function makeAxiosInstance({
       if (error.response) {
         completeHop(error.config.metadata);
         error.response.sentHeaders = error.sentHeaders;
+        if (!error.response.statusText) error.response.statusText = STATUS_CODES[error.response.status] || '';
 
         if (redirectResponseCodes.includes(error.response.status)) {
           if (!followRedirects) {
@@ -210,6 +221,18 @@ function makeAxiosInstance({
                 }
               });
             }
+
+            // URL-derived credentials (from https://user:pass@host) are host-bound: never forward
+            // them across a cross-origin redirect, regardless of forwardAuthorizationHeader. This
+            // matches HTTP/1.1, where the redirect URL carries no userinfo so they never follow.
+            if (requestConfig.__urlDerivedAuth) {
+              Object.keys(requestConfig.headers).forEach((key) => {
+                if (key.toLowerCase() === 'authorization') {
+                  delete requestConfig.headers[key];
+                }
+              });
+              delete requestConfig.__urlDerivedAuth;
+            }
           }
 
           const omitConnectionOnRedirect = shouldOmitConnection({
@@ -244,6 +267,9 @@ function makeAxiosInstance({
       return Promise.reject(error);
     }
   );
+
+  // Transparently retry a REFUSED_STREAM
+  addHttp2RetryInterceptor(instance);
 
   return instance;
 }

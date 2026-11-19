@@ -1,6 +1,7 @@
 import {
   applyOmitHeaders,
   shouldOmitConnection,
+  getBrunoDefaultHeaders,
   getBrunoDefaultHeaderNames,
   getBrunoRuntimeUserAgent,
   BRUNO_DEFAULT_HEADERS
@@ -39,6 +40,37 @@ describe('bruno default headers catalog', () => {
 
   it('builds the runtime User-Agent', () => {
     expect(getBrunoRuntimeUserAgent('2.14.0')).toBe('bruno-runtime/2.14.0');
+  });
+});
+
+describe('getBrunoDefaultHeaders by protocol', () => {
+  const names = (httpVersion?: '1.1' | '2' | 'auto') =>
+    getBrunoDefaultHeaders(httpVersion ? { httpVersion } : {}).map((h) => h.name);
+
+  it('returns the HTTP/1.1 set by default (with Connection and Host)', () => {
+    expect(names()).toEqual(['User-Agent', 'Accept', 'Accept-Encoding', 'Connection', 'Host']);
+    expect(getBrunoDefaultHeaders().every((h) => h.note === undefined)).toBe(true);
+  });
+
+  it('drops Connection and renames Host to :authority on HTTP/2', () => {
+    const http2 = names('2');
+    expect(http2).not.toContain('Connection');
+    expect(http2).not.toContain('Host');
+    expect(http2).toContain(':authority');
+    expect(getBrunoDefaultHeaders({ httpVersion: '2' }).every((h) => h.note === undefined)).toBe(true);
+  });
+
+  it('keeps the HTTP/1.1 shape for auto but annotates the protocol-dependent headers', () => {
+    const headers = getBrunoDefaultHeaders({ httpVersion: 'auto' });
+    expect(headers.map((h) => h.name)).toEqual(['User-Agent', 'Accept', 'Accept-Encoding', 'Connection', 'Host']);
+
+    const connection = headers.find((h) => h.name === 'Connection');
+    const host = headers.find((h) => h.name === 'Host');
+    expect(connection?.note).toMatch(/HTTP\/2/);
+    expect(host?.note).toMatch(/:authority/);
+
+    // headers that are identical across protocols carry no note
+    expect(headers.find((h) => h.name === 'Accept')?.note).toBeUndefined();
   });
 });
 

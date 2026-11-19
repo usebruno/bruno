@@ -1,8 +1,11 @@
 import React, { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import get from 'lodash/get';
+import { IconChevronDown } from '@tabler/icons';
 import { utils } from '@usebruno/common';
 import Toggle from 'ui/Toggle';
+import MenuDropdown from 'ui/MenuDropdown';
+import StatusBadge from 'ui/StatusBadge';
 import SettingsInput from 'components/SettingsInput';
 import InheritableSettingsInput from 'components/InheritableSettingsInput';
 import { updateItemSettings, toggleAppMode } from 'providers/ReduxStore/slices/collections';
@@ -13,6 +16,13 @@ import Tags from './Tags/index';
 import FormField from 'ui/patterns/FormField';
 import FieldList from 'ui/patterns/FieldList';
 import StyledWrapper from './StyledWrapper';
+
+const HTTP_VERSION_LABELS = {
+  inherit: 'Inherit',
+  auto: 'Auto',
+  http1: 'HTTP/1.1',
+  http2: 'HTTP/2'
+};
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
@@ -45,6 +55,31 @@ const Settings = ({ item, collection }) => {
       settings: updatedSettings
     }));
   }, [dispatch, collection.uid, item.uid, settings]);
+
+  // HTTP version (request > collection > app).
+  const appHttpVersion = useSelector((state) => get(state.app.preferences, 'request.httpVersion', 'http1'));
+  const collectionHttpVersion = collection?.draft?.brunoConfig
+    ? get(collection, 'draft.brunoConfig.http.version', 'inherit')
+    : get(collection, 'brunoConfig.http.version', 'inherit');
+  const effectiveInheritedHttpVersion
+    = collectionHttpVersion && collectionHttpVersion !== 'inherit' ? collectionHttpVersion : appHttpVersion;
+  const currentHttpVersion = rawSettings.httpVersion || 'inherit';
+
+  const onHttpVersionChange = useCallback((value) => {
+    updateSetting({ httpVersion: value });
+  }, [updateSetting]);
+
+  const httpVersionItems = [
+    {
+      id: 'inherit',
+      label: `Inherit (${HTTP_VERSION_LABELS[effectiveInheritedHttpVersion] || effectiveInheritedHttpVersion})`,
+      onClick: () => onHttpVersionChange('inherit')
+    },
+    { id: 'auto', label: HTTP_VERSION_LABELS.auto, onClick: () => onHttpVersionChange('auto') },
+    { id: 'http1', label: HTTP_VERSION_LABELS.http1, onClick: () => onHttpVersionChange('http1') },
+    { id: 'http2', label: HTTP_VERSION_LABELS.http2, onClick: () => onHttpVersionChange('http2') }
+  ];
+  const currentHttpVersionLabel = HTTP_VERSION_LABELS[currentHttpVersion] || HTTP_VERSION_LABELS.inherit;
 
   // Setting change handlers
   const onToggleUrlEncoding = useCallback(() =>
@@ -123,6 +158,38 @@ const Settings = ({ item, collection }) => {
             <div className="w-full" role="group" aria-labelledby="request-settings-tags-label">
               <Tags item={item} collection={collection} />
             </div>
+          </FormField>
+          <FormField
+            layout="inline"
+            label={(
+              <span className="inline-flex items-center gap-2">
+                HTTP Version
+                <StatusBadge status="info" size="xs">Beta</StatusBadge>
+              </span>
+            )}
+            labelId="request-http-version-label"
+            description="Choose the HTTP version for this request. Inherit uses the collection default."
+            descriptionId="request-http-version-description"
+          >
+            <MenuDropdown
+              items={httpVersionItems}
+              selectedItemId={currentHttpVersion}
+              placement="bottom-end"
+              appendTo={() => document.body}
+              popperOptions={{ strategy: 'fixed' }}
+            >
+              <button
+                type="button"
+                id="request-http-version-trigger"
+                className="settings-dropdown-trigger w-24"
+                aria-labelledby="request-http-version-label request-http-version-trigger"
+                aria-describedby="request-http-version-description"
+                data-testid="request-http-version"
+              >
+                <span>{currentHttpVersionLabel}</span>
+                <IconChevronDown size={12} />
+              </button>
+            </MenuDropdown>
           </FormField>
           <Toggle
             checked={encodeUrl}

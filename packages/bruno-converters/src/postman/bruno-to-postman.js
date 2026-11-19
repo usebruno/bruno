@@ -949,6 +949,11 @@ export const brunoToPostman = (collection, { preserveScripts = false } = {}) => 
           protocolProfileBehavior.disabledSystemHeaders = disabledSystemHeaders;
         }
 
+        const httpVersion = item.settings?.httpVersion;
+        if (['http1', 'http2', 'auto'].includes(httpVersion)) {
+          protocolProfileBehavior.protocolVersion = httpVersion;
+        }
+
         const postmanItem = {
           name: item.name || 'Untitled Request',
           ...(Object.keys(protocolProfileBehavior).length > 0 ? { protocolProfileBehavior } : {}),

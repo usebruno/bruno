@@ -56,7 +56,7 @@ type HttpProxyAgentClass = new (proxyUri: string, options?: HttpAgentOptions) =>
 function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent>(BaseAgentClass: T): AgentClass {
   return class TimelineAgent extends (BaseAgentClass as any) {
     timeline: TimelineEntry[];
-    alpnProtocols: string[];
+    alpnProtocols: string[] | null;
     caProvided: boolean;
     caCertificatesCount: CaCertificatesCount;
 
@@ -86,7 +86,7 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         };
         super(proxyUri, tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = tlsOptions.ALPNProtocols || ['h2', 'http/1.1'];
+        this.alpnProtocols = tlsOptions.ALPNProtocols || null;
         this.caProvided = !!(tlsOptions.ca || tlsOptions.secureContext);
 
         // Log TLS verification status and proxy details
@@ -100,7 +100,7 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
         };
         super(tlsOptions);
         this.timeline = Array.isArray(timeline) ? timeline : [];
-        this.alpnProtocols = optionsCopy.ALPNProtocols || ['h2', 'http/1.1'];
+        this.alpnProtocols = optionsCopy.ALPNProtocols || null;
         this.caProvided = !!(optionsCopy.ca || optionsCopy.secureContext);
 
         // Log TLS verification status
@@ -171,9 +171,10 @@ function createTimelineAgentClass<T extends ProxyAgentClass | typeof https.Agent
 
         log('tls', `SSL connection using ${protocol} / ${cipherSuite}`);
 
-        // ALPN protocol
-        const alpnProtocol = socket.alpnProtocol || 'None';
-        log('tls', `ALPN: server accepted ${alpnProtocol}`);
+        // ALPN protocol — only meaningful when we offered ALPN (HTTP/1.1 requests do not).
+        if (this.alpnProtocols && this.alpnProtocols.length > 0) {
+          log('tls', `ALPN: server accepted ${socket.alpnProtocol || 'None'}`);
+        }
 
         // Server certificate
         const cert = socket.getPeerCertificate?.(true);

@@ -53,6 +53,11 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     brunoConfig.openapi = openApiEntries;
   }
 
+  const httpVersion = (brunoExtension as any)?.http?.version;
+  if (httpVersion) {
+    (brunoConfig as any).http = { version: httpVersion };
+  }
+
   const config = oc.config;
   if (!config) {
     return brunoConfig;

@@ -291,6 +291,14 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
       (oc.extensions.bruno as any).openapi = openApiEntries;
     }
 
+    // bruno-specific http version (collection-level override of the app default).
+    if (brunoConfig.http?.version) {
+      if (!oc.extensions.bruno) {
+        oc.extensions.bruno = {};
+      }
+      (oc.extensions.bruno as any).http = { version: brunoConfig.http.version };
+    }
+
     return stringifyYml(oc);
   } catch (error) {
     console.error('Error stringifying opencollection.yml:', error);

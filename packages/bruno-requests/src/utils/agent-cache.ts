@@ -409,4 +409,4 @@ function getAgentCacheSize(): number {
   return agentCache.size;
 }
 
-export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize };
+export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize, applySecureContext, getAgentCacheKey };
