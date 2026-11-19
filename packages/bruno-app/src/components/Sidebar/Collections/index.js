@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useLayoutEffect, useState, useMemo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Virtuoso } from 'react-virtuoso';
 import StyledWrapper from './StyledWrapper';
@@ -11,17 +11,15 @@ import { buildSidebarEntries, getSelectionInfo } from 'utils/collections/index';
 import { flattenSidebarTree } from 'utils/collections/flattenSidebarTree';
 import { CollectionItemDragPreview } from './Collection/CollectionItem/CollectionItemDragPreview';
 import useBulkActionsMenu from 'hooks/useBulkActionsMenu';
-import useDebounce from 'hooks/useDebounce';
+import useCollectionsSearch from 'hooks/useCollectionsSearch';
+import { SIDEBAR_ROW_HEIGHT } from 'utils/common/constants';
 import useSidebarAutoReveal from 'hooks/useSidebarAutoReveal';
 import BulkActionsMenu from 'components/Sidebar/Collections/BulkActionsMenu';
 import { selectCollections, selectCollectionSortOrder, selectSelectedSidebarUids } from 'src/selectors/collections';
 
-const isEmptyQuery = (value) => typeof value === 'string' && value.trim() === '';
-
 const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismissCreate, onOpenAdvancedCreate }) => {
   const [searchText, setSearchText] = useState('');
-  const trimmedSearchText = searchText.trim();
-  const debouncedSearchText = useDebounce(trimmedSearchText, 300, { shouldSkipDebounce: isEmptyQuery });
+  const [searchCollapsedCollectionUids, setSearchCollapsedCollectionUids] = useState(() => new Set());
   const collections = useSelector(selectCollections);
   const collectionSortOrder = useSelector(selectCollectionSortOrder);
   const selectedSidebarUids = useSelector(selectSelectedSidebarUids);
@@ -44,11 +42,55 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
     [activeWorkspace, collections, workspaces, collectionSortOrder]
   );
 
+  const {
+    query: debouncedSearchText,
+    itemsByRoot,
+    indexing: searchIndexing,
+    matchCount: searchMatchCount,
+    setSearchContext,
+    setQuery,
+    onRangeChanged,
+    onItemsRendered
+  } = useCollectionsSearch({ sidebarEntries });
+
+  const handleSearchTextChange = (text) => {
+    setSearchCollapsedCollectionUids((collapsed) => (collapsed.size ? new Set() : collapsed));
+    setSearchText(text);
+    setQuery(text);
+  };
+
+  const toggleSearchCollection = (uid) => {
+    setSearchCollapsedCollectionUids((collapsed) => {
+      const next = new Set(collapsed);
+      next.has(uid) ? next.delete(uid) : next.add(uid);
+      return next;
+    });
+  };
+
+  const renderedSidebarEntries = useMemo(
+    () => sidebarEntries.map((entry) => {
+      // A collection turns 'mounted' before the watcher has delivered its items, so keep showing
+      // the search index's items until loading finishes; switching early empties the list.
+      const isReady = entry.collection?.mountStatus === 'mounted' && !entry.collection.isLoading;
+      if (entry.kind !== 'loaded' || isReady) return entry;
+      const items = itemsByRoot.get(entry.collection.pathname);
+      if (items === undefined) return entry;
+      return { ...entry, collection: { ...entry.collection, items } };
+    }),
+    [sidebarEntries, itemsByRoot]
+  );
+
   // Flatten the tree into ordered rows. itemsByUid / collectionsByUid resolve a row's live object.
   const { rows, itemsByUid, collectionsByUid, rowIndexByItemUid, rowIndexByCollectionUid } = useMemo(
-    () => flattenSidebarTree(sidebarEntries, { searchText: debouncedSearchText }),
-    [sidebarEntries, debouncedSearchText]
+    () => flattenSidebarTree(renderedSidebarEntries, {
+      searchText: debouncedSearchText,
+      searchCollapsedCollectionUids
+    }),
+    [renderedSidebarEntries, debouncedSearchText, searchCollapsedCollectionUids]
   );
+  useLayoutEffect(() => {
+    setSearchContext({ rows });
+  }, [rows, setSearchContext]);
 
   // Ghost rows carry only path/name. GitRemoteCollectionRow needs the full entry (for `remote`).
   const ghostsByPath = useMemo(() => {
@@ -116,7 +158,12 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
   return (
     <StyledWrapper data-testid="collections">
       {showSearch && (
-        <CollectionSearch searchText={searchText} setSearchText={setSearchText} />
+        <CollectionSearch
+          searchText={searchText}
+          setSearchText={handleSearchTextChange}
+          indexing={searchIndexing}
+          matchCount={searchMatchCount}
+        />
       )}
 
       {isCreatingCollection && (
@@ -137,13 +184,17 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
           data-testid="sidebar-collections-scroller"
           style={{ height: '100%' }}
           data={rows}
+          rangeChanged={onRangeChanged}
+          itemsRendered={onItemsRendered}
           computeItemKey={(_, row) => row.id}
-          defaultItemHeight={26}
+          defaultItemHeight={SIDEBAR_ROW_HEIGHT}
           increaseViewportBy={{ top: 400, bottom: 600 }}
           itemContent={(_, row) => (
             <SidebarRow
               row={row}
               searchText={debouncedSearchText}
+              searchCollapsedCollectionUids={searchCollapsedCollectionUids}
+              toggleSearchCollection={toggleSearchCollection}
               openBulkMenu={openBulkMenu}
               itemsByUid={itemsByUid}
               collectionsByUid={collectionsByUid}

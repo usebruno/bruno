@@ -1,10 +1,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { JobType, getPool, destroyPool } = require('../pool');
+const { JobType, getPool, destroyPool, JobPriority } = require('../pool');
 const { FileIndex } = require('./file-index');
 const { buildTree } = require('./tree-builder');
 const { defaultClassify, uidForSeed } = require('../../utils/mount');
 const { getWsClient } = require('../../ipc/network/ws-event-handlers');
+const { ingestBatch } = require('../search-index/ingest');
 const { transientManager } = require('../transient');
 
 // cold start only — collection-watcher handles live changes and writes through to the cache
@@ -184,7 +185,7 @@ class MountManager {
               relativePath: e.relativePath,
               format: e.format,
               type: e.type
-            });
+            }, { priority: JobPriority.mount });
             parsed.set(e.relativePath, result);
           } catch (err) {
             parsed.set(e.relativePath, {
@@ -218,6 +219,11 @@ class MountManager {
         entry.state.delete(e.relativePath);
         this.#getIndex().stage(entry.collectionPath, { op: 'remove', relativePath: e.relativePath });
       }
+    });
+    const { collectionPath } = entry;
+    ingestBatch({
+      parsed: [...parsed.values()].map((result) => ({ collectionPath, result })),
+      removed: removed.map(({ relativePath }) => ({ collectionPath, relativePath }))
     });
   }
 

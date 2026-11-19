@@ -122,7 +122,6 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     let brunoConfig = await getCollectionConfigFile(collectionPath);
     const uid = generateUidBasedOnHash(collectionPath);
 
-    // Always ensure node_modules and .git are ignored, regardless of user config
     const defaultIgnores = ['node_modules', '.git'];
     const userIgnores = brunoConfig.ignore || [];
     brunoConfig.ignore = [...new Set([...defaultIgnores, ...userIgnores])];

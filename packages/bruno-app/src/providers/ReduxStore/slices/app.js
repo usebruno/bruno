@@ -73,6 +73,9 @@ const initialState = {
         enabled: false
       }
     },
+    features: {
+      enhancedSearch: true
+    },
     ai: {
       enabled: false,
       providers: {

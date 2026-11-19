@@ -60,7 +60,7 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
+const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearchCollection, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -76,7 +76,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = collection.isLoading;
+  const isLoading = collection.isLoading || collection.mountStatus === 'mounting';
   const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
   const collectionRef = useRef(null);
 
@@ -140,7 +140,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
+  const collectionIsCollapsed = hasSearchText ? isSearchCollapsed : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -183,6 +183,10 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    if (hasSearchText) {
+      toggleSearchCollection(collection.uid);
+      return;
+    }
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
   };

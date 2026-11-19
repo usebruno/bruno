@@ -29,7 +29,7 @@ class SqliteService {
   constructor() {
     const userData = app.getPath('userData');
     const { db, statements, files } = createDatabase(path.join(userData, 'bruno.db'), {
-      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL' },
+      pragmas: { auto_vacuum: 'INCREMENTAL', journal_mode: 'WAL', synchronous: 'NORMAL' },
       filesDir: path.join(userData, 'sqlite-files'),
       inlineMaxBytes: 1024 * 1024
     });

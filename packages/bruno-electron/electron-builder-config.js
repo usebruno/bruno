@@ -22,7 +22,14 @@ const config = {
       to: 'data/sample-collection.json'
     }
   ],
-  files: ['**/*'],
+  // @vscode/ripgrep-universal ships rg for every platform; keep only the build target's binary,
+  // outside the asar so it can be spawned (ripgrep-process.js rewrites rgPath to app.asar.unpacked)
+  files: [
+    '**/*',
+    '!**/node_modules/@vscode/ripgrep-universal/bin/**',
+    '**/node_modules/@vscode/ripgrep-universal/bin/${platform}-${arch}/**'
+  ],
+  asarUnpack: ['**/node_modules/@vscode/ripgrep-universal/bin/**'],
   afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',

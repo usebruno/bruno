@@ -58,11 +58,13 @@ class BruParserWorker {
   private async enqueueTask({
     data,
     taskType,
-    format = DEFAULT_COLLECTION_FORMAT
+    format = DEFAULT_COLLECTION_FORMAT,
+    priority
   }: {
     data: any;
     taskType: 'parse' | 'stringify' | 'parseFolder' | 'stringifyFolder' | 'parseEnvironment' | 'stringifyEnvironment';
     format?: CollectionFormat;
+    priority?: number;
   }): Promise<any> {
     const size = getSize(data);
     const workerQueue = this.getWorkerQueue(size);
@@ -70,14 +72,14 @@ class BruParserWorker {
 
     return workerQueue.enqueue({
       data: { data, format },
-      priority: size,
+      priority: priority ?? size,
       scriptPath: workerScriptPath,
       taskType
     });
   }
 
-  async parseRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
-    return this.enqueueTask({ data, taskType: 'parse', format });
+  async parseRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT, priority?: number): Promise<any> {
+    return this.enqueueTask({ data, taskType: 'parse', format, priority });
   }
 
   async stringifyRequest(data: any, format: CollectionFormat = DEFAULT_COLLECTION_FORMAT): Promise<any> {
