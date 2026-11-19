@@ -2590,8 +2590,19 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
 
 const hasAnyExampleChanges = (item) => Boolean(item.draft) && !isEqual(item.examples || [], item.draft.examples || []);
 
-const hasUnsavedItemChanges = (item) =>
-  (isItemARequest(item) || item.type === 'app') && (hasRequestChanges(item) || hasAnyExampleChanges(item));
+const unsavedItemChangesCache = new WeakMap();
+
+const hasUnsavedItemChanges = (item) => {
+  if (!item.draft || !(isItemARequest(item) || item.type === 'app')) {
+    return false;
+  }
+
+  if (!unsavedItemChangesCache.has(item)) {
+    unsavedItemChangesCache.set(item, hasRequestChanges(item) || hasAnyExampleChanges(item));
+  }
+
+  return unsavedItemChangesCache.get(item);
+};
 
 const hasUnsavedFolderSettings = (item) => item.type === 'folder' && Boolean(item.draft);
 

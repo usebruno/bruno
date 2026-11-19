@@ -995,6 +995,13 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    saveRequests: (state, action) => {
+      const { collectionUid, itemUids } = action.payload;
+
+      itemUids.forEach((itemUid) => {
+        collectionsSlice.caseReducers.saveRequest(state, { payload: { collectionUid, itemUid } });
+      });
+    },
     deleteRequestDraft: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -4364,6 +4371,7 @@ export const {
   clearTimeline,
   clearRequestTimeline,
   saveRequest,
+  saveRequests,
   deleteRequestDraft,
   saveCollectionDraft,
   saveFolderDraft,

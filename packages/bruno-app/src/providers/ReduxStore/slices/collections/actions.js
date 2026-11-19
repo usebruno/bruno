@@ -60,6 +60,7 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
+  saveRequests as _saveRequests,
   saveEnvironment as _saveEnvironment,
   saveEnvironmentExtends as _saveEnvironmentExtends,
   updateEnvironmentColor as _updateEnvironmentColor,
@@ -454,19 +455,18 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   }
   const requestDraftsByCollection = new Map();
   requestDrafts.forEach((draft) => {
-    const collectionRequestDrafts = requestDraftsByCollection.get(draft.collectionUid) || [];
-    requestDraftsByCollection.set(draft.collectionUid, [...collectionRequestDrafts, draft]);
+    if (!requestDraftsByCollection.has(draft.collectionUid)) {
+      requestDraftsByCollection.set(draft.collectionUid, []);
+    }
+    requestDraftsByCollection.get(draft.collectionUid).push(draft);
   });
-  requestDraftsByCollection.forEach((collectionRequestDrafts) => {
+  requestDraftsByCollection.forEach((collectionRequestDrafts, collectionUid) => {
     saves.push(
       dispatch(saveMultipleRequests(collectionRequestDrafts))
         .then(() => {
-          collectionRequestDrafts.forEach((draft) => {
-            dispatch(_saveRequest({ itemUid: draft.uid, collectionUid: draft.collectionUid }));
-          });
-          window.dispatchEvent(new CustomEvent('workspace-requests-saved', {
-            detail: { itemUids: collectionRequestDrafts.map((draft) => draft.uid) }
-          }));
+          const itemUids = collectionRequestDrafts.map((draft) => draft.uid);
+          dispatch(_saveRequests({ collectionUid, itemUids }));
+          window.dispatchEvent(new CustomEvent('workspace-requests-saved', { detail: { itemUids } }));
         })
         .catch((err) => {
           if (err?.name === 'ValidationError') {

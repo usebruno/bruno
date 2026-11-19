@@ -9,6 +9,7 @@ import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { hasExampleChanges } from 'utils/collections';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -28,7 +29,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   // `openInEditMode` is an explicit "just created" signal from the OPEN_EXAMPLE task queue
   // (see taskMiddleware.js), not inferred from body content, so it doesn't misfire on
   // JSON examples (default content '{}') or on saved examples with a legitimately empty body.
-  const [editMode, setEditMode] = useState(!!openInEditMode);
+  const [editMode, setEditMode] = useState(() => !!openInEditMode || hasExampleChanges(item, example?.uid));
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
   const [isTryPending, setIsTryPending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
