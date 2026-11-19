@@ -22,7 +22,7 @@ import {
 } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 import { SECRET_DATATYPE_CASES } from '../utils/constants';
-import { buildAutocompleteLocators } from '../utils/page/autocomplete';
+import { buildAutocompleteLocators, firstRenderedLine } from '../utils/page/autocomplete';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
@@ -842,7 +842,7 @@ test.describe('Variable Tooltip', () => {
       await page.keyboard.press('End');
       await page.keyboard.type('-still-editable-after-mouse-left', { delay: 25 });
 
-      await expect(editor.locator('.CodeMirror-line')).toContainText('pin-value-still-editable-after-mouse-left');
+      await expect(firstRenderedLine(editor)).toContainText('pin-value-still-editable-after-mouse-left');
       await expect(tooltip).toBeVisible();
     });
   });
@@ -872,7 +872,7 @@ test.describe('Variable Tooltip', () => {
 
       await page.keyboard.press('End');
       await page.keyboard.type('-unsaved');
-      await expect(editor.locator('.CodeMirror-line')).toContainText('esc-value-unsaved');
+      await expect(firstRenderedLine(editor)).toContainText('esc-value-unsaved');
 
       await page.keyboard.press('Escape');
       await expect(varInfoPopup.all()).toHaveCount(0);
@@ -1350,7 +1350,7 @@ test.describe('Variable Tooltip', () => {
       await expect(editor).toHaveClass(/CodeMirror-focused/);
 
       // The click also revealed the real (unmasked) text
-      await expect(editor.locator('.CodeMirror-line')).toContainText('original-secret-eye');
+      await expect(firstRenderedLine(editor)).toContainText('original-secret-eye');
 
       await dismissVarTooltip(page);
     });
