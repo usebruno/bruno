@@ -478,10 +478,14 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   });
   environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {
     saves.push(
-      dispatch(saveEnvironment(variables, environmentUid, collectionUid)).catch((err) => {
-        toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment');
-        throw err;
-      })
+      dispatch(saveEnvironment(variables, environmentUid, collectionUid))
+        .then(() => {
+          dispatch(clearEnvironmentsDraft({ collectionUid }));
+        })
+        .catch((err) => {
+          toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment');
+          throw err;
+        })
     );
   });
 

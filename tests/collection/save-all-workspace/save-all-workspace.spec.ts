@@ -2,16 +2,22 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect, Page } from '../../../playwright';
 import {
+  addEnvironmentVariable,
   buildCommonLocators,
   closeAllCollections,
   closePreferences,
   createApp,
   createCollection,
+  createEnvironment,
   createExampleFromSidebar,
+  createFolder,
   createRequest,
   createTransientRequest,
+  editCodeMirrorEditor,
   fillRequestUrl,
+  openCollectionSettings,
   openExampleFromSidebar,
+  openFolderSettings,
   openPreferences,
   openRequest,
   saveTransientViaModal,
@@ -47,6 +53,12 @@ const openCollectionsMenu = async (page: Page) => {
   await expect(sidebar.saveAllButton()).toBeVisible();
 };
 
+const closeCollectionsMenu = async (page: Page) => {
+  const { sidebar } = buildCommonLocators(page);
+  await sidebar.collectionsActionsMenu().click();
+  await expect(sidebar.saveAllButton()).toBeHidden();
+};
+
 const saveAllFromCollectionsMenu = async (page: Page) => {
   const { sidebar } = buildCommonLocators(page);
   await openCollectionsMenu(page);
@@ -54,10 +66,16 @@ const saveAllFromCollectionsMenu = async (page: Page) => {
   await sidebar.saveAllButton().click();
 };
 
+const expectSaveAllEnabled = async (page: Page) => {
+  await openCollectionsMenu(page);
+  await expect(buildCommonLocators(page).sidebar.saveAllButton()).not.toHaveAttribute('aria-disabled', 'true');
+  await closeCollectionsMenu(page);
+};
+
 const expectSaveAllDisabled = async (page: Page) => {
   await openCollectionsMenu(page);
   await expect(buildCommonLocators(page).sidebar.saveAllButton()).toHaveAttribute('aria-disabled', 'true');
-  await page.keyboard.press('Escape');
+  await closeCollectionsMenu(page);
 };
 
 const editRequestUrl = async (page: Page, collectionName: string, requestName: string, url: string) => {
@@ -291,6 +309,50 @@ test.describe('Save all across the workspace', () => {
     await test.step('The save dialog opens for the scratch request and saves it', async () => {
       await saveTransientViaModal(page, 'scratch-saved', { collectionName: firstCollection });
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/scratch-draft');
+    });
+  });
+
+  test('menu item saves unsaved collection settings, folder settings and environment variables', async ({ page }) => {
+    const { tabs, toast, paneTabs } = buildCommonLocators(page);
+
+    await test.step('Save all is disabled while nothing is unsaved', async () => {
+      await expectSaveAllDisabled(page);
+    });
+
+    await test.step('Add an environment variable without saving, which enables Save all', async () => {
+      await openRequest(page, secondCollection, 'req-two', { persist: true });
+      await createEnvironment(page, 'save-all-env', 'collection');
+      await addEnvironmentVariable(page, { name: 'saveAllHost', value: 'save-all-env-value' }, { valueFirst: true });
+      await expectSaveAllEnabled(page);
+    });
+
+    await test.step('Edit the collection script without saving', async () => {
+      await openCollectionSettings(page, firstCollection, { persist: true });
+      await paneTabs.collectionSettingsTab('script').click();
+      await paneTabs.tabTrigger('pre-request').click();
+      await editCodeMirrorEditor(page, 'collection-pre-request-script-editor', 'const saveAllCollectionScript = 1;');
+      await expect(tabs.draftIndicator()).toBeVisible();
+    });
+
+    await test.step('Edit a folder script without saving', async () => {
+      await createFolder(page, 'save-all-folder', firstCollection);
+      await openFolderSettings(page, firstCollection, 'save-all-folder');
+      await paneTabs.folderSettingsTab('script').click();
+      await paneTabs.tabTrigger('pre-request').click();
+      await editCodeMirrorEditor(page, 'folder-pre-request-script-editor', 'const saveAllFolderScript = 1;');
+      await expect(tabs.draftIndicator()).toBeVisible();
+    });
+
+    await test.step('Save all from the Collections menu', async () => {
+      await saveAllFromCollectionsMenu(page);
+      await expect(toast.byMessage(savedToast).last()).toBeVisible();
+    });
+
+    await test.step('All three changes are on disk and Save all is disabled again', async () => {
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('saveAllCollectionScript');
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('saveAllFolderScript');
+      await expect.poll(() => readAllFiles(collectionsDir)).toContain('save-all-env-value');
+      await expectSaveAllDisabled(page);
     });
   });
 });
