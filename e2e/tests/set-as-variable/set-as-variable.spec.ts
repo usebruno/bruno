@@ -5,6 +5,7 @@ import {
   createCollection,
   closeAllCollections,
   createRequest,
+  createFolder,
   createEnvironment,
   addEnvironmentVariable,
   saveEnvironment,
@@ -24,8 +25,20 @@ import {
   sendRequest,
   buildCommonLocators
 } from '../../pages';
+import { buildToastLocators } from '../../pages/app-shell/toast';
 
 test.describe.configure({ timeout: 60_000 });
+
+const expectOnlyOneToast = async (page, variableName: string) => {
+  const toasts = buildToastLocators(page);
+
+  await test.step('Only one toast appears', async () => {
+    await expect(async () => {
+      await expect(toasts.byMessage(`Variable "${variableName}" created`)).toBeVisible({ timeout: 1000 });
+      await expect(toasts.all()).toHaveCount(1, { timeout: 1000 });
+    }).toPass({ timeout: 5000 });
+  });
+};
 
 test.describe('Set as variable', () => {
   test.afterEach(async ({ page }) => {
@@ -124,6 +137,75 @@ test.describe('Set as variable', () => {
       await setAsVariable.nameInput().fill('');
       await expect(setAsVariable.saveButton()).toBeDisabled();
     });
+  });
+
+  test('shows a single toast when a variable is saved', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with a request', async () => {
+      await createCollection(page, 'one-toast', await createTmpDir('one-toast'));
+      await createRequest(page, 'Fetch Posts', 'one-toast');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Save the scheme as a collection variable', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('scheme');
+      await selectVariableScope(page, 'collection');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await expectOnlyOneToast(page, 'scheme');
+  });
+
+  test('shows a single toast when saving into an environment', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a collection with an active environment and a request', async () => {
+      await createCollection(page, 'toast-env', await createTmpDir('toast-env'));
+      await createEnvironment(page, 'Dev', 'collection');
+      await addEnvironmentVariable(page, { name: 'placeholder', value: 'x' });
+      await saveEnvironment(page);
+      await closeEnvironmentPanel(page);
+
+      await createRequest(page, 'Fetch Posts', 'toast-env');
+      await sidebar.request('Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Save the scheme into the environment', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('envscheme');
+      await selectVariableScope(page, 'environment');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await expectOnlyOneToast(page, 'envscheme');
+  });
+
+  test('shows a single toast when saving into a folder', async ({ page, createTmpDir }) => {
+    const { sidebar, request, setAsVariable } = buildCommonLocators(page);
+
+    await test.step('Create a request inside a folder', async () => {
+      await createCollection(page, 'toast-folder', await createTmpDir('toast-folder'));
+      await createFolder(page, 'api', 'toast-folder');
+      await createRequest(page, 'Fetch Posts', 'api', { inFolder: true });
+      await sidebar.folderRequest('api', 'Fetch Posts').click();
+      await setRequestUrlAndSave(page, 'https://example.com/posts');
+    });
+
+    await test.step('Save the scheme into the parent folder', async () => {
+      await openSetAsVariablePopover(page, request.urlLine(), 10);
+      await setAsVariable.nameInput().fill('folderscheme');
+      await selectVariableScope(page, 'folder');
+      await setAsVariable.saveButton().click();
+      await expect(setAsVariable.popover()).toBeHidden();
+    });
+
+    await expectOnlyOneToast(page, 'folderscheme');
   });
 
   test('does not open the menu without a selection', async ({ page, createTmpDir }) => {

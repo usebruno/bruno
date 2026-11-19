@@ -1,12 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { Page, test, expect } from '../../../playwright';
-import {
-  expandCollection,
-  expandFolder,
-  openInvalidFilesTooltip,
-  buildCommonLocators
-} from '../../../pages';
+import { Locator, Page, test, expect } from '../../../playwright';
+import { expandCollection, expandFolder, buildCommonLocators } from '../../../pages';
 
 export type RequestFileFormat = 'bru' | 'yml';
 
@@ -37,6 +32,15 @@ http:
 const BROKEN_REQUEST: Record<RequestFileFormat, string> = {
   bru: FIXED_REQUEST.bru.replace(/}\n$/, ''),
   yml: FIXED_REQUEST.yml.replace('url: https', 'url: "https')
+};
+
+const openInvalidFilesTooltip = async (page: Page, badge: Locator) => {
+  const tooltip = buildCommonLocators(page).sidebar.invalidFilesTooltip();
+  await expect(async () => {
+    await page.mouse.move(0, 0);
+    await badge.hover();
+    await tooltip.waitFor({ state: 'visible', timeout: 1000 });
+  }).toPass({ timeout: 10000 });
 };
 
 export const verifyInvalidFileIndicators = async (

@@ -1,5 +1,11 @@
 import { test, expect } from '../../../playwright';
-import { closeAllCollections, openCollection } from '../../../pages';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  expandCollection,
+  expandFolder,
+  openCollection
+} from '../../../pages';
 
 test.describe('OpenAPI URL Import', () => {
   test.afterEach(async ({ page }) => {
@@ -100,5 +106,50 @@ test.describe('OpenAPI URL Import', () => {
 
     // Verify that the pet folder contains path-based subfolders like '{petId}'
     await expect(page.locator('.collection-item-name').getByText('{petId}')).toBeVisible();
+  });
+
+  test('TC-115: Imports an OpenAPI v3 collection from a URL', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const openApiUrl = 'https://petstore3.swagger.io/api/v3/openapi.json';
+    const collectionName = 'Swagger Petstore - OpenAPI 3.0';
+    const collectionTempDir = await createTmpDir('openapi-v3-url-import');
+    const { plusMenu, import: importLocators, sidebar } = buildCommonLocators(page);
+    const locationModal = importLocators.locationModal();
+
+    await test.step('Open the plus menu and verify Import collection is shown', async () => {
+      await plusMenu.button().click();
+      await plusMenu.importCollection().waitFor({ state: 'visible' });
+    });
+
+    await test.step('Choose Import collection and verify that Import dialog shows URL', async () => {
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+      await expect(importLocators.urlTab()).toContainText('URL');
+    });
+
+    await test.step('Choose URL and verify the URL input is shown', async () => {
+      await importLocators.urlTab().click();
+      await expect(importLocators.urlInput()).toBeVisible();
+    });
+
+    await test.step('Enter the OpenAPI v3 URL and import', async () => {
+      await importLocators.urlInput().fill(openApiUrl);
+      await importLocators.urlImportButton().click();
+      await importLocators.loader().waitFor({ state: 'hidden' });
+      await locationModal.waitFor({ state: 'visible' });
+      await expect(locationModal.getByText(collectionName)).toBeVisible();
+
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.importButton().click();
+      await locationModal.waitFor({ state: 'hidden' });
+      await expect(sidebar.collection(collectionName)).toBeVisible();
+    });
+
+    await test.step('Verify that Imported collection keeps its folder and requests', async () => {
+      await expandCollection(page, collectionName);
+      await expect(sidebar.itemsIn(collectionName, 'pet')).toBeVisible();
+
+      await expandFolder(page, 'pet');
+      await expect(sidebar.itemsIn(collectionName, 'Finds Pets by status')).toBeVisible();
+    });
   });
 });

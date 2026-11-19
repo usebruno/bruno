@@ -25,7 +25,8 @@ export const buildExportCollectionLocators = (page: Page) => ({
   locationInput: () => page.getByLabel('Location', { exact: true }),
   optionsButton: () => page.getByRole('button', { name: 'Options' }),
   advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-  preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+  preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+  preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
 });
 
 const buildLocators = (page: Page) => ({
