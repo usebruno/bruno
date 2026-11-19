@@ -13,6 +13,7 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             data: response.data,
             // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
             dataBuffer: response.dataBuffer,
+            receivedDataBuffer: response.receivedDataBuffer,
             headers: response.headers,
             size: response.size,
             status: response.status,
@@ -52,6 +53,12 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const runPostResponseScript = (item, collection, environment, runtimeVariables) => {
+  const { ipcRenderer } = window;
+
+  return ipcRenderer.invoke('renderer:run-post-response-script', item, collection, environment, runtimeVariables);
 };
 
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {

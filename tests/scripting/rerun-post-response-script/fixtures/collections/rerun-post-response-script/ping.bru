@@ -1,0 +1,21 @@
+meta {
+  name: ping
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar('pingSendToken', String(Date.now()) + '-' + Math.random());
+}
+
+script:post-response {
+  test('initial run', function () {
+    expect(res.getBody()).to.equal('pong');
+  });
+}
