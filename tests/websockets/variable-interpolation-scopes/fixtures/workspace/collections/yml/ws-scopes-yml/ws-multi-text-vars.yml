@@ -1,0 +1,15 @@
+info:
+  name: ws-multi-text-vars
+  type: websocket
+  seq: 2
+
+websocket:
+  url: ws://localhost:8081/ws/echo
+  message:
+    type: text
+    data: '{{folderName}} - {{collectionName}} - {{environmentName}} - {{globalName}}'
+  auth: inherit
+
+settings:
+  timeout: 0
+  keepAliveInterval: 0
