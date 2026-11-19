@@ -88,6 +88,13 @@ test.describe('Multipart Form - Multiple File Upload', () => {
 
     const table = buildCommonLocators(page).table('multipart-form-table');
     await table.allRows().last().getByTestId('multipart-file-upload').click();
+
+    // The mocked dialog resolves over async IPC, so the files land in the row a beat after the click.
+    // Wait for any of the render modes (chips, `N files` summary, `+N more`) before callers read names.
+    const rendered = page.getByTestId('multipart-file-chip')
+      .or(page.getByTestId('multipart-file-summary'))
+      .or(page.getByTestId('multipart-file-more'));
+    await expect(rendered.first()).toBeVisible();
   };
 
   // Reads all file names currently associated with the row, regardless of

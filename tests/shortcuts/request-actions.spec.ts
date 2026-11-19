@@ -12,6 +12,10 @@ import {
 } from './helpers';
 
 test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
+  // beforeEach creates a collection and three folders through the UI before every test, and that time counts
+  // against the test timeout.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(async ({ pageWithUserData: page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor(); ;
     await setupBoundActionsData(page, createTmpDir);

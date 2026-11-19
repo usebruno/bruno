@@ -23,6 +23,11 @@ test.describe('Migrate to YML — a transient request blocks Save All until it i
   });
 
   test('save the transient via its per-item Save button, then Save All completes migration', async ({ page, createTmpDir }) => {
+    // The steps below wait up to 10s, 10s and 30s for the save modal, the saved toast and the migration
+    // toast, which can't fit inside the default 30s test budget when CI is slow. Give the whole test
+    // enough room for them instead of letting the test timeout cut the last wait short.
+    test.setTimeout(90_000);
+
     const loc = buildCommonLocators(page);
     const migrate = loc.migrateToYml;
     const parentDir = await createTmpDir('migrate-drafts-transient');
