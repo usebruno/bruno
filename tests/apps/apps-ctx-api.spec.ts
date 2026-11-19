@@ -33,6 +33,7 @@ const CTX_APP = `
       });
   };
   window.__setVar = function (k, v) { bru.ctx.variables.runtime.set(k, v); };
+  window.__unsetVar = function (k) { bru.ctx.variables.runtime.unset(k); };
   window.__log = function () { bru.ctx.log('hello from app', 42); return 'logged'; };
 </script>`;
 
@@ -71,6 +72,7 @@ test.describe('Apps - ctx API', () => {
         ctx: typeof window.bru.ctx,
         submitRequest: typeof window.bru.ctx.submitRequest,
         runtimeSet: typeof window.bru.ctx.variables.runtime.set,
+        runtimeUnset: typeof window.bru.ctx.variables.runtime.unset,
         log: typeof window.bru.ctx.log,
         resolvedVariablesIsObject: !!(window.bru.ctx.variables.resolved && typeof window.bru.ctx.variables.resolved === 'object'),
         hooks: ['onThemeChange','onAssertionsChange','onTestsChange','onVariablesChange'].filter(function (k) { return k in window.bru.ctx; }),
@@ -82,6 +84,7 @@ test.describe('Apps - ctx API', () => {
     expect(surface.ctx).toBe('object');
     expect(surface.submitRequest).toBe('function');
     expect(surface.runtimeSet).toBe('function');
+    expect(surface.runtimeUnset).toBe('function');
     expect(surface.log).toBe('function');
     expect(surface.resolvedVariablesIsObject).toBe(true);
     expect(surface.hooks).toEqual(['onThemeChange', 'onAssertionsChange', 'onTestsChange', 'onVariablesChange']);
@@ -173,6 +176,29 @@ test.describe('Apps - ctx API', () => {
       .toBe('viaSet');
     await guestEval(page, electronApp, 'void window.__send()');
     await expect.poll(() => guestResult(page, electronApp), { timeout: 15000 }).toBe('viaSet');
+  });
+
+  test('bru.ctx.variables.runtime.unset removes the variable from the request app', async ({ page, electronApp, createTmpDir }) => {
+    const collectionPath = await createTmpDir('apps-ctx-unsetvar');
+    await createCollection(page, 'apps-unsetvar', collectionPath);
+    await createRequest(page, 'unsetvar-req', 'apps-unsetvar', { method: 'POST', url: ECHO_JSON_URL });
+    await openRequest(page, 'apps-unsetvar', 'unsetvar-req', { persist: true });
+
+    await setJsonBodyWithVar(page);
+    await setAppCode(page, CTX_APP);
+    await saveRequest(page);
+    await previewApp(page);
+    await waitForGuestReady(page, electronApp);
+
+    await guestEval(page, electronApp, `window.__setVar('q', 'viaSet')`);
+    await expect
+      .poll(() => guestEval(page, electronApp, `window.bru && window.bru.ctx.variables.resolved && window.bru.ctx.variables.resolved.q`), { timeout: 15000 })
+      .toBe('viaSet');
+
+    await guestEval(page, electronApp, `window.__unsetVar('q')`);
+    await expect
+      .poll(() => guestEval(page, electronApp, `String(window.bru.ctx.variables.resolved.q ?? '(missing)')`), { timeout: 15000 })
+      .toBe('(missing)');
   });
 
   test('the ctx bootstrap and user code are injected into the webview source', async ({ page, electronApp, createTmpDir }) => {

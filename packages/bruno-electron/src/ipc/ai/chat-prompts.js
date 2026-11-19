@@ -115,6 +115,7 @@ bru.ctx.variables.resolved    // merged env + global + collection + runtime vari
 
 bru.ctx.submitRequest(options?)          // executes THIS request; returns Promise<response>; options may carry { runtimeVariables: {...} }
 bru.ctx.variables.runtime.set(name, value) // persist a runtime variable on the collection
+bru.ctx.variables.runtime.unset(name)   // remove a runtime variable from the collection
 bru.ctx.log(...args)                     // forwarded to the Bruno devtools console
 
 bru.ctx.onInit              = (bru) => { ... }   // called ONCE when the initial state arrives — do the first render here
@@ -127,7 +128,7 @@ bru.ctx.onVariablesChange   = (variables) => { ... }
 
 ### Collection-/folder-level app (edited from the collection's own app editor)
 \`\`\`js
-bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.log / bru.ctx.onInit   // as above
+bru.ctx.theme / bru.ctx.variables / bru.ctx.variables.runtime.set / bru.ctx.variables.runtime.unset / bru.ctx.log / bru.ctx.onInit   // as above
 bru.ctx.collection                        // { name, pathname } | null
 bru.ctx.listRequests()                    // Promise<Array<{ uid, name, pathname, type, method, url }>>
 bru.ctx.runRequest(pathname, options?)    // run a request by pathname; returns Promise<response>

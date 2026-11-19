@@ -202,6 +202,28 @@ test.describe('Collection apps', () => {
       .toBe('world');
   });
 
+  test('bru.ctx.variables.runtime.unset removes the variable from bru.ctx.variables.resolved', async ({ page, electronApp, createTmpDir }) => {
+    const collectionPath = await createTmpDir('collection-apps-unset');
+    await createCollection(page, 'col-apps-unset', collectionPath);
+
+    await createApp(page, 'Unset App', { collectionName: 'col-apps-unset' });
+    await setCollectionAppCode(page, CTX_APP);
+    await saveRequest(page);
+
+    await selectAppView(page, 'preview');
+    await waitForGuestReady(electronApp, 'col-apps-unset');
+
+    await guestEval(electronApp, `bru.ctx.variables.runtime.set('token', 'abc')`, 'col-apps-unset');
+    await expect
+      .poll(() => guestEval(electronApp, `bru.ctx.variables.resolved && bru.ctx.variables.resolved.token`, 'col-apps-unset'), { timeout: 15000 })
+      .toBe('abc');
+
+    await guestEval(electronApp, `bru.ctx.variables.runtime.unset('token')`, 'col-apps-unset');
+    await expect
+      .poll(() => guestEval(electronApp, `String(bru.ctx.variables.resolved.token ?? '(missing)')`, 'col-apps-unset'), { timeout: 15000 })
+      .toBe('(missing)');
+  });
+
   test('bru.ctx.collection exposes the active collection', async ({ page, electronApp, createTmpDir }) => {
     const collectionPath = await createTmpDir('collection-apps-meta');
     await createCollection(page, 'col-apps-meta', collectionPath);
