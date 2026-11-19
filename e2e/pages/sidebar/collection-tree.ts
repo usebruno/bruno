@@ -9,6 +9,7 @@ import { buildOpenCollectionPickerLocators } from '../collection/open-collection
 import { buildToastLocators } from '../app-shell/toast';
 import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildFileModeLocators } from '../shared-ui/file-mode';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -26,6 +27,8 @@ export const buildSidebarLocators = (page: Page) => {
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
   const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
+  const saveModal = buildFileModeLocators(page).transientSaveModal;
+  const newCollectionItem = () => saveModal.card().locator('.new-collection-item');
 
   return {
     inlineCollectionCreator: {
@@ -136,16 +139,16 @@ export const buildSidebarLocators = (page: Page) => {
     saveRequestModal: {
       modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
       nameInput: (): Locator => page.locator('#request-name'),
-      root: (): Locator => page.getByTestId('save-transient-request-modal'),
-      requestNameInput: (): Locator => page.getByTestId('save-transient-request-name'),
-      saveButton: (): Locator => page.getByTestId('save-transient-request-submit'),
-      emptyState: (): Locator => page.getByTestId('save-transient-request-modal').getByText('No Collections Yet'),
-      newCollectionButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'New collection' }),
-      collectionNameInput: (): Locator => page.getByTestId('save-transient-request-modal').getByPlaceholder('Enter collection name'),
-      locationInput: (): Locator => page.getByTestId('save-transient-request-modal').getByPlaceholder('Select location'),
-      browseButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'Browse' }),
-      createCollectionButton: (): Locator => page.getByTestId('save-transient-request-modal').getByRole('button', { name: 'Create', exact: true }),
-      collectionOption: (name: string): Locator => page.getByTestId('save-transient-request-modal').locator('.collection-item').filter({ hasText: name })
+      root: saveModal.card,
+      requestNameInput: saveModal.nameInput,
+      saveButton: saveModal.saveButton,
+      emptyState: (): Locator => saveModal.card().getByText('No Collections Yet'),
+      newCollectionButton: (): Locator => saveModal.card().getByRole('button', { name: 'New collection' }),
+      collectionNameInput: (): Locator => newCollectionItem().getByPlaceholder('Enter collection name'),
+      locationInput: (): Locator => newCollectionItem().getByPlaceholder('Select location'),
+      browseButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Browse' }),
+      createCollectionButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Create', exact: true }),
+      collectionOption: saveModal.collectionOption
     },
 
     filesystemName: {
@@ -278,7 +281,7 @@ const buildLocators = (page: Page) => ({
  * @param page - The page object
  * @returns void
  */
-export const clickEmptySidebarSpace = async (page) => {
+export const clickEmptySidebarSpace = async (page: Page) => {
   const locators = buildLocators(page);
   if (!(await locators.sidebar.collectionsContainer().isVisible())) return;
   const listBox = await locators.sidebar.collectionsContainer().boundingBox();
