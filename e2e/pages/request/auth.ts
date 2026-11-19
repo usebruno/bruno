@@ -1,7 +1,8 @@
 import { test, expect, Page } from '../../playwright';
 import { AUTH_MODE_LABELS } from '../../constants';
+import { buildCommonLocators } from '../locators';
 import { selectRequestPaneTab } from './pane';
-import { writeFieldValue } from '../shared-ui/single-line-editor';
+import { readField, typeIntoField, writeFieldValue } from '../shared-ui/single-line-editor';
 import { expandFolder, openRequest } from '../sidebar/collection-tree';
 
 /**
@@ -64,4 +65,38 @@ export const openInheritedAuth = async (page: Page, collectionName: string, requ
   await openRequest(page, collectionName, requestName);
   await selectRequestPaneTab(page, 'Auth');
   await expect(buildAuthLocators(page).inheritedMode()).toHaveText(authMode);
+};
+
+type AuthFieldValues = Record<string, string>;
+
+/** Types a value into each auth field, keyed by the field's label. */
+export const fillAuthFields = async (page: Page, fields: AuthFieldValues) => {
+  for (const [label, value] of Object.entries(fields)) {
+    await typeIntoField(page, label, value);
+    await expect.poll(() => readField(page, label), `auth field "${label}"`).toBe(value);
+  }
+};
+
+/** Asserts the selected auth mode and, optionally, the value of each auth field (keyed by label). */
+export const expectAuthState = async (page: Page, modeLabel: string, fields: AuthFieldValues = {}) => {
+  await expect(buildAuthLocators(page).modeLabel()).toContainText(modeLabel);
+  for (const [label, value] of Object.entries(fields)) {
+    await expect.poll(() => readField(page, label), `auth field "${label}"`).toBe(value);
+  }
+};
+
+/** Selects API Key auth and waits for its default placement before the fields are edited. */
+export const selectApiKeyAuth = async (page: Page) => {
+  await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
+  await expect(buildAuthLocators(page).apiKey.placementLabel()).toContainText('Header');
+};
+
+/** Saves the collection or folder settings pane through its Save button. */
+export const saveAuthSettings = async (page: Page, level: 'collection' | 'folder') => {
+  await test.step(`Save ${level} settings`, async () => {
+    const { settingsSaveButton, toast } = buildCommonLocators(page);
+    const savedToast = level === 'collection' ? 'Collection Settings saved successfully' : 'Folder Settings saved successfully';
+    await settingsSaveButton().click();
+    await expect(toast.byMessage(savedToast).last()).toBeVisible();
+  });
 };
