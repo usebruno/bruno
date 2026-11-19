@@ -185,6 +185,8 @@ const Sidebar = () => {
             className="tooltip-mod sidebar-handle-tooltip"
             place="right"
             positionStrategy="fixed"
+            float
+            offset={14}
             delayShow={300}
             noArrow
             opacity={1}
