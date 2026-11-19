@@ -65,10 +65,12 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
+    count: () => page.getByTestId('request-pane').getByTestId('responsive-tab-headers').getByTestId('request-headers-count'),
     nameCell: (row: Locator) => row.getByTestId('column-name'),
     valueCell: (row: Locator) => row.getByTestId('column-value'),
     checkbox: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
-    cellText: (name: string, column: 'name' | 'value') => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    cellText: (name: string, column: 'name' | 'value') => 
+      page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
     bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
     keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
     bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
