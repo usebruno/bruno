@@ -2,6 +2,8 @@ import React, { useEffect, useMemo } from 'react';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
+import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest, hasRequestChanges, findEnvironmentInCollection } from 'utils/collections';
@@ -48,11 +50,6 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
       return relevantTabs.some((item) => item.uid === uid);
     };
 
-    const tabIndexOf = (predicate) => {
-      const index = relevantTabs.findIndex(predicate);
-      return index === -1 ? Infinity : index;
-    };
-
     Object.keys(tabsByCollection).forEach((collectionUid) => {
       const collection = findCollectionByUid(collections, collectionUid);
       if (collection) {
@@ -62,7 +59,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
             type: 'collection',
             name: collection.name,
             collectionUid: collectionUid,
-            tabIndex: tabIndexOf((t) => t.uid === collectionUid)
+            tabIndex: relevantTabs.findIndex((t) => t.uid === collectionUid)
           });
         }
 
@@ -77,7 +74,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
               environmentUid,
               variables,
               collectionUid: collectionUid,
-              tabIndex: tabIndexOf((t) => t.collectionUid === collectionUid && t.type === 'environment-settings')
+              tabIndex: relevantTabs.findIndex((t) => t.collectionUid === collectionUid && t.type === 'environment-settings')
             });
           }
         }
@@ -91,7 +88,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           requestDrafts.push({
             ...draft,
             collectionUid: collectionUid,
-            tabIndex: tabIndexOf((t) => t.uid === draft.uid)
+            tabIndex: relevantTabs.findIndex((t) => t.uid === draft.uid)
           });
         });
 
@@ -100,7 +97,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           appDrafts.push({
             ...draft,
             collectionUid: collectionUid,
-            tabIndex: tabIndexOf((t) => t.uid === draft.uid)
+            tabIndex: relevantTabs.findIndex((t) => t.uid === draft.uid)
           });
         });
 
@@ -112,7 +109,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
             name: folder.name,
             folderUid: folder.uid,
             collectionUid: collectionUid,
-            tabIndex: tabIndexOf((t) => t.uid === folder.uid)
+            tabIndex: relevantTabs.findIndex((t) => t.uid === folder.uid)
           });
         });
       }
@@ -131,7 +128,7 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
         name: apiSpec.name || apiSpec.filename,
         uid: apiSpec.uid,
         draft: apiSpec.draft,
-        tabIndex: tabIndexOf((t) => t.type === API_SPEC_TAB_TYPE && t.apiSpecPathname === tab.apiSpecPathname)
+        tabIndex: relevantTabs.findIndex((t) => t.type === API_SPEC_TAB_TYPE && t.apiSpecPathname === tab.apiSpecPathname)
       });
     });
 
@@ -146,15 +143,17 @@ const SaveRequestsModal = ({ onClose, forceCloseTabs = false, tabUidsToClose = [
           name: environment.name,
           environmentUid,
           variables,
-          tabIndex: tabIndexOf(isGlobalEnvironmentTab)
+          tabIndex: relevantTabs.findIndex(isGlobalEnvironmentTab)
         });
       }
     }
 
     const drafts = [...collectionDrafts, ...folderDrafts, ...environmentDrafts, ...appDrafts, ...requestDrafts, ...apiSpecDrafts];
 
-    const sortedByTabSequence = drafts
-      .sort((a, b) => a.tabIndex - b.tabIndex)
+    // A draft can outlive its tab; those have no position, so they follow the ones that do.
+    const [draftsWithTab, draftsWithoutTab] = partition(drafts, (draft) => draft.tabIndex !== -1);
+
+    const sortedByTabSequence = [...sortBy(draftsWithTab, 'tabIndex'), ...draftsWithoutTab]
       .map((draft) => ({ ...draft, tabUid: relevantTabs[draft.tabIndex]?.uid }));
 
     return sortedByTabSequence;

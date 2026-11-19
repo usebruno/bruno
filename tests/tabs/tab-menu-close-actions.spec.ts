@@ -253,30 +253,30 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
       await expect(environment.variableValue('host')).toContainText('http://saved-right');
       await expect(environmentTabCloseGradient(page)).not.toHaveClass(/has-changes/);
     });
+  });
 
-    test('Inspect tab option in the modal focuses that tab and keeps everything open', async ({ page }) => {
-      await openRequests(page, ['req-1', 'req-2', 'req-3']);
-      await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
-      await tab(page, 'req-1').click();
-      await expect(tab(page, 'req-1')).toHaveClass(/active/);
+  test('Inspect tab option in the modal focuses that tab and keeps everything open', async ({ page }) => {
+    await openRequests(page, ['req-1', 'req-2', 'req-3']);
+    await editRequestUrlWithoutSaving(page, 'req-3', '/req-3');
+    await tab(page, 'req-1').click();
+    await expect(tab(page, 'req-1')).toHaveClass(/active/);
 
-      await selectTabContextMenuItem(page, 'req-1', 'close-right');
-      const modal = unsavedModal(page).root();
-      await expect(modal).toBeVisible({ timeout: 3000 });
+    await selectTabContextMenuItem(page, 'req-1', 'close-right');
+    const modal = unsavedModal(page).root();
+    await expect(modal).toBeVisible({ timeout: 3000 });
 
-      await test.step('Inspect req-3 from the modal', async () => {
-        await unsavedModal(page).item('Request: req-3').hover();
-        await unsavedModal(page).inspectTabButton('Request: req-3').click();
-      });
+    await test.step('Inspect req-3 from the modal', async () => {
+      await unsavedModal(page).item('Request: req-3').hover();
+      await unsavedModal(page).inspectTabButton('Request: req-3').click();
+    });
 
-      await test.step('Modal closes, req-3 is active and every tab is still open', async () => {
-        await expect(modal).not.toBeVisible();
-        await expect(tab(page, 'req-3')).toHaveClass(/active/);
-        for (const name of ['req-1', 'req-2', 'req-3']) {
-          await expect(tab(page, name)).toBeVisible();
-        }
-        await expect(draftIndicator(page, 'req-3')).toBeVisible();
-      });
+    await test.step('Modal closes, req-3 is active and every tab is still open', async () => {
+      await expect(modal).not.toBeVisible();
+      await expect(tab(page, 'req-3')).toHaveClass(/active/);
+      for (const name of ['req-1', 'req-2', 'req-3']) {
+        await expect(tab(page, name)).toBeVisible();
+      }
+      await expect(draftIndicator(page, 'req-3')).toBeVisible();
     });
   });
 });
