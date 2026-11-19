@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { createTransientRequest, fillRequestUrl, closeAllCollections, createCollection, sendRequest, clickResponseAction, selectRequestPaneTab } from '../utils/page';
+import { createTransientRequest, fillRequestUrl, closeAllCollections, createCollection, sendRequest, clickResponseAction, selectRequestPaneTab, saveTransientRequestAs } from '../utils/page';
 import { buildCommonLocators } from '../utils/page/locators';
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
@@ -223,6 +223,34 @@ test.describe.serial('Transient Requests', () => {
       await expect.poll(async () => await page.evaluate(() => navigator.clipboard.readText().catch(() => ''))).toBeTruthy();
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
       expect(clipboardText).toBe('pong');
+    });
+  });
+
+  test('Save transient HTTP request - name with filename-invalid characters is allowed', async ({ page }) => {
+    const requestName = 'Get "quoted" user';
+
+    await test.step('Create and save transient HTTP request', async () => {
+      await createTransientRequest(page, {
+        requestType: 'HTTP'
+      });
+      await fillRequestUrl(page, 'http://localhost:8081/echo');
+      await saveTransientRequestAs(page, requestName);
+    });
+
+    await test.step('Verify saved request keeps its display name in sidebar', async () => {
+      // Only expand the collection if it is collapsed, so later tests see the same state
+      if (!(await locators.sidebar.request(requestName).isVisible())) {
+        await locators.sidebar.collection('transient-requests-test').click();
+      }
+      await expect(locators.sidebar.request(requestName)).toBeVisible();
+    });
+
+    await test.step('Cleanup: Delete the saved request', async () => {
+      await locators.sidebar.request(requestName).hover();
+      await locators.actions.collectionItemActions(requestName).click();
+      await locators.dropdown.item('Delete').click();
+      await locators.modal.button('Delete').click();
+      await expect(locators.sidebar.request(requestName)).not.toBeVisible();
     });
   });
 });

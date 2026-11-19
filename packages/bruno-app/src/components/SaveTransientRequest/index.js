@@ -194,12 +194,14 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
         return;
       }
 
-      if (!validateName(trimmedName)) {
-        toast.error(validateNameError(trimmedName));
+      // The display name may contain characters that are invalid in filenames
+      // (e.g. `"`), same as when creating/renaming a request. Only the derived
+      // filename has to be a valid filesystem name.
+      const sanitizedFilename = sanitizeName(trimmedName);
+      if (!validateName(sanitizedFilename)) {
+        toast.error(validateNameError(sanitizedFilename));
         return;
       }
-
-      const sanitizedFilename = sanitizeName(trimmedName);
 
       const hasFileModeEdit = latestItem.draft?.raw != null && latestItem.draft.raw !== latestItem.raw;
       let baseItem;
@@ -222,7 +224,7 @@ const SaveTransientRequest = ({ item: itemProp, collection: collectionProp, isOp
       }
 
       const itemToSave = { ...baseItem };
-      itemToSave.name = sanitizedFilename;
+      itemToSave.name = trimmedName;
       delete itemToSave.draft;
       delete itemToSave.raw;
 
