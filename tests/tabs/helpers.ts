@@ -24,14 +24,14 @@ export const environmentTabCloseGradient = (page: Page) => buildCommonLocators(p
 export const openRequests = async (page: Page, names: string[]) => {
   for (const name of names) {
     await openRequest(page, collectionName, name, { persist: true });
-    await expect(tab(page, name)).toBeVisible({ timeout: 3000 });
+    await expect(tab(page, name)).toBeVisible();
   }
 };
 
 export const openCollectionSettingsWithDraft = async (page: Page) => {
   const { sidebar, paneTabs } = buildCommonLocators(page);
   await sidebar.collectionRow(collectionName).dblclick();
-  await expect(collectionTab(page)).toBeVisible({ timeout: 3000 });
+  await expect(collectionTab(page)).toBeVisible();
   await paneTabs.collectionSettingsTab('script').click();
   await paneTabs.tabTrigger('pre-request').click();
   await editCodeMirrorEditor(page, 'collection-pre-request-script-editor', '// draft');
@@ -40,7 +40,7 @@ export const openCollectionSettingsWithDraft = async (page: Page) => {
 
 export const openFolderSettingsWithDraft = async (page: Page) => {
   await buildCommonLocators(page).sidebar.folder('admin').dblclick();
-  await expect(folderTab(page)).toBeVisible({ timeout: 3000 });
+  await expect(folderTab(page)).toBeVisible();
   const { paneTabs } = buildCommonLocators(page);
   await paneTabs.folderSettingsTab('script').click();
   await paneTabs.tabTrigger('pre-request').click();
@@ -53,7 +53,7 @@ export const openEnvironmentWithDraft = async (page: Page, value: string) => {
   await selectEnvironment(page, 'Local');
   await openEnvironmentSelector(page, 'collection');
   await environment.configureButton().click();
-  await expect(environmentTab(page)).toBeVisible({ timeout: 3000 });
+  await expect(environmentTab(page)).toBeVisible();
   await environment.variableValue('host').click();
   await page.keyboard.press(selectAllShortcut);
   await page.keyboard.type(value);
@@ -80,4 +80,4 @@ export const expectCollectionFilesUnchanged = (collectionDir: string) => {
 
 // Saves land on disk asynchronously, so poll the file rather than read it once.
 export const expectCollectionFileToContain = (collectionDir: string, relativePath: string, text: string) =>
-  expect.poll(() => fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), { message: relativePath, timeout: 3000 }).toContain(text);
+  expect.poll(() => fs.readFileSync(path.join(collectionDir, relativePath), 'utf8'), { message: relativePath }).toContain(text);
