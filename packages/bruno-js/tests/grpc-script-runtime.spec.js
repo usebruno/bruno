@@ -187,6 +187,15 @@ describe('GrpcScriptRuntime', () => {
       expect(result.collectionVariables).toBeNull();
       expect(result.globalEnvironmentVariables).toBeNull();
     });
+
+    it('exposes the active global environment name via bru.getGlobalEnvName()', async () => {
+      const result = await runBeforeCallStart(
+        `bru.setVar('globalEnvName', bru.getGlobalEnvName());`,
+        makeRequest({ globalEnvironmentName: 'Production' })
+      );
+
+      expect(result.runtimeVariables).toEqual({ globalEnvName: 'Production' });
+    });
   });
 
   describe('afterCallEnd (runGrpcResponseScript)', () => {
@@ -266,6 +275,28 @@ describe('GrpcScriptRuntime', () => {
           'metadata.remove() is not available'
         );
         expect(request.headers).toEqual({ 'X-Token': 'authored' });
+      }
+    );
+
+    it.each(['nodevm', 'quickjs'])(
+      'editing a returned metadata or trailer entry does not change later reads (%s)',
+      async (runtime) => {
+        if (runtime === 'quickjs') await quickJsLoader();
+        const script = `
+        bru.grpc.response.metadata.one('content-type').value = 'edited';
+        bru.grpc.response.trailers.all()[0].value = 'edited';
+        bru.setVar('contentType', bru.grpc.response.metadata.get('content-type'));
+        bru.setVar('grpcStatus', bru.grpc.response.trailers.get('grpc-status'));
+      `;
+
+        const result = await runAfterCallEnd(script, makeRequest(), makeResponse(), {
+          runtime
+        });
+
+        expect(result.runtimeVariables).toEqual({
+          contentType: 'application/grpc',
+          grpcStatus: '0'
+        });
       }
     );
   });

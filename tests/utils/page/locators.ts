@@ -1,6 +1,6 @@
 import { Locator, Page } from '../../../playwright';
 import { buildApiSpecPanelLocators, buildApiSpecRowMenuLocators } from './openapi/render-spec';
-import { buildMockServerLocators } from './mock-server';
+import { buildOpenApiSyncLocators } from './openapi/sync';
 import { buildFileModeLocators } from './file-mode';
 import { buildPreferencesLocators } from './preferences';
 import { buildAiPreferencesLocators } from './ai';
@@ -31,9 +31,15 @@ import { buildTitleBarLocators } from './title-bar';
 import { buildCloneGitRepositoryLocators } from './git/clone-git-repository';
 import { buildResponseExampleLocators } from './response-example';
 import { buildGraphqlQueryBuilderLocators } from './graphql/query-builder';
+import { buildGraphqlVariablesLocators } from './graphql/variables';
 import { buildAuthLocators } from './auth';
 
 export type PresetRequestType = 'http' | 'graphql' | 'grpc' | 'ws';
+
+const openCollectionPickerItem = (page: Page, name: string) =>
+  page.getByTestId('selection-list').getByRole('listitem').filter({
+    has: page.getByText(name, { exact: true })
+  });
 
 const addToNoEnvNoteLocator = (popup: Locator, scopeType: 'environment' | 'global') =>
   popup.getByTestId('var-info-add-to-no-env-note')
@@ -52,7 +58,8 @@ export const buildCommonLocators = (page: Page) => ({
   codeEditorHints: buildCodeEditorHintLocators(page),
   openApi: {
     render: buildApiSpecPanelLocators(page),
-    rowMenu: buildApiSpecRowMenuLocators(page)
+    rowMenu: buildApiSpecRowMenuLocators(page),
+    sync: buildOpenApiSyncLocators(page)
   },
   preferences: buildPreferencesLocators(page),
   ai: buildAiPreferencesLocators(page),
@@ -65,6 +72,7 @@ export const buildCommonLocators = (page: Page) => ({
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
   graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
+  graphqlVariables: buildGraphqlVariablesLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
@@ -101,6 +109,9 @@ export const buildCommonLocators = (page: Page) => ({
     collectionSettingsTab: () =>
       page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
     activeRequestTab: () => page.locator('.request-tab.active'),
+    activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+    // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+    requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
     leftChevron: () => page.getByLabel('Left Chevron'),
     scrollContainer: () => page.locator('.tabs-scroll-container'),
     activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
@@ -108,6 +119,7 @@ export const buildCommonLocators = (page: Page) => ({
     closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
     closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
     draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+    activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
     tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
   },
   paneTabs: {
@@ -135,7 +147,10 @@ export const buildCommonLocators = (page: Page) => ({
       page.getByTestId('settings-tab-bar').getByTestId(`ai-assist-trigger-${scriptType}`)
   },
   folder: {
-    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ hasText: folderName }).getByTestId('folder-chevron')
+    chevron: (folderName: string) => page.locator('.collection-item-name').filter({ has: page.getByText(folderName, { exact: true }) }).getByTestId('folder-chevron'),
+    postResponseScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-post-response-script-editor'),
+    preRequestScriptEditor: () => buildCodeMirrorLocators(page).byTestId('folder-pre-request-script-editor'),
+    testsEditor: () => buildCodeMirrorLocators(page).byTestId('folder-tests-editor')
   },
   modal: {
     any: () => page.locator('.bruno-modal'),
@@ -159,14 +174,10 @@ export const buildCommonLocators = (page: Page) => ({
     list: () => page.getByTestId('selection-list'),
     titles: () => page.getByTestId('selection-list').locator('.selection-item-title'),
     descriptions: () => page.getByTestId('selection-list').locator('.selection-item-description'),
-    item: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }),
-    itemCheckbox: (name: string) =>
-      page.getByTestId('selection-list').getByRole('listitem').filter({
-        has: page.getByText(name, { exact: true })
-      }).getByRole('checkbox'),
+    item: (name: string) => openCollectionPickerItem(page, name),
+    itemCheckbox: (name: string) => openCollectionPickerItem(page, name).getByRole('checkbox'),
+    /** The location a listed collection reports, relative to the picked folder. */
+    itemDescription: (name: string) => openCollectionPickerItem(page, name).locator('.selection-item-description'),
     count: () => page.getByTestId('selection-count'),
     selectAllToggle: () => page.getByTestId('selection-select-all-toggle').getByRole('checkbox'),
     searchInput: () => page.getByTestId('selection-search-input')
@@ -182,6 +193,8 @@ export const buildCommonLocators = (page: Page) => ({
     menuItem: (type: string) => page.locator('[role="menu"]').last().getByText(type, { exact: true })
   },
   filePicker: {
+    button: (scope?: Locator) => (scope ?? page).locator('.file-picker-btn'),
+    selected: (scope?: Locator) => (scope ?? page).locator('.file-picker-selected'),
     warningTooltip: () => page.getByTestId('file-picker-warning-tooltip')
   },
   // The variable-info popup shown when hovering a `{{var}}` token in an editor.
@@ -334,9 +347,9 @@ export const buildCommonLocators = (page: Page) => ({
   },
   plusMenu: {
     button: () => page.getByTestId('collections-header-add-menu'),
-    openCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }),
-    createCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }),
-    importCollection: () => page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' })
+    createCollection: () => page.getByTestId('collections-header-add-menu-create'),
+    importCollection: () => page.getByTestId('collections-header-add-menu-import'),
+    openCollection: () => page.getByTestId('collections-header-add-menu-open')
   },
   import: {
     modal: () => page.locator('[data-testid="import-collection-modal"]'),
@@ -347,14 +360,26 @@ export const buildCommonLocators = (page: Page) => ({
     urlInput: () => page.getByTestId('url-input'),
     urlImportButton: () => page.getByTestId('import-url-btn'),
     loader: () => page.getByTestId('import-collection-loader'),
+    fileTab: () => page.getByTestId('file-tab'),
+    gitRepositoryTab: () => page.getByTestId('github-tab'),
+    gitUrlInput: () => page.getByTestId('git-url-input'),
+    cloneGitButton: () => page.getByTestId('clone-git-button'),
+    chooseFilesButton: () => page.getByTestId('choose-files-button'),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
     preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
     checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
+    advancedSectionToggle: () => page.getByTestId('import-advanced-section-toggle'),
+    authPlacementToggle: () => page.getByTestId('auth-placement-toggle'),
+    requestNameSourceDropdown: () => page.getByTestId('request-name-source-dropdown'),
+    requestNameSourceOption: (value: string) => page.getByTestId(`request-name-source-option-${value.toLowerCase()}`),
     bulkModal: () => page.getByTestId('bulk-import-collection-location-modal'),
     bulkFormatSelect: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-format-selector'),
     bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
     bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
-    bulkSpecUpdatesCheckbox: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
+    bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+    bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
+    bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+    bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
     bulkSpecUpdatesDescription: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates-description'),
     bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
     bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
@@ -386,7 +411,8 @@ export const buildCommonLocators = (page: Page) => ({
     locationInput: () => page.getByLabel('Location', { exact: true }),
     optionsButton: () => page.getByRole('button', { name: 'Options' }),
     advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle')
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
   },
   /**
    * Build generic table locators for any table with a testId

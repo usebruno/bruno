@@ -91,7 +91,7 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
           <div className="collections-list-container">
             {collections.map((c) => (
               <div key={c.uid} className="collection-info-card">
-                <div className="collection-name">{c.name}</div>
+                <div className="collection-name" data-testid="remove-collection-name">{c.name}</div>
                 <div className="collection-path">{c.pathname}</div>
               </div>
             ))}

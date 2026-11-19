@@ -5,10 +5,11 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const axios = require('axios');
 const { openApiToBruno, wsdlToBruno, postmanToBruno, postmanToBrunoEnvironment } = require('@usebruno/converters');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES, DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } = require('@usebruno/common');
 const { coerceEnvName, dedupeImportedSecrets, generateUniqueName, sanitizeName, validateName, validateNameError } = require('@usebruno/common').utils;
 const { exists, isDirectory, canonicalPath } = require('../utils/filesystem');
 const { formatImportSummary, formatImportIssues, formatPackageReport, hasImportErrors } = require('../utils/import-report');
-const { writeCollectionToDiskLegacy } = require('@usebruno/io');
+const { writeCollectionLegacy } = require('@usebruno/io');
 
 const command = 'import <type>';
 const desc = 'Import a collection (OpenAPI, WSDL, Postman) from other formats';
@@ -34,7 +35,7 @@ const builder = (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to the output directory',
+      describe: 'Directory to create the collection in',
       type: 'string',
       conflicts: 'output-file'
     })
@@ -66,30 +67,45 @@ const builder = (yargs) => {
       choices: ['tags', 'path'],
       default: 'tags'
     })
+    .option('auth-placement', {
+      describe: 'Where to set the spec\'s auth: "request" on each request, "collection" on the collection for requests to inherit. Other schemes stay on their requests (openapi only)',
+      type: 'string',
+      choices: AUTH_PLACEMENTS,
+      default: DEFAULT_AUTH_PLACEMENT
+    })
+    .option('request-name-source', {
+      describe: 'Field used to name the imported requests: "summary", "operationId", "description" or "path". Missing fields fall back in that order (openapi only)',
+      type: 'string',
+      choices: REQUEST_NAME_SOURCES,
+      default: DEFAULT_REQUEST_NAME_SOURCE
+    })
     .option('preserve-scripts', {
       describe: 'Preserve scripts (keep Postman scripts verbatim, no pm.* → bru.* translation) (postman only)',
       type: 'boolean',
       default: false
     })
-    .option('environment', {
+    .option('env', {
       alias: 'e',
       describe: 'Postman environment export(s) to convert alongside the collection (postman only)',
       type: 'array'
     })
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"')
-    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --collection-name "My API"')
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collections -n "My API"')
     .example('$0 import openapi --source https://example.com/api-spec.json --output ~/Desktop --collection-name "Remote API"')
     .example('$0 import openapi --source https://self-signed.example.com/api.json --insecure --output ~/Desktop')
     .example('$0 import openapi --source api.yml --output-file ~/Desktop/my-collection.json --collection-name "My API"')
     .example('$0 import openapi -s api.yml -f ~/Desktop/my-collection.json -n "My API"')
-    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collection --group-by path')
-    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collection -g tags')
-    .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collection --collection-name "SOAP Service"')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --group-by path')
+    .example('$0 import openapi -s api.yml -o ~/Desktop/my-collections -g tags')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --request-name-source operationId')
+    .example('$0 import openapi --source api.yml --output ~/Desktop/my-collections --auth-placement collection')
+    .example('$0 import wsdl --source service.wsdl --output ~/Desktop/soap-collections --collection-name "SOAP Service"')
     .example('$0 import wsdl -s https://example.com/service.wsdl -o ~/Desktop -n "Remote SOAP Service"')
-    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-api')
-    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -n "My API"')
-    .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop/my-api --preserve-scripts')
-    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-api -e staging.postman_environment.json -e prod.postman_environment.json');
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop -n "My API"')
+    .example('$0 import postman -s https://example.com/my-api.postman_collection.json -o ~/Desktop --preserve-scripts')
+    .example('$0 import postman --source my-api.postman_collection.json --output ~/Desktop/my-collections --env staging.postman_environment.json --env prod.postman_environment.json')
+    .example('$0 import postman -s my-api.postman_collection.json -o ~/Desktop/my-collections -e staging.postman_environment.json -e prod.postman_environment.json');
 };
 
 const isUrl = (str) => {
@@ -270,38 +286,25 @@ const resolveLocalWsdlSchemaRef = async (baseUri, ref) => {
 };
 
 /**
- * Picks the directory a collection is written to. An existing directory gets a new, empty
- * subdirectory named after the collection; any other path is used as is and its parent must exist.
+ * Picks the directory a collection is written to: a subdirectory of `output` named after the
+ * collection. `output` is created by the writer when missing, but its parent must exist.
  */
 const resolveCollectionOutputDir = async (output, collectionName) => {
+  const folderName = sanitizeName(collectionName || '');
+  if (!validateName(folderName)) {
+    throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+  }
+
   const resolvedOutput = path.resolve(output);
-  const isOutputDirectory = await exists(resolvedOutput) && isDirectory(resolvedOutput);
-
-  if (isOutputDirectory) {
-    const folderName = sanitizeName(collectionName || '');
-    if (!validateName(folderName)) {
-      throw new Error(`Invalid collection name "${collectionName}": ${validateNameError(folderName)}`);
+  if (await exists(resolvedOutput)) {
+    if (!isDirectory(resolvedOutput)) {
+      throw new Error(`Output path is not a directory: ${resolvedOutput}`);
     }
-    const outputDir = path.join(resolvedOutput, folderName);
-
-    if (await exists(outputDir)) {
-      if (fs.readdirSync(outputDir).length > 0) {
-        throw new Error(`Output directory is not empty: ${outputDir}`);
-      }
-    } else {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    return outputDir;
+  } else if (!await exists(path.dirname(resolvedOutput))) {
+    throw new Error(`Parent directory does not exist: ${path.dirname(resolvedOutput)}`);
   }
 
-  const parentDir = path.dirname(resolvedOutput);
-  if (!await exists(parentDir)) {
-    throw new Error(`Parent directory does not exist: ${parentDir}`);
-  }
-
-  fs.mkdirSync(resolvedOutput, { recursive: true });
-  return resolvedOutput;
+  return path.join(resolvedOutput, folderName);
 };
 
 /**
@@ -321,7 +324,7 @@ const convertPostmanEnvironment = async (source, { insecure }) => {
 
 const importPostmanCollection = async (source, { insecure, preserveScripts, environmentSources = [] }) => {
   const postmanCollection = await readPostmanFile(source, { insecure });
-  const { collection, issues, translationIssues } = await postmanToBruno(postmanCollection, {
+  const { collection, issues } = await postmanToBruno(postmanCollection, {
     preserveScripts,
     logTranslationFailures: false
   });
@@ -337,7 +340,7 @@ const importPostmanCollection = async (source, { insecure, preserveScripts, envi
     collection.environments.push({ ...environment, name });
   }
 
-  return { collection, issues: [...issues, ...translationIssues] };
+  return { collection, issues };
 };
 
 const writeBrunoCollection = async (collection, { output, outputFile, collectionFormat = 'opencollection' }) => {
@@ -358,7 +361,7 @@ const writeBrunoCollection = async (collection, { output, outputFile, collection
   }
 
   const outputDir = await resolveCollectionOutputDir(output, collection.name);
-  await writeCollectionToDiskLegacy(collection, outputDir, {
+  await writeCollectionLegacy(collection, outputDir, {
     format: collectionFormat === 'opencollection' ? 'yml' : 'bru'
   });
   console.log(chalk.green(`Bruno collection created at ${outputDir}`));
@@ -376,7 +379,7 @@ const reportImport = (collection, issues) => {
 
 const handler = async (argv) => {
   try {
-    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, preserveScripts, environment } = argv;
+    const { type, source, output, collectionFormat, outputFile, collectionName, insecure, groupBy, authPlacement, requestNameSource, preserveScripts, env } = argv;
 
     if (!type || !IMPORT_TYPES.includes(type)) {
       console.error(chalk.red(`Import type must be one of: ${IMPORT_TYPES.join(', ')}`));
@@ -402,7 +405,7 @@ const handler = async (argv) => {
       const { collection, issues } = await importPostmanCollection(source, {
         insecure,
         preserveScripts,
-        environmentSources: environment
+        environmentSources: env
       });
 
       if (collectionName) {
@@ -432,7 +435,7 @@ const handler = async (argv) => {
       console.log(chalk.yellow('Converting OpenAPI specification to Bruno format...'));
 
       // Convert OpenAPI to Bruno format
-      brunoCollection = openApiToBruno(openApiSpec, { groupBy });
+      brunoCollection = openApiToBruno(openApiSpec, { groupBy, authPlacement, requestNameSource });
     } else if (type === 'wsdl') {
       console.log(chalk.yellow(`Reading WSDL from ${source}...`));
 

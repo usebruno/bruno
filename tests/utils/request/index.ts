@@ -12,9 +12,17 @@ import { AUTH_MODE_LABELS } from '../constants';
 import { buildCommonLocators } from '../page/locators';
 import { buildQueryParamsLocators } from './params/query';
 
+const buildFileBodyRow = (page: Page, index: number) =>
+  page.getByTestId('file-body-table').locator('tbody tr').nth(index);
+
 export const buildRequestLocators = (page: Page) => ({
   urlInput: () => page.getByTestId('request-url').locator('.CodeMirror'),
   urlLine: () => page.getByTestId('request-url').locator('.CodeMirror-line'),
+  protocolUrlLine: () => page.locator('.query-url-wrapper .CodeMirror-line').first(),
+  protocolUrlEditor: () => page.locator('.query-url-wrapper .CodeMirror').first(),
+  bulkEditToggle: () => page.getByTestId('bulk-edit-toggle'),
+  bulkEditEditor: () => page.locator('[data-testid="request-pane"] .CodeMirror').first(),
+  bulkEditLine: () => page.locator('[data-testid="request-pane"] .CodeMirror-line').first(),
   sendButton: () => page.getByTestId('send-arrow-icon'),
   methodDropdown: () => page.getByTestId('method-selector'),
   newRequestUrl: () => page.getByTestId('new-request-url').locator('.CodeMirror'),
@@ -28,6 +36,10 @@ export const buildRequestLocators = (page: Page) => ({
   // File / Binary body table + the rendered file name(s).
   fileBodyTable: () => page.getByTestId('file-body-table'),
   fileBodyName: () => page.getByTestId('file-body-table').locator('.file-name'),
+  addFileButton: () => page.getByTestId('file-body-table').getByRole('button', { name: /Add File/i }),
+  fileBodyRow: (index: number = 0) => buildFileBodyRow(page, index),
+  fileBodyContentTypeEditor: (index: number = 0) =>
+    buildFileBodyRow(page, index).getByTestId('column-content-type').locator('.CodeMirror'),
   bodyVariableToken: (name: string, state?: 'valid' | 'invalid') => {
     const selector = state ? `.cm-variable-${state}` : '.cm-variable-valid, .cm-variable-invalid';
     return page.getByTestId('request-body-editor').locator('.CodeMirror').locator(selector).filter({ hasText: name }).first();
@@ -53,6 +65,16 @@ export const buildRequestLocators = (page: Page) => ({
     inheritedRow: (name: string) => page.getByTestId(`inherited-header-row-${name.toLowerCase()}`),
     inheritedSource: (name: string) => page.getByTestId(`inherited-header-source-${name.toLowerCase()}`),
     addRow: () => page.getByTestId('request-header-add-row'),
+    count: () => page.getByTestId('request-pane').getByTestId('responsive-tab-headers').getByTestId('request-headers-count'),
+    nameCell: (row: Locator) => row.getByTestId('column-name'),
+    valueCell: (row: Locator) => row.getByTestId('column-value'),
+    checkbox: (name: string) => page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId('column-checkbox'),
+    cellText: (name: string, column: 'name' | 'value') =>
+      page.getByTestId(`request-header-row-${name.toLowerCase()}`).getByTestId(`column-${column}`).locator('.CodeMirror-line'),
+    bulkEditToggle: () => page.getByTestId('request-pane').getByTestId('bulk-edit-toggle'),
+    keyValueEditToggle: () => page.getByTestId('request-pane').getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => page.getByTestId('request-pane').getByLabel('Code Editor'),
+    bulkEditorLines: () => page.getByTestId('request-pane').getByLabel('Code Editor').locator('.CodeMirror-line'),
     toggleInherited: () => page.getByTestId('toggle-inherited-headers'),
     paneScroller: () => page.getByTestId('request-pane').getByTestId('flex-boundary'),
     defaultInfo: (name: string) => page.getByTestId(`default-header-info-${name.toLowerCase()}`),
@@ -150,6 +172,17 @@ export const fillRequestHeaderValue = async (page: Page, row: Locator, value: st
   const valueEditor = row.getByTestId('column-value').locator('.CodeMirror');
   await valueEditor.click();
   await page.keyboard.type(value);
+};
+
+/**
+ * Append lines to the request Headers bulk editor by typing, leaving the existing text in place.
+ */
+export const appendRequestHeadersToBulkEditor = async (page: Page, lines: string[]) => {
+  const { headers } = buildRequestLocators(page);
+  const editor = headers.bulkEditor();
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type(`\n${lines.join('\n')}`, { delay: 5 });
 };
 
 /**

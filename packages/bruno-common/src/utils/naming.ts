@@ -93,3 +93,29 @@ export const generateUniqueName = (baseName: string, checkExists: (name: string)
   }
   return uniqueName;
 };
+
+const copySuffix = /( copy( \d+)?)+$/;
+
+/**
+ * Strips every trailing ` copy` / ` copy N` token, so a clone of a clone keeps the original base
+ * name instead of stacking another token. Falls back to `name` when stripping leaves nothing.
+ */
+export const stripCopySuffix = (name: string): string => name.replace(copySuffix, '') || name;
+
+/**
+ * Returns `<base> copy`, then `<base> copy 2`, ... — the first free among `existingNames`, where
+ * `base` is `sourceName` with any trailing copy token removed.
+ */
+export const nextCopyName = (sourceName: string, existingNames: string[]): string => {
+  const base = stripCopySuffix(sourceName);
+  const taken = new Set(existingNames);
+
+  return generateUniqueName(base, (name) => name === base || taken.has(name));
+};
+
+export const getFilenameWithFormat = (item: { name: string; filename?: string | null }, format: string): string => {
+  if (item.filename) {
+    return `${item.filename.replace(/\.(bru|yml)$/, '')}.${format}`;
+  }
+  return `${item.name}.${format}`;
+};

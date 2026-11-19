@@ -1,0 +1,14 @@
+info:
+  name: edit-variable-value
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: https://example.com?key={{editVar}}
+  auth: inherit
+
+runtime:
+  variables:
+    - name: editVar
+      value: initial-value

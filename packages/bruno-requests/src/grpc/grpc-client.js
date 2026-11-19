@@ -5,6 +5,7 @@ import { generateGrpcSampleMessage } from './grpcMessageGenerator';
 import * as tls from 'tls';
 import { isString } from 'lodash';
 import * as nodePath from 'node:path';
+import { isLoopbackHost } from '../utils/url-validation';
 
 /**
  * Configuration options for loading and parsing Protocol Buffers definitions.
@@ -116,11 +117,7 @@ const normalizeWindowsNamedPipe = (pipePath) => {
 const getParsedGrpcUrlObject = (url) => {
   const addProtocolIfMissing = (str) => {
     if (str.includes('://')) return str;
-    const lower = str.toLowerCase();
-    if (lower.includes('localhost') || lower.includes('127.0.0.1')) {
-      return `grpc://${str}`;
-    }
-    return `grpcs://${str}`;
+    return isLoopbackHost(new URL(`grpcs://${str}`).hostname) ? `grpc://${str}` : `grpcs://${str}`;
   };
   const removeTrailingSlash = (str) => (str.endsWith('/') ? str.slice(0, -1) : str);
 

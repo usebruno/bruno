@@ -109,13 +109,21 @@ layer the field touches: `bruno-schema-types` (types), `bruno-schema` (Yup valid
 `bruno-filestore` (both formats), `bruno-converters` (import/export), and the grammar in
 `bruno-lang` **v2** if `.bru` syntax itself changes.
 
-**`bruno-schema` (Yup) is not optional — it will reject your field.** The collection/request/
-environment Yup schemas are declared `.noUnknown(true).strict()`, and they are validated on the
-**save path** (e.g. `itemSchema.validate` / `environmentSchema.validateSync` in
-`bruno-app`'s `slices/collections/actions.js` and `bruno-electron`'s `store/global-environments.js`).
-A new serialized field that round-trips through filestore but is **not** added to
-`packages/bruno-schema` will throw a validation error on save. `bruno-schema` (runtime Yup) and
-`bruno-schema-types` (TS types) are distinct and both must be updated.
+**`bruno-schema` (Yup) is not optional — it is the write-time allow-list.** The collection/request/
+environment Yup schemas are declared `.noUnknown(true)` (not `.strict()`), and the save paths
+persist the schema's **cast output**, not the object passed in (e.g. `itemSchema.validate` /
+`environmentSchema.validate` in `bruno-app`'s `slices/collections/actions.js` and
+`SaveTransientRequest`, which write the resolved `validatedItem` / `validatedEnvironment`). The
+exception is `bruno-electron`'s `store/global-environments.js`, which uses `validateSync` only as
+a pass/fail filter and keeps the original object. Two consequences:
+
+- A serialized field that round-trips through filestore but is **not** modelled in
+  `packages/bruno-schema` is **silently stripped on save** — no error, it is just gone from the
+  user's file. Nothing fails loudly, so verify the field survives a save.
+- A `.default()` in `bruno-schema` is **written to disk** whenever the field is unset (e.g. the ws
+  `settings.timeout` default of `30000`). Only add a default you want persisted into every saved file.
+
+`bruno-schema` (runtime Yup) and `bruno-schema-types` (TS types) are distinct and both must be updated.
 
 **When a shape must change, migrate on read — never make users edit files.** Add a
 read-time compatibility shim that upgrades the old shape as it is parsed, following the
@@ -154,7 +162,7 @@ Adding a single field tends to span several packages (a `.bru`-centric change la
   `envToJson.js`, `jsonToBru.js`, `jsonToCollectionBru.js`, `jsonToEnv.js`, plus `utils.js` for
   shared helpers.
 - `bruno-filestore/src/formats/yml` — parse **and** stringify for the `.yml` side.
-- `bruno-schema/src/collections/index.js` — the Yup schema (skip this and it fails on save).
+- `bruno-schema/src/collections/index.js` — the Yup schema (skip this and the field is silently stripped on save).
 - `bruno-schema-types/src/collection/item.ts` — the TypeScript type.
 - `bruno-converters` — a **separate field list from `bruno-filestore`**, not the same code path:
   `src/opencollection/items/{http,graphql,grpc,websocket}.ts` maps the field for the OpenCollection schema, might have typescript issues to be consulted with https://github.com/opencollection-dev/opencollection when needed

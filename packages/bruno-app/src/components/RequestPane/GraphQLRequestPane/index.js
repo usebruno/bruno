@@ -258,6 +258,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
               <button
                 type="button"
                 className="variables-header"
+                data-testid="graphql-variables-toggle"
                 onClick={() => dispatch(updateVariablesPaneOpen({ uid: item.uid, variablesPaneOpen: !variablesOpen }))}
                 aria-expanded={variablesOpen}
               >
@@ -271,7 +272,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
                 <span>Variables</span>
               </button>
               {variablesOpen && (
-                <div className="flex-1 min-h-0 relative">
+                <div className="flex-1 min-h-0 relative" data-testid="graphql-variables-editor">
                   <GraphQLVariables item={item} variables={variables} collection={collection} />
                 </div>
               )}

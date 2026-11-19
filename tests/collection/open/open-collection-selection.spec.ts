@@ -1,7 +1,14 @@
 import { test, expect, ElectronApplication, Page } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { buildCommonLocators, closeAllCollections, toggleOpenCollectionItem, closeOpenCollectionModal } from '../../utils/page';
+import {
+  buildCommonLocators,
+  closeAllCollections,
+  closeOpenCollectionModal,
+  restoreOpenDialog,
+  stashOpenDialog,
+  toggleOpenCollectionItem
+} from '../../utils/page';
 
 const writeCollection = (dir: string, name: string) => {
   fs.mkdirSync(dir, { recursive: true });
@@ -54,15 +61,11 @@ const listDescriptions = (page: Page) => buildCommonLocators(page).openCollectio
 
 test.describe('Open Collection - selection flow', () => {
   test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      (global as any).__origShowOpenDialog = dialog.showOpenDialog;
-    });
+    await stashOpenDialog(electronApp);
   });
 
   test.afterAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = (global as any).__origShowOpenDialog;
-    });
+    await restoreOpenDialog(electronApp);
   });
 
   test('opens a single picked collection directly, with no modal', async ({ page, electronApp, createTmpDir }) => {

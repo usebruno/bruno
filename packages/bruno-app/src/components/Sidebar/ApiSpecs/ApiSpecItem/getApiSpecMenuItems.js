@@ -5,9 +5,9 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 const API_SPEC_MENU = [
   { id: 'generate-collection', leftSection: IconBox, label: 'Generate Collection' },
   {
-    id: 'generate-mock-server',
+    id: 'create-mock-server',
     leftSection: IconServer,
-    label: 'Generate Mock Server',
+    label: 'Create Mock Server',
     rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
     requires: 'mockServer'
   },
@@ -15,7 +15,7 @@ const API_SPEC_MENU = [
   { id: 'rename', leftSection: IconEdit, label: 'Rename' },
   { id: 'reveal', leftSection: IconFolder, label: getRevealInFolderLabel() },
   { id: 'divider-1', type: 'divider' },
-  { id: 'remove', leftSection: IconX, label: 'Remove from Workspace' },
+  { id: 'remove', leftSection: IconX, label: 'Remove' },
   { id: 'delete', leftSection: IconTrash, label: 'Delete', className: 'delete-item' }
 ];
 

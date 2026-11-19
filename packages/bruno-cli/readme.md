@@ -63,16 +63,16 @@ bru run request.bru --cacert myCustomCA.pem --ignore-truststore
 You can import collections from other formats, such as OpenAPI, using the import command:
 
 ```bash
-bru import openapi --source api.yml --output ~/Desktop/my-collection --collection-name "My API"
+bru import openapi --source api.yml --output ~/Desktop/my-collections --collection-name "My API"
 ```
 
 You can also use the shorter form with aliases:
 
 ```bash
-bru import openapi -s api.yml -o ~/Desktop/my-collection -n "My API"
+bru import openapi -s api.yml -o ~/Desktop/my-collections -n "My API"
 ```
 
-This creates a Bruno collection directory that can be opened in Bruno.
+This creates the Bruno collection directory `~/Desktop/my-collections/My API`, which can be opened in Bruno.
 
 You can also import directly from a URL:
 
@@ -91,10 +91,12 @@ Import Options:
 | Option                    | Details                                            |
 | ------------------------- | -------------------------------------------------- |
 | --source, -s              | Path to the source file or URL (required)          |
-| --output, -o              | Path to the output directory                       |
+| --output, -o              | Directory to create the collection in              |
 | --output-file, -f         | Path to the output JSON file                       |
 | --collection-name, -n     | Name for the imported collection                   |
 | --insecure                | Skip SSL certificate validation when fetching from URLs |
+| --auth-placement          | Where to set the spec's auth: request (default) on each request, collection on the collection for requests to inherit |
+| --request-name-source     | Field used to name requests: summary (default), operationId, description or path. Missing fields fall back in that order |
 
 ## Command Line Options
 

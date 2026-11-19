@@ -21,7 +21,7 @@ const {
   DEFAULT_COLLECTION_FORMAT
 } = require('@usebruno/filestore');
 const { utils } = require('@usebruno/common');
-const { resolveEnvironmentInheritance } = require('@usebruno/common/utils');
+const { resolveEnvironmentInheritance, getFilenameWithFormat } = require('@usebruno/common/utils');
 const brunoConverters = require('@usebruno/converters');
 const { postmanToBruno } = brunoConverters;
 const { cookiesStore } = require('../store/cookies');
@@ -29,6 +29,7 @@ const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { getWsClient } = require('../ipc/network/ws-event-handlers');
 const { hasSubDirectories } = require('../utils/filesystem');
 const { readCollectionForApiSpec } = require('../utils/collection-reader');
+const { exportCollectionYaml } = require('./collection-export');
 const { transformProxyConfig } = require('@usebruno/requests');
 
 const {
@@ -1428,22 +1429,24 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           coll.name = uniqueName;
         }
 
-        const getFilenameWithFormat = (item, format) => {
-          if (item?.filename) {
-            const ext = path.extname(item.filename);
-            if (ext === '.bru' || ext === '.yml') {
-              return item.filename.replace(ext, `.${format}`);
-            }
-            return item.filename;
+        const claimUniqueFilename = (filename, claimedFilenames) => {
+          const { name, ext } = path.parse(filename);
+          let uniqueFilename = filename;
+          let counter = 1;
+          while (claimedFilenames.has(uniqueFilename.toLowerCase())) {
+            uniqueFilename = `${name} (${counter})${ext}`;
+            counter++;
           }
-          return `${item.name}.${format}`;
+          claimedFilenames.add(uniqueFilename.toLowerCase());
+          return uniqueFilename;
         };
 
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = async (items = [], currentPath) => {
+          const requestFilenames = new Set();
           await Promise.all(items.map(async (item) => {
             if (['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type)) {
-              const sanitizedFilename = sanitizeName(getFilenameWithFormat(item, format));
+              const sanitizedFilename = claimUniqueFilename(sanitizeName(getFilenameWithFormat(item, format)), requestFilenames);
               const content = await stringifyRequestViaWorker(item, { format });
               const filePath = path.join(currentPath, sanitizedFilename);
               safeWriteFileSync(filePath, content);
@@ -2528,15 +2531,11 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   // Implement the Postman to Bruno conversion handler
   ipcMain.handle('renderer:convert-postman-to-bruno', async (event, postmanCollection, options = {}) => {
     try {
-      // Convert Postman collection to Bruno format
-      // Returns { collection, issues } where issues tracks items that were skipped or degraded
-      const result = await postmanToBruno(postmanCollection, {
+      return await postmanToBruno(postmanCollection, {
         useWorkers: true,
         // preserve scripts without any pm.* -> bru.* translation
         preserveScripts: !!options.preserveScripts
       });
-
-      return result;
     } catch (error) {
       console.error('Error converting Postman to Bruno:', error);
       return Promise.reject(error);
@@ -2632,6 +2631,10 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:export-collection-yaml', async (event, collectionName, content) => {
+    return exportCollectionYaml(mainWindow, collectionName, content);
   });
 
   ipcMain.handle('renderer:export-collection-postman', async (event, dirPath, fileName, content, overwrite = false) => {

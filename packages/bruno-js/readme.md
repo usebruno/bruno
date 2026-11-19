@@ -66,10 +66,29 @@ A global also needs `@context`; without it, the global is left out the same way.
 - **Generic list bases:** `ReadOnlyPropertyList` is `@template T`, and each list names its item
   shape with `@extends {ReadOnlyPropertyList<Header>}`, so inherited methods document
   `all(): Header[]` rather than `object[]`. Write base-class docs so they read correctly for every
-  list ("the entry with the given key", not "the header").
+  list ("the entry with the given key", not "the header"), with examples on a generic `list`.
 - **Optional trailing arguments behind a rest parameter** (`reduce(fn, ...rest)`): give the method
   a `@type {(fn: …, initialValue?: *, context?: *) => *}` and describe the parameters with
   untyped `@param name - text` lines. JSDoc `@overload` loses the optional markers.
+
+### Doc overrides
+
+To re-document an inherited method for one list, add a JSDoc block with no declaration under it:
+
+```js
+  /**
+   * Get the value of a header.
+   * @override get
+   * @param name - The header's name.
+   * @example
+   * const type = res.headerList.get('content-type');
+   */
+```
+
+- The summary is required; any `@param`, `@returns` or `@example` replaces the inherited one.
+  Everything else, types included, comes from the base.
+- The method is listed before the member that follows the block; at the end of the class, it
+  keeps its inherited place.
 
 ### Regenerating
 

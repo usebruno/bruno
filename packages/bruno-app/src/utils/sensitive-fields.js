@@ -137,7 +137,7 @@ const SCOPE_PRIORITY = [
 /** Scope of a same-name variable that would win over a new variable in `targetScope`, or null. */
 export const findOverridingVariableScope = (variableName, { collection, item, targetScope, ignoreVariableUid } = {}) => {
   const resolved = resolveSensitiveVariable(variableName, { collection, item, ignoreVariableUid });
-  if (!resolved) {
+  if (!resolved || (resolved.type === targetScope && !resolved.variable.secret)) {
     return null;
   }
   return SCOPE_PRIORITY.indexOf(resolved.type) <= SCOPE_PRIORITY.indexOf(targetScope) ? resolved.type : null;
@@ -297,7 +297,7 @@ export const findUsedEnvironmentVariableUids = (collection, environment) => {
 };
 
 /** Non-secret global rows used by a sensitive field in an collection. */
-export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnvironments, environment) => {
+export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnvironments, activeGlobalEnvironmentUid, environment) => {
   const uids = new Set();
   if (!environment?.uid) {
     return uids;
@@ -307,7 +307,7 @@ export const findUsedGlobalEnvironmentVariableUids = (collections, globalEnviron
     collectSentVariableUids({
       ...collection,
       globalEnvironments: environments,
-      activeGlobalEnvironmentUid: environment.uid
+      activeGlobalEnvironmentUid
     }, 'global').forEach((uid) => uids.add(uid));
   });
   return uids;

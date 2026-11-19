@@ -1,6 +1,8 @@
 import jsyaml from 'js-yaml';
 import { BrunoError } from 'utils/common/error';
 
+export const FILE_PARSE_ERROR = 'Failed to parse the file – ensure it is valid JSON or YAML';
+
 /**
  * Parse a File object as JSON or YAML and return the parsed object.
  * Throws with a user-friendly message on parse failure.
@@ -19,7 +21,7 @@ export const parseFileAsJsonOrYaml = async (file) => {
     }
     return parsed;
   } catch {
-    throw new Error('Failed to parse the file – ensure it is valid JSON or YAML');
+    throw new Error(FILE_PARSE_ERROR);
   }
 };
 

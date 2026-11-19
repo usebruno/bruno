@@ -12,6 +12,7 @@ const RUN_TIMEOUT = 60000;
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const COLLECTION_FIXTURE = path.join(FIXTURES_DIR, 'runnable.postman_collection.json');
 const ENVIRONMENT_FIXTURE = path.join(FIXTURES_DIR, 'staging.postman_environment.json');
+const COLLECTION_NAME = 'Runnable';
 
 describe('CLI import postman — imported collections run with bru run', () => {
   let server;
@@ -62,14 +63,14 @@ describe('CLI import postman — imported collections run with bru run', () => {
     expect(profileRequest.headers['x-token']).toBe('from-pre-request');
   };
 
-  it('writes the collection and its --environment, and the run passes', async () => {
-    const collectionDir = path.join(workDir, 'collection');
+  it('writes the collection and its --env, and the run passes', async () => {
+    const collectionDir = path.join(workDir, COLLECTION_NAME);
 
     const importResult = await runCli([
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
-      '--output', collectionDir,
-      '--environment', stageEnvironment()
+      '--output', workDir,
+      '--env', stageEnvironment()
     ], workDir);
 
     expect(importResult.code).toBe(0);
@@ -90,14 +91,14 @@ describe('CLI import postman — imported collections run with bru run', () => {
   }, RUN_TIMEOUT);
 
   it('gives a repeated environment name a copy suffix instead of overwriting', async () => {
-    const collectionDir = path.join(workDir, 'collection');
+    const collectionDir = path.join(workDir, COLLECTION_NAME);
     const environmentPath = stageEnvironment();
 
     const collectionImport = await runCli([
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
-      '--output', collectionDir,
-      '--environment', environmentPath, environmentPath
+      '--output', workDir,
+      '--env', environmentPath, environmentPath
     ], workDir);
 
     expect(collectionImport.code).toBe(0);
@@ -105,7 +106,7 @@ describe('CLI import postman — imported collections run with bru run', () => {
   }, RUN_TIMEOUT);
 
   it('gives an environment name differing only in case a copy suffix', async () => {
-    const collectionDir = path.join(workDir, 'collection');
+    const collectionDir = path.join(workDir, COLLECTION_NAME);
     const environmentPath = stageEnvironment();
     const upperCasePath = path.join(workDir, 'upper.postman_environment.json');
     fs.writeFileSync(upperCasePath, JSON.stringify({ ...JSON.parse(fs.readFileSync(environmentPath, 'utf8')), name: 'Staging' }));
@@ -113,8 +114,8 @@ describe('CLI import postman — imported collections run with bru run', () => {
     const collectionImport = await runCli([
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
-      '--output', collectionDir,
-      '--environment', environmentPath, upperCasePath
+      '--output', workDir,
+      '--env', environmentPath, upperCasePath
     ], workDir);
 
     expect(collectionImport.code).toBe(0);
@@ -132,7 +133,7 @@ describe('CLI import postman — imported collections run with bru run', () => {
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
       '--output-file', outputFile,
-      '--environment', environmentPath
+      '--env', environmentPath
     ], workDir);
 
     expect(code).toBe(0);
@@ -145,12 +146,12 @@ describe('CLI import postman — imported collections run with bru run', () => {
   }, RUN_TIMEOUT);
 
   it.each(['bru', 'opencollection'])('rejects postman with --collection-format %s, writing nothing', async (collectionFormat) => {
-    const collectionDir = path.join(workDir, 'collection');
+    const collectionDir = path.join(workDir, COLLECTION_NAME);
 
     const { code, stderr } = await runCli([
       'import', 'postman',
       '--source', COLLECTION_FIXTURE,
-      '--output', collectionDir,
+      '--output', workDir,
       '--collection-format', collectionFormat
     ], workDir);
 
@@ -164,9 +165,9 @@ describe('CLI import postman — imported collections run with bru run', () => {
     delete collection.item.find((item) => item.name === 'Health').request.method;
     const sourcePath = path.join(workDir, 'with-skipped-item.postman_collection.json');
     fs.writeFileSync(sourcePath, JSON.stringify(collection, null, 2));
-    const collectionDir = path.join(workDir, 'collection');
+    const collectionDir = path.join(workDir, COLLECTION_NAME);
 
-    const { code } = await runCli(['import', 'postman', '--source', sourcePath, '--output', collectionDir], workDir);
+    const { code } = await runCli(['import', 'postman', '--source', sourcePath, '--output', workDir], workDir);
 
     expect(code).toBe(1);
     expect(fs.existsSync(path.join(collectionDir, 'opencollection.yml'))).toBe(true);
