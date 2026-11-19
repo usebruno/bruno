@@ -17,7 +17,7 @@ const COLLECTION_NAME = 'folder-run';
 
 const PARENT_REQUESTS = ['first', 'second', 'third'];
 const CHILD_REQUESTS = ['child-first', 'child-second'];
-/** Every request in the collection: parent (3) + parent/child (2) + rerun (1). */
+// Every request in the collection: parent (3) + parent/child (2) + rerun (1)
 const TOTAL_REQUESTS_IN_COLLECTION = 6;
 
 // The status shown beside a passing request with a space. i.e 200 - OK
@@ -53,7 +53,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Click Run', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('The dashboard lists the folder\'s own requests in sequence order, and none from the subfolder', async () => {
@@ -73,7 +73,6 @@ test.describe('Folder runner', () => {
   test('TC-176: Verify the recursive run executes the folder and its subfolders in order', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
     // A recursive run executes a folder's subfolders before the requests that sit directly in it.
     const expectedOrder = [...CHILD_REQUESTS, ...PARENT_REQUESTS];
@@ -89,7 +88,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Click Recursive Run', async () => {
       await folderRunButton(modal, 'Recursive Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('Requests from the child folder and the parent folder run in folder-structure order', async () => {
@@ -109,7 +108,6 @@ test.describe('Folder runner', () => {
   test('TC-492: Verify the run from the folder menu executes every request under the folder and reports status codes', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
 
     const modal = await openFolderRunModal(page, COLLECTION_NAME, ['parent']);
@@ -131,7 +129,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Run the folder', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('The execution dashboard lists the requests in order with their status codes', async () => {
@@ -151,7 +149,7 @@ test.describe('Folder runner', () => {
   test('TC-2675: Verify the delay between requests spaces out the requests in the folder run', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(60_000);
     const runner = buildRunnerLocators(page);
     // The delay between requests to be passed to Runner. I have set it to 2 seconds to keep adequate margin for thresholds.
     const delayBetweenRequestsMs = 2_000;
@@ -182,7 +180,7 @@ test.describe('Folder runner', () => {
         loaderDurationsMs.push(Date.now() - loaderShownAt);
       }
 
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor({ timeout: 30_000 });
       await expect(runner.resultItems()).toHaveCount(PARENT_REQUESTS.length);
       await expect(runner.resultItems()).toContainText(PARENT_REQUESTS);
     });
@@ -200,7 +198,6 @@ test.describe('Folder runner', () => {
   });
 
   test('TC-2676: Verify the include tags run only the requests carrying the tag', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
     const locators = buildCommonLocators(page);
 
@@ -217,7 +214,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Click Run', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('Only the request tagged "smoke" ran', async () => {
@@ -229,7 +226,6 @@ test.describe('Folder runner', () => {
   });
 
   test('TC-2677: Verify the exclude tags skip the requests carrying the tag', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
     const locators = buildCommonLocators(page);
 
@@ -246,7 +242,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Click Run', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('Only the requests without the "smoke" tag ran', async () => {
@@ -258,7 +254,6 @@ test.describe('Folder runner', () => {
   });
 
   test('TC-2690: Verify the Run Again re-executes the folder on the same dashboard', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
 
     const modal = await openFolderRunModal(page, COLLECTION_NAME, ['rerun']);
@@ -266,7 +261,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Run the folder; the dashboard appears with Run Again', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
       await expect(runner.resultItems()).toHaveCount(1);
       await expect(runner.resultItems()).toContainText(['slow']);
       await expect(runner.resultStatus()).toHaveText([RUNNER_OK_STATUS]);
@@ -276,7 +271,7 @@ test.describe('Folder runner', () => {
       await runner.runAgainButton().click();
       // the "slow" request keeps the run in flight long enough to observe it
       await expect(runner.cancelExecutionButton()).toBeVisible();
-      await expect(runner.runAgainButton()).toBeVisible({ timeout: 60_000 });
+      await expect(runner.runAgainButton()).toBeVisible();
     });
 
     await test.step('The dashboard reports the re-run', async () => {
@@ -290,7 +285,6 @@ test.describe('Folder runner', () => {
   test('TC-2728: Verify the Reset on the dashboard returns to the runner config, where a delay can be set for a new run', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
     const delayMs = 500;
     // `rerun/slow` holds the run for 1.5s on top of the delays between the other requests.
@@ -301,7 +295,7 @@ test.describe('Folder runner', () => {
 
     await test.step('Run the folder and wait for the execution dashboard', async () => {
       await folderRunButton(modal, 'Run').click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
       await expect(runner.resultItems()).toHaveCount(PARENT_REQUESTS.length);
     });
 
@@ -325,7 +319,7 @@ test.describe('Folder runner', () => {
       await expect(runner.runCollectionButton()).toContainText(`Run ${TOTAL_REQUESTS_IN_COLLECTION} Requests`);
       startedAt = Date.now();
       await runner.runCollectionButton().click();
-      await runner.runAgainButton().waitFor({ timeout: 60_000 });
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('The new run reports every request and honors the delay', async () => {
