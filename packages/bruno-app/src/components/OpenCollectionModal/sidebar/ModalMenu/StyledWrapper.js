@@ -69,6 +69,19 @@ const StyledWrapper = styled.nav`
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .menu-item-shortcut {
+    flex: none;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+
+  .menu-item:hover .menu-item-shortcut,
+  .menu-item:focus-visible .menu-item-shortcut {
+    opacity: 1;
+  }
 `;
 
 export default StyledWrapper;

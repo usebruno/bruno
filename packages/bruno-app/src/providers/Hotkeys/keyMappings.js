@@ -54,6 +54,7 @@ export const KEY_BINDING_SECTIONS = [
     heading: 'Collections & Environment',
     bindings: {
       importCollection: { mac: 'command+bind+o', windows: 'ctrl+bind+o', name: 'Import Collection' }, // D
+      openCollection: { mac: 'command+bind+shift+bind+o', windows: 'ctrl+bind+shift+bind+o', name: 'Open Collection Folder' },
       editEnvironment: { mac: 'command+bind+e', windows: 'ctrl+bind+e', name: 'Edit Environment' }, // D
       newRequest: { mac: 'command+bind+n', windows: 'ctrl+bind+n', name: 'New Request' } // D
     }

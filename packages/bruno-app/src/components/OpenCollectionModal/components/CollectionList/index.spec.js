@@ -1,7 +1,10 @@
 import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { VirtuosoMockContext } from 'react-virtuoso';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
+import appReducer from 'providers/ReduxStore/slices/app';
 import CollectionList from './index';
 
 const collections = [
@@ -11,22 +14,28 @@ const collections = [
   { path: '/Users/me/work/accounts', name: 'Accounts', meta: 'Opened 3d ago' }
 ];
 
-const renderList = (props = {}) => {
+const renderList = (props = {}, preferences = {}) => {
   const handlers = { onChooseFolder: jest.fn(), onOpen: jest.fn(), onSwitch: jest.fn(), onCancel: jest.fn() };
+  const store = configureStore({
+    reducer: { app: appReducer },
+    preloadedState: { app: { ...appReducer(undefined, { type: 'init' }), preferences } }
+  });
   const list = (listProps) => (
-    <ThemeProvider>
-      <VirtuosoMockContext.Provider value={{ viewportHeight: 1000, itemHeight: 49 }}>
-        <CollectionList
-          collections={collections}
-          openPathKeys={new Set()}
-          getMeta={(collection) => collection.meta}
-          noMatchText="Only collections you have opened before are listed."
-          testIdPrefix="list"
-          {...handlers}
-          {...listProps}
-        />
-      </VirtuosoMockContext.Provider>
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider>
+        <VirtuosoMockContext.Provider value={{ viewportHeight: 1000, itemHeight: 49 }}>
+          <CollectionList
+            collections={collections}
+            openPathKeys={new Set()}
+            getMeta={(collection) => collection.meta}
+            noMatchText="Only collections you have opened before are listed."
+            testIdPrefix="list"
+            {...handlers}
+            {...listProps}
+          />
+        </VirtuosoMockContext.Provider>
+      </ThemeProvider>
+    </Provider>
   );
   const { rerender } = render(list(props));
   return { ...handlers, rerender: (nextProps) => rerender(list({ ...props, ...nextProps })) };
@@ -241,12 +250,18 @@ describe('CollectionList', () => {
     const chooseFolder = screen.getByTestId('list-choose-folder');
 
     expect(chooseFolder).toHaveTextContent('Choose folder…');
-    expect(chooseFolder).toHaveAttribute('title', 'Choose a collection folder to open it in place');
+    expect(chooseFolder).toHaveAttribute('title', expect.stringMatching(/^Choose a collection folder to open it in place \(.*(Shift|⇧).*O\)$/));
     expect(searchBox()).toHaveAttribute('placeholder', 'Search collections');
     expect(searchBox()).toHaveAccessibleName('Search collections');
 
     fireEvent.click(chooseFolder);
     expect(onChooseFolder).toHaveBeenCalled();
+  });
+
+  it('leaves the shortcut out of the choose folder hint when keyboard shortcuts are turned off', () => {
+    renderList({}, { keybindingsEnabled: false });
+
+    expect(screen.getByTestId('list-choose-folder')).toHaveAttribute('title', 'Choose a collection folder to open it in place');
   });
 
   it('shows the search placeholder it is given and keeps the search box name', () => {

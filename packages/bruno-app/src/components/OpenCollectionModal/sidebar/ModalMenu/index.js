@@ -1,6 +1,7 @@
 import classnames from 'classnames';
 import { useDispatch } from 'react-redux';
 import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import { OPEN_COLLECTION_PAGES } from '../pages';
 import StyledWrapper from './StyledWrapper';
 
@@ -22,11 +23,13 @@ const moveFocus = (event) => {
 
 const ModalMenu = ({ titleId, activePageId }) => {
   const dispatch = useDispatch();
+  const getKeybindingDisplayText = useKeybindingDisplayText();
   const topPages = OPEN_COLLECTION_PAGES.filter((page) => page.group !== 'sources');
   const sourcePages = OPEN_COLLECTION_PAGES.filter((page) => page.group === 'sources');
 
-  const renderItem = ({ id, label, icon: Icon }) => {
+  const renderItem = ({ id, label, icon: Icon, shortcut }) => {
     const isActive = id === activePageId;
+    const shortcutText = shortcut ? getKeybindingDisplayText(shortcut) : '';
     return (
       <button
         key={id}
@@ -38,6 +41,11 @@ const ModalMenu = ({ titleId, activePageId }) => {
       >
         <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
         <span className="menu-item-label">{label}</span>
+        {shortcutText ? (
+          <span className="menu-item-shortcut" aria-hidden="true" data-testid={`open-collection-menu-shortcut-${id}`}>
+            {shortcutText}
+          </span>
+        ) : null}
       </button>
     );
   };

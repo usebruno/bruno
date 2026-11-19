@@ -26,6 +26,7 @@ import ApiCatalogPage from './ApiCatalogPage';
  * @property {string} [description] - Page header description.
  * @property {React.ComponentType} [subtitle] - Shown in the page header instead of the description. It takes no props.
  * @property {React.ComponentType} icon - Tabler icon shown in the menu.
+ * @property {string} [shortcut] - Keybinding action whose shortcut the menu item shows.
  * @property {'sources'} [group] - Pages in the group are listed under the Sources heading.
  * @property {React.ComponentType} component - Page body. It takes no props.
  */
@@ -38,6 +39,7 @@ export const OPEN_COLLECTION_PAGES = [
     title: 'Choose folder',
     description: 'Pick one or more collection folders to open them in the current workspace.',
     icon: IconFolder,
+    shortcut: 'openCollection',
     component: ChooseFolderPage
   },
   {

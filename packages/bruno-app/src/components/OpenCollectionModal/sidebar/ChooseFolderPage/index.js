@@ -10,6 +10,7 @@ import {
   saveAutoOpenFolderPicker
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import BusyOverlay from '../../components/BusyOverlay';
 import CollectionPicker from '../../components/CollectionPicker';
 import DropZone from '../../components/DropZone';
@@ -22,6 +23,7 @@ const ChooseFolderPage = () => {
   const { status, searchLabel, result } = useSelector((state) => state.openCollectionModal.chooseFolder);
   const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
+  const chooseFolderShortcut = useKeybindingDisplayText()('openCollection');
 
   const pickFolders = () => dispatch(pickCollectionFolders());
   const isSearching = status === 'searching';
@@ -63,6 +65,9 @@ const ChooseFolderPage = () => {
               >
                 choose folders
               </button>
+              {chooseFolderShortcut ? (
+                <span className="choose-folder-shortcut" data-testid="choose-folder-shortcut">{chooseFolderShortcut}</span>
+              ) : null}
             </DropZone>
             <label className="choose-folder-auto-open">
               <input

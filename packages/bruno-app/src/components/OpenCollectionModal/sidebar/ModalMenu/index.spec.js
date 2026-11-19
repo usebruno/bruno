@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import appReducer from 'providers/ReduxStore/slices/app';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { OPEN_COLLECTION_PAGES } from '../pages';
 import ModalMenu from './index';
@@ -13,11 +14,12 @@ jest.mock('nanoid', () => {
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
 
-const renderMenu = (activePageId = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) => {
+const renderMenu = (activePageId = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, preferences = {}) => {
   const store = configureStore({
-    reducer: { openCollectionModal: openCollectionModalReducer },
+    reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
     preloadedState: {
-      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId }
+      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId },
+      app: { ...appReducer(undefined, { type: 'init' }), preferences }
     }
   });
   render(
@@ -36,7 +38,23 @@ describe('ModalMenu', () => {
   it('lists every page in registry order', () => {
     renderMenu();
 
-    expect(menuItems().map((item) => item.textContent)).toEqual(OPEN_COLLECTION_PAGES.map((page) => page.label));
+    expect(menuItems().map((item) => item.querySelector('.menu-item-label').textContent)).toEqual(OPEN_COLLECTION_PAGES.map((page) => page.label));
+  });
+
+  it('shows the open folder shortcut only next to Choose folder', () => {
+    renderMenu();
+
+    expect(screen.getAllByTestId(/^open-collection-menu-shortcut-/)).toEqual([
+      screen.getByTestId(`open-collection-menu-shortcut-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)
+    ]);
+    expect(screen.getByTestId(`open-collection-menu-shortcut-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)).toHaveTextContent(/(Shift|⇧).*O$/);
+    expect(screen.getByTestId(`open-collection-menu-item-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)).toHaveAccessibleName('Choose folder…');
+  });
+
+  it('shows no shortcut when keyboard shortcuts are turned off', () => {
+    renderMenu(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { keybindingsEnabled: false });
+
+    expect(screen.queryByTestId(/^open-collection-menu-shortcut-/)).not.toBeInTheDocument();
   });
 
   it('lists the source pages under Sources', () => {

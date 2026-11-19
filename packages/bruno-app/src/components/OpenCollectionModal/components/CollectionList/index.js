@@ -5,6 +5,7 @@ import { IconFolder, IconSearch, IconX } from '@tabler/icons';
 import Button from 'ui/Button';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import NoMatch from '../NoMatch';
 import CollectionListRow from './CollectionListRow';
 import { tildify } from '../../utils/collection-location';
@@ -44,6 +45,7 @@ const CollectionList = ({
   const virtuoso = useRef(null);
   const rowsElement = useRef(null);
   const rangeAnchorKey = useRef(null);
+  const chooseFolderShortcut = useKeybindingDisplayText()('openCollection');
 
   const isOpen = useCallback((collection) => openPathKeys.has(toPathKey(collection.path)), [openPathKeys]);
   const query = searchText.trim().toLowerCase();
@@ -108,7 +110,7 @@ const CollectionList = ({
       color={color}
       className="collection-list-choose-folder"
       icon={<IconFolder size={14} strokeWidth={1.75} />}
-      title="Choose a collection folder to open it in place"
+      title={`Choose a collection folder to open it in place${chooseFolderShortcut ? ` (${chooseFolderShortcut})` : ''}`}
       onClick={onChooseFolder}
       data-testid={testId}
     >

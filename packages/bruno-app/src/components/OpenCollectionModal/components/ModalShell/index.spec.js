@@ -55,7 +55,7 @@ const closedState = openCollectionModalReducer(undefined, { type: 'init' });
 
 const createStore = (openCollectionModal = { isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER }) =>
   configureStore({
-    reducer: { openCollectionModal: openCollectionModalReducer },
+    reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
     preloadedState: { openCollectionModal: { ...closedState, ...openCollectionModal } }
   });
 

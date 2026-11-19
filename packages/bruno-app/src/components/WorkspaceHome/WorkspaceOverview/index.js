@@ -1,16 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
-import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
-import { setIsCreatingCollection, setIsOpeningCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { setIsCreatingCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
+import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import toast from 'react-hot-toast';
-import ImportCollection from 'components/Sidebar/ImportCollection';
-import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
-import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
-import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
-import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import Button from 'ui/Button';
 import CollectionsList from './CollectionsList';
 import WorkspaceDocs from '../WorkspaceDocs';
@@ -20,13 +15,6 @@ const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
   const { sidebarCollapsed, isCreatingCollection } = useSelector((state) => state.app);
-
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [importData, setImportData] = useState(null);
-  const [showCloneGitModal, setShowCloneGitModal] = useState(false);
-  const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
-  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
   const workspaceCollectionsCount = workspace?.collections?.length || 0;
 
@@ -57,87 +45,15 @@ const WorkspaceOverview = ({ workspace }) => {
   };
 
   const handleOpenCollection = () => {
-    dispatch(setIsOpeningCollection(true));
+    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER));
   };
 
   const handleImportCollection = () => {
-    setImportCollectionModalOpen(true);
-  };
-
-  const handleImportCollectionSubmit = ({ rawData, type, repositoryUrl, ...rest }) => {
-    setImportCollectionModalOpen(false);
-
-    if (type === 'git-repository') {
-      setGitRepositoryUrl(repositoryUrl);
-      setShowCloneGitModal(true);
-      return;
-    }
-
-    setImportData({ rawData, type, ...rest });
-    setImportCollectionLocationModalOpen(true);
-  };
-
-  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
-    const importAction = options.isZipImport
-      ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
-      : importCollection(convertedCollection, collectionLocation, options);
-
-    dispatch(importAction)
-      .then((importedItem) => {
-        setImportCollectionLocationModalOpen(false);
-        setImportData(null);
-        handleImportResolved(convertedCollection, importedItem);
-      });
-  };
-
-  const handleCloseGitModal = () => {
-    setShowCloneGitModal(false);
-    setGitRepositoryUrl(null);
+    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.IMPORT));
   };
 
   return (
     <StyledWrapper>
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollectionSubmit}
-        />
-      )}
-
-      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
-        <ImportCollectionLocation
-          rawData={importData.rawData}
-          format={importData.type}
-          sourceUrl={importData.sourceUrl}
-          filePath={importData.filePath}
-          rawContent={importData.rawContent}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
-        <BulkImportCollectionLocation
-          importData={importData}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {showCloneGitModal && (
-        <CloneGitRepository
-          onClose={handleCloseGitModal}
-          onFinish={handleCloseGitModal}
-          collectionRepositoryUrl={gitRepositoryUrl}
-        />
-      )}
-      {postmanPackagePrompt && (
-        <PostmanPackageReport
-          key={postmanPackagePrompt.collectionPath}
-          report={postmanPackagePrompt.report}
-          collectionPath={postmanPackagePrompt.collectionPath}
-          onClose={clearPostmanPackagePrompt}
-        />
-      )}
-
       <div className="overview-layout">
         <div className="overview-main">
           <div className="stats-row">

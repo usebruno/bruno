@@ -87,6 +87,18 @@ describe('ChooseFolderPage', () => {
     expect(autoOpenCheckbox()).toBeChecked();
   });
 
+  it('shows the open folder shortcut next to the choose folders link', () => {
+    renderPage();
+
+    expect(screen.getByTestId('choose-folder-shortcut')).toHaveTextContent(/(Shift|⇧).*O$/);
+  });
+
+  it('shows no shortcut when keyboard shortcuts are turned off', () => {
+    renderPage({ preferences: { keybindingsEnabled: false } });
+
+    expect(screen.queryByTestId('choose-folder-shortcut')).not.toBeInTheDocument();
+  });
+
   it('shows the saved folder picker setting', () => {
     renderPage({ preferences: { openCollection: { autoOpenFolderPicker: false } } });
 

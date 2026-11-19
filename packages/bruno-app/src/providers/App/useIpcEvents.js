@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import {
   updateCookies,
   updatePreferences,
-  setGitVersion,
-  setIsOpeningCollection
+  setGitVersion
 } from 'providers/ReduxStore/slices/app';
 import {
   updateServerStatus,
@@ -41,12 +40,13 @@ import {
   hydrateSnapshotForOpenedCollection,
   restoreActiveWorkspaceFromSnapshot
 } from 'providers/ReduxStore/slices/workspaces/actions';
-import { recentCollectionsChangedEvent } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { openCollectionModal, recentCollectionsChangedEvent } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { myComputerCollectionsFound, myComputerScanFinished } from 'providers/ReduxStore/slices/open-collection-modal';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
 import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
@@ -154,7 +154,7 @@ const useIpcEvents = () => {
     });
 
     const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
-      dispatch(setIsOpeningCollection(true));
+      dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER));
     });
 
     const removeRecentCollectionsChangedListener = ipcRenderer.on('main:recent-collections-changed', () => {

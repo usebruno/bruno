@@ -23,6 +23,12 @@ const StyledWrapper = styled.div`
     padding: 0.25rem 1.25rem 1.25rem;
   }
 
+  .choose-folder-shortcut {
+    margin-left: 0.5rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .choose-folder-auto-open {
     display: inline-flex;
     align-items: center;
