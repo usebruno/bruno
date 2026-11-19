@@ -5,7 +5,13 @@ import { buildResponseLocators, buildResponseErrorsLocators } from '../response/
  * Locators for sending a request from the request pane.
  */
 export const buildRequestSendLocators = (page: Page) => ({
-  sendButton: () => page.getByTestId('send-arrow-icon')
+  sendButton: () => page.getByTestId('send-arrow-icon'),
+  scheduleMenuTrigger: () => page.getByTestId('schedule-send-trigger'),
+  repeatOnIntervalMenuItem: () => page.getByTestId('schedule-send-menu-repeat-on-interval'),
+  repeatIntervalValueInput: () => page.getByTestId('schedule-send-value'),
+  repeatIntervalUnitSelect: () => page.getByTestId('schedule-send-unit'),
+  repeatIntervalStartButton: () => page.getByTestId('schedule-send-modal-submit-btn'),
+  repeatOnIntervalIndicator: () => page.getByTestId('repeat-on-interval-indicator')
 });
 
 const buildLocators = (page: Page) => ({
@@ -80,5 +86,22 @@ export const sendAndWaitForResponse = async (page: Page) => {
     const { request, response } = buildLocators(page);
     await request.sendButton().click();
     await response.statusCode().waitFor({ state: 'visible', timeout: 15000 });
+  });
+};
+
+/**
+ * Start "Repeat on Interval" for the current request from the Send button dropdown.
+ * @param page - The page object
+ * @param value - Interval amount
+ * @param unit - Interval unit (default: 'seconds')
+ */
+export const startRepeatOnInterval = async (page: Page, value: number, unit: 'seconds' | 'minutes' = 'seconds') => {
+  await test.step(`Start repeat on interval every ${value} ${unit}`, async () => {
+    const { request } = buildLocators(page);
+    await request.scheduleMenuTrigger().click();
+    await request.repeatOnIntervalMenuItem().click();
+    await request.repeatIntervalValueInput().fill(String(value));
+    await request.repeatIntervalUnitSelect().selectOption(unit);
+    await request.repeatIntervalStartButton().click();
   });
 };
