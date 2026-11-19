@@ -412,7 +412,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     }
   };
   const scheduleMenuItems = [
-    { id: 'repeat-on-interval', label: 'Repeat on Interval', testId: 'repeat-on-interval', onClick: () => setScheduleModalOpen(true) }
+    { id: 'repeat-on-interval', label: 'Repeat on Interval', onClick: () => setScheduleModalOpen(true) }
   ];
   return (
     <StyledWrapper className="flex items-center w-full">
