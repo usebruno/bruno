@@ -11,6 +11,7 @@ import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
 import Oauth2ActionButtons from '../Oauth2ActionButtons/index';
 import AdditionalParams from '../AdditionalParams/index';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { removeLineBreaks } from '../utils';
 
 const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection, readOnly }) => {
   const dispatch = useDispatch();
@@ -66,7 +67,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
           autoFetchToken,
           tokenSource,
           additionalParameters,
-          [key]: value
+          [key]: removeLineBreaks(value)
         }
       })
     );
