@@ -13,6 +13,7 @@ import {
 } from './sidebar/collection-tree';
 import { buildSandboxLocators } from './collection/settings';
 import { buildTimelineLocators } from './response/timeline';
+import { parseDurationMs } from '../utils/helpers';
 
 const buildLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
@@ -45,6 +46,7 @@ export const buildRunnerLocators = (page: Page) => ({
   passedTestRows: () => page.getByTestId('runner-test-row-passed'),
   failedTestRows: () => page.getByTestId('runner-test-row-failed'),
   requestLoader: () => page.getByTestId('runner-result-item').locator('.animate-spin'),
+  resultItemLoader: (index: number) => page.getByTestId('runner-result-item').nth(index).locator('.animate-spin'),
   requestStatusLabel: () => page.getByTestId('runner-iteration-status-label'),
   resultTimelineEntries: () => page.getByTestId('timeline-entry'),
   toolbar: () => page.getByTestId('runner-toolbar'),
@@ -314,6 +316,24 @@ export const openRunnerResultTimeline = async (page: Page, requestName: string) 
 };
 
 /**
+ * Opens a finished runner result by clicking its status and reads the response time shown in the
+ * response pane.
+ * @param page - The Playwright page object
+ * @param index - The result's position in the runner results list
+ * @returns The displayed response time in milliseconds
+ */
+export const getRunnerResultResponseTimeMs = async (page: Page, index: number) => {
+  return await test.step(`Read the response time of runner result #${index + 1}`, async () => {
+    const runner = buildRunnerLocators(page);
+    await runner.resultStatus().nth(index).click();
+    // The pane shows 0ms until the stored response loads.
+    const responseTime = runner.responseTime().filter({ hasNotText: /^0ms$/ });
+    await responseTime.waitFor();
+    return parseDurationMs(await responseTime.innerText());
+  });
+};
+
+/**
  * Opens a folder's run modal without starting a run: walks the sidebar to the folder, expanding
  * the collection and any parent folders on the way, then picks "Run" from its context menu.
  * The modal reports how many requests each run mode would cover, so a spec can assert the effect
@@ -351,6 +371,14 @@ export const openFolderRunModal = async (page: Page, collectionName: string, fol
  */
 export const folderRunButton = (modal: Locator, mode: FolderRunMode): Locator =>
   modal.getByRole('button', { name: mode, exact: true });
+
+/**
+ * Locates the "Delay between requests (ms)" input in the folder run modal.
+ * @param modal - The run modal, as returned by `openFolderRunModal`
+ * @returns The input locator
+ */
+export const folderRunDelayInput = (modal: Locator): Locator =>
+  modal.getByTestId('folder-run-delay-input');
 
 /**
  * Locates the label above a run button, which reports how many requests that button would run.
