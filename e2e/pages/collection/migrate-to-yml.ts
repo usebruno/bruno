@@ -20,6 +20,9 @@ export const buildMigrateToYmlLocators = (page: Page) => {
 
   return {
     modal,
+    modalTitle: () => modal().getByTestId('modal-title'),
+    modalCollectionName: () => modal().getByTestId('migrate-to-yml-collection-name'),
+    pill: () => page.getByTestId('migrate-yml-pill'),
     migrateButton: () => modal().getByRole('button', { name: 'Migrate', exact: true }),
     cancelMigrationButton: () => modal().getByRole('button', { name: 'Cancel', exact: true }),
     exportBackupButton: () => page.getByTestId('export-collection-backup-button'),
@@ -30,6 +33,9 @@ export const buildMigrateToYmlLocators = (page: Page) => {
     cancelledMessage: () => page.getByText('Migration cancelled'),
     missingRequestMessage: () => page.getByText('Request no longer exists'),
     draftsStep,
+    draftsTitle: () => draftsStep().getByTestId('migration-drafts-title'),
+    draftsSummary: () => draftsStep().getByTestId('migration-drafts-summary'),
+    draftsItems: () => draftsStep().getByTestId('migration-drafts-item'),
     draftsSaveAll: () => page.getByTestId('migration-drafts-save-all'),
     draftsDiscardAll: () => page.getByTestId('migration-drafts-discard-all'),
     draftsBack: () => page.getByTestId('migration-drafts-back'),
@@ -49,6 +55,18 @@ export const openMigrateToYmlModalFromOverview = async (page: Page, collectionNa
   await page.getByTestId('collection-settings-tab-overview').click();
   await locators.convertButton().click();
   await locators.modal().waitFor({ state: 'visible', timeout: 5000 });
+};
+
+/**
+ * Opens the migration modal from the "Migrate to YML" pill in the collection header.
+ * The pill only renders for bru collections that haven't dismissed it.
+ */
+export const openMigrateToYmlModalFromPill = async (page: Page) => {
+  await test.step('Open migrate modal from the "Migrate to YML" pill', async () => {
+    const locators = buildMigrateToYmlLocators(page);
+    await locators.pill().click();
+    await locators.modal().waitFor({ state: 'visible', timeout: 5000 });
+  });
 };
 
 export const openCollectionOverview = async (page: Page, collectionName: string) => {
@@ -104,4 +122,17 @@ export const returnFromDraftsStep = async (page: Page) => {
   const locators = buildMigrateToYmlLocators(page);
   await locators.draftsBack().click();
   await expect(locators.draftsStep()).toBeHidden({ timeout: 5000 });
+};
+
+/**
+ * Leaves the drafts step via Back, then cancels and closes the whole migrate modal
+ * without migrating.
+ */
+export const cancelMigrationFromDraftsStep = async (page: Page) => {
+  await test.step('Go back from the drafts step and cancel the migrate modal', async () => {
+    const locators = buildMigrateToYmlLocators(page);
+    await returnFromDraftsStep(page);
+    await locators.cancelMigrationButton().click();
+    await locators.modal().waitFor({ state: 'hidden' });
+  });
 };
