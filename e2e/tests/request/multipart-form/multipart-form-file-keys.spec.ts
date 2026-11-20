@@ -11,11 +11,11 @@ import {
   openRequest,
   readEditorValue,
   saveRequest,
-  selectMultipartFiles,
   selectRequestBodyMode,
   sendRequestAndWaitForResponse,
   switchToFileMode
 } from '../../../pages';
+import { selectMultipartFiles } from '../../../pages/request/multipart-form';
 
 const REQUEST = 'file-upload';
 const URL = 'http://localhost:8081/api/multipart/mixed-content-types';

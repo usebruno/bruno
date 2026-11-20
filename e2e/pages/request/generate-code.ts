@@ -18,6 +18,9 @@ const readGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Read generated snippet', async () => {
     const codeEditor = page.locator('.editor-content .CodeMirror').first();
     await expect(codeEditor).toBeVisible();
+    await page.waitForFunction(() =>
+      Boolean((document.querySelector('.editor-content .CodeMirror') as any)?.CodeMirror?.getValue())
+    );
     return await readEditorValue(codeEditor);
   });
 };
@@ -34,7 +37,6 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
     await request.generateCodeButton().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    await expect.poll(() => readGeneratedSnippet(page)).not.toBe('');
     return await readGeneratedSnippet(page);
   });
 };
