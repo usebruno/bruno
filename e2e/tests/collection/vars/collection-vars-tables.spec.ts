@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import {
-  addAndVerifyCollectionVar,
+  addCollectionVar,
   buildCommonLocators,
   closeAllCollections,
   createCollection,
@@ -37,7 +37,7 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
     });
 
     await test.step('Verify that a pre-request variable can be entered and saved', async () => {
-      await addAndVerifyCollectionVar(page, 'preRequest', 'token', 'abc');
+      await addCollectionVar(page, 'preRequest', 'token', 'abc');
       await expect(collectionSettingsVars.row('preRequest', 'token')).toBeVisible();
       await expect(collectionSettingsVars.nameInput('preRequest', 'token')).toHaveValue('token');
       await expect(collectionSettingsVars.valueText('preRequest', 'token')).toHaveText('abc');
@@ -72,7 +72,7 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
     });
 
     await test.step('Verify that a post-response variable can be entered and saved', async () => {
-      await addAndVerifyCollectionVar(page, 'postResponse', 'token', 'abc');
+      await addCollectionVar(page, 'postResponse', 'token', 'abc');
       await expect(collectionSettingsVars.row('postResponse', 'token')).toBeVisible();
       await expect(collectionSettingsVars.nameInput('postResponse', 'token')).toHaveValue('token');
       await expect(collectionSettingsVars.valueText('postResponse', 'token')).toHaveText('abc');

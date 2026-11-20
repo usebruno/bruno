@@ -54,7 +54,7 @@ export const buildCollectionSettingsVarsLocators = (page: Page) => {
   };
 };
 
-export const addAndVerifyCollectionVar = async (
+export const addCollectionVar = async (
   page: Page,
   type: VarsTableType,
   name: string,
