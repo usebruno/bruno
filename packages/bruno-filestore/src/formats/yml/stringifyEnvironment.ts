@@ -10,6 +10,8 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
     return undefined;
   }
 
+  // An empty or null description is omitted: parseEnvironment reads it back as absent, so
+  // writing it would change the file on every re-save of a parsed environment.
   const ocVariables: (Variable | SecretVariable)[] = variables
     .map((v: BrunoEnvironmentVariable): Variable | SecretVariable => {
       if (v.secret === true) {
@@ -23,7 +25,7 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
         if (v.enabled === false) {
           secretVar.disabled = true;
         }
-        if (v.description !== undefined) {
+        if (v.description) {
           secretVar.description = v.description;
         }
         return secretVar;
@@ -40,7 +42,7 @@ export const toOpenCollectionEnvironmentVariables = (variables: BrunoEnvironment
         variable.disabled = true;
       }
 
-      if (v.description !== undefined) {
+      if (v.description) {
         variable.description = v.description;
       }
 

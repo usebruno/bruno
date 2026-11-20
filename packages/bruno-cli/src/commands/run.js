@@ -2,23 +2,24 @@ const fs = require('fs');
 const { setTimeout } = require('node:timers/promises');
 const chalk = require('chalk');
 const path = require('path');
-const { forOwn, cloneDeep } = require('lodash');
+const { cloneDeep } = require('lodash');
 const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, stripExtension, isSafeFileName } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
+const { createRunRequestByPathname } = require('../runner/run-request-by-pathname');
+const { findWorkspacePath } = require('../utils/workspace');
 const { isRequestTagsIncluded } = require('@usebruno/common');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { getOptions } = require('../utils/bru');
-const { parseDotEnv } = require('@usebruno/filestore');
 const constants = require('../constants');
 const Table = require('cli-table3');
-const { findItemInCollection, createCollectionJsonFromPathname, getCallStack, getEffectiveTagsByPathname, FORMAT_CONFIG } = require('../utils/collection');
+const { createCollectionJsonFromPathname, getCallStack, getEffectiveTagsByPathname, FORMAT_CONFIG } = require('../utils/collection');
 const { hasExecutableTestInScript } = require('../utils/request');
 const { createSkippedFileResults } = require('../utils/run');
 const { sanitizeResultsForReporter } = require('../utils/sanitize-results');
 const { getSystemProxy } = require('@usebruno/requests');
-const { loadEnvironmentFromFile } = require('../utils/environment');
+const { loadEnvironmentFromFile, readDotEnvVars } = require('../utils/environment');
 const command = 'run [paths...]';
 const desc = 'Run one or more requests/folders';
 
@@ -492,18 +493,6 @@ const handler = async function (argv) {
     }
 
     if (globalEnv) {
-      const findWorkspacePath = (startPath) => {
-        let currentPath = startPath;
-        while (currentPath !== path.dirname(currentPath)) {
-          const workspaceYmlPath = path.join(currentPath, 'workspace.yml');
-          if (fs.existsSync(workspaceYmlPath)) {
-            return currentPath;
-          }
-          currentPath = path.dirname(currentPath);
-        }
-        return null;
-      };
-
       if (!workspacePath) {
         workspacePath = findWorkspacePath(collectionPath);
       }
@@ -671,19 +660,10 @@ const handler = async function (argv) {
     }
 
     // load .env file at root of collection if it exists
-    const dotEnvPath = path.join(collectionPath, '.env');
-    const dotEnvExists = await exists(dotEnvPath);
     const processEnvVars = {
-      ...process.env
+      ...process.env,
+      ...readDotEnvVars(collectionPath)
     };
-    if (dotEnvExists) {
-      const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = parseDotEnv(content);
-
-      forOwn(jsonData, (value, key) => {
-        processEnvVars[key] = value;
-      });
-    }
 
     let requestItems = [];
     const results = [];
@@ -796,35 +776,27 @@ const handler = async function (argv) {
       runAbortController.abort(reason);
     };
 
-    const runSingleRequestByPathname = async (relativeItemPathname) => {
-      const ext = FORMAT_CONFIG[collection.format].ext;
-      return new Promise(async (resolve, reject) => {
-        let itemPathname = path.join(collectionPath, relativeItemPathname);
-        if (itemPathname && !itemPathname?.endsWith(ext)) {
-          itemPathname = `${itemPathname}${ext}`;
-        }
-        const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
-        if (requestItem) {
-          const res = await runSingleRequest(
-            requestItem,
-            collectionPath,
-            runtimeVariables,
-            envVars,
-            processEnvVars,
-            brunoConfig,
-            collectionRoot,
-            runtime,
-            collection,
-            runSingleRequestByPathname,
-            globalEnvVars,
-            persistPaths,
-            runAbortSignal
-          );
-          resolve(res?.response);
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    };
+    const runItem = (item, context, runRequestByPathname) => runSingleRequest(
+      item,
+      context.collectionPath,
+      context.runtimeVariables,
+      context.envVars,
+      context.processEnvVars,
+      context.brunoConfig,
+      context.collectionRoot,
+      runtime,
+      context.collection,
+      runRequestByPathname,
+      context.globalEnvVars,
+      context.persistPaths,
+      runAbortSignal
+    );
+
+    const runSingleRequestByPathname = createRunRequestByPathname({
+      context: { collection, collectionPath, brunoConfig, collectionRoot, envVars, processEnvVars, runtimeVariables, globalEnvVars, persistPaths },
+      workspacePath: workspacePath || findWorkspacePath(collectionPath),
+      runItem
+    });
 
     const runStartTime = new Date().toISOString();
     let currentRequestIndex = 0;

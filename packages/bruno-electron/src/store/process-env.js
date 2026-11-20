@@ -16,17 +16,20 @@ const dotEnvVars = {};
 const workspaceDotEnvVars = {};
 const collectionWorkspaceMap = {};
 
-// collectionUid is a hash based on the collection path
-const getProcessEnvVars = (collectionUid) => {
-  const workspacePath = collectionWorkspaceMap[collectionUid];
+// collectionUid is a hash based on the collection path. A collection that isn't open in the app
+// has no entries here; `fallback` supplies its workspace path and .env variables instead.
+const getProcessEnvVars = (collectionUid, fallback = {}) => {
+  const workspacePath = collectionWorkspaceMap[collectionUid] || fallback.workspacePath;
   const workspaceEnvVars = workspacePath ? workspaceDotEnvVars[workspacePath] : {};
 
   return {
     ...process.env,
     ...workspaceEnvVars,
-    ...dotEnvVars[collectionUid]
+    ...(dotEnvVars[collectionUid] || fallback.dotEnvVars)
   };
 };
+
+const getCollectionWorkspace = (collectionUid) => collectionWorkspaceMap[collectionUid];
 
 const setDotEnvVars = (collectionUid, envVars) => {
   dotEnvVars[collectionUid] = envVars;
@@ -54,6 +57,7 @@ const clearCollectionWorkspace = (collectionUid) => {
 
 module.exports = {
   getProcessEnvVars,
+  getCollectionWorkspace,
   setDotEnvVars,
   clearDotEnvVars,
   setWorkspaceDotEnvVars,

@@ -1,8 +1,9 @@
-// Forwards the caller's bru as a second arg so the host can attribute the call.
+// Forwards the caller's bru as a second arg so the host can attribute the call; the
+// script's options follow it.
 const bindRunRequest = (bru, runRequestByItemPathname) => {
   if (!runRequestByItemPathname) return;
-  bru.runRequest = (relativePathname) =>
-    runRequestByItemPathname(relativePathname, bru);
+  bru.runRequest = (relativePathname, options) =>
+    runRequestByItemPathname(relativePathname, bru, options);
 };
 
 // Kept off bru to stay out of user-facing autocomplete.

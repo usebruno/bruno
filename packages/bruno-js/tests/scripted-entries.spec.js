@@ -16,7 +16,17 @@ describe('bindRunRequest', () => {
 
     expect(result).toBe('done');
     expect(host).toHaveBeenCalledTimes(1);
-    expect(host).toHaveBeenCalledWith('relative/path.bru', bru);
+    expect(host).toHaveBeenCalledWith('relative/path.bru', bru, undefined);
+  });
+
+  test('forwards the script options after callerBru', async () => {
+    const host = jest.fn().mockResolvedValue('done');
+    const bru = {};
+
+    bindRunRequest(bru, host);
+    await bru.runRequest('auth/login', { collection: 'Auth API' });
+
+    expect(host).toHaveBeenCalledWith('auth/login', bru, { collection: 'Auth API' });
   });
 
   test('each bru gets bound with its own callerBru so entries can be attributed', async () => {
@@ -30,8 +40,8 @@ describe('bindRunRequest', () => {
     await bruA.runRequest('a.bru');
     await bruB.runRequest('b.bru');
 
-    expect(host).toHaveBeenNthCalledWith(1, 'a.bru', bruA);
-    expect(host).toHaveBeenNthCalledWith(2, 'b.bru', bruB);
+    expect(host).toHaveBeenNthCalledWith(1, 'a.bru', bruA, undefined);
+    expect(host).toHaveBeenNthCalledWith(2, 'b.bru', bruB, undefined);
   });
 });
 

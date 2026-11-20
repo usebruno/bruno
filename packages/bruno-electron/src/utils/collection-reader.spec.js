@@ -1,8 +1,15 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { stringifyRequest, stringifyEnvironment, stringifyCollection } = require('@usebruno/filestore');
-const { readCollectionForApiSpec } = require('./collection-reader');
+const { stringifyRequest, stringifyEnvironment, stringifyCollection, stringifyFolder } = require('@usebruno/filestore');
+
+jest.mock('./environments', () => ({
+  ...jest.requireActual('./environments'),
+  hydrateEnvironments: jest.fn()
+}));
+
+const { hydrateEnvironments } = require('./environments');
+const { readCollectionForApiSpec, readCollectionForRunRequest, readRequestItems } = require('./collection-reader');
 
 const httpItem = (name, url) => ({
   type: 'http-request',
@@ -338,5 +345,64 @@ describe('readCollectionForApiSpec: folders that are not Bruno collections', () 
     writeFile(dir, 'GetUsers.bru', stringifyRequest(httpItem('GetUsers', 'https://api.test/ok'), { format: 'bru' }));
     const result = await readCollectionForApiSpec(dir);
     expect(result.requests.map((f) => f.name)).toEqual(['GetUsers']);
+  });
+});
+
+describe.each(['bru', 'yml'])('readCollectionForRunRequest: %s collections', (format) => {
+  const header = (name, value) => ({ name, value, enabled: true });
+  let dir;
+  let requestPath;
+  let collection;
+
+  beforeAll(async () => {
+    dir = mkTmp(`run-request-${format}`);
+    const collectionRoot = { request: { headers: [header('x-collection', 'root')] } };
+    if (format === 'yml') {
+      writeFile(dir, 'opencollection.yml', stringifyCollection(collectionRoot, { name: 'MyCollection', version: '1' }, { format: 'yml' }));
+    } else {
+      writeFile(dir, 'bruno.json', JSON.stringify({ version: '1', name: 'MyCollection' }));
+      writeFile(dir, 'collection.bru', stringifyCollection(collectionRoot, {}, { format: 'bru' }));
+    }
+    writeFile(dir, path.join('FolderA', `folder.${format}`), stringifyFolder({ meta: { name: 'Folder A' }, request: { headers: [header('x-folder', 'a')] } }, { format }));
+    writeFile(dir, path.join('FolderA', `GetPosts.${format}`), stringifyRequest(httpItem('GetPosts', '{{baseUrl}}/posts'), { format }));
+    writeFile(dir, path.join('FolderB', `GetUsers.${format}`), stringifyRequest(httpItem('GetUsers', '{{baseUrl}}/users'), { format }));
+    writeFile(dir, path.join('environments', `Prod.${format}`), stringifyEnvironment(envObj('Prod', [{ name: 'baseUrl', value: 'https://prod.test', enabled: true, secret: false, type: 'text' }]), { format }));
+
+    requestPath = path.join(dir, 'FolderA', `GetPosts.${format}`);
+    collection = await readCollectionForRunRequest(dir, requestPath);
+  });
+
+  it('reads the config and the collection root', () => {
+    expect(collection).toEqual(expect.objectContaining({ pathname: dir, name: 'MyCollection', format, readsRequestsFromDisk: true }));
+    expect(collection.brunoConfig.name).toBe('MyCollection');
+    expect(collection.root.request.headers).toEqual([expect.objectContaining({ name: 'x-collection', value: 'root' })]);
+  });
+
+  it('reads the request inside the folders above it, and no other request', () => {
+    expect(collection.items).toHaveLength(1);
+    const [folder] = collection.items;
+    expect(folder).toEqual(expect.objectContaining({ type: 'folder', name: 'Folder A' }));
+    expect(folder.root.request.headers).toEqual([expect.objectContaining({ name: 'x-folder', value: 'a' })]);
+    expect(folder.items).toEqual([expect.objectContaining({ name: 'GetPosts', pathname: requestPath })]);
+  });
+
+  it('reads the environments, with their secrets restored', () => {
+    expect(collection.environments).toEqual([expect.objectContaining({ name: 'Prod' })]);
+    expect(hydrateEnvironments).toHaveBeenCalledWith(dir, collection.environments);
+  });
+
+  it('refuses a request path outside the collection', async () => {
+    await expect(readCollectionForRunRequest(dir, path.join(path.dirname(dir), `elsewhere.${format}`)))
+      .rejects.toThrow('is outside the collection');
+  });
+
+  it('reads another request of the collection, with the folder roots above it', () => {
+    const [folder] = readRequestItems(dir, path.join(dir, 'FolderB', `GetUsers.${format}`));
+    expect(folder).toEqual(expect.objectContaining({ type: 'folder', name: 'FolderB' }));
+    expect(folder.items).toEqual([expect.objectContaining({ name: 'GetUsers' })]);
+  });
+
+  it('matches file names with their exact case, as on a case-sensitive file system', () => {
+    expect(readRequestItems(dir, path.join(dir, 'foldera', `getposts.${format}`))).toEqual([]);
   });
 });

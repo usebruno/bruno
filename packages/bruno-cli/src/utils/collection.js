@@ -38,7 +38,8 @@ const getFolderRoot = (dir, format) => {
   return parseFolder(fs.readFileSync(folderPath, 'utf8'), { format });
 };
 
-const createCollectionJsonFromPathname = (collectionPath) => {
+// `reportSkippedFiles: false` leaves the files that fail to parse out of the run report.
+const createCollectionJsonFromPathname = (collectionPath, { reportSkippedFiles = true } = {}) => {
   const format = getCollectionFormat(collectionPath);
   if (!format) {
     console.error(chalk.red(`You can run only at the root of a collection`));
@@ -73,8 +74,10 @@ const createCollectionJsonFromPathname = (collectionPath) => {
           currentDirItems.push({ name: file, ...requestItem, pathname: filePath });
         } catch (err) {
           console.warn(chalk.yellow(`Warning: Skipping invalid file ${filePath}\nError: ${err.message}`));
-          global.brunoSkippedFiles = global.brunoSkippedFiles || [];
-          global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+          if (reportSkippedFiles) {
+            global.brunoSkippedFiles = global.brunoSkippedFiles || [];
+            global.brunoSkippedFiles.push({ path: filePath, error: err.message });
+          }
         }
       }
     }
@@ -586,6 +589,7 @@ const getCallStack = (resolvedPaths = [], collection, { recursive }) => {
 module.exports = {
   FORMAT_CONFIG,
   getCollectionFormat,
+  getCollectionConfig,
   createCollectionJsonFromPathname,
   mergeHeaders,
   mergeVars,

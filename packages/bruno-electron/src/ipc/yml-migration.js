@@ -45,11 +45,13 @@ const migrationCancellations = new Set();
 //   - regex literals are detected by lookback (whether the position expects a value
 //     or an operator) and skipped as opaque, so patterns like `/bru\.runRequest\(/`
 //     never trigger a false match
-// Only calls at code level whose sole argument is one string literal ending in
-// `.bru` are rewritten — commented-out calls, matches embedded in an outer literal,
-// and compound arguments such as `bru.runRequest("a.bru" + suffix)` are emitted
-// verbatim. Linear-time on script length; a cheap `indexOf` fast path skips scripts
-// that don't mention runRequest.
+// Only calls at code level whose first argument is one string literal ending in
+// `.bru` — alone, or followed by an options argument such as
+// `bru.runRequest("login.bru", { collection: "Auth" })` — are rewritten; the options are
+// left as they are. Commented-out calls, matches embedded in an outer literal, and
+// compound arguments such as `bru.runRequest("a.bru" + suffix)` are emitted verbatim.
+// Linear-time on script length; a cheap `indexOf` fast path skips scripts that don't
+// mention runRequest.
 
 const RUN_REQUEST_CALL_TOKEN = 'bru.runRequest';
 const BRU_EXTENSION = '.bru';
@@ -139,9 +141,10 @@ const matchesRunRequestCallStart = (code, i) => {
 };
 
 // Attempts to rewrite a single `bru.runRequest(<string-literal>)` call starting at
-// `start`. Returns `{ text, next }` only when the argument is exactly one quoted
-// literal whose content ends in `.bru`; otherwise returns null and the caller falls
-// through to per-char scanning (which safely skips embedded string content).
+// `start`. Returns `{ text, next }` only when the first argument is exactly one quoted
+// literal whose content ends in `.bru`, followed by `)` or by `,` and the options;
+// otherwise returns null and the caller falls through to per-char scanning (which
+// safely skips embedded string content). After a `,`, scanning resumes at the options.
 const tryRewriteRunRequestCall = (code, start) => {
   const n = code.length;
   let j = start + RUN_REQUEST_CALL_TOKEN.length;
@@ -157,7 +160,7 @@ const tryRewriteRunRequestCall = (code, start) => {
   if (strEnd > n || code[strEnd - 1] !== quote) return null;
   let k = strEnd;
   while (k < n && isWhitespaceChar(code[k])) k++;
-  if (code[k] !== ')') return null;
+  if (code[k] !== ')' && code[k] !== ',') return null;
   const contentStart = j + 1;
   const contentEnd = strEnd - 1;
   const content = code.slice(contentStart, contentEnd);
@@ -302,7 +305,8 @@ const stripBruExtInRunRequest = (code) => {
       if (rewrite) {
         out += rewrite.text;
         i = rewrite.next;
-        prevSignificant = ')';
+        // `)`, or the `,` before the options, where a regex literal can start.
+        prevSignificant = rewrite.text.slice(-1);
         continue;
       }
     }
