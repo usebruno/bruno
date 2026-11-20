@@ -14,6 +14,30 @@ const JSON_CONTENT_TYPES = [
 ];
 
 describe('interpolate-vars: interpolateVars', () => {
+  describe('path param url encoding', () => {
+    const build = (url, value, encodeUrl) => ({
+      method: 'GET',
+      url,
+      settings: { encodeUrl },
+      pathParams: [{ type: 'path', name: 'param', value }]
+    });
+
+    it('encodes "/" in a path param value when encodeUrl is on', () => {
+      const result = interpolateVars(build('http://example.com/:param/x', 'a/b', true), {}, {}, {});
+      expect(result.url).toBe('http://example.com/a%2Fb/x');
+    });
+
+    it('encodes the value of an OData-style path param when encodeUrl is on', () => {
+      const result = interpolateVars(build('http://example.com/Items(:param)', 'a/b', true), {}, {}, {});
+      expect(result.url).toBe('http://example.com/Items(a%2Fb)');
+    });
+
+    it('leaves path param values untouched when encodeUrl is off', () => {
+      const result = interpolateVars(build('http://example.com/:param', 'a/b', false), {}, {}, {});
+      expect(result.url).toBe('http://example.com/a/b');
+    });
+  });
+
   it('keeps stream-backed JSON request bodies intact', () => {
     const streamPayload = {
       pipe: jest.fn(),

@@ -1,5 +1,6 @@
 const interpolateVars = require('../../src/ipc/network/interpolate-vars');
 const { trackUnresolvedVariables } = require('@usebruno/js');
+const { encodeUrl } = require('@usebruno/common').utils;
 
 const FORM_URL_ENCODED_CONTENT_TYPES = [
   'application/x-www-form-urlencoded',
@@ -67,6 +68,47 @@ describe('interpolate-vars: interpolateVars', () => {
     });
 
     describe('With path params', () => {
+      describe('url encoding of path param values', () => {
+        const build = (url, value, encodeUrl) => ({
+          method: 'GET',
+          url,
+          settings: { encodeUrl },
+          pathParams: [{ type: 'path', name: 'param', value }]
+        });
+
+        it('encodes "/" in a path param value when encodeUrl is on', () => {
+          const result = interpolateVars(build('http://example.com/:param/x', 'a/b', true), null, null, null);
+          expect(result.url).toBe('http://example.com/a%2Fb/x');
+        });
+
+        it('encodes ":" in a path param value when encodeUrl is on', () => {
+          const result = interpolateVars(build('http://example.com/:param', 'a:b', true), null, null, null);
+          expect(result.url).toBe('http://example.com/a%3Ab');
+        });
+
+        it('encodes the value of an OData-style path param when encodeUrl is on', () => {
+          const result = interpolateVars(build('http://example.com/Items(:param)', 'a/b', true), null, null, null);
+          expect(result.url).toBe('http://example.com/Items(a%2Fb)');
+        });
+
+        it('is not double-encoded by the later encodeUrl pass', () => {
+          const result = interpolateVars(build('http://example.com/:param', 'a/b 100%', true), null, null, null);
+          expect(encodeUrl(result.url)).toBe('http://example.com/a%2Fb%20100%25');
+        });
+
+        it('leaves path param values untouched when encodeUrl is off', () => {
+          const slash = interpolateVars(build('http://example.com/:param', 'a/b', false), null, null, null);
+          expect(slash.url).toBe('http://example.com/a/b');
+          const odata = interpolateVars(build('http://example.com/Items(:param)', 'a/b', false), null, null, null);
+          expect(odata.url).toBe('http://example.com/Items(a/b)');
+        });
+
+        it('leaves path param values untouched when settings are absent', () => {
+          const request = { method: 'GET', url: 'http://example.com/:param', pathParams: [{ type: 'path', name: 'param', value: 'a/b' }] };
+          expect(interpolateVars(request, null, null, null).url).toBe('http://example.com/a/b');
+        });
+      });
+
       it('keeps the original url search params as is', async () => {
         const request = {
           method: 'GET',
