@@ -50,7 +50,7 @@ const getCollectionName = (format, rawData) => {
     case 'openapi':
       return rawData.info?.title || 'OpenAPI Collection';
     case 'postman':
-      return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
+      return rawData.info?.name || rawData.collection?.info?.name || rawData.name || 'Postman Collection';
     case 'insomnia':
       // For Insomnia v4 format, name is in the workspace resource
       if (rawData.resources && Array.isArray(rawData.resources)) {
