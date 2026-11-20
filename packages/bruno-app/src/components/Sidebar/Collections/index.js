@@ -100,7 +100,7 @@ const Collections = ({ showSearch, isCreatingCollection, onCreateClick, onDismis
 
   if (!sidebarEntries.length) {
     return (
-      <StyledWrapper>
+      <StyledWrapper data-testid="collections">
         {isCreatingCollection && (
           <InlineCollectionCreator
             onComplete={onDismissCreate}

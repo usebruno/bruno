@@ -1,0 +1,10 @@
+{
+  "collections": [
+    {
+      "path": "{{projectRoot}}/e2e/tests/websockets/fixtures/collection",
+      "securityConfig": {
+        "jsSandboxMode": "safe"
+      }
+    }
+  ]
+}

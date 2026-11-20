@@ -1,0 +1,64 @@
+import { test, expect } from '../../playwright';
+import {
+  setSandboxMode,
+  runCollection,
+  validateRunnerResults,
+  getRunnerResultCounts
+} from '../../pages';
+
+test.describe.parallel('Collection Run', () => {
+  test('Run bruno-testbench in Developer Mode', async ({ pageWithUserData: page }) => {
+    test.setTimeout(2 * 60 * 1000);
+
+    // Set up developer mode
+    await setSandboxMode(page, 'bruno-testbench', 'developer');
+
+    // Select environment
+    await page.locator('.environment-selector').nth(1).click();
+    await page.locator('.dropdown-item').getByText('Prod').click();
+
+    // Run the collection
+    await runCollection(page, 'bruno-testbench');
+
+    // Validate test results
+    await validateRunnerResults(page, {
+      failed: 0
+    });
+  });
+
+  test.fixme('Run bruno-testbench in Safe Mode', async ({ pageWithUserData: page }) => {
+    test.setTimeout(2 * 60 * 1000);
+
+    await page.getByText('bruno-testbench').click();
+    await page.locator('.environment-selector').nth(1).click();
+    await page.locator('.dropdown-item').getByText('Prod').click();
+    const collectionContainer = page.getByTestId('collections').locator('.collection-name').filter({ hasText: 'bruno-testbench' });
+    await collectionContainer.hover();
+    await collectionContainer.locator('.collection-actions .icon').waitFor({ state: 'visible' });
+    await collectionContainer.locator('.collection-actions .icon').click();
+    await page.getByText('Run', { exact: true }).click();
+    // Wait for the runner tab to open
+    // If there are existing results, reset first, otherwise wait for Run Collection button
+    const resetButton = page.getByRole('button', { name: 'Reset' });
+    const runCollectionButton = page.getByTestId('runner-run-button');
+
+    // Check if Reset button is visible (means there are existing results)
+    const resetVisible = await resetButton.isVisible().catch(() => false);
+    if (resetVisible) {
+      await resetButton.click();
+      // Wait a bit for the reset to complete
+      await page.waitForTimeout(500);
+    }
+
+    // Now wait for and click Run Collection button
+    await runCollectionButton.waitFor({ state: 'visible', timeout: 10000 });
+    await runCollectionButton.click();
+    await page.getByRole('button', { name: 'Run Again' }).waitFor({ timeout: 2 * 60 * 1000 });
+
+    // Parse and validate test results from the filter counts
+    const { totalRequests, passed, failed, skipped } = await getRunnerResultCounts(page);
+
+    await expect(failed).toBe(0);
+    await expect(passed).toBe(totalRequests - skipped - failed);
+  });
+});
