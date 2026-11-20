@@ -46,6 +46,8 @@ export const buildVariablesTabLocators = (page: Page) => {
       sectionHeader(section).getByTestId('variables-section-count'),
     sectionSubtitle: (section: VariablesSection) =>
       sectionHeader(section).getByTestId('variables-section-subtitle'),
+    sectionClearButton: (section: VariablesSection) =>
+      page.getByTestId(`variables-${TESTID_SEGMENT[section]}-section-clear`),
     sectionSortToggle: (section: VariablesSection) =>
       page.getByTestId(`variables-${TESTID_SEGMENT[section]}-table-sort-toggle`),
     emptyMessage: (message: string) => page.getByTestId('variables-editor').getByText(message),

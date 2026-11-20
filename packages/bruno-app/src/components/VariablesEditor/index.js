@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
-import { IconBolt, IconDatabase } from '@tabler/icons';
+import { IconBolt, IconDatabase, IconTrash } from '@tabler/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { findEnvironmentInCollection } from 'utils/collections';
+import { clearRuntimeVariables } from 'providers/ReduxStore/slices/collections';
 import { updateTableColumnWidths } from 'providers/ReduxStore/slices/tabs';
+import ActionIcon from 'ui/ActionIcon';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { usePersistenceScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import { useResizablePanel } from 'hooks/useResizablePanel';
@@ -173,6 +175,10 @@ const VariablesEditor = ({ collection }) => {
     setDrawerSelection(null);
   }, [captureScroll, setDrawerSelection]);
 
+  const handleClearRuntimeVariables = useCallback(() => {
+    dispatch(clearRuntimeVariables({ collectionUid: collection.uid }));
+  }, [dispatch, collection.uid]);
+
   const handleColumnWidthsChange = useCallback((tableId, widths) => {
     if (!activeTabUid) return;
     dispatch(updateTableColumnWidths({ uid: activeTabUid, tableId, widths }));
@@ -203,6 +209,16 @@ const VariablesEditor = ({ collection }) => {
             icon={IconBolt}
             title="Runtime Variables"
             count={runtimeRows.length}
+            action={runtimeRows.length > 0 && (
+              <ActionIcon
+                className="mr-1"
+                label="Clear runtime variables"
+                onClick={handleClearRuntimeVariables}
+                data-testid="variables-runtime-section-clear"
+              >
+                <IconTrash size={14} stroke={1.5} aria-hidden="true" />
+              </ActionIcon>
+            )}
             expanded={isSectionExpanded('runtime')}
             onToggle={() => toggleSection('runtime')}
             testId="variables-runtime-section"

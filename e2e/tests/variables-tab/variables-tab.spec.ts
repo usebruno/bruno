@@ -498,6 +498,36 @@ test.describe('Variables tab', () => {
     await expect.poll(() => getValueEditorScrollTop(cell())).toBe(CELL_SCROLL_TOP);
   });
 
+  test('clears all runtime variables and leaves the environment untouched', async ({ pageWithUserData: page }) => {
+    const { variablesTab } = buildCommonLocators(page);
+
+    await seedVariables(page);
+    await openVariablesTab(page, COLLECTION);
+    await expect(variablesTab.sectionCount('runtime')).toHaveText(String(RUNTIME_ROW_NAMES.length));
+
+    await test.step('Clear the runtime variables', async () => {
+      await variablesTab.sectionClearButton('runtime').click();
+
+      await expect(variablesTab.sectionCount('runtime')).toHaveText('0');
+      await expect(variablesTab.emptyMessage('No runtime variables found')).toBeVisible();
+      await expect(variablesTab.sectionClearButton('runtime')).toHaveCount(0);
+    });
+
+    await test.step('Environment variables are kept', async () => {
+      await expect(variablesTab.sectionCount('environment')).toHaveText(String(ENV_ROW_NAMES.length));
+      await expect.poll(() => getVariableRowNames(page, 'environment')).toEqual(ENV_ROW_NAMES);
+    });
+
+    await test.step('The next request runs without the cleared variables', async () => {
+      // `rewrite-config` sets only `service_config`, so any other name would be a cleared value coming back.
+      await openRequest(page, COLLECTION, 'rewrite-config', { persist: true });
+      await sendRequestAndWaitForResponse(page, 200);
+      await switchToOpenTab(page, 'Variables');
+
+      await expect.poll(() => getVariableRowNames(page, 'runtime')).toEqual(['service_config']);
+    });
+  });
+
   test('shows the empty states when there is nothing to list', async ({ pageWithUserData: page }) => {
     const { variablesTab } = buildCommonLocators(page);
 
@@ -508,6 +538,7 @@ test.describe('Variables tab', () => {
 
       await expect(variablesTab.sectionCount('runtime')).toHaveText('0');
       await expect(variablesTab.emptyMessage('No runtime variables found')).toBeVisible();
+      await expect(variablesTab.sectionClearButton('runtime')).toHaveCount(0);
       await expect(variablesTab.emptyMessage('No environment selected')).toBeVisible();
     });
 
