@@ -52,6 +52,7 @@ export * from './request/websocket';
 // response
 export * from './response/example';
 export * from './response/pane';
+export * from './response/timeline';
 
 // shared-ui
 export * from './shared-ui/autocomplete';
