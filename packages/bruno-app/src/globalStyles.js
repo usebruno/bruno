@@ -32,6 +32,26 @@ const GlobalStyle = createGlobalStyle`
     max-width: 100%;
   }
 
+  .CodeMirror-info {
+    --font-size-body: ${(props) => props.theme.font.size.base} !important;
+    --font-size-h4: ${(props) => props.theme.font.size.md} !important;
+    font-size: ${(props) => props.theme.font.size.base} !important;
+    line-height: 1.4;
+  }
+
+  .CodeMirror-info .CodeMirror-info-header > .type-name,
+  .CodeMirror-info .CodeMirror-info-header > .field-name,
+  .CodeMirror-info .CodeMirror-info-header > .arg-name,
+  .CodeMirror-info .CodeMirror-info-header > .directive-name,
+  .CodeMirror-info .CodeMirror-info-header > .enum-value {
+    font-size: ${(props) => props.theme.font.size.md} !important;
+  }
+
+  .CodeMirror-info .info-description,
+  .CodeMirror-info .info-deprecation {
+    font-size: ${(props) => props.theme.font.size.base} !important;
+  }
+
   .btn {
     text-align: center;
     white-space: nowrap;
