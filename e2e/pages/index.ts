@@ -23,6 +23,7 @@ export * from './collection/migrate-to-yml';
 export * from './collection/mount';
 export * from './collection/proxy';
 export * from './collection/remove';
+export * from './collection/rename';
 export * from './collection/settings';
 
 // environment
