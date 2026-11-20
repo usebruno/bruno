@@ -378,7 +378,7 @@ export const folderRunButton = (modal: Locator, mode: FolderRunMode): Locator =>
  * @returns The input locator
  */
 export const folderRunDelayInput = (modal: Locator): Locator =>
-  modal.getByLabel('Delay between requests (ms)');
+  modal.getByTestId('folder-run-delay-input');
 
 /**
  * Locates the label above a run button, which reports how many requests that button would run.

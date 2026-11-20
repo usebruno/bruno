@@ -11,6 +11,7 @@ import {
   buildRunnerTagLocators,
   getRunnerResultResponseTimeMs
 } from '../../../pages/runner';
+import { resetCollectionRunnerResults } from '../../../pages/collection/collection-run';
 import { buildCommonLocators } from '../../../pages';
 
 const COLLECTION_NAME = 'folder-run';
@@ -24,6 +25,9 @@ const RUNNER_OK_STATUS = /^200\s*-\s*OK$/;
 test.describe('Folder runner', () => {
   test.afterEach(async ({ pageWithUserData: page }) => {
     await dismissFolderRunModal(page);
+    if (await buildRunnerLocators(page).runAgainButton().isVisible()) {
+      await resetCollectionRunnerResults(page);
+    }
   });
 
   test('TC-175: Verify the folder run modal offers the runner options and run buttons, and executes only the requests directly under the folder, in order', { tag: '@sanity' }, async ({
@@ -210,6 +214,8 @@ test.describe('Folder runner', () => {
 
     await test.step('Click Run and wait for the Run Again button to appear', async () => {
       await folderRunButton(modal, 'Run').click();
+      await expect(runner.cancelExecutionButton()).toBeVisible();
+      await runner.cancelExecutionButton().waitFor({ state: 'hidden' });
       await runner.runAgainButton().waitFor();
     });
 
@@ -217,7 +223,7 @@ test.describe('Folder runner', () => {
       await runner.runAgainButton().click();
       // the "slow" request keeps the run in flight long enough to observe it
       await expect(runner.cancelExecutionButton()).toBeVisible();
-      await expect(runner.runAgainButton()).toBeVisible();
+      await runner.runAgainButton().waitFor();
     });
 
     await test.step('Verify the dashboard reports the re-run', async () => {
