@@ -48,7 +48,7 @@ test.describe('Folder runner', () => {
       await expect(folderRunDelayInput(modal)).toBeVisible();
       await expect(runnerTags.column('Include')).toBeVisible();
       await expect(runnerTags.column('Exclude')).toBeVisible();
-      await expect(modal.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+      await expect(buildCommonLocators(page).modal.button('Cancel')).toBeVisible();
       await expect(folderRunButton(modal, 'Recursive Run')).toBeEnabled();
       await expect(folderRunButton(modal, 'Run')).toBeEnabled();
     });
