@@ -1,12 +1,12 @@
 import { test, expect } from '../../../playwright';
 import {
-  addCollectionVar,
   buildCommonLocators,
   closeAllCollections,
   createCollection,
   openCollectionSettings,
   selectCollectionPaneTab
 } from '../../../pages';
+import { addCollectionVar, buildCollectionSettingsVarsLocators } from '../../../pages/collection/settings-vars';
 
 test.describe('Collection Vars pre-request and post-response tables', () => {
   test.afterEach(async ({ page }) => {
@@ -18,7 +18,8 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
     createTmpDir
   }) => {
     const collectionName = 'collection-pre-req-vars';
-    const { sidebar, collectionSettingsVars, toast } = buildCommonLocators(page);
+    const { sidebar, toast } = buildCommonLocators(page);
+    const collectionSettingsVars = buildCollectionSettingsVarsLocators(page);
 
     await test.step('Create a collection and verify the pre-request and post-response tables are visible', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), 'yml');
@@ -53,7 +54,8 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
     createTmpDir
   }) => {
     const collectionName = 'collection-vars-post';
-    const { sidebar, collectionSettingsVars, toast } = buildCommonLocators(page);
+    const { sidebar, toast } = buildCommonLocators(page);
+    const collectionSettingsVars = buildCollectionSettingsVarsLocators(page);
 
     await test.step('Create a collection and open the Vars tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), 'yml');

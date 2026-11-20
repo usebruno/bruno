@@ -1,4 +1,5 @@
 import { Locator, Page, test } from '../../playwright';
+import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
 
 export type VarsTableType = 'preRequest' | 'postResponse';
 
@@ -20,7 +21,7 @@ export const buildCollectionSettingsVarsLocators = (page: Page) => {
   const nameInput = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-name').locator('input');
   const valueText = (type: VarsTableType, name: string) =>
-    row(type, name).getByTestId('column-value').locator('.CodeMirror-line');
+    buildCodeMirrorLocators(page).within(row(type, name).getByTestId('column-value'));
   const rowCheckbox = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-checkbox');
   const preRequestTable = () => table('preRequest');
@@ -67,9 +68,9 @@ export const addCollectionVar = async (
     await vars.nameCell(lastRow).locator('input').click();
     await page.keyboard.type(name);
 
-    const valueEditor = vars.valueCell(vars.row(type, name)).locator('.CodeMirror').first();
-    await valueEditor.click({ force: true });
-    await vars.valueCell(vars.row(type, name)).locator('.CodeMirror-focused').waitFor();
+    const valueEditor = buildCodeMirrorLocators(page).within(vars.valueCell(vars.row(type, name)));
+    await valueEditor.waitFor({ state: 'visible' });
+    await valueEditor.locator('textarea').focus();
 
     await page.keyboard.insertText(value);
   });

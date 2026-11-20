@@ -24,7 +24,6 @@ export * from './collection/mount';
 export * from './collection/proxy';
 export * from './collection/remove';
 export * from './collection/settings';
-export * from './collection/settings-vars';
 
 // environment
 export * from './environment/selector';
