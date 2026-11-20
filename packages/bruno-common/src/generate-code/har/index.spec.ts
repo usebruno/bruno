@@ -1072,7 +1072,7 @@ describe('buildHar — path-param substitution matrix (toggle OFF)', () => {
 // Each scenario asserts both rawUrl (OFF behavior — bytes preserved) and
 // encodedUrl (ON behavior — encoded per Option C: `#` is data, content-blind
 // per PR #5507). The pairs cover every distinct query-encoding scenario in
-// `tests/request/generate-code/collection/requests/`.
+// `e2e/tests/request/generate-code/collection/requests/`.
 
 describe('buildHar — query encoding matrix (mirror e2e fixtures)', () => {
   type QueryCase = {
