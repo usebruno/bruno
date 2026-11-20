@@ -6,7 +6,6 @@ import { IconChevronRight, IconCopy, IconDots, IconPencil, IconPlayerPlay, IconP
 import toast from 'react-hot-toast';
 import { mountCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { startMockServer, stopMockServer, loadAllMockResponses } from 'providers/ReduxStore/slices/mock-server/index';
-import { normalizePath } from 'utils/common/path';
 import {
   getMockServerInstances,
   hydrateMockServerInstances,
@@ -14,8 +13,7 @@ import {
   checkMockServerPortAvailable,
   getMockServerPortError,
   resolveMockServerStartPayload,
-  resolveMockServerWorkspacePath,
-  resolveTabCollectionUid
+  resolveMockServerWorkspacePath
 } from 'utils/mock-server/mock-server-instances';
 import { resolveMockResponseLocation } from 'utils/mock-server/mock-responses';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
@@ -41,7 +39,6 @@ const StatusDot = styled.span`
 const MockServerItem = React.memo(({
   instance,
   collection,
-  workspaceCollections,
   activeWorkspace,
   apiSpecs,
   workspaces,
@@ -74,15 +71,7 @@ const MockServerItem = React.memo(({
 
   const openDashboard = () => {
     ensureCollectionMounted();
-
-    const tabCollectionUid = resolveTabCollectionUid({
-      sourceType: instance.sourceType,
-      collectionUid: instance.collectionUid,
-      activeWorkspace,
-      workspaceCollections
-    });
-
-    dispatch(openMockServerDashboard(instance, tabCollectionUid));
+    dispatch(openMockServerDashboard(instance));
   };
 
   const handleStart = async () => {
@@ -274,17 +263,6 @@ const MockServers = () => {
   }, [dispatch, activeWorkspace?.pathname, activeWorkspaceUid]);
 
   const instances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
-  const workspaceCollections = useMemo(() => {
-    if (!activeWorkspace) {
-      return [];
-    }
-
-    return collections.filter((collection) => (
-      activeWorkspace.collections?.some(
-        (workspaceCollection) => normalizePath(workspaceCollection.path) === normalizePath(collection.pathname)
-      )
-    ));
-  }, [activeWorkspace, collections]);
 
   const instanceLocations = useMemo(() => (
     instances.map((instance) => {
@@ -342,8 +320,6 @@ const MockServers = () => {
         <CloneMockServerModal
           instance={cloningInstance}
           workspacePath={resolveMockServerWorkspacePath(cloningInstance, workspaces, activeWorkspace)}
-          workspaceCollections={workspaceCollections}
-          activeWorkspace={activeWorkspace}
           onClose={() => setCloningInstance(null)}
         />
       )}
@@ -369,7 +345,6 @@ const MockServers = () => {
             <MockServerItem
               instance={instance}
               collection={collection}
-              workspaceCollections={workspaceCollections}
               activeWorkspace={activeWorkspace}
               apiSpecs={apiSpecs}
               workspaces={workspaces}
