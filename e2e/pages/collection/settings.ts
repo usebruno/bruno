@@ -20,6 +20,29 @@ export const buildCollectionPresetsLocators = (page: Page) => ({
   defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
 });
 
+/**
+ * Locators for content shown inside the collection settings pane panels.
+ */
+export const buildCollectionSettingsPanelLocators = (page: Page) => {
+  const content = buildPaneTabsLocators(page).collectionSettingsContent;
+
+  return {
+    versionRow: () => page.getByTestId('info-version-row'),
+    headersBulkEditToggle: () => content().getByTestId('bulk-edit-toggle'),
+    varsPanel: () => page.getByTestId('collection-vars-panel'),
+    authModeSelector: () => page.getByTestId('auth-mode-selector'),
+    scriptIntro: () =>
+      content().getByText(
+        'Write pre and post-request scripts that will run before and after any request in this collection is sent.'
+      ),
+    testsIntro: () =>
+      content().getByText('These tests will run any time a request in this collection is sent.'),
+    protobufProtoFilesSection: () => page.getByTestId('protobuf-proto-files-section'),
+    proxyIntro: () => content().getByText('Configure proxy settings for this collection.'),
+    clientCertSaveBtn: () => page.getByTestId('client-cert-save-btn')
+  };
+};
+
 const buildLocators = (page: Page) => ({
   actions: buildItemActionLocators(page),
   dropdown: buildDropdownLocators(page),
@@ -28,6 +51,51 @@ const buildLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   tabs: buildRequestTabsLocators(page)
 });
+
+const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
+
+/**
+ * Open a collection's settings tab by clicking on it in the sidebar
+ * @param page - The page object
+ * @param collectionName - The name of the collection
+ * @param options - Optional settings (persist: double-click to make tab permanent)
+ * @returns void
+ */
+export const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
+  await test.step(`Open collection settings for "${collectionName}"`, async () => {
+    await revealCollectionsTop(page);
+    const locators = buildLocators(page);
+    const collection = locators.sidebar.collection(collectionName);
+    if (!persist) {
+      await collection.click();
+    } else {
+      await collection.dblclick();
+    }
+  });
+};
+
+/**
+ * Select a tab in the collection settings pane
+ * @param page - The page object
+ * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars'), or a
+ *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
+ * @returns void
+ */
+export const selectCollectionPaneTab = async (page: Page, tabName: string) => {
+  await test.step(`Select collection pane tab "${tabName}"`, async () => {
+    const locators = buildLocators(page);
+    const key = tabName.toLowerCase() === 'clientcert' ? 'clientCert' : tabName.toLowerCase();
+    if (COLLECTION_SETTINGS_SECTIONS.includes(tabName.toLowerCase())) {
+      // Presets, Proxy and Client certificates live in the Settings tab's sidebar
+      const settingsTab = locators.paneTabs.collectionSettingsTab('settings');
+      await settingsTab.click();
+      await expect(settingsTab).toContainClass('active');
+    }
+    const tab = locators.paneTabs.collectionSettingsTab(key);
+    await tab.click();
+    await expect(tab).toContainClass('active');
+  });
+};
 
 /**
  * Set the collection's default request type preset and save it
@@ -73,51 +141,6 @@ export const setRequestUrlPreset = async (page: Page, collectionName: string, re
     await locators.presets.saveBtn().click();
 
     await locators.tabs.tabDraftIndicator(locators.tabs.collectionSettingsTab()).waitFor({ state: 'hidden' });
-  });
-};
-
-/**
- * Open a collection's settings tab by clicking on it in the sidebar
- * @param page - The page object
- * @param collectionName - The name of the collection
- * @param options - Optional settings (persist: double-click to make tab permanent)
- * @returns void
- */
-export const openCollectionSettings = async (page: Page, collectionName: string, { persist = false } = {}) => {
-  await test.step(`Open collection settings for "${collectionName}"`, async () => {
-    await revealCollectionsTop(page);
-    const locators = buildLocators(page);
-    const collection = locators.sidebar.collection(collectionName);
-    if (!persist) {
-      await collection.click();
-    } else {
-      await collection.dblclick();
-    }
-  });
-};
-
-const COLLECTION_SETTINGS_SECTIONS = ['presets', 'proxy', 'clientcert'];
-
-/**
- * Select a tab in the collection settings pane
- * @param page - The page object
- * @param tabName - The tab name key (e.g. 'auth', 'headers', 'overview', 'script', 'vars'), or a
- *   Settings section ('presets', 'proxy', 'clientCert'), which opens the Settings tab first
- * @returns void
- */
-export const selectCollectionPaneTab = async (page: Page, tabName: string) => {
-  await test.step(`Select collection pane tab "${tabName}"`, async () => {
-    const locators = buildLocators(page);
-    const key = tabName.toLowerCase() === 'clientcert' ? 'clientCert' : tabName.toLowerCase();
-    if (COLLECTION_SETTINGS_SECTIONS.includes(tabName.toLowerCase())) {
-      // Presets, Proxy and Client certificates live in the Settings tab's sidebar
-      const settingsTab = locators.paneTabs.collectionSettingsTab('settings');
-      await settingsTab.click();
-      await expect(settingsTab).toContainClass('active');
-    }
-    const tab = locators.paneTabs.collectionSettingsTab(key);
-    await tab.click();
-    await expect(tab).toContainClass('active');
   });
 };
 
