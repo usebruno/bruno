@@ -11,7 +11,7 @@ const {
   expectValueNotWritten
 } = require('./helpers/environments');
 
-const E2E_FIXTURES_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'tests', 'environments');
+const E2E_FIXTURES_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'e2e', 'tests', 'environments');
 
 // Shared with the Playwright suites: a workspace whose environment carries a secret row, and — for
 // the two-scope cases — the one that puts a collection environment in a workspace tree.

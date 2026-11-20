@@ -54,10 +54,14 @@ const printRunSummary = (results) => {
     results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
   );
 
+  const totalTests = summary.totalTests + summary.totalPreRequestTests + summary.totalPostResponseTests;
+  const passedTests = summary.passedTests + summary.passedPreRequestTests + summary.passedPostResponseTests;
+  const failedTests = summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests;
+
   const hasFailures
     = summary.failedRequests > 0
       || summary.failedAssertions > 0
-      || summary.failedTests > 0
+      || failedTests > 0
       || (summary.errorRequests || 0) > 0;
 
   const status = hasFailures
@@ -65,7 +69,7 @@ const printRunSummary = (results) => {
     : chalk.green.bold('✓ PASS');
 
   const requests = formatRequestsCellFromSummary(summary);
-  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const tests = `${passedTests}/${totalTests}`;
   const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
   const headers = [chalk.bold('Metric'), chalk.bold('Result')];
