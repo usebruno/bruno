@@ -29,6 +29,38 @@ describe('insomnia-collection', () => {
       xml: null
     });
   });
+
+  it('should not duplicate requests inside folders', async () => {
+    const brunoCollection = insomniaToBruno({
+      _type: 'export',
+      __export_format: 4,
+      resources: [
+        {
+          _id: 'wrk_test',
+          _type: 'workspace',
+          name: 'Workspace'
+        },
+        {
+          _id: 'fld_test',
+          _type: 'request_group',
+          parentId: 'wrk_test',
+          name: 'Folder'
+        },
+        {
+          _id: 'req_test',
+          _type: 'request',
+          parentId: 'fld_test',
+          name: 'Single Request',
+          method: 'GET',
+          url: 'https://example.com/test'
+        }
+      ]
+    });
+
+    const folder = brunoCollection.items.find((item) => item.name === 'Folder');
+    expect(folder.items).toHaveLength(1);
+    expect(folder.items[0].name).toBe('Single Request');
+  });
 });
 
 const insomniaCollection = {
@@ -140,36 +172,6 @@ const expectedOutput = {
             encodeUrl: false,
             forwardAuthorizationHeader: false
           }
-        },
-        {
-          name: 'Request1',
-          request: {
-            auth: {
-              basic: null,
-              bearer: null,
-              digest: null,
-              mode: 'none'
-            },
-            body: {
-              formUrlEncoded: [],
-              json: null,
-              mode: 'none',
-              multipartForm: [],
-              text: null,
-              xml: null
-            },
-            headers: [],
-            method: 'GET',
-            params: [],
-            url: 'https://testbench-sanity.usebruno.com/ping'
-          },
-          seq: 2,
-          type: 'http-request',
-          uid: 'mockeduuidvalue123456',
-          settings: {
-            encodeUrl: false,
-            forwardAuthorizationHeader: false
-          }
         }
       ],
       name: 'Folder1',
@@ -201,36 +203,6 @@ const expectedOutput = {
             url: 'https://testbench-sanity.usebruno.com/ping'
           },
           seq: 1,
-          type: 'http-request',
-          uid: 'mockeduuidvalue123456',
-          settings: {
-            encodeUrl: true,
-            forwardAuthorizationHeader: false
-          }
-        },
-        {
-          name: 'Request2',
-          request: {
-            auth: {
-              basic: null,
-              bearer: null,
-              digest: null,
-              mode: 'none'
-            },
-            body: {
-              formUrlEncoded: [],
-              json: null,
-              mode: 'none',
-              multipartForm: [],
-              text: null,
-              xml: null
-            },
-            headers: [],
-            method: 'GET',
-            params: [],
-            url: 'https://testbench-sanity.usebruno.com/ping'
-          },
-          seq: 2,
           type: 'http-request',
           uid: 'mockeduuidvalue123456',
           settings: {
