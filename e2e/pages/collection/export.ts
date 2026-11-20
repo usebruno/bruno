@@ -22,9 +22,10 @@ export const buildExportCollectionLocators = (page: Page) => {
   return {
     modal,
     closeButton: () => modal().getByTestId('modal-close-button'),
-    zipFormatCard: () => page.getByTestId('export-format-zip'),
+    nonExportableNote: () => modal().getByTestId('share-collection-non-exportable-note'),
     postmanModal: () => page.getByTestId('export-to-postman-modal'),
     exportTab: () => page.getByTestId('share-collection-tab-export'),
+    zipFormatCard: () => page.getByTestId('export-format-zip'),
     postmanFormatCard: () => page.getByTestId('export-format-postman'),
     yamlFormatCard: () => page.getByTestId('export-format-yaml'),
     nameInput: () => page.getByLabel('Name', { exact: true }),

@@ -15,6 +15,7 @@ import { buildUnresolvedVariablesInfoLocators } from './variable/unresolved-info
 import { buildSidebarLocators, buildFolderLocators } from './sidebar/collection-tree';
 import { buildDocsLocators, buildGenerateDocsLocators } from './collection/docs';
 import { buildMigrateToYmlLocators } from './collection/migrate-to-yml';
+import { buildRenameCollectionLocators } from './collection/rename';
 import { buildWebsocketCommonLocators } from './request/websocket';
 import { buildToastLocators } from './app-shell/toast';
 import { buildSecretVariableFormLocators } from './variable/secret-form';
@@ -95,6 +96,7 @@ export const buildCommonLocators = (page: Page) => ({
   createWorkspaceModal: buildCreateWorkspaceModalLocators(page),
   cloneGitRepository: buildCloneGitRepositoryLocators(page),
   migrateToYml: buildMigrateToYmlLocators(page),
+  renameCollection: buildRenameCollectionLocators(page),
   environment: buildEnvironmentLocators(page),
   variablesTab: buildVariablesTabLocators(page),
   actions: buildItemActionLocators(page),
