@@ -691,7 +691,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
                 requestSent
               })
             );
-            return;
+            return resolve();
           }
 
           const errorResponse = {
@@ -710,6 +710,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
               requestSent
             })
           );
+          resolve();
         });
     }
   });
