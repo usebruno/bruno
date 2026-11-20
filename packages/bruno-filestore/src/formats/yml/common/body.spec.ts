@@ -118,3 +118,16 @@ describe('multipart form contentType', () => {
     }
   });
 });
+
+describe('multipart form file value', () => {
+  it('toBrunoBody: wraps a single file path string in an array', () => {
+    const out = toBrunoBody({
+      type: 'multipart-form',
+      data: [
+        { name: 'file', type: 'file', value: './ok-asset.json' }
+      ]
+    } as any);
+
+    expect(out?.multipartForm?.[0].value).toEqual(['./ok-asset.json']);
+  });
+});
