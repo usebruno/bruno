@@ -27,7 +27,7 @@ const createFormData = (data, collectionPath, boundary) => {
     }
 
     if (type === 'file') {
-      const filePaths = value || [];
+      const filePaths = Array.isArray(value) ? value : value ? [value] : [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
         if (!path.isAbsolute(trimmedFilePath)) {
