@@ -4,6 +4,7 @@ import {
   Page,
   Locator
 } from '../../playwright';
+import { buildModalLocators } from '../shared-ui/modal';
 
 /**
  * Locators for the request tab strip (request, folder and collection settings tabs).
@@ -61,6 +62,23 @@ export const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
       }
       await expect(closableTabs).toHaveCount(0, { timeout: 1000 });
     }).toPass({ timeout: 15000 });
+  });
+};
+
+/**
+ * Close a request tab that has unsaved changes, discarding them in the confirmation modal.
+ * @param page - The page object
+ * @param requestName - The name shown on the request tab
+ * @returns void
+ */
+export const closeRequestTabDiscardingChanges = async (page: Page, requestName: string) => {
+  await test.step(`Close tab "${requestName}" without saving`, async () => {
+    const locators = buildLocators(page);
+    const tabLabel = locators.tabs.requestTab(requestName);
+    await tabLabel.hover();
+    await locators.tabs.closeTab(requestName).click();
+    await buildModalLocators(page).byTitle('Unsaved changes').getByRole('button', { name: 'Don\'t Save' }).click();
+    await expect(tabLabel).toHaveCount(0);
   });
 };
 

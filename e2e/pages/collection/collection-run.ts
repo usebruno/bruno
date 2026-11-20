@@ -1,10 +1,6 @@
 import { Page } from '../../playwright';
+import { parseDurationMs } from '../../utils/helpers';
 import { buildRunnerLocators } from '../runner';
-
-const displayedDurationMs = (text: string) => {
-  const value = text.trim();
-  return value.endsWith('ms') ? Number(value.slice(0, -2)) : Math.round(parseFloat(value) * 1000);
-};
 
 /** Opens each finished request and returns the sum of the displayed response times. */
 export const getTotalRequestsDuration = async (page: Page, requestCount: number) => {
@@ -15,7 +11,7 @@ export const getTotalRequestsDuration = async (page: Page, requestCount: number)
     await runner.resultStatus().nth(i).click();
     // The pane shows 0ms until the stored response loads.
     await runner.responseTime().filter({ hasNotText: '0ms' }).waitFor();
-    totalMs += displayedDurationMs(await runner.responseTime().innerText());
+    totalMs += parseDurationMs(await runner.responseTime().innerText());
   }
 
   return totalMs;
