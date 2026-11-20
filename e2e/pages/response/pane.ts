@@ -37,7 +37,7 @@ export const buildResponseLocators = (page: Page) => ({
   previewErrorBanner: () => page.getByTestId('response-preview-container').getByTestId('error-banner'),
   tabsOverflowButton: () => page.getByTestId('response-pane').getByTestId('responsive-tabs-more'),
   tabsOverflowItem: (tabName: string) => page.locator('.tippy-box .dropdown-item').filter({ hasText: tabName }),
-  testSummary: (section: 'preRequest' | 'postResponse' | 'tests' = 'tests') =>
+  testSummary: (section: 'preRequest' | 'postResponse' | 'tests' | 'assertions' = 'tests') =>
     page.getByTestId(`test-summary-${section}`),
   // Match the fail icon (one per row) rather than a class shared by both the icon and
   // label spans, so each failure counts once, not twice.
