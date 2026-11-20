@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import {
   activeAppView,
-  buildCommonLocators,
   closeAllCollections,
   confirmMigration,
   createCollection,
@@ -27,11 +26,10 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
     reuseOrLaunchElectronApp
   }, testInfo) => {
     const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
-    const { toast } = buildCommonLocators(page);
 
     await test.step('Write app code into a bru collection', async () => {
       await createCollection(page, COLLECTION_NAME, await createTmpDir('migrate-app'), 'bru');
-      await createRequest(page, 'app-req', COLLECTION_NAME, { url: 'http://localhost:8081/ping', method: 'GET' });
+      await createRequest(page, 'app-req', COLLECTION_NAME, { url: 'https://example.com', method: 'GET' });
       await openRequest(page, COLLECTION_NAME, 'app-req', { persist: true });
       await setAppCode(page, APP_CODE);
       await saveRequest(page);
@@ -40,7 +38,7 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
     await test.step('Migrate the collection to yml', async () => {
       await openMigrateToYmlModalFromOverview(page, COLLECTION_NAME);
       await confirmMigration(page);
-      await toast.byMessage('Collection migrated to YML format successfully').waitFor({ state: 'visible', timeout: 30000 });
+      await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
     });
 
     await test.step('Reopen the migrated request', async () => {
