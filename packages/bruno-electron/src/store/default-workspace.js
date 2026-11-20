@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { generateUidBasedOnHash } = require('../utils/common');
-const { writeFile, isValidCollectionDirectory } = require('../utils/filesystem');
+const { writeFile, writeEnvironmentFile, isValidCollectionDirectory } = require('../utils/filesystem');
 const { getPreferences, savePreferences } = require('./preferences');
 const { globalEnvironmentsStore } = require('./global-environments');
 const {
@@ -373,7 +373,7 @@ class DefaultWorkspaceManager {
             extends: resolvableEnvironmentNames.has(env.extends) ? env.extends : undefined
           };
           const content = stringifyEnvironment(environment, { format: 'yml' });
-          await writeFile(envFilePath, content);
+          await writeEnvironmentFile(envFilePath, content);
 
           // Map the legacy active env uid to the new file-based uid in the per-workspace store
           if (env.uid === activeGlobalEnvironmentUid) {
