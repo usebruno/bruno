@@ -19,6 +19,10 @@ coverage
 
 # production
 build
+
+# Script API editor manifest
+packages/bruno-app/src/utils/codemirror/generated/
+
 chrome-extension
 chrome-extension.pem
 chrome-extension.crx
