@@ -24,10 +24,9 @@ export const buildCollectionPresetsLocators = (page: Page) => ({
  * Locators for content shown inside the collection settings pane panels.
  */
 export const buildCollectionSettingsPanelLocators = (page: Page) => {
-  const content = () => page.getByTestId('collection-settings-content');
+  const content = buildPaneTabsLocators(page).collectionSettingsContent;
 
   return {
-    content,
     versionRow: () => page.getByTestId('info-version-row'),
     headersBulkEditToggle: () => content().getByTestId('bulk-edit-toggle'),
     varsPanel: () => page.getByTestId('collection-vars-panel'),
