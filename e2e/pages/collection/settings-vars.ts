@@ -21,7 +21,7 @@ export const buildCollectionSettingsVarsLocators = (page: Page) => {
   const nameInput = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-name').locator('input');
   const valueEditor = (type: VarsTableType, name: string) =>
-    buildCodeMirrorLocators(page).within(row(type, name).getByTestId('column-value'));
+    buildCodeMirrorLocators(page).within(valueCell(row(type, name)));
   const rowCheckbox = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-checkbox');
   const preRequestTable = () => table('preRequest');
