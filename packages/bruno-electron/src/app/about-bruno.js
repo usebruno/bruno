@@ -168,6 +168,7 @@ module.exports = function aboutBruno({ version }) {
           </g>
         </svg>
       <h2 class="title">Bruno ${version}</h2>
+      <a href="https://www.usebruno.com/changelog" title="Changelog" target="_blank">Changelog</a>
       <footer class="footer">
           ©${currentYear} Bruno Software Inc
       </footer>
