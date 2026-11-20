@@ -1,0 +1,115 @@
+docs {
+  # API Collection Template
+
+  Welcome to your new Bruno API collection! This template is designed to help you get started with API testing and documentation using Bruno.
+
+  ## Collection Overview
+
+  This collection includes:
+  - Sample API requests (GET, POST)
+  - Environment configurations (development, production)
+  - Request tests and validations
+  - Best practices for API organization
+
+  ## Directory Structure
+
+  ```
+  my-api/
+  ├── environments/         # Environment configurations
+  │   ├── development.bru   # Development environment variables
+  │   └── production.bru    # Production environment variables
+  ├── users/                # User-related API requests
+  │   ├── folder.bru        # Folder metadata
+  │   ├── get-users.bru     # Sample GET request with tests
+  │   └── create-user.bru   # Sample POST request with tests
+  ├── bruno.json            # Collection metadata
+  ├── collection.bru        # Collection-wide documentation and settings
+  └── README.md             # Repository documentation
+  ```
+
+  ## Environments
+
+  - **Development**: Local or staging environment configuration
+  - **Production**: Production environment configuration
+
+  ## Environment Variables
+
+  Each environment (in `environments/*.bru`) includes these variables:
+  - `BASE_URL`: Base URL for API requests
+  - `API_KEY`: Authentication key
+  - `AUTH_TOKEN`: Bearer token
+  - `REQUEST_TIMEOUT`: Request timeout (ms)
+  - `CONTENT_TYPE`: Default content type
+  - `ACCEPT`: Accept header
+  - `DEFAULT_PAGE_SIZE`: Pagination size
+  - `DEFAULT_PAGE`: Starting page number
+
+  ## Available Requests
+
+  ### Users API
+  1. Get Users (`GET /users`)
+     - Fetches paginated list of users
+     - Supports filtering and sorting
+     - Includes response validation tests
+
+  2. Create User (`POST /users`)
+     - Creates a new user
+     - Validates request payload
+     - Includes success/error tests
+
+  ## Testing Guidelines
+
+  Each request includes tests for:
+  - Response status codes
+  - Response body structure
+  - Required fields validation
+  - Business logic validation
+
+  Example test structure:
+  ```bruno
+  tests {
+    test("users should have required fields", function() {
+      const users = res.getBody().data;
+
+      expect(users).to.have.lengthOf(10);
+      expect(users[0]).to.have.property('firstname');
+    })
+  }
+  ```
+
+  ## Best Practices
+
+  1. Environment Management:
+     - Use Bruno environments for different configurations (dev, prod, etc.)
+     - Store sensitive values using process environment variables: {{process.env.SECRET}}
+     - Keep production credentials secure
+
+  2. Request Organization:
+     - Group related requests together
+     - Use consistent naming conventions
+     - Include comprehensive documentation
+
+  3. Testing:
+     - Write tests for happy and error paths
+     - Validate response structures
+     - Check business logic constraints
+
+  ## Getting Started
+
+  1. Configure Environments:
+     - Review environment files in the `environments` directory
+     - Set up your environment variables in Bruno
+     - Select the appropriate environment for your testing
+
+  2. Run Requests:
+     - Choose the appropriate environment
+     - Review request documentation
+     - Execute request and check tests
+
+  ## Support
+
+  For more information:
+  - [Bruno Documentation](https://docs.usebruno.com/)
+  - [GitHub Issues](https://github.com/usebruno/bruno/issues)
+  - [Bruno Discord](https://discord.gg/KgcZUncpjq)
+}

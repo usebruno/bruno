@@ -1,0 +1,17 @@
+{
+  "version": "1",
+  "name": "My Bruno Collection",
+  "description": "A well-structured API collection template with sample requests, environment configurations, tests and documentation. Use this as a starting point for your API documentation and testing.",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "*.log"
+  ],
+  "tags": [
+    "api",
+    "template",
+    "bruno",
+    "bruno-collection"
+  ]
+}
