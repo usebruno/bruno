@@ -37,8 +37,8 @@ const ScopeTable = ({
           collection={collection}
           item={item}
           addToScopes={addToScopes}
-          revealed={isSecretRevealed(section.key, row.name)}
-          onToggleReveal={() => onToggleSecretReveal(section.key, row.name)}
+          revealed={isSecretRevealed(section, row.name)}
+          onToggleReveal={() => onToggleSecretReveal(section, row.name)}
           onOpenObject={() => onOpenObject({ sectionKey: section.key, name: row.name })}
           actions={actions}
         />
@@ -59,7 +59,6 @@ const ScopeTable = ({
         columnWidths={columnWidths}
         onColumnWidthsChange={onColumnWidthsChange}
         initialScroll={0}
-        virtualized={false}
       />
     </StyledWrapper>
   );

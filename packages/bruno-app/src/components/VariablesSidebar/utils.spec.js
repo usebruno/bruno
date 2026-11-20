@@ -1,4 +1,4 @@
-import { countRows, getRequestReferences, getSidebarSections, getUsedSections } from './utils';
+import { countRows, getRequestReferences, getSidebarSections, getUsedSections, secretRevealKey } from './utils';
 
 const variable = (name, value, extra = {}) => ({ uid: `uid-${name}`, name, value, enabled: true, ...extra });
 
@@ -187,11 +187,69 @@ describe('getUsedSections', () => {
     });
   });
 
+  describe('secrets reached through other variables', () => {
+    const chainedEnv = {
+      uid: 'env-chain',
+      name: 'Chain',
+      variables: [
+        variable('api_token', 'abc123', { secret: true }),
+        variable('auth_header', 'Bearer {{api_token}}'),
+        variable('full_header', '{{auth_header}}')
+      ]
+    };
+    const chainedCollection = { ...collection, items: [], environments: [chainedEnv], activeEnvironmentUid: 'env-chain', runtimeVariables: {} };
+
+    const usedEnvironmentRows = (headerValues) => {
+      const chainedRequest = {
+        ...request,
+        request: {
+          url: 'https://example.com',
+          headers: headerValues.map((value, index) => ({ uid: `ch${index}`, name: `X-${index}`, value, enabled: true })),
+          auth: { mode: 'none' }
+        }
+      };
+      const chainedSections = getSidebarSections({ collection: chainedCollection, item: chainedRequest, globalEnvironments: [], activeGlobalEnvironmentUid: null });
+      const chainedUsed = getUsedSections({ collection: chainedCollection, item: chainedRequest, sections: chainedSections });
+      return Object.fromEntries(sectionByKey(chainedUsed, 'environment').rows.map((row) => [row.name, row.secret]));
+    };
+
+    it('masks every variable in a chain that ends in a secret', () => {
+      expect(usedEnvironmentRows(['{{full_header}}'])).toEqual({ full_header: true, auth_header: true, api_token: true });
+    });
+
+    it('masks a variable whose secret dependency the request also uses directly', () => {
+      expect(usedEnvironmentRows(['{{auth_header}}', '{{full_header}}'])).toEqual({ auth_header: true, api_token: true, full_header: true });
+    });
+  });
+
+  it('uses the last of two enabled variables with the same name, like request resolution does', () => {
+    const duplicateRequest = {
+      ...request,
+      request: {
+        url: 'https://example.com/{{x}}',
+        auth: { mode: 'none' },
+        vars: { req: [variable('x', 'old', { uid: 'uid-x-old' }), variable('x', 'new', { uid: 'uid-x-new' })], res: [] }
+      }
+    };
+    const duplicateCollection = { ...collection, items: [duplicateRequest], runtimeVariables: {} };
+    const duplicateSections = getSidebarSections({ collection: duplicateCollection, item: duplicateRequest, globalEnvironments: [], activeGlobalEnvironmentUid: null });
+    const duplicateUsed = getUsedSections({ collection: duplicateCollection, item: duplicateRequest, sections: duplicateSections });
+    expect(sectionByKey(duplicateUsed, 'request').rows).toEqual([expect.objectContaining({ uid: 'uid-x-new', value: 'new' })]);
+  });
+
   it('skips dynamic variables', () => {
     expect(used.flatMap(names)).not.toContain('$randomUUID');
   });
 
   it('counts the rows across sections', () => {
     expect(countRows(used)).toBe(9);
+  });
+});
+
+describe('secretRevealKey', () => {
+  it('differs between environments that share a variable name', () => {
+    const local = { key: 'environment', owner: { uid: 'env-local' } };
+    const prod = { key: 'environment', owner: { uid: 'env-prod' } };
+    expect(secretRevealKey(local, 'token')).not.toBe(secretRevealKey(prod, 'token'));
   });
 });

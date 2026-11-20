@@ -5,7 +5,6 @@ import {
   IconBox,
   IconChevronDown,
   IconRun,
-  IconEye,
   IconSettings,
   IconDots,
   IconEdit,
@@ -28,7 +27,7 @@ import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
-import { showAiSidebar, showVariablesSidebar, toggleVariablesSidebar } from 'providers/ReduxStore/slices/app';
+import { showAiSidebar, toggleVariablesSidebar } from 'providers/ReduxStore/slices/app';
 import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
 import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
 import get from 'lodash/get';
@@ -277,10 +276,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     );
   };
 
-  const viewVariables = () => {
-    dispatch(showVariablesSidebar());
-  };
-
   const viewCollectionSettings = () => {
     dispatch(
       addTab({
@@ -322,7 +317,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   // Build overflow menu items for the "..." dropdown
   const overflowMenuItems = [
-    { id: 'variables', label: 'Variables', leftSection: IconEye, onClick: viewVariables },
     // File mode is exposed via the Request/App/File view-mode toggle when the active
     // request has apps enabled; keep it in the overflow as a fallback everywhere else.
     ...(!appAvailable

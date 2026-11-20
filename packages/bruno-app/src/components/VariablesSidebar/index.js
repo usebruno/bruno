@@ -9,6 +9,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   getAvailableAddToScopes,
+  getEffectiveActiveEnvironmentUid,
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked,
   isItemARequest
@@ -44,13 +45,14 @@ const NAVIGATION_SCOPE_INFO = {
   [SCOPES.GLOBAL]: (section) => ({ type: 'global', data: {}, inheritedFrom: { uid: section.owner.uid } })
 };
 
+const EMPTY_REVEALS = new Set();
+
 const toggleKey = (keys, key) => (keys.includes(key) ? keys.filter((entry) => entry !== key) : [...keys, key]);
 
 const VariablesSidebar = ({ collection }) => {
   const dispatch = useDispatch();
   const [initialWidth] = useState(readSavedWidth);
   const [selectedView, setSelectedView] = useState('used');
-  const [revealedSecrets, setRevealedSecrets] = useState(() => new Set());
   const [objectSelection, setObjectSelection] = useState(null);
   const [collapsedUsed, setCollapsedUsed] = usePersistedState({ key: 'variables-sidebar.collapsed.used', default: [] });
   const [collapsedAll, setCollapsedAll] = usePersistedState({ key: 'variables-sidebar.collapsed.all', default: [] });
@@ -59,6 +61,13 @@ const VariablesSidebar = ({ collection }) => {
   const activeTab = useSelector(selectActiveTab);
   const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
   const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
+
+  const environmentsKey = `${getEffectiveActiveEnvironmentUid(collection)}:${activeGlobalEnvironmentUid}`;
+  const [reveals, setReveals] = useState(() => ({ environmentsKey, keys: new Set() }));
+  if (reveals.environmentsKey !== environmentsKey) {
+    setReveals({ environmentsKey, keys: new Set() });
+  }
+  const revealedSecrets = reveals.environmentsKey === environmentsKey ? reveals.keys : EMPTY_REVEALS;
 
   const { width, handleDragStart } = useResizablePanel({
     initialWidth,
@@ -91,7 +100,7 @@ const VariablesSidebar = ({ collection }) => {
   const sections = view === 'used' ? usedSections : allSections;
 
   const addToScopes = useMemo(() => {
-    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    const environment = findEnvironmentInCollection(collection, getEffectiveActiveEnvironmentUid(collection));
     const globalEnvironment = (globalEnvironments || []).find((env) => env.uid === activeGlobalEnvironmentUid);
     const { folderScopeTarget } = resolveFolderScopeTarget(collection, requestItem);
     return getAvailableAddToScopes({
@@ -109,17 +118,17 @@ const VariablesSidebar = ({ collection }) => {
   const collapsed = view === 'used' ? collapsedUsed : collapsedAll;
   const setCollapsed = view === 'used' ? setCollapsedUsed : setCollapsedAll;
 
-  const toggleSecretReveal = useCallback((sectionKey, name) => {
-    const key = secretRevealKey(sectionKey, name);
-    setRevealedSecrets((prev) => {
-      const next = new Set(prev);
+  const toggleSecretReveal = useCallback((section, name) => {
+    const key = secretRevealKey(section, name);
+    setReveals((prev) => {
+      const next = new Set(prev.keys);
       if (!next.delete(key)) next.add(key);
-      return next;
+      return { ...prev, keys: next };
     });
   }, []);
 
   const isSecretRevealed = useCallback(
-    (sectionKey, name) => revealedSecrets.has(secretRevealKey(sectionKey, name)),
+    (section, name) => revealedSecrets.has(secretRevealKey(section, name)),
     [revealedSecrets]
   );
 
@@ -127,7 +136,7 @@ const VariablesSidebar = ({ collection }) => {
   const objectRow = objectSection?.rows.find((row) => row.name === objectSelection.name);
   const showObjectView = !!objectRow
     && isObjectOrArray(objectRow.value)
-    && (!objectRow.secret || isSecretRevealed(objectSection.key, objectRow.name));
+    && (!objectRow.secret || isSecretRevealed(objectSection, objectRow.name));
 
   const viewTabs = [
     ...(requestItem

@@ -133,6 +133,13 @@ test.describe('Variables sidebar', () => {
       await expect(variablesSidebar.rowValue('environment', 'api_token')).toContainText('token-123');
     });
 
+    await test.step('Changing the environment masks revealed secrets again', async () => {
+      await selectEnvironment(page, 'Prod');
+      await expect(variablesSidebar.rowValue('environment', 'api_token')).toContainText('********');
+      await selectEnvironment(page, 'Local');
+      await expect(variablesSidebar.rowValue('environment', 'api_token')).toContainText('********');
+    });
+
     await test.step('Clear empties a saved variable but keeps it', async () => {
       await variablesSidebar.row('collection', 'api_version').hover();
       await variablesSidebar.rowAction('collection', 'api_version', 'clear').click();

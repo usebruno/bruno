@@ -65,6 +65,18 @@ describe('variables sidebar', () => {
     expect(store.getState().chat.isPoppedOut).toBe(false);
   });
 
+  it('closes when a popped-out AI chat is docked', () => {
+    const store = createStore();
+    store.dispatch(openAiSidebar());
+    store.dispatch(popOutAiChat());
+    store.dispatch(showVariablesSidebar());
+
+    store.dispatch(showAiSidebar());
+
+    expect(store.getState().chat.isPoppedOut).toBe(false);
+    expect(store.getState().app.isVariablesSidebarOpen).toBe(false);
+  });
+
   it('closes with closeVariablesSidebar', () => {
     const store = createStore();
     store.dispatch(toggleVariablesSidebar());

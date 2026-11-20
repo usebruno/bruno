@@ -13,10 +13,11 @@ const ValueEditor = ({ row, collection, item, isMasked, onSave, onCancel }) => {
   const containerRef = useRef(null);
   const [initialText] = useState(() => valueToString(row.rawValue, 2));
   const [text, setText] = useState(initialText);
-  const [dataType, setDataType] = useState(row.dataType || 'string');
+  const [initialDataType] = useState(() => row.dataType || 'string');
+  const [dataType, setDataType] = useState(initialDataType);
 
   const commit = () => {
-    if (text === initialText && dataType === (row.dataType || 'string')) {
+    if (text === initialText && dataType === initialDataType) {
       onCancel();
       return;
     }

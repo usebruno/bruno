@@ -1,0 +1,6 @@
+name: Prod
+variables:
+  - name: host
+    value: http://localhost:8081
+  - secret: true
+    name: api_token

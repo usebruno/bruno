@@ -143,7 +143,7 @@ export default function Main() {
             <AiChatSidebar collection={activeCollection} />
           )}
           {isVariablesSidebarOpen && activeCollection && !showManageWorkspacePage && (
-            <VariablesSidebar collection={activeCollection} />
+            <VariablesSidebar key={activeCollection.uid} collection={activeCollection} />
           )}
         </StyledWrapper>
       </div>

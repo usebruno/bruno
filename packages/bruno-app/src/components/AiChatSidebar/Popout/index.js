@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import { closeAiSidebar, dockAiChat } from 'providers/ReduxStore/slices/chat';
+import { closeAiSidebar } from 'providers/ReduxStore/slices/chat';
+import { showAiSidebar } from 'providers/ReduxStore/slices/app';
 import PopoutWindow from '../PopoutWindow';
 import AiChatSidebar from '../index';
 
@@ -10,7 +11,7 @@ const AiChatPopout = ({ collection }) => {
   const handleClose = useCallback(({ blocked } = {}) => {
     // Closing the OS window closes the assistant (like undocked devtools).
     // If window.open was blocked, fall back to the docked sidebar instead.
-    dispatch(blocked ? dockAiChat() : closeAiSidebar());
+    dispatch(blocked ? showAiSidebar() : closeAiSidebar());
   }, [dispatch]);
 
   return (

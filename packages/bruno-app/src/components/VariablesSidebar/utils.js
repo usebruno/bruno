@@ -40,7 +40,7 @@ export const focusAtEnd = (editor) => {
   editor.setCursor(editor.lineCount(), 0);
 };
 
-export const secretRevealKey = (sectionKey, name) => `${sectionKey}:${name}`;
+export const secretRevealKey = (section, name) => `${section.key}:${section.owner?.uid ?? ''}:${name}`;
 
 const storedVariableRow = (variable, extra = {}) => ({
   uid: variable.uid,
@@ -215,7 +215,8 @@ const isDynamicVariable = (name) => name.startsWith('$') && !name.startsWith('$o
 
 const findWinningRow = (sections, name) => {
   for (const entry of sections) {
-    const row = entry.rows.find((candidate) => candidate.reference === name);
+    const matches = entry.rows.filter((candidate) => candidate.reference === name);
+    const row = matches.findLast((candidate) => !candidate.readOnly) ?? matches[0];
     if (row) return { section: entry, row };
   }
   return null;
@@ -230,11 +231,12 @@ export const getUsedSections = ({ collection, item, sections }) => {
   const allVariables = getAllVariables(collection, item);
   const usedRowsBySection = new Map();
   const undefinedRows = [];
-  const listed = new Set();
+  const usedRowsByName = new Map();
 
   const addUsed = (name, locations, ancestors) => {
-    if (listed.has(name) || isDynamicVariable(name)) return null;
-    listed.add(name);
+    if (usedRowsByName.has(name)) return usedRowsByName.get(name);
+    if (isDynamicVariable(name)) return null;
+    usedRowsByName.set(name, null);
 
     const match = findWinningRow(sections, name);
     if (!match) {
@@ -252,12 +254,12 @@ export const getUsedSections = ({ collection, item, sections }) => {
     const rows = usedRowsBySection.get(match.section.key) || [];
     rows.push(usedRow);
     usedRowsBySection.set(match.section.key, rows);
+    usedRowsByName.set(name, usedRow);
 
     if (typeof match.row.rawValue === 'string' && !ancestors.includes(name)) {
       extractSensitiveVarNames(match.row.rawValue).forEach((childName) => {
-        addUsed(childName, [`Used by ${name}`], [...ancestors, name]);
-        const child = findWinningRow(sections, childName);
-        if (child?.row.secret) usedRow.secret = true;
+        const childRow = addUsed(childName, [`Used by ${name}`], [...ancestors, name]);
+        if (childRow?.secret) usedRow.secret = true;
       });
     }
     return usedRow;

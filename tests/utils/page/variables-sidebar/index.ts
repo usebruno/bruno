@@ -35,13 +35,14 @@ export const buildVariablesSidebarLocators = (page: Page) => {
 };
 
 /**
- * Open the Variables sidebar from the active tab's "..." menu and show every variable.
+ * Open the Variables sidebar from the toolbar of the active tab and show every variable.
  */
 export const openVariablesSidebar = async (page: Page) => {
   await test.step('Open the Variables sidebar', async () => {
     const { sidebar, viewTab } = buildVariablesSidebarLocators(page);
-    await page.getByTestId('more-actions').click();
-    await page.getByTestId('more-actions-variables').click();
+    if (!(await sidebar().isVisible())) {
+      await page.getByTestId('variables-sidebar-toggle').click();
+    }
     await sidebar().waitFor({ state: 'visible' });
     await viewTab('all').click();
   });

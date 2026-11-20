@@ -18,6 +18,7 @@ const ScopeSection = ({ icon: Icon, title, pill, count, isDanger, expanded, onTo
         aria-expanded={expanded}
         onClick={onToggle}
         onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             onToggle();

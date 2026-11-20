@@ -24,7 +24,6 @@ import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import {
   closeAiSidebar,
   popOutAiChat,
-  dockAiChat,
   sendAiMessage,
   stopAiStream,
   setChatBinding,
@@ -49,7 +48,7 @@ import {
   updateCollectionTests,
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
-import { updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { showAiSidebar, updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
 import { buildAiVariablesPayload, buildAiRequestsPayload, formatCopilotMultiplier, getAiStatus } from 'utils/ai';
 
@@ -660,7 +659,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   };
 
   const handleClose = () => dispatch(closeAiSidebar());
-  const handleTogglePopout = () => dispatch(isPopout ? dockAiChat() : popOutAiChat());
+  const handleTogglePopout = () => dispatch(isPopout ? showAiSidebar() : popOutAiChat());
   const handleSwitchChat = (tabUid) => dispatch(focusTab({ uid: tabUid }));
 
   const handleSuggestionClick = (suggestion) => {

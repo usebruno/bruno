@@ -2475,7 +2475,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
         return reject(new Error('Process environment variables cannot be edited'));
       }
 
-      if (type === 'runtime' || (collection && collection.runtimeVariables && collection.runtimeVariables[variableName])) {
+      if (type === 'runtime') {
         return reject(new Error('Runtime variables are set by scripts and cannot be edited'));
       }
 
