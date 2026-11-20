@@ -46,6 +46,12 @@ export const buildResponseLocators = (page: Page) => ({
     rows: () => page.getByTestId('test-result-item'),
     passed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-pass') }),
     failed: () => page.getByTestId('test-result-item').filter({ has: page.getByTestId('test-result-icon-fail') })
+  },
+  filter: {
+    toggleIcon: () => page.locator('#request-filter-icon'),
+    input: () => page.locator('#response-filter'),
+    typeButton: (type: 'jsonpath' | 'jq') => page.getByTestId(`response-filter-type-${type}`),
+    jqError: () => page.getByTestId('response-filter-jq-error')
   }
 });
 
