@@ -156,7 +156,13 @@ const ResponsePane = ({ item, collection }) => {
       case 'response': {
         const isStream = item.response?.stream ?? false;
         if (isStream) {
-          return <WSMessagesList order={-1} messages={item.response.data} item={item} collection={collection} />;
+          return (
+            <WSMessagesList
+              messages={item.response.data}
+              item={item}
+              collection={collection}
+            />
+          );
         }
         return (
           <QueryResult
@@ -244,24 +250,19 @@ const ResponsePane = ({ item, collection }) => {
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
       {errorsIcon}
       {isResponseTabActive && item?.response && !(item.response?.stream ?? false) ? (
-        <>
-          {/* Result View Tabs (Visualizations + Response Format) */}
-          <div className="result-view-tabs">
-
-            {/* Response Format */}
-            <QueryResultTypeSelector
-              formatOptions={previewFormatOptions}
-              formatValue={selectedFormat}
-              onFormatChange={handleFormatChange}
-              onPreviewTabSelect={handleViewTabChange}
-              selectedTab={selectedViewTab}
-              isActiveTab={selectedViewTab === 'editor' || selectedViewTab === 'preview'}
-              onTabSelect={() => {
-                handleViewTabChange('editor');
-              }}
-            />
-          </div>
-        </>
+        <div className="result-view-tabs">
+          <QueryResultTypeSelector
+            formatOptions={previewFormatOptions}
+            formatValue={selectedFormat}
+            onFormatChange={handleFormatChange}
+            onPreviewTabSelect={handleViewTabChange}
+            selectedTab={selectedViewTab}
+            isActiveTab={selectedViewTab === 'editor' || selectedViewTab === 'preview'}
+            onTabSelect={() => {
+              handleViewTabChange('editor');
+            }}
+          />
+        </div>
       ) : null}
       <div className="flex items-center response-pane-status" data-testid="response-pane-status">
         <StatusCode status={response.status} isStreaming={item.response?.stream?.running} />
