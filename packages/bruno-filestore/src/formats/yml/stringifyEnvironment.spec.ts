@@ -47,6 +47,36 @@ describe('toOpenCollectionEnvironmentVariables', () => {
 
     expect(out).toEqual([{ name: 'apiKey', value: 'abc', disabled: true }]);
   });
+
+  it('omits empty and null descriptions on plain and secret variables', () => {
+    const out = toOpenCollectionEnvironmentVariables([
+      { uid: 'u1', name: 'emptyDesc', value: 'a', type: 'text', enabled: true, secret: false, description: '' } as any,
+      { uid: 'u2', name: 'nullDesc', value: 'b', type: 'text', enabled: true, secret: false, description: null } as any,
+      { uid: 'u3', name: 'noDesc', value: 'c', type: 'text', enabled: true, secret: false } as any,
+      { uid: 'u4', name: 'emptySecretDesc', value: '', type: 'text', enabled: true, secret: true, description: '' } as any,
+      { uid: 'u5', name: 'nullSecretDesc', value: '', type: 'text', enabled: true, secret: true, description: null } as any
+    ]);
+
+    expect(out).toEqual([
+      { name: 'emptyDesc', value: 'a' },
+      { name: 'nullDesc', value: 'b' },
+      { name: 'noDesc', value: 'c' },
+      { secret: true, name: 'emptySecretDesc' },
+      { secret: true, name: 'nullSecretDesc' }
+    ]);
+  });
+
+  it('keeps non-empty descriptions on plain and secret variables', () => {
+    const out = toOpenCollectionEnvironmentVariables([
+      { uid: 'u1', name: 'baseUrl', value: 'https://api.example.com', type: 'text', enabled: true, secret: false, description: 'API host' } as any,
+      { uid: 'u2', name: 'token', value: '', type: 'text', enabled: true, secret: true, description: 'Auth token' } as any
+    ]);
+
+    expect(out).toEqual([
+      { name: 'baseUrl', value: 'https://api.example.com', description: 'API host' },
+      { secret: true, name: 'token', description: 'Auth token' }
+    ]);
+  });
 });
 
 describe('stringifyEnvironment', () => {
@@ -87,6 +117,95 @@ describe('stringifyEnvironment', () => {
 
     const reparsed = parseEnvironment(stringifyEnvironment(env));
     expect(reparsed.color).toBe('#ff0000');
+  });
+
+  describe('descriptions', () => {
+    it('writes no description for an empty or null description', () => {
+      const env = {
+        uid: 'env-uid',
+        name: 'local',
+        variables: [
+          { uid: 'u1', name: 'host', value: 'localhost', type: 'text', enabled: true, secret: false, description: '' },
+          { uid: 'u2', name: 'port', value: '8080', type: 'text', enabled: true, secret: false, description: null },
+          { uid: 'u3', name: 'token', value: '', type: 'text', enabled: true, secret: true, description: '' }
+        ]
+      } as any;
+
+      expect(stringifyEnvironment(env)).not.toContain('description');
+    });
+
+    it('round-trips non-empty descriptions on plain and secret variables', () => {
+      const env = {
+        uid: 'env-uid',
+        name: 'local',
+        variables: [
+          { uid: 'u1', name: 'host', value: 'localhost', type: 'text', enabled: true, secret: false, description: 'API host' },
+          { uid: 'u2', name: 'token', value: '', type: 'text', enabled: true, secret: true, description: 'Line one\nLine two' }
+        ]
+      } as any;
+
+      const reparsed = parseEnvironment(stringifyEnvironment(env));
+
+      expect(reparsed.variables[0]).toMatchObject({ name: 'host', description: 'API host' });
+      expect(reparsed.variables[1]).toMatchObject({ name: 'token', secret: true, description: 'Line one\nLine two' });
+    });
+
+    it('changes only the updated value when a parsed environment is re-saved', () => {
+      // The environment editor gives every row a description ('' when unset), while a script's
+      // persisted update re-saves the environment as parsed from disk. Both must write the same bytes.
+      const env = {
+        uid: 'env-uid',
+        name: 'local',
+        variables: [
+          { uid: 'u1', name: 'host', value: 'localhost', type: 'text', enabled: true, secret: false, description: 'API host' },
+          { uid: 'u2', name: 'user', value: 'alice', type: 'text', enabled: true, secret: false, description: '' },
+          { uid: 'u3', name: 'token', value: 'old', type: 'text', enabled: true, secret: false, description: '' },
+          { uid: 'u4', name: 'apiKey', value: '', type: 'text', enabled: true, secret: true, description: '' }
+        ]
+      } as any;
+
+      const savedYml = stringifyEnvironment(env);
+      const parsed = parseEnvironment(savedYml);
+
+      expect(stringifyEnvironment(parsed)).toBe(savedYml);
+
+      const updated = {
+        ...parsed,
+        variables: parsed.variables.map((v: any) => (v.name === 'token' ? { ...v, value: 'new' } : v))
+      };
+      const savedLines = savedYml.split('\n');
+      const updatedLines = stringifyEnvironment(updated).split('\n');
+      const changedLines = updatedLines.filter((line, index) => line !== savedLines[index]);
+
+      expect(updatedLines).toHaveLength(savedLines.length);
+      expect(changedLines).toEqual([expect.stringMatching(/^\s*value: new$/)]);
+    });
+
+    it('drops the empty description lines an earlier version wrote', () => {
+      const yml = [
+        'name: local',
+        'variables:',
+        '  - name: host',
+        '    value: localhost',
+        '    description: API host',
+        '  - name: user',
+        '    value: alice',
+        '    description: ""',
+        '  - secret: true',
+        '    name: apiKey',
+        '    description: ""',
+        ''
+      ].join('\n');
+
+      const resaved = stringifyEnvironment(parseEnvironment(yml));
+
+      expect(resaved.match(/description:/g)).toHaveLength(1);
+      expect(parseEnvironment(resaved).variables).toMatchObject([
+        { name: 'host', value: 'localhost', description: 'API host' },
+        { name: 'user', value: 'alice' },
+        { name: 'apiKey', secret: true }
+      ]);
+    });
   });
 
   describe('extends', () => {
