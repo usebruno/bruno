@@ -19,6 +19,7 @@ export * from './collection/export';
 export * from './collection/git-clone';
 export * from './collection/import';
 export * from './collection/manage';
+export * from './collection/overview';
 export * from './collection/migrate-to-yml';
 export * from './collection/mount';
 export * from './collection/proxy';
