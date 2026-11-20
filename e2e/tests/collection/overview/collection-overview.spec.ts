@@ -7,6 +7,7 @@ import {
   openCollectionSettings,
   selectCollectionPaneTab
 } from '../../../pages';
+import { buildCollectionSettingsOverviewLocators } from '../../../pages/collection/overview';
 
 const environmentCountLabel = (count: number, scope: 'collection' | 'global') =>
   `${count} ${scope} environment${count === 1 ? '' : 's'}`;
@@ -20,7 +21,7 @@ test.describe('Collection settings overview', () => {
     pageWithUserData: page
   }) => {
     const collectionName = 'OverviewLocation';
-    const { collectionSettingsOverview } = buildCommonLocators(page);
+    const collectionSettingsOverview = buildCollectionSettingsOverviewLocators(page);
     await test.step('Open a collection on the Overview tab', async () => {
       await openCollectionSettings(page, collectionName);
       await selectCollectionPaneTab(page, 'overview');
@@ -36,7 +37,8 @@ test.describe('Collection settings overview', () => {
   }, testInfo) => {
     const collectionName = 'OverviewEnvironments';
     const suffix = `${testInfo.workerIndex}-${testInfo.retry}`;
-    const { collectionSettingsOverview, paneTabs } = buildCommonLocators(page);
+    const { paneTabs } = buildCommonLocators(page);
+    const collectionSettingsOverview = buildCollectionSettingsOverviewLocators(page);
     let globalCountBefore = 0;
 
     await test.step('Verify that clicking the collection name opens Overview by default', async () => {
@@ -73,7 +75,7 @@ test.describe('Collection settings overview', () => {
     pageWithUserData: page
   }) => {
     const collectionName = 'OverviewRequests';
-    const { collectionSettingsOverview } = buildCommonLocators(page);
+    const collectionSettingsOverview = buildCollectionSettingsOverviewLocators(page);
 
     await test.step('Verify that requests section shows the request count', async () => {
       await openCollectionSettings(page, collectionName);
@@ -85,7 +87,8 @@ test.describe('Collection settings overview', () => {
 
   test('TC-2623: Verify Share Collection option is available', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const collectionName = 'OverviewShare';
-    const { collectionSettingsOverview, export: exportLocators } = buildCommonLocators(page);
+    const { export: exportLocators } = buildCommonLocators(page);
+    const collectionSettingsOverview = buildCollectionSettingsOverviewLocators(page);
 
     await test.step('Open collection Overview', async () => {
       await openCollectionSettings(page, collectionName);
@@ -123,7 +126,8 @@ test.describe('Collection settings overview', () => {
     const collectionName = 'OverviewDocs';
     const docsDirectory = await createTmpDir(collectionName);
     const electronApp = await reuseOrLaunchElectronApp({ testFile: testInfo.file });
-    const { collectionSettingsOverview, generateDocs } = buildCommonLocators(page);
+    const { generateDocs } = buildCommonLocators(page);
+    const collectionSettingsOverview = buildCollectionSettingsOverviewLocators(page);
 
     await test.step('Open collection Overview', async () => {
       await openCollectionSettings(page, collectionName);

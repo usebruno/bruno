@@ -52,7 +52,6 @@ import { buildCollectionsPlusMenuLocators } from './collection/manage';
 import { buildImportCollectionLocators } from './collection/import';
 import { buildExportCollectionLocators } from './collection/export';
 import { buildCollectionPresetsLocators } from './collection/settings';
-import { buildCollectionSettingsOverviewLocators } from './collection/overview';
 import { buildTagsLocators } from './shared-ui/tags';
 import { buildVarInfoPopupLocators } from './variable/tooltip';
 import { buildAiAssistLocators } from './request/script';
@@ -115,7 +114,6 @@ export const buildCommonLocators = (page: Page) => ({
   varInfoPopup: buildVarInfoPopupLocators(page),
   auth: buildAuthLocators(page),
   presets: buildCollectionPresetsLocators(page),
-  collectionSettingsOverview: buildCollectionSettingsOverviewLocators(page),
   tags: buildTagsLocators(page),
   generateDocs: buildGenerateDocsLocators(page),
   runnerResults: buildRunnerResultsLocators(page),
