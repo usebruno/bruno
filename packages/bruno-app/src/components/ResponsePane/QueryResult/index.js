@@ -211,6 +211,7 @@ const QueryResult = ({
                 formattedData={formattedData}
                 item={item}
                 contentType={detectedContentType ?? contentType}
+                responseContentType={contentType}
                 previewMode={previewMode}
                 codeMirrorMode={codeMirrorMode}
                 collection={collection}
