@@ -15,6 +15,7 @@ import {
   IconLayoutSidebarRightExpand
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
+import RightSidebarSwitcher from 'components/RightSidebarSwitcher';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -23,7 +24,6 @@ import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import {
   closeAiSidebar,
   popOutAiChat,
-  dockAiChat,
   sendAiMessage,
   stopAiStream,
   setChatBinding,
@@ -48,7 +48,7 @@ import {
   updateCollectionTests,
   updateCollectionDocs
 } from 'providers/ReduxStore/slices/collections';
-import { updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { showAiSidebar, updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { findItemInCollection, findItemInCollectionByPathname, isItemAFolder, isItemARequest } from 'utils/collections';
 import { buildAiVariablesPayload, buildAiRequestsPayload, formatCopilotMultiplier, getAiStatus } from 'utils/ai';
 
@@ -659,7 +659,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
   };
 
   const handleClose = () => dispatch(closeAiSidebar());
-  const handleTogglePopout = () => dispatch(isPopout ? dockAiChat() : popOutAiChat());
+  const handleTogglePopout = () => dispatch(isPopout ? showAiSidebar() : popOutAiChat());
   const handleSwitchChat = (tabUid) => dispatch(focusTab({ uid: tabUid }));
 
   const handleSuggestionClick = (suggestion) => {
@@ -885,10 +885,17 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       )}
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
-          <div className="header-left">
-            <IconSparkles size={18} className="header-icon" />
+          <span className="header-title">AI Assistant</span>
+          {!isPopout && <RightSidebarSwitcher active="ai" />}
+          <button className="icon-btn close-btn" onClick={handleClose} title="Close">
+            <IconX size={14} />
+          </button>
+        </div>
+
+        <div className="ai-sidebar-toolbar">
+          <div className="toolbar-left">
             <span className={`header-method method-${(requestMethod || 'get').toLowerCase()}`}>{requestMethod}</span>
-            <span className="header-title">{requestName}</span>
+            <span className="header-request-name">{requestName}</span>
             {chatsWithMessages.length > 1 && (
               <MenuDropdown
                 items={chatsWithMessages.map((chat) => ({
@@ -905,7 +912,7 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
               </MenuDropdown>
             )}
           </div>
-          <div className="header-actions">
+          <div className="toolbar-actions">
             <button
               className="icon-btn"
               onClick={handleNewChat}
@@ -940,9 +947,6 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
               data-testid="ai-popout-toggle"
             >
               {isPopout ? <IconLayoutSidebarRightExpand size={14} /> : <IconExternalLink size={14} />}
-            </button>
-            <button className="icon-btn close-btn" onClick={handleClose} title="Close">
-              <IconX size={14} />
             </button>
           </div>
         </div>

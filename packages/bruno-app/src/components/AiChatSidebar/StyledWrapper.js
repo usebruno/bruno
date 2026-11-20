@@ -41,7 +41,8 @@ const StyledWrapper = styled.div`
     border-left: none;
   }
 
-  &.popout .ai-sidebar-header {
+  &.popout .ai-sidebar-header,
+  &.popout .ai-sidebar-toolbar {
     -webkit-app-region: drag;
 
     button,
@@ -53,22 +54,34 @@ const StyledWrapper = styled.div`
   .ai-sidebar-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     padding: 10px 12px;
     border-bottom: 1px solid ${(props) => props.theme.border.border1};
 
-    .header-left {
+    .header-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: ${(props) => props.theme.text};
+    }
+  }
+
+  .ai-sidebar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .ai-sidebar-header,
+  .ai-sidebar-toolbar {
+    .toolbar-left {
       display: flex;
       align-items: center;
       gap: 8px;
       min-width: 0;
-    }
-
-    .header-icon {
-      color: ${(props) => props.theme.brand};
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
     }
 
     .header-method {
@@ -95,7 +108,7 @@ const StyledWrapper = styled.div`
       &.method-app { color: ${(props) => props.theme.brand}; }
     }
 
-    .header-title {
+    .header-request-name {
       font-size: 13px;
       color: ${(props) => props.theme.text};
       white-space: nowrap;
@@ -123,7 +136,7 @@ const StyledWrapper = styled.div`
       }
     }
 
-    .header-actions {
+    .toolbar-actions {
       display: flex;
       align-items: center;
       gap: 2px;

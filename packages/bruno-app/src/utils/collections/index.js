@@ -1869,7 +1869,7 @@ export const resolveEnabledVariable = (variables, variableName) => {
   return matches[matches.length - 1];
 };
 
-const readItemRequestVars = (treeItem) => get(treeItem?.draft || treeItem?.root || treeItem, 'request.vars.req', []);
+export const readItemRequestVars = (treeItem) => get(treeItem?.draft || treeItem?.root || treeItem, 'request.vars.req', []);
 
 const buildTreePathsByItemUid = (items, prefix, treePathsByItemUid) => {
   for (const item of items || []) {

@@ -90,7 +90,6 @@ export const tabsSlice = createSlice({
       } = action.payload;
 
       const nonReplaceableTabTypes = [
-        'variables',
         'collection-runner',
         'environment-settings',
         'global-environment-settings',

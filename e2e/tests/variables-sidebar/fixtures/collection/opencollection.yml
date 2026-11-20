@@ -1,0 +1,8 @@
+opencollection: "1.0.0"
+info:
+  name: variables-sidebar
+
+request:
+  variables:
+    - name: api_version
+      value: v1

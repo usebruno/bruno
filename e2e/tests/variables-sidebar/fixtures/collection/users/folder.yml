@@ -1,0 +1,9 @@
+info:
+  name: users
+  type: folder
+  seq: 1
+
+request:
+  variables:
+    - name: users_path
+      value: /users

@@ -6,6 +6,7 @@ import RequestTabPanel from 'components/RequestTabPanel';
 import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
 import AiChatPopout from 'components/AiChatSidebar/Popout';
+import VariablesSidebar from 'components/VariablesSidebar';
 import Sidebar from 'components/Sidebar';
 import OpenCollection from 'components/Sidebar/OpenCollection';
 import StatusBar from 'components/StatusBar';
@@ -49,15 +50,16 @@ export default function Main() {
   const isConsoleOpen = useSelector((state) => state.logs.isConsoleOpen);
   const saveTransientRequestModals = useSelector((state) => state.collections.saveTransientRequestModals);
 
-  // AI sidebar mounts here so it spans the full request-pane height. It reads
+  // AI and Variables sidebars mount here so they span the full request-pane height. They read
   // the active collection via the active tab so the sidebar follows tab switches.
-  // The selector returns null while the sidebar is closed so the page doesn't
+  // The selector returns null while both sidebars are closed so the page doesn't
   // re-render on every tabs/collections change — important on Windows where
   // extra re-renders during initial layout were destabilising CodeMirror.
   const isAiSidebarOpen = useSelector((state) => state.chat.isOpen);
   const isAiPoppedOut = useSelector((state) => state.chat.isPoppedOut);
+  const isVariablesSidebarOpen = useSelector((state) => state.app.isVariablesSidebarOpen);
   const activeCollection = useSelector((state) => {
-    if (!state.chat.isOpen) return null;
+    if (!state.chat.isOpen && !state.app.isVariablesSidebarOpen) return null;
     const activeTab = state.tabs.tabs.find((t) => t.uid === state.tabs.activeTabUid);
     if (!activeTab) return null;
     return state.collections.collections.find((c) => c.uid === activeTab.collectionUid) || null;
@@ -139,6 +141,9 @@ export default function Main() {
           )}
           {isAiSidebarOpen && activeCollection && !isAiPoppedOut && !showManageWorkspacePage && (
             <AiChatSidebar collection={activeCollection} />
+          )}
+          {isVariablesSidebarOpen && activeCollection && !showManageWorkspacePage && (
+            <VariablesSidebar key={activeCollection.uid} collection={activeCollection} />
           )}
         </StyledWrapper>
       </div>

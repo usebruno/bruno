@@ -5,7 +5,7 @@ import {
   closeAllOpenTabs,
   openFolderRequest,
   openFolderSettings,
-  openVariablesTab,
+  openVariablesSidebar,
   saveFolderSettings,
   selectfolderPaneTab,
   sendRequest
@@ -25,7 +25,7 @@ test.describe('Folder post-response vars', () => {
   });
 
   test('TC-2824: Verify that the user is able add Post-Response vars for folder level settings', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    const { table, variablesTab } = buildCommonLocators(page);
+    const { table, variablesSidebar } = buildCommonLocators(page);
     const postResponseVars = table('folder-vars-res');
 
     await test.step('Add a folder post-response variable', async () => {
@@ -47,8 +47,8 @@ test.describe('Folder post-response vars', () => {
     await test.step('Send a request in the folder and verify the post-response variable is evaluated', async () => {
       await openFolderRequest(page, COLLECTION_NAME, FOLDER_NAME, REQUEST_NAME);
       await sendRequest(page, 200);
-      await openVariablesTab(page, COLLECTION_NAME);
-      await expect(variablesTab.row('runtime', VAR_NAME)).toContainText('200');
+      await openVariablesSidebar(page);
+      await expect(variablesSidebar.row('runtime', VAR_NAME)).toContainText('200');
     });
   });
 });

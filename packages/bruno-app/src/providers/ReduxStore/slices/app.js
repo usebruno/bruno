@@ -3,6 +3,7 @@ import filter from 'lodash/filter';
 import brunoClipboard from 'utils/bruno-clipboard';
 import { normalizePath } from 'utils/common/path';
 import { addTab, focusTab } from './tabs';
+import { closeAiSidebar, dockAiChat, openAiSidebar } from './chat';
 import { clearPersistedScope } from 'hooks/usePersistedState/PersistedScopeProvider';
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -28,6 +29,7 @@ const initialState = {
   leftSidebarWidth: null,
   sidebarCollapsed: null,
   showSidebarSearch: false,
+  isVariablesSidebarOpen: false,
   focusedSidebarPath: null,
   screenWidth: 500,
   showHomePage: false,
@@ -241,6 +243,12 @@ export const appSlice = createSlice({
     toggleSidebarSearch: (state) => {
       state.showSidebarSearch = !state.showSidebarSearch;
     },
+    openVariablesSidebar: (state) => {
+      state.isVariablesSidebarOpen = true;
+    },
+    closeVariablesSidebar: (state) => {
+      state.isVariablesSidebarOpen = false;
+    },
     setFocusedSidebarPath: (state, action) => {
       state.focusedSidebarPath = action.payload;
     },
@@ -315,6 +323,8 @@ export const {
   updateGenerateCode,
   toggleSidebarCollapse,
   toggleSidebarSearch,
+  openVariablesSidebar,
+  closeVariablesSidebar,
   setFocusedSidebarPath,
   updateGitOperationProgress,
   removeGitOperationProgress,
@@ -325,6 +335,33 @@ export const {
   setIsCreatingCollection,
   setIsOpeningCollection
 } = appSlice.actions;
+
+export const showVariablesSidebar = () => (dispatch, getState) => {
+  const { chat } = getState();
+  if (chat.isOpen && !chat.isPoppedOut) {
+    dispatch(closeAiSidebar());
+  }
+  dispatch(openVariablesSidebar());
+};
+
+export const showAiSidebar = () => (dispatch, getState) => {
+  const { app, chat } = getState();
+  if (app.isVariablesSidebarOpen) {
+    dispatch(closeVariablesSidebar());
+  }
+  if (chat.isPoppedOut) {
+    dispatch(dockAiChat());
+  }
+  dispatch(openAiSidebar());
+};
+
+export const toggleVariablesSidebar = () => (dispatch, getState) => {
+  if (getState().app.isVariablesSidebarOpen) {
+    dispatch(closeVariablesSidebar());
+    return;
+  }
+  dispatch(showVariablesSidebar());
+};
 
 /**
  * NOTE:

@@ -28,7 +28,7 @@ import { buildEnvironmentLocators } from './environment/environment';
 import { buildTimelineHeaderLocators, buildTimelineLocators } from './response/timeline';
 import { buildSetAsVariableLocators } from './variable/set-as-variable';
 import { buildDevToolsLocators } from './app-shell/devtools';
-import { buildVariablesTabLocators } from './variable/variables-tab';
+import { buildVariablesSidebarLocators } from './variable/variables-sidebar';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
 import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
 import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-modal';
@@ -97,7 +97,7 @@ export const buildCommonLocators = (page: Page) => ({
   migrateToYml: buildMigrateToYmlLocators(page),
   renameCollection: buildRenameCollectionLocators(page),
   environment: buildEnvironmentLocators(page),
-  variablesTab: buildVariablesTabLocators(page),
+  variablesSidebar: buildVariablesSidebarLocators(page),
   actions: buildItemActionLocators(page),
   dropdown: buildDropdownLocators(page),
   tabs: buildRequestTabsLocators(page),

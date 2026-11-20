@@ -79,7 +79,7 @@ const pinEnvironmentTabState = (dispatch, tabUid, environmentUid, scopeInfo) => 
 // Navigate to the definition of a variable based on its scope and name.
 // for Environment also send the tab state to select the right sub-tab (Variables or Secrets).
 export const goToVariableDefinition = (scopeInfo, collection, item, variableName) => {
-  if (!scopeInfo || !collection || !variableName) {
+  if (!scopeInfo || !collection) {
     return;
   }
 
@@ -157,5 +157,7 @@ export const goToVariableDefinition = (scopeInfo, collection, item, variableName
       return;
   }
 
-  scrollDefinitionIntoView(scopeInfo.type, variableName);
+  if (variableName) {
+    scrollDefinitionIntoView(scopeInfo.type, variableName);
+  }
 };

@@ -758,27 +758,18 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('runner').click();
         await expect(page.locator('.request-tab').filter({ has: page.getByText('Runner', { exact: true }) })).toBeVisible({ timeout: 2000 });
 
-        // Open Variables tab
-        await page.getByTestId('more-actions').click();
-        await page.getByTestId('more-actions-variables').click();
-        await expect(page.locator('.request-tab').filter({ has: page.getByText('Variables', { exact: true }) })).toBeVisible({ timeout: 2000 });
-
         // Open Folder-Settings tab (create folder + double-click)
         await page.locator('.collection-item-name').filter({ has: page.getByText('kb-folder', { exact: true }) }).dblclick();
 
-        // Close in order: kb-folder (first closed) → Collection → Variables → Runner (last closed)
+        // Close in order: kb-folder (first closed) → Collection → Runner (last closed)
         await closeTabByName(page, 'kb-folder');
         await closeTabByName(page, 'Collection');
-        await closeTabByName(page, 'Variables');
         await closeTabByName(page, 'Runner');
 
         // Reopen LIFO: Runner was closed last → reopens first
         await reopenClosedTab(page, async () => {
           await pressShortcut(page, modifier, 'Shift', 'KeyT');
         }, 'Runner');
-        await reopenClosedTab(page, async () => {
-          await pressShortcut(page, modifier, 'Shift', 'KeyT');
-        }, /variables/i);
         await reopenClosedTab(page, async () => {
           await pressShortcut(page, modifier, 'Shift', 'KeyT');
         }, 'Collection');
