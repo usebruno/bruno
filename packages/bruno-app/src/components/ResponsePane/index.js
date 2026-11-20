@@ -18,7 +18,7 @@ import ResponseErrorsIcon from './ResponseErrorsIcon';
 import StyledWrapper from './StyledWrapper';
 import ResponsePaneActions from './ResponsePaneActions';
 import QueryResultTypeSelector from './QueryResult/QueryResultTypeSelector/index';
-import { useInitialResponseFormat, useResponsePreviewFormatOptions } from './QueryResult/index';
+import { useInitialResponseFormat, useResponsePreviewFormatOptions, usePreferredFallbackFormat } from './QueryResult/index';
 import SkippedRequest from './SkippedRequest';
 import ClearTimeline from './ClearTimeline/index';
 import HeightBoundContainer from 'ui/HeightBoundContainer';
@@ -47,6 +47,7 @@ const ResponsePane = ({ item, collection }) => {
   // Initialize format and tab only once when data loads.
   const { initialFormat, initialTab, contentType } = useInitialResponseFormat(response?.dataBuffer, response?.headers);
   const previewFormatOptions = useResponsePreviewFormatOptions(response?.dataBuffer, response?.headers);
+  const fallbackFormat = usePreferredFallbackFormat();
 
   // Track previous response headers to detect when content-type changes
   const previousContentRef = useRef(contentType);
@@ -55,7 +56,7 @@ const ResponsePane = ({ item, collection }) => {
   const persistedViewTab = focusedTab?.responseViewTab;
 
   // Use persisted values from Redux, falling back to initial values or defaults
-  const selectedFormat = persistedFormat ?? initialFormat ?? 'raw';
+  const selectedFormat = persistedFormat ?? initialFormat ?? fallbackFormat;
   const selectedViewTab = persistedViewTab ?? initialTab ?? 'editor';
 
   useEffect(() => {

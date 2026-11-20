@@ -59,7 +59,8 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultLocation: Yup.string().max(1024)
+    defaultLocation: Yup.string().max(1024),
+    responseFormatDetection: Yup.string().oneOf(['auto', 'json'])
   });
 
   const formik = useFormik({
@@ -82,7 +83,8 @@ const General = () => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultLocation: get(preferences, 'general.defaultLocation', '')
+      defaultLocation: get(preferences, 'general.defaultLocation', ''),
+      responseFormatDetection: get(preferences, 'general.responseFormatDetection', 'auto')
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -121,7 +123,9 @@ const General = () => {
           interval: newPreferences.autoSave.interval
         },
         general: {
-          defaultLocation: newPreferences.defaultLocation
+          ...preferences.general,
+          defaultLocation: newPreferences.defaultLocation,
+          responseFormatDetection: newPreferences.responseFormatDetection
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -325,6 +329,38 @@ const General = () => {
               onBlur={formik.handleBlur}
               value={formik.values.timeout}
             />
+          </SettingsField>
+        </SettingsGroup>
+
+        <SettingsGroup title="Response">
+          <SettingsField
+            label="Response format detection"
+            hint="Auto picks the format from the response content type. JSON is used when the format can't be detected."
+          >
+            <div className="flex items-center" role="radiogroup" aria-label="Response format detection">
+              <label className="flex items-center cursor-pointer" data-testid="response-format-detection-auto">
+                <input
+                  type="radio"
+                  name="responseFormatDetection"
+                  value="auto"
+                  checked={formik.values.responseFormatDetection === 'auto'}
+                  onChange={formik.handleChange}
+                  className="mr-1 cursor-pointer"
+                />
+                Auto
+              </label>
+              <label className="flex items-center ml-4 cursor-pointer" data-testid="response-format-detection-json">
+                <input
+                  type="radio"
+                  name="responseFormatDetection"
+                  value="json"
+                  checked={formik.values.responseFormatDetection === 'json'}
+                  onChange={formik.handleChange}
+                  className="mr-1 cursor-pointer"
+                />
+                JSON
+              </label>
+            </div>
           </SettingsField>
         </SettingsGroup>
 
