@@ -54,7 +54,7 @@ test.describe('Import Insomnia Collection v4', () => {
       await expect(sidebar.itemsIn(collectionName, 'Authentication')).toBeVisible();
 
       await expandFolder(page, 'Authentication');
-      await expect(sidebar.itemsIn(collectionName, 'Login User')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'Login User').first()).toBeVisible();
 
       await sidebar.itemsIn(collectionName, 'Get Users').click();
       await expect(tabs.activeRequestTab()).toContainText('Get Users');
