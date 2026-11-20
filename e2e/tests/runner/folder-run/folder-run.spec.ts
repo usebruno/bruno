@@ -1,18 +1,20 @@
 import { test, expect } from '../../../playwright';
 import {
+import {
   openFolderRunModal,
   folderRunButton,
+  folderRunCancelButton,
   folderRunCount,
   folderRunDelayInput,
   dismissFolderRunModal,
   addRunnerTag,
   clearRunnerTags,
+  buildCommonLocators,
   buildRunnerLocators,
   buildRunnerTagLocators,
-  getRunnerResultResponseTimeMs
-} from '../../../pages/runner';
-import { resetCollectionRunnerResults } from '../../../pages/collection/collection-run';
-import { buildCommonLocators } from '../../../pages';
+  getRunnerResultResponseTimeMs,
+  resetCollectionRunnerResults
+} from '../../../pages';
 
 const COLLECTION_NAME = 'folder-run';
 
