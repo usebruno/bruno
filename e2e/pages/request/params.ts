@@ -15,7 +15,8 @@ export const buildQueryParamsLocators = (page: Page) => {
     valueByNameText: (name: string) => valueByName(name).locator('.CodeMirror-line'),
     checkboxByName: (name: string) => rowByName(name).getByTestId('column-checkbox'),
     nameByName: (name: string) => rowByName(name).getByTestId('column-name'),
-    nameText: (name: string) => table().getByTestId('column-name').getByText(name, { exact: true }),
+    // Name cells are plain <input>s (not CodeMirror).
+    nameText: (name: string) => table().getByTestId('column-name').locator(`input[value="${name}"]`),
     valueText: (value: string) => table().getByTestId('column-value').getByText(value, { exact: true }),
     addRow: () => table().locator('tbody tr').last(),
     bulkEditToggle: () => pane().getByTestId('bulk-edit-toggle'),
@@ -45,10 +46,14 @@ export const fillQueryParamRow = async (page: Page, name: string, value: string)
   await test.step(`Add query param "${name}: ${value}"`, async () => {
     const params = buildQueryParamsLocators(page);
     const row = params.addRow();
-    await row.getByTestId('column-name').locator('.CodeMirror').click();
-    await page.keyboard.type(name);
+    // Query param Name uses a plain input; Value uses MultiLineEditor (CodeMirror).
+    const nameInput = row.getByTestId('column-name').locator('input');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
     await params.rowByName(name).waitFor({ state: 'visible' });
-    await params.valueByName(name).locator('.CodeMirror').click();
+    const valueEditor = params.valueByName(name).locator('.CodeMirror');
+    await valueEditor.waitFor({ state: 'visible' });
+    await valueEditor.click();
     await page.keyboard.type(value);
   });
 };

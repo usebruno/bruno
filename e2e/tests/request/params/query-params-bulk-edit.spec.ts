@@ -16,6 +16,9 @@ import {
 const collectionName = 'query-params-bulk-sync';
 const requestName = 'echo-params';
 
+// Electron setup plus multi-step Key/Value ↔ Bulk Edit sync exceeds the 30s default.
+test.describe.configure({ timeout: 120_000 });
+
 test.describe('Request query params Key/Value and Bulk Edit sync', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
