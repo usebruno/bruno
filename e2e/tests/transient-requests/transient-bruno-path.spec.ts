@@ -3,6 +3,7 @@ import * as path from 'path';
 import { test as base, expect, closeElectronApp, waitForReadyPage, ElectronApplication, Page } from '../../playwright';
 import {
   buildCommonLocators,
+  closeAllCollections,
   createCollection,
   createCollectionInSaveModal,
   createTransientRequestFromPreset,
@@ -30,7 +31,19 @@ const test = base.extend<{ brunoAbcApp: BrunoAbcApp }>({
 });
 
 test.describe('Creating and saving transient requests when the username starts with bruno-', () => {
-  test('TC-8686: Creates a transient request from the collection level', { tag: '@sanity' }, async ({ brunoAbcApp: { page }, createTmpDir }) => {
+  let app: ElectronApplication;
+  let page: Page;
+
+  test.beforeEach(async ({ brunoAbcApp }) => {
+    app = brunoAbcApp.app;
+    page = brunoAbcApp.page;
+  });
+
+  test.afterEach(async () => {
+    await closeAllCollections(page);
+  });
+
+  test('TC-8686: Creates a transient request from the collection level', { tag: '@sanity' }, async ({ createTmpDir }) => {
     const collectionName = 'transient-bruno-abc';
     const { tabs } = buildCommonLocators(page);
 
@@ -47,7 +60,7 @@ test.describe('Creating and saving transient requests when the username starts w
     });
   });
 
-  test('TC-3113: Creates a transient request from the workspace level', { tag: '@sanity' }, async ({ brunoAbcApp: { page }, createTmpDir }) => {
+  test('TC-3113: Creates a transient request from the workspace level', { tag: '@sanity' }, async ({ createTmpDir }) => {
     const collectionName = 'workspace-level-collection';
     const { tabs, titleBar, workspaceOverview } = buildCommonLocators(page);
 
@@ -73,7 +86,7 @@ test.describe('Creating and saving transient requests when the username starts w
     });
   });
 
-  test('TC-1511: Verify saving the request in a workspace having no collection to begin with', { tag: '@sanity' }, async ({ brunoAbcApp: { app, page }, createTmpDir }) => {
+  test('TC-1511: Verify saving the request in a workspace having no collection to begin with', { tag: '@sanity' }, async ({ createTmpDir }) => {
     const collectionName = 'first-collection';
     const requestName = 'saved-request';
     const collectionLocation = await createTmpDir(collectionName);
@@ -104,8 +117,6 @@ test.describe('Creating and saving transient requests when the username starts w
 
     await test.step('Verify that the request is saved as configured', async () => {
       await expect(saveModal.root()).toBeHidden();
-      await sidebar.collection(collectionName).click();
-      await sidebar.request(requestName).click();
       await expect(tabs.activeRequestTabLabel()).toContainText(requestName);
       await expect.poll(() => fs.existsSync(path.join(collectionLocation, collectionName, `${requestName}.yml`))).toBe(true);
     });

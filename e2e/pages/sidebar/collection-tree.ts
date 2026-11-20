@@ -143,15 +143,12 @@ export const buildSidebarLocators = (page: Page) => {
       modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
       nameInput: (): Locator => page.locator('#request-name'),
       root: saveModal.card,
-      requestNameInput: saveModal.nameInput,
-      saveButton: saveModal.saveButton,
       emptyState: (): Locator => saveModal.card().getByText('No Collections Yet'),
       newCollectionButton: (): Locator => saveModal.card().getByRole('button', { name: 'New collection' }),
       collectionNameInput: (): Locator => newCollectionItem().getByPlaceholder('Enter collection name'),
       locationInput: (): Locator => newCollectionItem().getByPlaceholder('Select location'),
       browseButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Browse' }),
-      createCollectionButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Create', exact: true }),
-      collectionOption: saveModal.collectionOption
+      createCollectionButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Create', exact: true })
     },
 
     filesystemName: {
