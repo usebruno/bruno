@@ -48,7 +48,8 @@ test.describe('Migrate to YML — unsaved request', () => {
       await cancelMigrationFromDraftsStep(page);
     });
 
-    await test.step('Verify that the Untitled request still has its unsaved edit', async () => {
+    await test.step('Verify that the collection was not migrated and the Untitled request still has its unsaved edit', async () => {
+      await expect(migrateToYml.pill()).toBeVisible();
       await expect(tabs.activeRequestTabLabel()).toContainText(REQUEST_NAME);
       await expect(tabs.tabDraftIndicator(tabs.activeRequestTab())).toBeVisible();
       await expect(request.urlLine().first()).toContainText('/edited');

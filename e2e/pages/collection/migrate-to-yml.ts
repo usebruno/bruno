@@ -121,7 +121,7 @@ export const discardAllDraftsAndMigrate = async (page: Page) => {
 export const returnFromDraftsStep = async (page: Page) => {
   const locators = buildMigrateToYmlLocators(page);
   await locators.draftsBack().click();
-  await expect(locators.draftsStep()).toBeHidden({ timeout: 5000 });
+  await locators.draftsStep().waitFor({ state: 'hidden', timeout: 5000 });
 };
 
 /**
