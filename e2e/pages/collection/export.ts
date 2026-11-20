@@ -16,7 +16,13 @@ import { openCollection } from './manage';
 /**
  * Locators for the Share / Export collection modals.
  */
-export const buildExportCollectionLocators = (page: Page) => ({
+export const buildExportCollectionLocators = (page: Page) => {
+  const modal = () => page.getByTestId('share-collection-modal');
+
+  return {
+  modal,
+  closeButton: () => modal().getByTestId('modal-close-button'),
+  nonExportableNote: () => modal().getByTestId('share-collection-non-exportable-note'),
   postmanModal: () => page.getByTestId('export-to-postman-modal'),
   exportTab: () => page.getByTestId('share-collection-tab-export'),
   postmanFormatCard: () => page.getByTestId('export-format-postman'),
@@ -27,7 +33,8 @@ export const buildExportCollectionLocators = (page: Page) => ({
   advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
   preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
   preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
-});
+  };
+};
 
 const buildLocators = (page: Page) => ({
   actions: buildItemActionLocators(page),

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import YAML from 'yaml';
-import { test, expect, closeElectronApp, ElectronApplication, waitForReadyPage } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   closeAllCollections,
@@ -12,7 +12,6 @@ import {
   exportCollectionToPostman,
   openShareCollectionModal
 } from '../../../pages';
-import { buildShareCollectionLocators } from '../../../pages/collection/share-collection';
 
 const collectionName = 'export-collection';
 const postmanCollectionName = 'export-postman';
@@ -114,48 +113,37 @@ test.describe('Export Bruno collection', () => {
 });
 
 test.describe('Export a collection with gRPC requests to Postman', () => {
+  test.use({
+    collectionFixturePath: path.join(__dirname, 'fixtures', 'collection')
+  });
+
   test('TC-3050: Verify that exporting to Postman skips gRPC requests with a note', { tag: '@sanity' }, async ({
-    launchElectronApp,
-    collectionFixturePath,
+    pageWithUserData: page,
     createTmpDir
   }) => {
     const exportLocation = await createTmpDir(`${postmanGrpcCollectionName}-output`);
-    let app: ElectronApplication | undefined;
+    const { sidebar, export: exportLocators } = buildCommonLocators(page);
 
-    try {
-      app = await launchElectronApp({
-        initUserDataPath: path.join(__dirname, 'init-user-data'),
-        templateVars: { collectionPath: collectionFixturePath! }
-      });
-      const page = await waitForReadyPage(app);
-      const { sidebar } = buildCommonLocators(page);
-      const shareCollection = buildShareCollectionLocators(page);
+    await test.step('Verify the fixture collection with an HTTP request and a gRPC request opens', async () => {
+      await expect(sidebar.collection(postmanGrpcCollectionName)).toBeVisible();
+    });
 
-      await test.step('Verify the fixture collection with an HTTP request and a gRPC request opens', async () => {
-        await expect(sidebar.collection(postmanGrpcCollectionName)).toBeVisible();
-      });
+    await openShareCollectionModal(page, postmanGrpcCollectionName);
 
-      await openShareCollectionModal(page, postmanGrpcCollectionName);
+    await test.step('Verify that selecting Postman shows the gRPC skip note', async () => {
+      await exportLocators.postmanFormatCard().click();
+      await expect(exportLocators.nonExportableNote()).toContainText(
+        'gRPC requests in this collection will not be exported'
+      );
+      await exportLocators.closeButton().click();
+      await expect(exportLocators.modal()).toBeHidden();
+    });
 
-      await test.step('Verify that selecting Postman shows the gRPC skip note', async () => {
-        await shareCollection.postmanFormatCard().click();
-        await expect(shareCollection.nonExportableNote()).toContainText(
-          'gRPC requests in this collection will not be exported'
-        );
-        await shareCollection.closeButton().click();
-        await expect(shareCollection.modal()).toBeHidden();
-      });
+    const exported = await exportCollectionToPostman(page, postmanGrpcCollectionName, exportLocation);
 
-      const exported = await exportCollectionToPostman(page, postmanGrpcCollectionName, exportLocation);
-
-      await test.step('Verify that the Postman export contains the HTTP request only', async () => {
-        expect(exported.info.name).toBe(postmanGrpcCollectionName);
-        expect(exported.item.map((item: { name: string }) => item.name)).toEqual(['ping']);
-      });
-    } finally {
-      if (app) {
-        await closeElectronApp(app);
-      }
-    }
+    await test.step('Verify that the Postman export contains the HTTP request only', async () => {
+      expect(exported.info.name).toBe(postmanGrpcCollectionName);
+      expect(exported.item.map((item: { name: string }) => item.name)).toEqual(['ping']);
+    });
   });
 });
