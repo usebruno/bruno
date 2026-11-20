@@ -16,18 +16,26 @@ import { openCollection } from './manage';
 /**
  * Locators for the Share / Export collection modals.
  */
-export const buildExportCollectionLocators = (page: Page) => ({
-  postmanModal: () => page.getByTestId('export-to-postman-modal'),
-  exportTab: () => page.getByTestId('share-collection-tab-export'),
-  postmanFormatCard: () => page.getByTestId('export-format-postman'),
-  yamlFormatCard: () => page.getByTestId('export-format-yaml'),
-  nameInput: () => page.getByLabel('Name', { exact: true }),
-  locationInput: () => page.getByLabel('Location', { exact: true }),
-  optionsButton: () => page.getByRole('button', { name: 'Options' }),
-  advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-  preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
-  preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
-});
+export const buildExportCollectionLocators = (page: Page) => {
+  const modal = () => page.getByTestId('share-collection-modal');
+
+  return {
+    modal,
+    closeButton: () => modal().getByTestId('modal-close-button'),
+    nonExportableNote: () => modal().getByTestId('share-collection-non-exportable-note'),
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
+    zipFormatCard: () => page.getByTestId('export-format-zip'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
+  };
+};
 
 const buildLocators = (page: Page) => ({
   actions: buildItemActionLocators(page),
