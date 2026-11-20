@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'tests/**/*.spec.ts'
+      - 'e2e/tests/**/*.spec.ts'
 
 permissions:
   contents: read
