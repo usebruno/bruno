@@ -1,14 +1,18 @@
 import {
+  ElectronApplication,
   Locator,
   Page,
   expect,
   test
 } from '../../playwright';
+import { stubOpenDirectoryDialog } from '../../utils/stubs';
+import { waitForPredicate } from '../../utils/wait';
 import { buildRequestTabsLocators } from '../app-shell/tabs';
 import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { buildToastLocators } from '../app-shell/toast';
 import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildFileModeLocators } from '../shared-ui/file-mode';
 
 export type EmptyStateRequestType = 'http' | 'graphql' | 'grpc' | 'websocket';
 
@@ -26,6 +30,8 @@ export const buildSidebarLocators = (page: Page) => {
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
   const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
+  const saveModal = buildFileModeLocators(page).transientSaveModal;
+  const newCollectionItem = () => saveModal.card().locator('.new-collection-item');
 
   return {
     inlineCollectionCreator: {
@@ -135,7 +141,14 @@ export const buildSidebarLocators = (page: Page) => {
 
     saveRequestModal: {
       modal: (): Locator => page.locator('.bruno-modal-card').filter({ hasText: 'Save Request' }),
-      nameInput: (): Locator => page.locator('#request-name')
+      nameInput: (): Locator => page.locator('#request-name'),
+      root: saveModal.card,
+      emptyState: (): Locator => saveModal.card().getByText('No Collections Yet'),
+      newCollectionButton: (): Locator => saveModal.card().getByRole('button', { name: 'New collection' }),
+      collectionNameInput: (): Locator => newCollectionItem().getByPlaceholder('Enter collection name'),
+      locationInput: (): Locator => newCollectionItem().getByPlaceholder('Select location'),
+      browseButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Browse' }),
+      createCollectionButton: (): Locator => newCollectionItem().getByRole('button', { name: 'Create', exact: true })
     },
 
     filesystemName: {
@@ -268,7 +281,7 @@ const buildLocators = (page: Page) => ({
  * @param page - The page object
  * @returns void
  */
-export const clickEmptySidebarSpace = async (page) => {
+export const clickEmptySidebarSpace = async (page: Page) => {
   const locators = buildLocators(page);
   if (!(await locators.sidebar.collectionsContainer().isVisible())) return;
   const listBox = await locators.sidebar.collectionsContainer().boundingBox();
@@ -285,6 +298,36 @@ export const revealCollectionsTop = async (page: Page) => {
   const scroller = page.getByTestId('sidebar-collections-scroller');
   if (!(await scroller.count())) return;
   await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
+};
+
+// Create a collection from the "New collection" form inside the transient "Save Request" modal.
+// The location field is read-only and is only set through the native folder picker, so the picker is stubbed.
+export const createCollectionInSaveModal = async (
+  page: Page,
+  app: ElectronApplication,
+  collectionName: string,
+  collectionLocation: string
+) => {
+  await test.step(`Create collection "${collectionName}" from the save modal`, async () => {
+    const { saveRequestModal } = buildSidebarLocators(page);
+
+    await saveRequestModal.newCollectionButton().click();
+    await saveRequestModal.collectionNameInput().fill(collectionName);
+
+    await stubOpenDirectoryDialog(app, [collectionLocation]);
+    await saveRequestModal.browseButton().click();
+    const locationSet = await waitForPredicate(
+      async () => (await saveRequestModal.locationInput().inputValue()) === collectionLocation,
+      { tries: 20 }
+    );
+    if (!locationSet) {
+      throw new Error(`Save modal location was not set to "${collectionLocation}"`);
+    }
+
+    await saveRequestModal.createCollectionButton().click();
+    // The form closes once the collection is created
+    await saveRequestModal.createCollectionButton().waitFor({ state: 'hidden' });
+  });
 };
 
 export const toggleOpenCollectionItem = async (page: Page, name: string) => {
