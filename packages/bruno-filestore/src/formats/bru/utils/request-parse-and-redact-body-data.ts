@@ -14,8 +14,15 @@ export const bruRequestParseAndRedactBodyData = (bruFileContent: string) => {
       'body:graphql {'
     ];
 
-    // Normalize line endings to LF
-    bruFileContent = (bruFileContent || '').replace(/\r\n/g, '\n');
+    // Normalize line endings to LF and ensure trailing newline so final closing brace is split properly
+    bruFileContent = (bruFileContent || '').replace(/\r\n/g, '\n').trimEnd();
+    if (!bruFileContent) {
+      return {
+        bruFileStringWithRedactedBody: '',
+        extractedBodyContent: {}
+      };
+    }
+    bruFileContent += '\n';
 
     const EOL = `\n`;
 
@@ -64,7 +71,9 @@ export const bruRequestParseAndRedactBodyData = (bruFileContent: string) => {
     );
 
     return {
-      bruFileStringWithRedactedBody: fileContentWithoutBodyBlocks.join(`${EOL}}${EOL}${EOL}`).concat(`${EOL}}${EOL}`),
+      bruFileStringWithRedactedBody: fileContentWithoutBodyBlocks.length
+        ? fileContentWithoutBodyBlocks.join(`${EOL}}${EOL}${EOL}`).concat(`${EOL}}${EOL}`)
+        : '',
       extractedBodyContent: extractedBodyBlocks
     };
   } catch (error) {
