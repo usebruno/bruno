@@ -1,9 +1,12 @@
 import {
+  ElectronApplication,
   Locator,
   Page,
   expect,
   test
 } from '../../playwright';
+import { stubOpenDirectoryDialog } from '../../utils/stubs';
+import { waitForPredicate } from '../../utils/wait';
 import { buildRequestTabsLocators } from '../app-shell/tabs';
 import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { buildToastLocators } from '../app-shell/toast';
@@ -298,6 +301,36 @@ export const revealCollectionsTop = async (page: Page) => {
   const scroller = page.getByTestId('sidebar-collections-scroller');
   if (!(await scroller.count())) return;
   await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
+};
+
+// Create a collection from the "New collection" form inside the transient "Save Request" modal.
+// The location field is read-only and is only set through the native folder picker, so the picker is stubbed.
+export const createCollectionInSaveModal = async (
+  page: Page,
+  app: ElectronApplication,
+  collectionName: string,
+  collectionLocation: string
+) => {
+  await test.step(`Create collection "${collectionName}" from the save modal`, async () => {
+    const { saveRequestModal } = buildSidebarLocators(page);
+
+    await saveRequestModal.newCollectionButton().click();
+    await saveRequestModal.collectionNameInput().fill(collectionName);
+
+    await stubOpenDirectoryDialog(app, [collectionLocation]);
+    await saveRequestModal.browseButton().click();
+    const locationSet = await waitForPredicate(
+      async () => (await saveRequestModal.locationInput().inputValue()) === collectionLocation,
+      { tries: 20 }
+    );
+    if (!locationSet) {
+      throw new Error(`Save modal location was not set to "${collectionLocation}"`);
+    }
+
+    await saveRequestModal.createCollectionButton().click();
+    // The form closes once the collection is created
+    await saveRequestModal.createCollectionButton().waitFor({ state: 'hidden' });
+  });
 };
 
 export const toggleOpenCollectionItem = async (page: Page, name: string) => {

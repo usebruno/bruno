@@ -1,9 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as base, expect, closeElectronApp, waitForReadyPage, ElectronApplication, Page } from '../../playwright';
-import { createCollection, createCollectionInSaveModal, createTransientRequestFromPreset, createWorkspace } from '../utils/page/actions';
-import { saveTransientViaModal } from '../utils/page';
-import { buildCommonLocators } from '../utils/page/locators';
+import {
+  buildCommonLocators,
+  createCollection,
+  createCollectionInSaveModal,
+  createTransientRequestFromPreset,
+  createWorkspace,
+  saveTransientViaModal
+} from '../../pages';
 
 type BrunoAbcApp = { app: ElectronApplication; page: Page };
 
