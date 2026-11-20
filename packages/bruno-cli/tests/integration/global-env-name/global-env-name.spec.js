@@ -67,6 +67,32 @@ describe('CLI run — bru.getEnvName() and bru.getGlobalEnvName()', () => {
     { title: 'a global environment whose name must stay out of its variables', request: 'name-is-not-a-variable', args: ['--global-env', 'workspace_scripted'] }
   ];
 
+  // The override flags inject variables; `__name__` is the environment's own name, so letting one
+  // through would report a name the run never selected.
+  const RESERVED_OVERRIDE_CASES = [
+    { flag: '--global-env-var', title: 'with a global environment selected', args: ['--global-env', 'workspace_scripted'] },
+    { flag: '--global-env-var', title: 'with no global environment selected', args: [] },
+    { flag: '--env-var', title: 'with a collection environment selected', args: ['--env', 'scripted'] },
+    { flag: '--env-var', title: 'with no collection environment selected', args: [] }
+  ];
+
+  RESERVED_OVERRIDE_CASES.forEach(({ flag, title, args }) => {
+    it(`rejects a ${flag} that sets __name__ ${title}`, async () => {
+      workspaceDir = createCollectionFixture(FIXTURE_DIR);
+      const result = await runCli([
+        'run', 'global-env-only.yml',
+        '--workspace-path', workspaceDir,
+        '--global-env-var', `baseUrl=${baseUrl}`,
+        flag, '__name__=spoofed',
+        '--noproxy',
+        ...args
+      ], path.join(workspaceDir, 'collections', 'collection'));
+
+      expect(result.code).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain('__name__');
+    }, 60_000);
+  });
+
   CASES.forEach(({ title, request, args }) => {
     it.each(['safe', 'developer'])(`reports the right names with ${title} (--sandbox %s)`, async (sandbox) => {
       await run(request, { sandbox, args });
