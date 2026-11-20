@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
-  closeAllCollections,
   expandTimelineEntry,
   openRequest,
   selectResponsePaneTab,
@@ -13,10 +12,6 @@ const REQUEST_URL = 'http://localhost:8081/ping';
 const SCRIPT_REQUEST_URL = 'http://localhost:8081/headers';
 
 test.describe('Timeline - successful script requests', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
   test('TC-2383: Verify the Timeline lists your request and the script request separately', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {

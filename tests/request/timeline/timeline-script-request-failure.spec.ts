@@ -1,7 +1,6 @@
 import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
-  closeAllCollections,
   openRequest,
   openTimelineEntryNetworkLogs,
   openTimelineEntryResponse,
@@ -15,10 +14,6 @@ const UNREACHABLE_HOST = 'localhost:9999';
 const REQUEST_ERROR_MESSAGE = 'there was an error executing the request!';
 
 test.describe('Timeline - failed script requests', () => {
-  test.afterEach(async ({ pageWithUserData: page }) => {
-    await closeAllCollections(page);
-  });
-
   test('TC-2385: Verify the Timeline shows a failed bru.sendRequest() call', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
@@ -50,14 +45,17 @@ test.describe('Timeline - failed script requests', () => {
     pageWithUserData: page
   }) => {
     const { timeline } = buildCommonLocators(page);
+    const requestEntry = timeline.entriesOfKind('main');
     const runRequestEntry = timeline.entriesOfKind('post');
 
     await openRequest(page, COLLECTION_NAME, 'runrequest-failed');
-    await sendRequest(page);
+    // bru.runRequest() resolves on a network error, so the outer request still completes.
+    await sendRequest(page, 200);
     await selectResponsePaneTab(page, 'Timeline');
 
     await test.step('Verify the Timeline lists the runRequest call', async () => {
       await expect(timeline.entries()).toHaveCount(2);
+      await expect(timeline.entryBadge(requestEntry, 'main')).toHaveText('request');
       await expect(runRequestEntry).toHaveCount(1);
       await expect(timeline.entryBadge(runRequestEntry, 'post')).toHaveText('runRequest');
       await expect(timeline.entryUrl(runRequestEntry)).toContainText(UNREACHABLE_HOST);
@@ -65,6 +63,8 @@ test.describe('Timeline - failed script requests', () => {
 
     await openTimelineEntryNetworkLogs(page, runRequestEntry);
 
+    // Known bug: a failed bru.runRequest() row shows status 0 instead of Error, so the status
+    // can't be asserted yet; the request error in the Network logs proves the failure instead.
     await test.step('Verify the runRequest Network logs show the request error', async () => {
       await expect(timeline.entryErrorLogs(runRequestEntry).filter({ hasText: REQUEST_ERROR_MESSAGE })).toHaveCount(1);
     });
