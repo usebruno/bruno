@@ -20,7 +20,7 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
     await closeAllCollections(page);
   });
 
-  test('keeps the request app enabled with its code after migration', async ({
+  test('TC-5986: Verify after migration user is able to view app code at request level', { tag: '@sanity' }, async ({
     pageWithUserData: page,
     createTmpDir,
     reuseOrLaunchElectronApp
@@ -41,8 +41,11 @@ test.describe('Migrating a collection with app code from bru to yml', () => {
       await expect(page.getByText('Collection migrated to YML format successfully')).toBeVisible({ timeout: 30000 });
     });
 
-    await test.step('Reopening the request still lands in its app view, code intact', async () => {
+    await test.step('Reopen the migrated request', async () => {
       await openRequest(page, COLLECTION_NAME, 'app-req', { persist: true });
+    });
+
+    await test.step('Verify that the request still opens in its app view with its code intact', async () => {
       await expect(activeAppView(page)).toBeVisible({ timeout: 10000 });
       expect(await getAppWebviewHtml(page, electronApp)).toContain('Hello from the request app');
     });
