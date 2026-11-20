@@ -40,15 +40,19 @@ const createRedirectConfig = (error, redirectUrl) => {
   const originalMethod = (error.config.method || 'get').toLowerCase();
 
   // For 301, 302, 303: change method to GET unless it was HEAD
-  if (METHOD_CHANGING_REDIRECTS.includes(statusCode) && originalMethod !== 'head') {
-    requestConfig.method = 'get';
-    requestConfig.data = undefined;
+  if (METHOD_CHANGING_REDIRECTS.includes(statusCode)) {
+    if (originalMethod !== 'head') {
+      requestConfig.method = 'GET';
+      requestConfig.data = undefined;
 
-    // Clean up headers that are no longer relevant
-    delete requestConfig.headers['content-length'];
-    delete requestConfig.headers['Content-Length'];
-    delete requestConfig.headers['content-type'];
-    delete requestConfig.headers['Content-Type'];
+      // Clean up headers that are no longer relevant
+      delete requestConfig.headers['content-length'];
+      delete requestConfig.headers['Content-Length'];
+      delete requestConfig.headers['content-type'];
+      delete requestConfig.headers['Content-Type'];
+    } else {
+      requestConfig.method = 'HEAD';
+    }
   } else {
     // For 307, 308 and other status codes: preserve method and body
     if (requestConfig.data && typeof requestConfig.data === 'object'
@@ -99,6 +103,18 @@ function makeAxiosInstance({
 
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
+    transformRequest: [
+      ...axios.defaults.transformRequest,
+      function (data, headers) {
+        // Uppercasing config.method in the request interceptor bypasses Axios's
+        // lowercase ['post', 'put', 'patch'] check in dispatchRequest; preserve its
+        // default Content-Type fallback without overriding null/false suppressions.
+        if (['POST', 'PUT', 'PATCH'].includes(this?.method) && typeof headers?.setContentType === 'function') {
+          headers.setContentType('application/x-www-form-urlencoded', false);
+        }
+        return data;
+      }
+    ],
     proxy: false,
     maxRedirects: 0,
     headers: {}
@@ -111,6 +127,9 @@ function makeAxiosInstance({
   instance.defaults.headers.common['User-Agent'] = `bruno-runtime/${CLI_VERSION}`;
 
   instance.interceptors.request.use((config) => {
+    if (config.method) {
+      config.method = config.method.toUpperCase();
+    }
     config.metadata = config.metadata || {};
 
     // Omit listed defaults and script-deleted headers. set(null) so Axios

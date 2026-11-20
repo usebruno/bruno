@@ -41,6 +41,20 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('HTTP method normalization', () => {
+    it('Should normalize lowercase method to uppercase', async () => {
+      const request = { method: 'post', url: 'test-domain', body: { mode: 'none' }, auth: { mode: 'none' } };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.method).toBe('POST');
+    });
+
+    it('Should default method to GET when omitted', async () => {
+      const request = { url: 'test-domain', body: { mode: 'none' }, auth: { mode: 'none' } };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.method).toBe('GET');
+    });
+  });
+
   describe('Header entries', () => {
     it('Should emit headerEntries in row order with disabled rows flagged, and one entry per enabled name', async () => {
       const request = {
