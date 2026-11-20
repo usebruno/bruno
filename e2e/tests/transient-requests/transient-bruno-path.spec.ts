@@ -30,7 +30,7 @@ const test = base.extend<{ brunoAbcApp: BrunoAbcApp }>({
   }
 });
 
-test.describe('Creating and saving transient requests when the username starts with bruno-', () => {
+test.describe('Creating a transient request when the OS username starts with "bruno-"', () => {
   let app: ElectronApplication;
   let page: Page;
 
