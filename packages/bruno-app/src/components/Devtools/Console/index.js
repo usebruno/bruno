@@ -32,6 +32,7 @@ import ErrorDetailsPanel from './ErrorDetailsPanel';
 import Performance from '../Performance';
 import StyledWrapper from './StyledWrapper';
 import { useResizablePanel } from 'hooks/useResizablePanel';
+import { isMacOS } from 'utils/common/platform';
 
 const MIN_DETAILS_PANEL_WIDTH = 280;
 const DETAILS_PANEL_MAX_RATIO = 0.7;
@@ -132,6 +133,38 @@ const getBrunoTypeMetadata = (obj) => {
   return {};
 };
 
+// Turns any http(s) URL inside a plain string into a marked, hoverable span.
+
+const getLinkHint = () => (isMacOS() ? 'Hold Cmd and click to open link' : 'Hold Ctrl and click to open link');
+
+const linkifyText = (text, key) => {
+  if (!text || typeof text !== 'string') return text;
+  const urlRegex = /(https?:\/\/[^\s"'()]+(?:\([^\s"'()]*\)[^\s"'()]*)*)/g;
+  if (!text.match(urlRegex)) return text;
+  const parts = text.split(urlRegex);
+  const linkHint = getLinkHint();
+  return (
+    <React.Fragment key={key}>
+      {parts.map((part, index) =>
+        part.match(urlRegex) ? (
+          <span
+            key={index}
+            className="log-link"
+            data-url={part}
+            title={linkHint}
+            role="link"
+            tabIndex={0}
+          >
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </React.Fragment>
+  );
+};
+
 const LogMessage = ({ message, args }) => {
   const { displayedTheme } = useTheme();
 
@@ -172,10 +205,10 @@ const LogMessage = ({ message, args }) => {
             </div>
           );
         }
-        return String(arg);
+        return linkifyText(String(arg), index);
       });
     }
-    return msg;
+    return linkifyText(msg, 'msg');
   };
 
   const formattedMessage = formatMessage(message, args);
@@ -192,6 +225,7 @@ const LogMessage = ({ message, args }) => {
 const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onClearLogs }) => {
   const logsEndRef = useRef(null);
   const prevLogsCountRef = useRef(0);
+  const contentAreaRef = useRef(null);
 
   useEffect(() => {
     // Only scroll when new logs are added, not when switching tabs
@@ -201,11 +235,71 @@ const ConsoleTab = ({ logs, filters, logCounts, onFilterToggle, onToggleAll, onC
     prevLogsCountRef.current = logs.length;
   }, [logs]);
 
+  // Toggle a CSS-only class on the container while Cmd/Ctrl is held, so
+  // links visually become clickable
+
+  useEffect(() => {
+    const isCmdOrCtrlPressed = (event) => (isMacOS() ? event.metaKey : event.ctrlKey);
+    const updateCmdCtrlClass = (event) => {
+      const el = contentAreaRef.current;
+      if (!el) return;
+      el.classList.toggle('cmd-ctrl-pressed', isCmdOrCtrlPressed(event));
+    };
+    // If the window loses focus while the modifier is held (e.g. Cmd+Tab
+    // to another app), this component never receives the matching keyup,
+    // so the class would otherwise stay stuck on — clear it explicitly.
+    const clearCmdCtrlClass = () => {
+      contentAreaRef.current?.classList.remove('cmd-ctrl-pressed');
+    };
+    window.addEventListener('keydown', updateCmdCtrlClass);
+    window.addEventListener('keyup', updateCmdCtrlClass);
+    window.addEventListener('blur', clearCmdCtrlClass);
+    return () => {
+      window.removeEventListener('keydown', updateCmdCtrlClass);
+      window.removeEventListener('keyup', updateCmdCtrlClass);
+      window.removeEventListener('blur', clearCmdCtrlClass);
+    };
+  }, []);
+
+  // Single delegated click handler for every .log-link, shared by mouse and
+  // keyboard activation, rather than one listener per link. Only opens the URL
+  // when the modifier is held a plain click/Enter is left alone.
+
+  const activateLogLink = (event, linkEl) => {
+    const modifierPressed = isMacOS() ? event.metaKey : event.ctrlKey;
+    if (!modifierPressed) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const url = linkEl.getAttribute('data-url');
+    if (url) window?.ipcRenderer?.openExternal(url);
+  };
+
+  const handleContentAreaClick = (event) => {
+    const linkEl = event.target.closest?.('.log-link');
+    if (!linkEl) return;
+    activateLogLink(event, linkEl);
+  };
+
+  // Keyboard equivalent of modifier+click: focus the link (Tab), hold the
+  // same modifier, press Enter.
+  const handleContentAreaKeyDown = (event) => {
+    if (event.key !== 'Enter') return;
+    const linkEl = event.target.closest?.('.log-link');
+    if (!linkEl) return;
+    activateLogLink(event, linkEl);
+  };
+
   const filteredLogs = logs.filter((log) => filters[log.type]);
 
   return (
     <div className="tab-content">
-      <div className="tab-content-area">
+      <div
+        className="tab-content-area"
+        ref={contentAreaRef}
+        onClick={handleContentAreaClick}
+        onKeyDown={handleContentAreaKeyDown}
+      >
         {filteredLogs.length === 0 ? (
           <div className="console-empty">
             <IconTerminal2 size={48} strokeWidth={1} />
