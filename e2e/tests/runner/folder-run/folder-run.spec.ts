@@ -1,9 +1,7 @@
 import { test, expect } from '../../../playwright';
 import {
-import {
   openFolderRunModal,
   folderRunButton,
-  folderRunCancelButton,
   folderRunCount,
   folderRunDelayInput,
   dismissFolderRunModal,
