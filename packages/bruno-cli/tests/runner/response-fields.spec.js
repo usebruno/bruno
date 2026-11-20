@@ -48,6 +48,7 @@ jest.mock('../../src/utils/form-data', () => ({
   createFormData: jest.fn()
 }));
 jest.mock('@usebruno/requests', () => ({
+  shouldUseProxy: jest.requireActual('@usebruno/requests').shouldUseProxy,
   addDigestInterceptor: jest.fn(),
   applySentHeadersToRequest: jest.fn(),
   getHttpHttpsAgents: jest.fn(() => ({})),
