@@ -231,7 +231,6 @@ test.describe('Folder runner', () => {
   test('TC-2728: Verify Reset returns to the runner config and clears the delay', { tag: '@sanity' }, async ({
     pageWithUserData: page
   }) => {
-    test.setTimeout(120_000);
     const runner = buildRunnerLocators(page);
     const delayMs = 500;
 
