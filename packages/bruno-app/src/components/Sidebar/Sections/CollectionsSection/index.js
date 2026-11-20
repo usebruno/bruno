@@ -22,6 +22,7 @@ import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggl
 import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
+import { formatIpcError } from 'utils/common/error';
 import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
@@ -121,6 +122,9 @@ const CollectionsSection = () => {
         setImportCollectionLocationModalOpen(false);
         setImportData(null);
         handleImportResolved(convertedCollection, importedItem);
+      })
+      .catch((err) => {
+        toast.error(formatIpcError(err) || 'Failed to import collection');
       });
   };
 
