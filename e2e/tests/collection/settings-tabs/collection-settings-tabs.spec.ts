@@ -1,14 +1,15 @@
-import { Locator, test, expect } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
   createCollection,
   selectCollectionPaneTab
 } from '../../../pages';
 
+type CommonLocators = ReturnType<typeof buildCommonLocators>;
 type CollectionTab = {
   key: string;
   label: string;
-  content: (locators: ReturnType<typeof buildCommonLocators>) => Locator;
+  content: (locators: CommonLocators) => ReturnType<CommonLocators['collectionSettings']['versionRow']>;
 };
 
 const collectionTabs: CollectionTab[] = [
