@@ -29,7 +29,7 @@ runs:
         KC_HOME="${RUNNER_TEMP}/keycloak-${KEYCLOAK_VERSION}"
 
         mkdir -p "${KC_HOME}/data/import"
-        cp "${GITHUB_WORKSPACE}/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
+        cp "${GITHUB_WORKSPACE}/e2e/tests/auth/oauth2/fixtures/keycloak/realm-export.json" \
           "${KC_HOME}/data/import/realm-export.json"
 
         echo "KC_HOME=${KC_HOME}" >> "${GITHUB_ENV}"

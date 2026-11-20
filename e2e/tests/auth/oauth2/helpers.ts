@@ -1,7 +1,6 @@
 import type { ElectronApplication } from 'playwright';
 import { test, expect, waitForReadyPage } from '../../../playwright';
-import { openRequest, selectRequestPaneTab, selectEnvironment } from '../../utils/page';
-import { buildCommonLocators } from '../../utils/page/locators';
+import { openRequest, selectRequestPaneTab, selectEnvironment, buildCommonLocators } from '../../../pages';
 
 const COLLECTION = 'oauth2-state';
 const KEYCLOAK_USER = 'testuser';

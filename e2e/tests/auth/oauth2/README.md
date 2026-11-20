@@ -17,7 +17,7 @@ Start Keycloak with the fixture realm imported:
 
 ```bash
 docker run -d --name bruno-keycloak -p 8090:8080 \
-  -v "$PWD/tests/auth/oauth2/fixtures/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
+  -v "$PWD/e2e/tests/auth/oauth2/fixtures/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
   quay.io/keycloak/keycloak:26.3.3 start-dev --http-port=8080 --import-realm
 ```
 
