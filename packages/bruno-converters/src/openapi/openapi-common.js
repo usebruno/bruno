@@ -29,9 +29,9 @@ export const CONTENT_TYPE_PATTERNS = {
   HTML: /^[\w\-.+]+\/([\w\-.+]+\+)?html$/
 };
 
-// An item's name is what the import writers turn into its filename, by appending the
-// format extension and running the result through the filesystem sanitizer. That
-// sanitizer trims trailing dots and spaces at end-of-string only.
+// An item's name, or its filename when one is set, is what the import writers turn into
+// its file, by appending the format extension and running the result through the
+// filesystem sanitizer. That sanitizer trims trailing dots and spaces at end-of-string only.
 export const normalizeItemName = (name) => {
   return name
     .replace(/[\r\n\s]+/g, ' ')
@@ -884,33 +884,41 @@ const descriptionName = (description) => {
 
 const identifierName = (text) => capRequestName(text.slice(0, NAME_SOURCE_MAX_LENGTH));
 
-const requestNameBySource = {
+const requestNameByField = {
   summary: ({ operationObject }) => summaryName(specText(operationObject.summary)),
   operationId: ({ operationObject }) => identifierName(specText(operationObject.operationId)),
-  description: ({ operationObject }) => descriptionName(specText(operationObject.description)),
-  path: ({ method, path, originalPath }) => identifierName(`${method.toUpperCase()} ${originalPath || path}`)
+  description: ({ operationObject }) => descriptionName(specText(operationObject.description))
 };
 
-export const getRequestName = (request, requestNameSource) => {
-  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
-  return [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred)]
-    .reduce((name, source) => name || requestNameBySource[source](request), '');
-};
+const pathName = ({ path, originalPath }) => identifierName(originalPath || path);
+
+const methodAndPathName = ({ method, path, originalPath }) => identifierName(`${method.toUpperCase()} ${originalPath || path}`);
 
 const fileNameKey = (name) => sanitizeName(name).toLowerCase();
 
-export const uniqueRequestName = (name, method, usedNames) => {
-  let uniqueName = name;
-  if (usedNames.has(fileNameKey(uniqueName))) {
-    uniqueName = `${name} (${method.toUpperCase()})`;
+const usableName = (name) => (sanitizeName(name) ? name : '');
+
+const uniqueFileBase = (base, method, usedNames) => {
+  let uniqueBase = base;
+  if (usedNames.has(fileNameKey(uniqueBase))) {
+    uniqueBase = `${base} (${method.toUpperCase()})`;
   }
   let counter = 1;
-  while (usedNames.has(fileNameKey(uniqueName))) {
-    uniqueName = `${name} (${counter})`;
+  while (usedNames.has(fileNameKey(uniqueBase))) {
+    uniqueBase = `${base} (${counter})`;
     counter++;
   }
-  usedNames.add(fileNameKey(uniqueName));
-  return uniqueName;
+  usedNames.add(fileNameKey(uniqueBase));
+  return uniqueBase;
+};
+
+export const getRequestName = (request, requestNameSource, usedNames) => {
+  const preferred = REQUEST_NAME_SOURCES.includes(requestNameSource) ? requestNameSource : DEFAULT_REQUEST_NAME_SOURCE;
+  const fields = preferred === 'path' ? [] : [preferred, ...REQUEST_NAME_SOURCES.filter((source) => source !== preferred && source !== 'path')];
+  const fieldName = fields.reduce((name, field) => name || usableName(requestNameByField[field](request)), '');
+  const name = fieldName || pathName(request) || methodAndPathName(request);
+  const fileBase = uniqueFileBase(fieldName || methodAndPathName(request), request.method, usedNames);
+  return fileBase === name ? { name } : { name, filename: `${fileBase}.bru` };
 };
 
 /**

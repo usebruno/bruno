@@ -17,7 +17,7 @@ export default defineConfig({
   projects: [
     {
       name: 'benchmarks',
-      testDir: './tests/benchmarks',
+      testDir: './e2e/tests/benchmarks',
       testMatch: '**/*.bench.ts'
     }
   ],

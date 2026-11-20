@@ -13,6 +13,10 @@ const StyledWrapper = styled.div`
     width: 300px;
   }
 
+  .listgroup-footer {
+    margin-top: 1.5rem;
+  }
+
   /* Certificate row content (rendered inside the shared ListGroup rows) */
   .cert-icon {
     color: ${(props) => props.theme.colors.text.yellow};

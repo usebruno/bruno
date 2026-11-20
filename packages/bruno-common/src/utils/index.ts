@@ -57,7 +57,8 @@ export {
   validateNameError,
   generateUniqueName,
   stripCopySuffix,
-  nextCopyName
+  nextCopyName,
+  getFilenameWithFormat
 } from './naming';
 
 export {

@@ -337,6 +337,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 </label>
                 <input
                   id="collection-location"
+                  data-testid="clone-git-repository-location"
                   type="text"
                   name="collectionLocation"
                   readOnly
@@ -352,7 +353,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   <div className="text-red-500">{formik.errors.collectionLocation}</div>
                 )}
                 <div className="mt-1">
-                  <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+                  <span className="text-link cursor-pointer hover:underline" data-testid="clone-git-repository-browse" onClick={browse}>
                     Browse
                   </span>
                 </div>

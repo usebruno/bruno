@@ -1,40 +1,39 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  max-width: 800px;
-
-  .preset-field {
-    margin-top: 1.5rem;
-
-    &:first-of-type {
-      margin-top: 0;
-    }
-
-    .preset-field-label {
-      display: block;
-      font-weight: 500;
-      color: ${(props) => props.theme.text};
-    }
-
-    .preset-field-subtitle {
-      font-size: ${(props) => props.theme.font.size.sm};
-      color: ${(props) => props.theme.colors.text.muted};
-      margin-top: 0.125rem;
-      margin-bottom: 0.625rem;
-    }
+  /* Same width as the Proxy page, its neighbour in the Settings sidebar */
+  .presets-settings {
+    max-width: 500px;
+    font-size: ${(props) => props.theme.font.size.base};
   }
 
-  .preset-input {
+  /* As wide as its widest item (the request type control), so the Base URL input matches it */
+  .presets-fields {
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .textbox {
     width: 100%;
-    max-width: 420px;
-  }
+    min-width: 0;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    border: 1px solid ${(props) => props.theme.input.border};
+    background-color: ${(props) => props.theme.input.bg};
+    color: ${(props) => props.theme.text};
+    box-shadow: none;
+    outline: none;
+    transition: border-color ease-in-out 0.1s;
 
-  .preset-field .preset-input.textbox {
-    padding: 0.3rem 0.6rem;
+    &:focus {
+      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
+      outline: none !important;
+    }
   }
 
   .default-env-dropdown {
-    max-width: 420px;
+    width: 200px;
 
     /* Tippy renders the trigger as the reference element; make it fill the field. */
     > * {
@@ -48,10 +47,11 @@ const StyledWrapper = styled.div`
 
     .default-env-trigger {
       width: 100%;
+      height: 34px;
       box-sizing: border-box;
       gap: 0.5rem;
-      padding: 0.3rem 0.6rem;
-      border-radius: 3px;
+      padding: 0 10px;
+      border-radius: ${(props) => props.theme.border.radius.sm};
       background-color: ${(props) => props.theme.input.bg};
       border: 1px solid ${(props) => props.theme.input.border};
       color: ${(props) => props.theme.text};
@@ -72,21 +72,6 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.colors.text.muted};
         flex-shrink: 0;
       }
-    }
-  }
-
-  .textbox {
-    padding: 0.15rem 0.45rem;
-    box-shadow: none;
-    outline: none;
-    transition: border-color ease-in-out 0.1s;
-    border-radius: 3px;
-    background-color: ${(props) => props.theme.input.bg};
-    border: 1px solid ${(props) => props.theme.input.border};
-
-    &:focus {
-      border: solid 1px ${(props) => props.theme.input.focusBorder} !important;
-      outline: none !important;
     }
   }
 `;

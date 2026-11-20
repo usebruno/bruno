@@ -1,0 +1,14 @@
+name: ws-global
+variables:
+  - name: region
+    value: US
+    enabled: true
+    secret: false
+  - name: globalName
+    value: TestGlobal
+    enabled: true
+    secret: false
+  - name: version
+    value: '1.0'
+    enabled: true
+    secret: false
