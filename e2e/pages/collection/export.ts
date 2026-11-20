@@ -20,19 +20,19 @@ export const buildExportCollectionLocators = (page: Page) => {
   const modal = () => page.getByTestId('share-collection-modal');
 
   return {
-  modal,
-  closeButton: () => modal().getByTestId('modal-close-button'),
-  zipFormatCard: () => page.getByTestId('export-format-zip'),
-  postmanModal: () => page.getByTestId('export-to-postman-modal'),
-  exportTab: () => page.getByTestId('share-collection-tab-export'),
-  postmanFormatCard: () => page.getByTestId('export-format-postman'),
-  yamlFormatCard: () => page.getByTestId('export-format-yaml'),
-  nameInput: () => page.getByLabel('Name', { exact: true }),
-  locationInput: () => page.getByLabel('Location', { exact: true }),
-  optionsButton: () => page.getByRole('button', { name: 'Options' }),
-  advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
-  preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
-  preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
+    modal,
+    closeButton: () => modal().getByTestId('modal-close-button'),
+    zipFormatCard: () => page.getByTestId('export-format-zip'),
+    postmanModal: () => page.getByTestId('export-to-postman-modal'),
+    exportTab: () => page.getByTestId('share-collection-tab-export'),
+    postmanFormatCard: () => page.getByTestId('export-format-postman'),
+    yamlFormatCard: () => page.getByTestId('export-format-yaml'),
+    nameInput: () => page.getByLabel('Name', { exact: true }),
+    locationInput: () => page.getByLabel('Location', { exact: true }),
+    optionsButton: () => page.getByRole('button', { name: 'Options' }),
+    advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
+    preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
+    preserveScriptsHelp: () => page.getByTestId('preserve-scripts-help')
   };
 };
 
