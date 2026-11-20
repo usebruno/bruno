@@ -9,7 +9,7 @@ import {
   selectScriptSubTab,
   setCodeMirrorEditorValue,
   typeInScriptEditor
-} from '../../utils/page';
+} from '../../../pages';
 
 const COLLECTION = 'script-api-docs';
 const REQUEST = 'docs-probe';
