@@ -63,6 +63,15 @@ const TimelineItem = ({
     setVisitedTabs((v) => (v[id] ? v : { ...v, [id]: true }));
   };
 
+  const selectAllTextOnDoubleClick = (event) => {
+    const el = event.currentTarget;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
   const { method, url = '' } = request || {};
   // Main-request entries use `status`; scripted entries use `statusCode`.
   const { status, statusCode, statusText } = response || {};
@@ -156,7 +165,7 @@ const TimelineItem = ({
           <div className="tl-col-method">
             <Method method={method} />
           </div>
-          <div className="tl-col-url" title={url} data-testid="timeline-url">{url}</div>
+          <div className="tl-col-url" title={url} data-testid="timeline-url" onDoubleClick={selectAllTextOnDoubleClick}>{url}</div>
           <div className="tl-col-badge">
             <span className={badge.badgeClass} data-testid={`timeline-badge-${badge.kind}`}>{badge.badgeLabel}</span>
           </div>
@@ -171,8 +180,8 @@ const TimelineItem = ({
           <div className="tl-detail" data-testid="timeline-detail">
             <div className="tl-header">
               <div className="tl-header-url" title={`${method || ''} ${url}`}>
-                <span className="tl-header-url-method">{method}</span>
-                <span className="tl-header-url-text">{url}</span>
+                <span className="tl-header-url-method">{method}</span>{' '}
+                <span className="tl-header-url-text" onDoubleClick={selectAllTextOnDoubleClick}>{url}</span>
               </div>
               {sourceFile && (
                 <a
