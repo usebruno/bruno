@@ -37,7 +37,8 @@ test.describe('Import Insomnia Collection v4', () => {
       await expect(importLocators.chooseFilesButton()).toBeVisible();
       await importLocators.fileInput().setInputFiles(insomniaFile);
       await locationModal.waitFor({ state: 'visible' });
-      await expect(locationModal.getByText(collectionName)).toBeVisible();
+      // await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await expect(locationModal).toContainText(collectionName);
     });
 
     await test.step('Import the collection', async () => {
@@ -54,7 +55,8 @@ test.describe('Import Insomnia Collection v4', () => {
 
       await expandFolder(page, 'Authentication');
       // FIXME(aparna-bruno): There's a bug here with the insomnia import that needs the `first` call to get the first row item instead of the test failing with duplicate items
-      await expect(sidebar.itemsIn(collectionName, 'Login User').first()).toBeVisible();
+      // await expect(sidebar.itemsIn(collectionName, 'Login User').first()).toBeVisible();
+      await expect(sidebar.folderRequest('Authentication', 'Login User').first()).toBeVisible();
 
       await sidebar.itemsIn(collectionName, 'Get Users').click();
       await expect(tabs.activeRequestTab()).toContainText('Get Users');

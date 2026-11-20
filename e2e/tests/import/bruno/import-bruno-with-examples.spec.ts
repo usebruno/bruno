@@ -1,7 +1,8 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, openCollection } from '../../../pages';
-import { buildCommonLocators } from '../../../pages/locators';
+// import { closeAllCollections, openCollection } from '../../../pages';
+// import { buildCommonLocators } from '../../../pages/locators';
+import { buildCommonLocators, closeAllCollections, openCollection } from '../../../pages';
 
 test.describe('Import Bruno Collection with Examples', () => {
   test.afterAll(async ({ page }) => {
