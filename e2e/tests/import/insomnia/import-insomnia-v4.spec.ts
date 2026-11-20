@@ -54,6 +54,7 @@ test.describe('Import Insomnia Collection v4', () => {
       await expect(sidebar.itemsIn(collectionName, 'Authentication')).toBeVisible();
 
       await expandFolder(page, 'Authentication');
+      // FIXME(aparna-bruno): There's a bug here with the insomnia import that needs the `first` call to get the first row item instead of the test failing with duplicate items
       await expect(sidebar.itemsIn(collectionName, 'Login User').first()).toBeVisible();
 
       await sidebar.itemsIn(collectionName, 'Get Users').click();
