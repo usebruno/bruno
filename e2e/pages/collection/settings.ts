@@ -20,6 +20,30 @@ export const buildCollectionPresetsLocators = (page: Page) => ({
   defaultEnvironmentOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true })
 });
 
+/**
+ * Locators for content shown inside the collection settings pane panels.
+ */
+export const buildCollectionSettingsPanelLocators = (page: Page) => {
+  const content = () => page.getByTestId('collection-settings-content');
+
+  return {
+    content,
+    versionRow: () => page.getByTestId('info-version-row'),
+    headersBulkEditToggle: () => content().getByTestId('bulk-edit-toggle'),
+    varsPanel: () => page.getByTestId('collection-vars-panel'),
+    authModeSelector: () => page.getByTestId('auth-mode-selector'),
+    scriptIntro: () =>
+      content().getByText(
+        'Write pre and post-request scripts that will run before and after any request in this collection is sent.'
+      ),
+    testsIntro: () =>
+      content().getByText('These tests will run any time a request in this collection is sent.'),
+    protobufProtoFilesSection: () => page.getByTestId('protobuf-proto-files-section'),
+    proxyIntro: () => content().getByText('Configure proxy settings for this collection.'),
+    clientCertSaveBtn: () => page.getByTestId('client-cert-save-btn')
+  };
+};
+
 const buildLocators = (page: Page) => ({
   actions: buildItemActionLocators(page),
   dropdown: buildDropdownLocators(page),

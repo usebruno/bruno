@@ -1,29 +1,35 @@
-import { test, expect } from '../../../playwright';
-import { buildCommonLocators, createCollection } from '../../../pages';
+import { Locator, test, expect } from '../../../playwright';
+import {
+  buildCommonLocators,
+  createCollection,
+  selectCollectionPaneTab
+} from '../../../pages';
 
 type CollectionTab = {
   key: string;
   label: string;
-  contentTestId?: string;
-  contentText?: string;
+  content: (locators: ReturnType<typeof buildCommonLocators>) => Locator;
 };
 
 const collectionTabs: CollectionTab[] = [
-  { key: 'overview', label: 'Overview', contentTestId: 'info-version-row' },
-  { key: 'headers', label: 'Headers', contentTestId: 'bulk-edit-toggle' },
-  { key: 'vars', label: 'Vars', contentTestId: 'collection-vars-panel' },
-  { key: 'auth', label: 'Auth', contentTestId: 'auth-mode-selector' },
+  { key: 'overview', label: 'Overview', content: (l) => l.collectionSettings.versionRow() },
+  { key: 'headers', label: 'Headers', content: (l) => l.collectionSettings.headersBulkEditToggle() },
+  { key: 'vars', label: 'Vars', content: (l) => l.collectionSettings.varsPanel() },
+  { key: 'auth', label: 'Auth', content: (l) => l.collectionSettings.authModeSelector() },
+  { key: 'script', label: 'Script', content: (l) => l.collectionSettings.scriptIntro() },
+  { key: 'tests', label: 'Tests', content: (l) => l.collectionSettings.testsIntro() },
   {
-    key: 'script',
-    label: 'Script',
-    contentText: 'Write pre and post-request scripts that will run before and after any request in this collection is sent.'
+    key: 'protobuf',
+    label: 'Protobuf',
+    content: (l) => l.collectionSettings.protobufProtoFilesSection()
   },
-  { key: 'tests', label: 'Tests', contentText: 'These tests will run any time a request in this collection is sent.' },
-  { key: 'protobuf', label: 'Protobuf', contentTestId: 'protobuf-proto-files-section' },
-  { key: 'settings', label: 'Settings', contentTestId: 'presets-save-btn' },
-  { key: 'presets', label: 'Presets', contentTestId: 'presets-save-btn' },
-  { key: 'proxy', label: 'Proxy', contentText: 'Configure proxy settings for this collection.' },
-  { key: 'clientCert', label: 'Client certificates', contentTestId: 'client-cert-save-btn' }
+  { key: 'presets', label: 'Presets', content: (l) => l.presets.saveBtn() },
+  { key: 'proxy', label: 'Proxy', content: (l) => l.collectionSettings.proxyIntro() },
+  {
+    key: 'clientCert',
+    label: 'Client certificates',
+    content: (l) => l.collectionSettings.clientCertSaveBtn()
+  }
 ];
 
 test.describe('TC-2618: Tests for Collection settings tabs', () => {
@@ -34,8 +40,8 @@ test.describe('TC-2618: Tests for Collection settings tabs', () => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
-    const { paneTabs, sidebar } = buildCommonLocators(page);
-    const content = paneTabs.collectionSettingsContent();
+    const locators = buildCommonLocators(page);
+    const { paneTabs, sidebar } = locators;
 
     await test.step('Open Bruno and create a collection', async () => {
       await createCollection(page, 'Collection Tabs', await createTmpDir('tc-2618'));
@@ -43,18 +49,15 @@ test.describe('TC-2618: Tests for Collection settings tabs', () => {
       await expect(paneTabs.collectionSettingsTab('overview')).toBeVisible();
     });
 
-    for (const { key, label, contentTestId, contentText } of collectionTabs) {
-      await test.step(`Verify every collection settings tab is visible, opened and its content is displayed`, async () => {
+    for (const { key, label, content } of collectionTabs) {
+      await test.step(`Verify the ${label} collection settings tab opens and shows its content`, async () => {
+        await selectCollectionPaneTab(page, key);
+
         const tab = paneTabs.collectionSettingsTab(key);
         await expect(tab).toBeVisible();
-        await tab.click();
         await expect(tab).toContainClass('active');
         await expect(tab).toContainText(label);
-        if (contentTestId) {
-          await expect(content.getByTestId(contentTestId)).toBeVisible();
-        } else {
-          await expect(content.getByText(contentText!)).toBeVisible();
-        }
+        await expect(content(locators)).toBeVisible();
       });
     }
 
