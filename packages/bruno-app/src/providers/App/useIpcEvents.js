@@ -22,7 +22,6 @@ import {
   collectionChangeFileEvent,
   collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
-  collectionUnlinkEnvFileEvent,
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
@@ -34,7 +33,7 @@ import {
   streamDataReceived,
   setDotEnvVariables
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, persistActiveEnvironment, collectionVariablesUpdateEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, collectionUnlinkEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot, persistActiveEnvironment, collectionVariablesUpdateEvent } from 'providers/ReduxStore/slices/collections/actions';
 import {
   workspaceOpenedEvent,
   workspaceConfigUpdatedEvent,
