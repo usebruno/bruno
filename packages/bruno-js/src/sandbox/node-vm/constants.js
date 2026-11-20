@@ -46,6 +46,7 @@ const safeGlobals = [
   'URIError',
   'EvalError',
   'AggregateError',
+  'DOMException',
 
   // URL APIs (WHATWG - not ECMAScript)
   'URL',
@@ -66,6 +67,7 @@ const safeGlobals = [
   'AbortController',
   'AbortSignal',
   'Blob',
+  'File',
 
   // Streams API
   'ReadableStream',
