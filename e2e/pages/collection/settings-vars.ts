@@ -20,13 +20,12 @@ export const buildCollectionSettingsVarsLocators = (page: Page) => {
   const valueCell = (rowLocator: Locator) => rowLocator.getByTestId('column-value');
   const nameInput = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-name').locator('input');
-  const valueText = (type: VarsTableType, name: string) =>
+  const valueEditor = (type: VarsTableType, name: string) =>
     buildCodeMirrorLocators(page).within(row(type, name).getByTestId('column-value'));
   const rowCheckbox = (type: VarsTableType, name: string) =>
     row(type, name).getByTestId('column-checkbox');
   const preRequestTable = () => table('preRequest');
   const postResponseTable = () => table('postResponse');
-  const tab = () => page.getByTestId('collection-settings-tab-vars');
   const preRequestTitle = () => panel().getByText('Pre Request', { exact: true });
   const postResponseTitle = () => panel().getByText('Post Response', { exact: true });
   const nameColumnHeader = (type: VarsTableType) => headerCell(table(type), 'Name');
@@ -36,13 +35,12 @@ export const buildCollectionSettingsVarsLocators = (page: Page) => {
 
   return {
     panel,
-    tab,
     table,
     row,
     nameCell,
     valueCell,
     nameInput,
-    valueText,
+    valueEditor,
     rowCheckbox,
     preRequestTitle,
     postResponseTitle,
@@ -68,9 +66,9 @@ export const addCollectionVar = async (
     await vars.nameCell(lastRow).locator('input').click();
     await page.keyboard.type(name);
 
-    const valueEditor = buildCodeMirrorLocators(page).within(vars.valueCell(vars.row(type, name)));
-    await valueEditor.waitFor({ state: 'visible' });
-    await valueEditor.locator('textarea').focus();
+    const editor = vars.valueEditor(type, name);
+    await editor.waitFor({ state: 'visible' });
+    await editor.locator('textarea').focus();
 
     await page.keyboard.insertText(value);
   });

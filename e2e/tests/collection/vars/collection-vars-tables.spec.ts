@@ -21,7 +21,7 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
     const { sidebar, toast } = buildCommonLocators(page);
     const collectionSettingsVars = buildCollectionSettingsVarsLocators(page);
 
-    await test.step('Create a collection and verify the pre-request and post-response tables are visible', async () => {
+    await test.step('Create a collection and open the Vars tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName), 'yml');
       await expect(sidebar.collection(collectionName)).toBeVisible();
       await openCollectionSettings(page, collectionName);
@@ -41,7 +41,7 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
       await addCollectionVar(page, 'preRequest', 'token', 'abc');
       await expect(collectionSettingsVars.row('preRequest', 'token')).toBeVisible();
       await expect(collectionSettingsVars.nameInput('preRequest', 'token')).toHaveValue('token');
-      await expect(collectionSettingsVars.valueText('preRequest', 'token')).toHaveText('abc');
+      await expect(collectionSettingsVars.valueEditor('preRequest', 'token')).toHaveText('abc');
       await expect(collectionSettingsVars.rowCheckbox('preRequest', 'token')).toBeVisible();
       await expect(collectionSettingsVars.rowCheckbox('preRequest', 'token')).toBeChecked();
       await collectionSettingsVars.saveButton().click();
@@ -77,7 +77,7 @@ test.describe('Collection Vars pre-request and post-response tables', () => {
       await addCollectionVar(page, 'postResponse', 'token', 'abc');
       await expect(collectionSettingsVars.row('postResponse', 'token')).toBeVisible();
       await expect(collectionSettingsVars.nameInput('postResponse', 'token')).toHaveValue('token');
-      await expect(collectionSettingsVars.valueText('postResponse', 'token')).toHaveText('abc');
+      await expect(collectionSettingsVars.valueEditor('postResponse', 'token')).toHaveText('abc');
       await expect(collectionSettingsVars.rowCheckbox('postResponse', 'token')).toBeVisible();
       await expect(collectionSettingsVars.rowCheckbox('postResponse', 'token')).toBeChecked();
       await collectionSettingsVars.saveButton().click();
