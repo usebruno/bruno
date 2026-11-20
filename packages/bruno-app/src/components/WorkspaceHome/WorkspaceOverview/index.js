@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { setIsCreatingCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';

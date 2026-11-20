@@ -121,8 +121,7 @@ const initialState = {
       secrets: { query: '', expanded: false }
     }
   },
-  isCreatingCollection: false,
-  isOpeningCollection: false
+  isCreatingCollection: false
 };
 
 export const appSlice = createSlice({
@@ -271,9 +270,6 @@ export const appSlice = createSlice({
     },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
-    },
-    setIsOpeningCollection: (state, action) => {
-      state.isOpeningCollection = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -322,8 +318,7 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
-  setIsCreatingCollection,
-  setIsOpeningCollection
+  setIsCreatingCollection
 } = appSlice.actions;
 
 /**
