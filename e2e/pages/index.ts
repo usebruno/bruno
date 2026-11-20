@@ -44,6 +44,7 @@ export * from './request/generate-code';
 export * from './request/graphql-query-builder';
 export * from './request/grpc';
 export * from './request/pane';
+export * from './request/params';
 export * from './request/script';
 export * from './request/send';
 export * from './request/settings';
