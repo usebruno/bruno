@@ -738,7 +738,7 @@ ${indentString(body.sparql)}
     if (disabled(assertions).length) {
       bru += `\n${indentString(
         disabled(assertions)
-          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${getKeyString(item.name)}: ${getValueString(item.value)}`)
+          .map((item) => `${serializeAnnotations(buildAnnotationsFromKVItem(item))}~${item.name}: ${getValueString(item.value)}`)
           .join('\n')
       )}`;
     }
