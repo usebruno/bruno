@@ -9,7 +9,7 @@ import {
   sendRequestAndWaitForResponse,
   setCodeMirrorValue,
   switchResponseFormat
-} from '../../utils/page';
+} from '../../../pages';
 
 const ECHO_URL = 'http://localhost:8081/api/echo/json';
 const BOOKS = JSON.stringify({
