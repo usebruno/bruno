@@ -17,7 +17,7 @@ const icons = {
 // `additional-context-roots/fixtures` ships a `shared-scripts/node_modules/signature-utils`
 // package that exercises walk-up resolution from an additional context root.
 const PRESERVED_NODE_MODULES_PREFIXES = [
-  path.join('tests', 'scripting', 'additional-context-roots', 'fixtures')
+  path.join('e2e', 'tests', 'scripting', 'additional-context-roots', 'fixtures')
 ];
 
 const execCommand = (command, description) => {

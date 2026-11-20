@@ -1,0 +1,8 @@
+info:
+  name: slow
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/api/wait-for?time=1500
