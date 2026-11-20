@@ -484,6 +484,12 @@ describe('extractMockRoutePath', () => {
     expect(extractMockRoutePath('https://api.example.com/v1/{{resource}}', { preserveTemplateVars: true }))
       .toBe('/v1/{{resource}}');
   });
+
+  it('converts template variables in absolute URLs to Express route params (:param)', () => {
+    expect(extractMockRoutePath('https://api.example.com/v1/users/{{userId}}')).toBe('/v1/users/:userId');
+    expect(extractMockRoutePath('http://localhost:3000/api/v2/items/{{itemId}}/details')).toBe('/api/v2/items/:itemId/details');
+    expect(extractMockRoutePath('https://{{host}}/v1/items/{{itemId}}')).toBe('/v1/items/:itemId');
+  });
 });
 
 describe('getMockResponseRouteKey', () => {

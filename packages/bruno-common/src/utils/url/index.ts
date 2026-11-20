@@ -288,9 +288,9 @@ const extractMockRoutePath = (rawUrl: unknown, { preserveTemplateVars = false } 
     }
   }
 
-  if (preserveTemplateVars) {
-    cleaned = cleaned.replace(/%7B%7B([^%]+)%7D%7D/gi, '{{$1}}');
-  } else {
+  cleaned = cleaned.replace(/%7B%7B([^%]+)%7D%7D/gi, '{{$1}}');
+
+  if (!preserveTemplateVars) {
     cleaned = cleaned.replace(/\{\{([^}]+)\}\}/g, ':$1');
   }
 
