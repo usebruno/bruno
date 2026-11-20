@@ -50,7 +50,6 @@ describe('CLI run — gRPC and WebSocket requests are ignored', () => {
     removeTmpDir(workDir);
   });
 
-  // Runs `bru run <args>` inside the collection and returns what it printed.
   const run = async (...args) => {
     const { stdout } = await runCollection(workDir, ['run', ...args, '--env-var', `host=${baseUrl}`]);
     return stripAnsi(stdout);
