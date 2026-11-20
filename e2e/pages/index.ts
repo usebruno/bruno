@@ -25,6 +25,7 @@ export * from './collection/proxy';
 export * from './collection/remove';
 export * from './collection/rename';
 export * from './collection/settings';
+export * from './collection/settings-headers';
 
 // environment
 export * from './environment/selector';
