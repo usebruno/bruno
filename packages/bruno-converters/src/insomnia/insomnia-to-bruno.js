@@ -138,11 +138,12 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   } else if (mimeType === 'multipart/form-data') {
     brunoRequestItem.request.body.mode = 'multipartForm';
     each(request.body.params, (param) => {
+      const isFile = param.type === 'file';
       brunoRequestItem.request.body.multipartForm.push({
         uid: uuid(),
-        type: 'text',
+        type: isFile ? 'file' : 'text',
         name: param.name,
-        value: normalizeVariables(param.value),
+        value: isFile ? (param.fileName ? [normalizeVariables(param.fileName)] : []) : normalizeVariables(param.value),
         description: param.description,
         enabled: !param.disabled
       });
