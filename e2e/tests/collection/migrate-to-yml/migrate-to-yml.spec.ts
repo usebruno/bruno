@@ -18,7 +18,7 @@ test.describe('Migrate collection from bru to yml format', () => {
     await closeAllCollections(page);
   });
 
-  test('should migrate bru collection to yml, close its tabs and land on the overview', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('TC-3141, TC-3142, TC-3143, TC-3148: Verify env files are converted into yml format, should migrate bru collection to yml, close its tabs and land on the overview', { tag: '@sanity' }, async ({ pageWithUserData: page, collectionFixturePath }) => {
     const collectionPath = collectionFixturePath!;
     const loc = buildCommonLocators(page);
 
