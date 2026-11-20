@@ -2,9 +2,12 @@ import React, { useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import compareHeaderNames from '../utils/compareHeaderNames';
 
 const ResponseHeaders = ({ headers, item }) => {
-  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+  const headersArray = typeof headers === 'object'
+    ? Object.entries(headers).sort(([nameA], [nameB]) => compareHeaderNames(nameA, nameB))
+    : [];
   const wrapperRef = useRef(null);
   const [scroll, setScroll] = usePersistedState({ key: `response-headers-scroll-${item?.uid}`, default: 0 });
   useTrackScroll({ ref: wrapperRef, selector: '.response-tab-content', onChange: setScroll, initialValue: scroll });
