@@ -113,10 +113,6 @@ test.describe('Export Bruno collection', () => {
 });
 
 test.describe('Export a collection with gRPC requests to Postman', () => {
-  test.use({
-    collectionFixturePath: path.join(__dirname, 'fixtures', 'collection')
-  });
-
   test('TC-3050: Verify that exporting to Postman skips gRPC requests with a note', { tag: '@sanity' }, async ({
     pageWithUserData: page,
     createTmpDir
