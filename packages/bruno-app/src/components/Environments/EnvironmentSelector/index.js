@@ -102,14 +102,39 @@ const EnvironmentBadge = ({ environment, icon: Icon }) => {
   );
 };
 
+const SCOPE_BADGES = {
+  collection: { position: 'left', icon: IconDatabase },
+  global: { position: 'right', icon: IconWorld }
+};
+
+/**
+ * One scope's section of the dropdown trigger; clicking it opens the dropdown on that scope's tab
+ */
+const ScopeBadge = ({ scope, environment, hasOtherEnv, onSelectTab }) => {
+  const { position, icon } = SCOPE_BADGES[scope];
+  // The caret sits on the rightmost badge
+  const showCaret = !hasOtherEnv || position === 'right';
+
+  return (
+    <div
+      className="flex items-center"
+      style={getEnvBadgeStyle(environment, position, hasOtherEnv)}
+      // mousedown commits the tab before the click opens the popper, so the tab underline never slides on open
+      onMouseDown={() => onSelectTab(scope)}
+      data-testid={`env-badge-${scope}`}
+    >
+      <EnvironmentBadge environment={environment} icon={icon} />
+      {showCaret && <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />}
+    </div>
+  );
+};
+
 /**
  * Dropdown trigger component showing active environments
  */
-const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
-  const hasAnyEnv = collectionEnv || globalEnv;
-
+const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv, onSelectTab }, ref) => {
   // Empty state - no environments selected
-  if (!hasAnyEnv) {
+  if (!collectionEnv && !globalEnv) {
     return (
       <div
         ref={ref}
@@ -122,41 +147,8 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
     );
   }
 
-  // Only collection env selected - caret goes with collection env
-  if (collectionEnv && !globalEnv) {
-    return (
-      <div
-        ref={ref}
-        className="current-environment flex align-center justify-center cursor-pointer bg-transparent"
-        style={{ padding: 0 }}
-        data-testid="environment-selector-trigger"
-      >
-        <div className="flex items-center" style={getEnvBadgeStyle(collectionEnv, 'left', false)}>
-          <EnvironmentBadge environment={collectionEnv} icon={IconDatabase} />
-          <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
-        </div>
-      </div>
-    );
-  }
+  const hasBothEnvs = Boolean(collectionEnv && globalEnv);
 
-  // Only global env selected - caret goes with global env
-  if (!collectionEnv && globalEnv) {
-    return (
-      <div
-        ref={ref}
-        className="current-environment flex align-center justify-center cursor-pointer bg-transparent"
-        style={{ padding: 0 }}
-        data-testid="environment-selector-trigger"
-      >
-        <div className="flex items-center" style={getEnvBadgeStyle(globalEnv, 'right', false)}>
-          <EnvironmentBadge environment={globalEnv} icon={IconWorld} />
-          <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
-        </div>
-      </div>
-    );
-  }
-
-  // Both environments selected
   return (
     <div
       ref={ref}
@@ -164,19 +156,13 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
       style={{ padding: 0 }}
       data-testid="environment-selector-trigger"
     >
-      {/* Collection Environment Section */}
-      <div className="flex items-center" style={getEnvBadgeStyle(collectionEnv, 'left', true)}>
-        <EnvironmentBadge environment={collectionEnv} icon={IconDatabase} />
-      </div>
-
-      {/* Separator */}
-      <div className="env-separator" style={{ width: '1px', alignSelf: 'stretch' }} />
-
-      {/* Global Environment Section + Caret */}
-      <div className="flex items-center" style={getEnvBadgeStyle(globalEnv, 'right', true)}>
-        <EnvironmentBadge environment={globalEnv} icon={IconWorld} />
-        <IconCaretDown className="caret flex items-center justify-center" size={12} strokeWidth={2} />
-      </div>
+      {collectionEnv && (
+        <ScopeBadge scope="collection" environment={collectionEnv} hasOtherEnv={hasBothEnvs} onSelectTab={onSelectTab} />
+      )}
+      {hasBothEnvs && <div className="env-separator" style={{ width: '1px', alignSelf: 'stretch' }} />}
+      {globalEnv && (
+        <ScopeBadge scope="global" environment={globalEnv} hasOtherEnv={hasBothEnvs} onSelectTab={onSelectTab} />
+      )}
     </div>
   );
 });
@@ -274,7 +260,7 @@ const EnvironmentSelector = ({ collection }) => {
         <Dropdown
           onCreate={(ref) => (dropdownTippyRef.current = ref)}
           onHidden={() => setSearchText('')}
-          icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} />}
+          icon={<DropdownTrigger collectionEnv={activeCollectionEnvironment} globalEnv={activeGlobalEnvironment} onSelectTab={setActiveTab} />}
           placement="bottom-end"
           popperOptions={{ strategy: 'fixed' }}
         >

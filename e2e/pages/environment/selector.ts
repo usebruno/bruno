@@ -21,10 +21,10 @@ export const openEnvironmentSelector = async (page: Page, type: EnvironmentType 
 
     if (type === 'global') {
       await locators.environment.globalTab().click();
-      await expect(locators.environment.globalTab()).toHaveClass(/active/);
+      await expect(locators.environment.globalTab()).toHaveClass(/\bactive\b/);
     } else {
       await locators.environment.collectionTab().click();
-      await expect(locators.environment.collectionTab()).toHaveClass(/active/);
+      await expect(locators.environment.collectionTab()).toHaveClass(/\bactive\b/);
     }
   });
 };
