@@ -44,6 +44,7 @@ const StyledWrapper = styled.div`
 
   .tl-col-status,
   .tl-col-method,
+  .tl-col-url,
   .tl-col-badge,
   .tl-col-time {
     overflow: hidden;
@@ -61,8 +62,6 @@ const StyledWrapper = styled.div`
   }
 
   .tl-col-url {
-    min-width: 0;
-    overflow-wrap: anywhere;
     color: ${(props) => props.theme.text};
     font-size: 13px;
   }
