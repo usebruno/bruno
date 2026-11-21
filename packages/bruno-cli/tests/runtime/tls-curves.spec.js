@@ -106,7 +106,8 @@ test('keeps the initial key shares classical for older servers', async () => {
   configure(tls);
   let client;
   let capture;
-  const hello = new Promise((resolve) => { capture = resolve; });
+  let fail;
+  const hello = new Promise((resolve, reject) => { capture = resolve; fail = reject; });
   const server = net.createServer((socket) => {
     let received = Buffer.alloc(0);
     socket.on('error', () => {});
@@ -122,8 +123,9 @@ test('keeps the initial key shares classical for older servers', async () => {
   try {
     client = tls.connect({ host: '127.0.0.1', port: server.address().port,
       rejectUnauthorized: false });
-    client.on('error', () => {});
-    client.setTimeout(2000, () => client.destroy());
+    client.on('error', (err) => fail(err));
+    client.on('close', () => fail(new Error('client closed before ClientHello was captured')));
+    client.setTimeout(2000, () => client.destroy(new Error('timed out waiting for ClientHello')));
     const groups = parseKeyShareGroups(await hello);
     assert.ok(groups.includes(0x001d));
     assert.ok(!groups.includes(0x11ec));
