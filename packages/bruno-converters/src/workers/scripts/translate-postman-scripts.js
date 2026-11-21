@@ -1,5 +1,5 @@
 const { parentPort } = require('node:worker_threads');
-const { translatePostmanScript } = require('@usebruno/converters');
+const { postmanTranslation } = require('@usebruno/converters');
 
 parentPort.on('message', (workerData) => {
   try {
@@ -8,21 +8,13 @@ parentPort.on('message', (workerData) => {
       const requestObject = {
         script: {}
       };
-      // Only the counts may cross the thread boundary.
-      const scriptUsages = [];
-
-      const translate = (exec) => {
-        const { translated, usage } = translatePostmanScript(exec);
-        if (usage) scriptUsages.push(usage);
-        return translated;
-      };
 
       if (events && Array.isArray(events)) {
         events.forEach((event) => {
           if (event?.script && event.script.exec) {
             if (event.listen === 'prerequest') {
               if (event.script.exec && event.script.exec.length > 0) {
-                requestObject.script.req = translate(event.script.exec);
+                requestObject.script.req = postmanTranslation(event.script.exec);
               } else {
                 requestObject.script.req = '';
               }
@@ -30,7 +22,7 @@ parentPort.on('message', (workerData) => {
 
             if (event.listen === 'test') {
               if (event.script.exec && event.script.exec.length > 0) {
-                requestObject.script.res = translate(event.script.exec);
+                requestObject.script.res = postmanTranslation(event.script.exec);
               } else {
                 requestObject.script.res = '';
               }
@@ -39,7 +31,7 @@ parentPort.on('message', (workerData) => {
         });
       }
 
-      return [uid, { request: requestObject, scriptUsages }];
+      return [uid, { request: requestObject }];
     });
 
     parentPort.postMessage(modScripts);
