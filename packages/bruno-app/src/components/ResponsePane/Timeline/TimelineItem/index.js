@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { IconChevronDown, IconChevronRight } from '@tabler/icons';
+import { IconCheck, IconChevronDown, IconChevronRight, IconCopy } from '@tabler/icons';
+import useCopyToClipboard from 'hooks/useCopyToClipboard';
+import ActionIcon from 'ui/ActionIcon';
 import Method from './Common/Method/index';
 import Status from './Common/Status/index';
 import { RelativeTime } from './Common/Time/index';
@@ -38,6 +40,7 @@ const TimelineItem = ({
   phase
 }) => {
   const dispatch = useDispatch();
+  const { copied, copyToClipboard } = useCopyToClipboard(1500);
   const [isExpanded, _toggleExpand] = usePersistedState({
     key: `timeline-${timestamp}`,
     default: false
@@ -174,6 +177,14 @@ const TimelineItem = ({
                 <span className="tl-header-url-method">{method}</span>
                 <span className="tl-header-url-text">{url}</span>
               </div>
+              <ActionIcon
+                aria-label="Copy URL"
+                title="Copy URL"
+                data-testid="timeline-copy-url"
+                onClick={() => copyToClipboard(url)}
+              >
+                {copied ? <IconCheck size={16} strokeWidth={1.5} /> : <IconCopy size={16} strokeWidth={1.5} />}
+              </ActionIcon>
               {sourceFile && (
                 <a
                   className={`tl-header-src${canNavigate ? '' : ' is-disabled'}`}
