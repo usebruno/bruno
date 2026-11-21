@@ -44,7 +44,6 @@ const StyledWrapper = styled.div`
 
   .tl-col-status,
   .tl-col-method,
-  .tl-col-url,
   .tl-col-badge,
   .tl-col-time {
     overflow: hidden;
@@ -62,6 +61,8 @@ const StyledWrapper = styled.div`
   }
 
   .tl-col-url {
+    min-width: 0;
+    overflow-wrap: anywhere;
     color: ${(props) => props.theme.text};
     font-size: 13px;
   }
@@ -113,9 +114,8 @@ const StyledWrapper = styled.div`
   .tl-header-url {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    user-select: text;
     font-family: ${(props) => props.theme.font?.mono || 'var(--font-family-mono)'};
     font-size: 13px;
     color: ${(props) => props.theme.text};
