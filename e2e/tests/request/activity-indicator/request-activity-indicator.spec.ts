@@ -33,7 +33,7 @@ test.describe('Request activity indicator', () => {
     slowServer.close();
   });
 
-  test('shows a spinner while a request runs in the background, then its unseen status code', async ({ page }) => {
+  test('shows a spinner while a request runs in the background, then its unseen response', async ({ page }) => {
     const locators = buildCommonLocators(page);
     const slowRequestReceived = once(slowServer.server, 'request');
 
@@ -50,26 +50,26 @@ test.describe('Request activity indicator', () => {
       await expect(locators.sidebar.itemRunningIndicator(otherRequest)).toHaveCount(0);
     });
 
-    await test.step('Once finished, the slow request shows its unseen status code', async () => {
+    await test.step('Once finished, the slow request shows its unseen response', async () => {
       const [, slowResponse] = await slowRequestReceived;
       slowResponse.end();
       const sidebarBadge = locators.sidebar.itemUnseenResponseBadge(slowRequest);
       const tabBadge = locators.tabs.tabUnseenResponseBadge(slowRequest);
-      await expect(sidebarBadge).toHaveText('200');
+      await expect(sidebarBadge).toHaveAttribute('title', 'Response: 200');
       await expect(sidebarBadge).toBeVisible();
-      await expect(tabBadge).toHaveText('200');
+      await expect(tabBadge).toHaveAttribute('title', 'Response: 200');
       await expect(tabBadge).toBeVisible();
       await expect(locators.sidebar.itemRunningIndicator(slowRequest)).toHaveCount(0);
     });
 
-    await test.step('Opening the slow request clears its unseen status code', async () => {
+    await test.step('Opening the slow request clears its unseen response', async () => {
       await openRequest(page, collectionName, slowRequest, { persist: true });
       await expect(locators.sidebar.itemUnseenResponseBadge(slowRequest)).toHaveCount(0);
       await expect(locators.tabs.tabUnseenResponseBadge(slowRequest)).toHaveCount(0);
     });
   });
 
-  test('keeps the unseen status code of a request whose tab was closed while it ran', async ({ page }) => {
+  test('keeps the unseen response of a request whose tab was closed while it ran', async ({ page }) => {
     const locators = buildCommonLocators(page);
     const slowRequestReceived = once(slowServer.server, 'request');
 
@@ -81,16 +81,16 @@ test.describe('Request activity indicator', () => {
       await expect(locators.tabs.requestTab(slowRequest)).toHaveCount(0);
     });
 
-    await test.step('The tabless slow request shows a spinner, then its unseen status code', async () => {
+    await test.step('The tabless slow request shows a spinner, then its unseen response', async () => {
       await expect(locators.sidebar.itemRunningIndicator(slowRequest)).toBeVisible();
       const [, slowResponse] = await slowRequestReceived;
       slowResponse.end();
       const sidebarBadge = locators.sidebar.itemUnseenResponseBadge(slowRequest);
-      await expect(sidebarBadge).toHaveText('200');
+      await expect(sidebarBadge).toHaveAttribute('title', 'Response: 200');
       await expect(sidebarBadge).toBeVisible();
     });
 
-    await test.step('Opening the slow request clears its unseen status code', async () => {
+    await test.step('Opening the slow request clears its unseen response', async () => {
       await openRequest(page, collectionName, slowRequest);
       await expect(locators.sidebar.itemUnseenResponseBadge(slowRequest)).toHaveCount(0);
     });
