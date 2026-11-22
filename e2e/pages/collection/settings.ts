@@ -37,9 +37,9 @@ export const buildCollectionSettingsPanelLocators = (page: Page) => {
       ),
     testsIntro: () =>
       content().getByText('These tests will run any time a request in this collection is sent.'),
-    protobufProtoFilesSection: () => page.getByTestId('protobuf-proto-files-section'),
+    protobufProtoFilesSection: () => content().getByTestId('protobuf-proto-files-section'),
     proxyIntro: () => content().getByText('Configure proxy settings for this collection.'),
-    clientCertSaveBtn: () => page.getByTestId('client-cert-save-btn')
+    clientCertSaveBtn: () => content().getByTestId('client-cert-save-btn')
   };
 };
 
