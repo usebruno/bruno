@@ -1,5 +1,6 @@
 import { expect, test } from '../../playwright';
 import { closeAllCollections } from '../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../pages/open-collection-modal/shell';
 import {
   altShortcutDisplayText,
   closePreferencesTab,
@@ -27,16 +28,21 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
   test.describe('COLLECTIONS & ENVIRONMENTS', () => {
     test.describe('SHORTCUT: Import Collection', () => {
       test('default Cmd/Ctrl+O open import collection modal', async ({ pageWithUserData: page }) => {
+        const openCollectionModal = buildOpenCollectionModalLocators(page);
+
         await pressShortcut(page, modifier, 'KeyO');
 
-        await expect(page.getByTestId('import-collection-modal')).toBeVisible();
+        await expect(openCollectionModal.pageView('import')).toBeVisible();
+        await expect(openCollectionModal.menuItem('import')).toHaveAttribute('aria-current', 'page');
 
         // Close the modal to leave a clean state for subsequent tests
-        await page.getByTestId('modal-close-button').click();
-        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible();
+        await closeOpenCollectionModal(page);
+        await expect(openCollectionModal.root()).toBeHidden();
       });
 
       test('customized Alt+O open import collection modal', async ({ pageWithUserData: page }) => {
+        const openCollectionModal = buildOpenCollectionModalLocators(page);
+
         await pressShortcut(page, modifier, 'KeyW');
 
         // Remap importCollection to Alt+O
@@ -55,11 +61,12 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         // Trigger the remapped shortcut
         await pressShortcut(page, 'Alt', 'KeyO');
 
-        await expect(page.getByTestId('import-collection-modal')).toBeVisible();
+        await expect(openCollectionModal.pageView('import')).toBeVisible();
+        await expect(openCollectionModal.menuItem('import')).toHaveAttribute('aria-current', 'page');
 
         // Close the modal to leave a clean state for subsequent tests
-        await page.getByTestId('modal-close-button').click();
-        await expect(page.getByTestId('import-collection-modal')).not.toBeVisible();
+        await closeOpenCollectionModal(page);
+        await expect(openCollectionModal.root()).toBeHidden();
       });
     });
 

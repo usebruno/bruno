@@ -5,6 +5,8 @@ import {
   ElectronApplication
 } from '../../playwright';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
+import { buildOpenCollectionModalLocators } from '../open-collection-modal/shell';
+import { chooseFolders } from '../open-collection-modal/choose-folder';
 
 /**
  * Collection tree item structure for assertions
@@ -124,17 +126,8 @@ export const openCollectionFromPath = async (
   collectionPath: string
 ): Promise<void> => {
   await test.step(`Open collection from path: ${collectionPath}`, async () => {
-    // Mock the electron dialog to return the collection path
-    await electronApp.evaluate(({ dialog }, { collectionPath }) => {
-      dialog.showOpenDialog = async () => ({
-        canceled: false,
-        filePaths: [collectionPath]
-      });
-    }, { collectionPath });
-
-    // Click on plus icon button and then "Open collection" in the dropdown
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+    await chooseFolders(page, electronApp, [collectionPath]);
+    await buildOpenCollectionModalLocators(page).root().waitFor({ state: 'hidden' });
   });
 };
 

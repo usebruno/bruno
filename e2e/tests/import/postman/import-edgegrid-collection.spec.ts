@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import {
   closeAllCollections,
-  openCollection,
+  importCollection,
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../../pages';
@@ -89,55 +89,25 @@ const assertEdgeGridValues = async (page, expected: Record<string, string>) => {
 };
 
 test.describe('Import Postman Collection with Akamai EdgeGrid auth', () => {
-  let originalShowOpenDialog;
-
-  test.beforeAll(async ({ electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      originalShowOpenDialog = dialog.showOpenDialog;
-    });
+  test.beforeAll(() => {
     // Pin the fixture to the exact key/value pairs we assert in the UI (exact, not a count).
     expect(collectionExpected).toEqual(EXPECTED_COLLECTION);
     expect(requestExpected).toEqual(EXPECTED_REQUEST);
   });
 
-  test.afterAll(async ({ electronApp, page }) => {
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
-    await electronApp.evaluate(({ dialog }) => {
-      dialog.showOpenDialog = originalShowOpenDialog;
-    });
   });
 
   test('imports EdgeGrid auth with exact values at collection, request and inherit levels', async ({
     page,
-    electronApp,
     createTmpDir
   }) => {
     test.setTimeout(120_000);
     const locators = buildCommonLocators(page);
     const importDir = await createTmpDir('imported-edgegrid');
 
-    await electronApp.evaluate(({ dialog }, { importDir }) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [importDir] });
-    }, { importDir });
-
-    await test.step('Import the Postman collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await page.getByRole('dialog').waitFor({ state: 'visible' });
-      await locators.import.fileInput().setInputFiles(FIXTURE);
-      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
-
-      const hasError = await locators.import.parsingError().isVisible().catch(() => false);
-      expect(hasError).toBeFalsy();
-
-      await expect(locators.import.locationModal().getByText(COLLECTION_NAME)).toBeVisible();
-      await locators.import.browseLink(locators.import.locationModal()).click();
-      const locationModal = locators.import.locationModal();
-      await locators.import.importButton(locationModal).click();
-      await locationModal.waitFor({ state: 'hidden' });
-    });
-
-    await openCollection(page, COLLECTION_NAME);
+    await importCollection(page, FIXTURE, importDir, { expectedCollectionName: COLLECTION_NAME });
 
     await test.step('Collection-level: every EdgeGrid field value matches the JSON', async () => {
       await locators.actions.collectionActions(COLLECTION_NAME).click();

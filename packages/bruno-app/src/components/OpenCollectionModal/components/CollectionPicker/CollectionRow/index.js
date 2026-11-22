@@ -25,12 +25,12 @@ const CollectionRow = ({ collection, location, isOpen, isSelected, testIdPrefix,
         <Checkbox checked={isSelected} disabled={isOpen} onChange={onToggle} ariaLabel={`Select ${collection.name}`} />
       </span>
       <span className="collection-row-main">
-        <span className="collection-row-name">{collection.name}</span>
-        <span className="collection-row-path" title={collection.path}>
+        <span className="collection-row-name" data-testid={`${testIdPrefix}-row-name`}>{collection.name}</span>
+        <span className="collection-row-path" title={collection.path} data-testid={`${testIdPrefix}-row-path`}>
           {tildify(collection.path)}
         </span>
       </span>
-      <span className="collection-row-meta" title={metaText}>
+      <span className="collection-row-meta" title={metaText} data-testid={`${testIdPrefix}-row-meta`}>
         {metaText}
       </span>
       {isOpen ? null : (

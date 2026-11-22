@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, openBulkImportModal } from '../../../pages';
 
 test.describe('All Collection Types Bulk Import', () => {
   const testDataDir = path.join(__dirname, '../test-data');
@@ -11,61 +11,52 @@ test.describe('All Collection Types Bulk Import', () => {
   });
 
   test('All 4 collection types appear in bulk import', async ({ page, createTmpDir }) => {
+    const { import: importLocators, modal, sidebar } = buildCommonLocators(page);
+    const bulkImportModal = importLocators.bulkModal();
     const postmanFile = path.join(testDataDir, 'sample-postman.json');
     const insomniaFile = path.join(testDataDir, 'sample-insomnia.json');
     const brunoFile = path.join(testDataDir, 'sample-bruno.json');
     const openapiFile = path.join(testDataDir, 'sample-openapi.yaml');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select all four files and verify the Bulk Import modal lists every collection', async () => {
+      await openBulkImportModal(page, [postmanFile, insomniaFile, brunoFile, openapiFile]);
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(modal.title('Bulk Import')).toBeVisible();
+      await expect(importLocators.bulkCollectionsCount()).toHaveText('4');
+      await expect(importLocators.bulkCollectionTitle('Sample Postman Collection')).toBeVisible();
+      await expect(importLocators.bulkCollectionTitle('Sample Insomnia Collection')).toBeVisible();
+      await expect(importLocators.bulkCollectionTitle('Sample Bruno Collection')).toBeVisible();
+      await expect(importLocators.bulkCollectionTitle('Sample API')).toBeVisible();
+    });
 
-    await page.setInputFiles('input[type="file"]', [postmanFile, insomniaFile, brunoFile, openapiFile]);
+    await test.step('Open the OpenAPI Import configuration and change the Folder arrangement to paths', async () => {
+      await importLocators.bulkOpenApiConfigurationToggle().click();
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      await expect(importLocators.bulkFolderArrangementLabel()).toBeVisible();
+      await expect(importLocators.bulkGroupingDropdown()).toBeVisible();
 
-    // Verify that the Bulk Import modal is displayed (no separate settings modal anymore)
-    const bulkImportModal = page.getByRole('dialog');
-    await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
+      await importLocators.bulkGroupingDropdown().click();
+      await importLocators.bulkGroupingOption('path').click();
+    });
 
-    // Check that the Collections count shows 4 collections in the Bulk Import modal
-    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
-    await expect(collectionsHeading).toBeVisible();
-    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('4');
-    await expect(bulkImportModal.getByText('Sample Postman Collection')).toBeVisible();
-    await expect(bulkImportModal.getByText('Sample Insomnia Collection')).toBeVisible();
-    await expect(bulkImportModal.getByText('Sample Bruno Collection')).toBeVisible();
-    await expect(bulkImportModal.getByText('Sample API')).toBeVisible();
+    await test.step('Select a location and import', async () => {
+      await importLocators.bulkLocationInput().fill(await createTmpDir('all-collection-types-test'));
+      await importLocators.bulkSubmitButton().click();
 
-    // Open the OpenAPI Import configuration (one file is OpenAPI) and verify Folder arrangement is there
-    await bulkImportModal.getByRole('button', { name: 'OpenAPI Import configuration' }).click();
-    await expect(bulkImportModal.getByText('Folder arrangement')).toBeVisible();
-    await expect(bulkImportModal.getByTestId('grouping-dropdown')).toBeVisible();
+      await expect(importLocators.bulkSubmitButton()).toHaveText('Close');
+    });
 
-    // Optionally change grouping to path-based
-    await bulkImportModal.getByTestId('grouping-dropdown').click();
-    await bulkImportModal.getByTestId('grouping-option-path').click();
+    await test.step('Close the summary modal', async () => {
+      await importLocators.bulkSubmitButton().click();
 
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('all-collection-types-test'));
-    await bulkImportModal.getByRole('button', { name: 'Import', exact: true }).click();
+      await expect(bulkImportModal).toBeHidden();
+    });
 
-    // Wait for import to complete (summary modal shows with "Close" button)
-    await expect(bulkImportModal.getByRole('button', { name: 'Close' })).toBeVisible();
-
-    // Close the summary modal
-    await bulkImportModal.getByRole('button', { name: 'Close' }).click();
-    await bulkImportModal.waitFor({ state: 'hidden' });
-
-    // Verify all collections were imported successfully
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample Postman Collection')).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample Insomnia Collection')).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample Bruno Collection')).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample API')).toBeVisible();
+    await test.step('Verify all collections were imported successfully', async () => {
+      await expect(sidebar.collection('Sample Postman Collection')).toBeVisible();
+      await expect(sidebar.collection('Sample Insomnia Collection')).toBeVisible();
+      await expect(sidebar.collection('Sample Bruno Collection')).toBeVisible();
+      await expect(sidebar.collection('Sample API')).toBeVisible();
+    });
   });
 });

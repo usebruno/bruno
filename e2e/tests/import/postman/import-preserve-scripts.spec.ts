@@ -7,6 +7,7 @@ import {
   sendRequest,
   buildCommonLocators
 } from '../../../pages';
+import { selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-with-scripts.json');
 
@@ -18,10 +19,8 @@ test.describe('Import Postman Collection with preserve scripts option enabled', 
   test('TC-4474: Verify Preserve scripts checkbox is visible under Advanced Options with default OFF on Import Collection', { tag: '@sanity' }, async ({ page }) => {
     const locators = buildCommonLocators(page);
 
-    await test.step('Open import modal and upload the Postman collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await locators.import.fileInput().setInputFiles(postmanFile);
+    await test.step('Select the Postman collection on the Import page', async () => {
+      await selectImportFiles(page, [postmanFile]);
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 

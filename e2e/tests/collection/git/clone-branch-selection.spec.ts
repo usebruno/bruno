@@ -2,7 +2,14 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { test, expect, closeElectronApp } from '../../../playwright';
-import { switchWorkspace, buildCommonLocators, openCloneDialogFromImport } from '../../../pages';
+import {
+  switchWorkspace,
+  buildCommonLocators,
+  openCloneDialogFromGitRemoteRow,
+  mockBrowseFiles,
+  expandCollection,
+  expandFolder
+} from '../../../pages';
 import { waitForReadyPage } from '../../../utils';
 import { currentGitBranch, hasGitInstalled, runGit } from './helpers';
 
@@ -12,8 +19,11 @@ const fixturesPath = path.join(__dirname, 'fixtures');
 const WORKSPACE_NAME = 'Clone WS';
 const REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';
 const UNREACHABLE_REPOSITORY_URL = 'https://github.com/usebruno/this-repo-does-not-exist';
+const REPOSITORY_COLLECTION_NAME = 'github-rest-api-collection';
+const UNREACHABLE_COLLECTION_NAME = 'this-repo-does-not-exist';
 const DEFAULT_BRANCH = 'main';
 const CLONED_COLLECTION_DIR = 'github-rest-api-collection';
+const CLONED_COLLECTION_NAME = 'github rest api';
 const BRANCH_SEARCH_TERM = 'feat/';
 
 const remoteIsReachable = () => {
@@ -49,8 +59,9 @@ test.describe('Clone Git Repository branch selection', () => {
       const { cloneGitRepository } = buildCommonLocators(page);
       await switchWorkspace(page, WORKSPACE_NAME);
 
-      await test.step('Import a git repository to open the clone dialog', async () => {
-        await openCloneDialogFromImport(page, REPOSITORY_URL);
+      await test.step('Open the clone dialog from the git collection row', async () => {
+        await openCloneDialogFromGitRemoteRow(page, REPOSITORY_COLLECTION_NAME);
+        await expect(cloneGitRepository.modal()).toContainText(REPOSITORY_URL);
       });
 
       await test.step('Branch field is prefilled with the repository default', async () => {
@@ -92,8 +103,9 @@ test.describe('Clone Git Repository branch selection', () => {
       const { cloneGitRepository } = buildCommonLocators(page);
       await switchWorkspace(page, WORKSPACE_NAME);
 
-      await test.step('Import a git repository to open the clone dialog', async () => {
-        await openCloneDialogFromImport(page, REPOSITORY_URL);
+      await test.step('Open the clone dialog from the git collection row', async () => {
+        await openCloneDialogFromGitRemoteRow(page, REPOSITORY_COLLECTION_NAME);
+        await expect(cloneGitRepository.modal()).toContainText(REPOSITORY_URL);
       });
 
       await test.step('The remote default arrives prefilled and stays selected', async () => {
@@ -123,8 +135,9 @@ test.describe('Clone Git Repository branch selection', () => {
       const { cloneGitRepository } = buildCommonLocators(page);
       await switchWorkspace(page, WORKSPACE_NAME);
 
-      await test.step('Import a git repository to open the clone dialog', async () => {
-        await openCloneDialogFromImport(page, REPOSITORY_URL);
+      await test.step('Open the clone dialog from the git collection row', async () => {
+        await openCloneDialogFromGitRemoteRow(page, REPOSITORY_COLLECTION_NAME);
+        await expect(cloneGitRepository.modal()).toContainText(REPOSITORY_URL);
       });
 
       await test.step('Searching keeps only the matching branches', async () => {
@@ -160,8 +173,9 @@ test.describe('Clone Git Repository branch selection', () => {
       const { cloneGitRepository } = buildCommonLocators(page);
       await switchWorkspace(page, WORKSPACE_NAME);
 
-      await test.step('Import a repository the remote listing cannot resolve', async () => {
-        await openCloneDialogFromImport(page, UNREACHABLE_REPOSITORY_URL);
+      await test.step('Open the clone dialog for a repository the remote listing cannot resolve', async () => {
+        await openCloneDialogFromGitRemoteRow(page, UNREACHABLE_COLLECTION_NAME);
+        await expect(cloneGitRepository.modal()).toContainText(UNREACHABLE_REPOSITORY_URL);
       });
 
       await test.step('The dialog says branches are unavailable and falls back to the default', async () => {
@@ -173,6 +187,53 @@ test.describe('Clone Git Repository branch selection', () => {
         await expect(cloneGitRepository.branchSelect()).toHaveClass(/disabled/);
         await cloneGitRepository.branchSelect().click();
         await expect(cloneGitRepository.branchOptions()).toHaveCount(0);
+      });
+    } finally {
+      await closeElectronApp(app);
+    }
+  });
+
+  test('TC-114: Imports a collection by cloning from a Git repository', { tag: '@sanity' }, async ({ launchElectronApp, createTmpDir }) => {
+    const workspacePath = await createWorkspace(createTmpDir, 'clone-and-open');
+    const collectionTempDir = await createTmpDir('git-repository-import');
+
+    const app = await launchElectronApp({ initUserDataPath, templateVars: { workspacePath } });
+    try {
+      const page = await waitForReadyPage(app);
+      const { cloneGitRepository, sidebar, toast } = buildCommonLocators(page);
+      await switchWorkspace(page, WORKSPACE_NAME);
+
+      await test.step('Open the clone dialog from the git collection row', async () => {
+        await openCloneDialogFromGitRemoteRow(page, REPOSITORY_COLLECTION_NAME);
+        await expect(cloneGitRepository.modal()).toContainText(REPOSITORY_URL);
+      });
+
+      await test.step('Choose a location and clone', async () => {
+        await mockBrowseFiles(app, [collectionTempDir]);
+        await cloneGitRepository.browseLink().click();
+        await expect(cloneGitRepository.locationInput()).toHaveValue(collectionTempDir);
+
+        await cloneGitRepository.button('Clone').click();
+        await expect(toast.byMessage('Repository cloned successfully')).toBeVisible();
+        await expect(cloneGitRepository.collectionHeading()).toContainText('Collections');
+        await expect(cloneGitRepository.collectionItem(CLONED_COLLECTION_NAME)).toBeVisible();
+      });
+
+      await test.step('Select the collection and open it', async () => {
+        await cloneGitRepository.collectionCheckbox(CLONED_COLLECTION_NAME).check();
+        await cloneGitRepository.button('Open').click();
+        await cloneGitRepository.modal().waitFor({ state: 'hidden' });
+        await expect(sidebar.collection(CLONED_COLLECTION_NAME)).toBeVisible();
+      });
+
+      await test.step('Verify that Imported collection keeps its folder and requests', async () => {
+        await expandCollection(page, CLONED_COLLECTION_NAME);
+        await expect(sidebar.itemsIn(CLONED_COLLECTION_NAME, 'Repository')).toBeVisible();
+        await expect(sidebar.itemsIn(CLONED_COLLECTION_NAME, 'User')).toBeVisible();
+
+        await expandFolder(page, 'User');
+        await expect(sidebar.itemsIn(CLONED_COLLECTION_NAME, 'User Info')).toBeVisible();
+        await expect(sidebar.itemsIn(CLONED_COLLECTION_NAME, 'User Repos')).toBeVisible();
       });
     } finally {
       await closeElectronApp(app);

@@ -1,4 +1,5 @@
 import { test, expect } from '../../../playwright';
+import { buildCommonLocators } from '../../../pages';
 
 const EXPECTED_PATH_SUFFIX = 'tests/preferences/default-collection-location';
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -62,8 +63,7 @@ test.describe('TC-772: Default Location Feature', { tag: '@sanity' }, () => {
 
   test('Should use default location in Create Collection modal', async ({ pageWithUserData: page }) => {
     // test Create Collection modal
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await buildCommonLocators(page).sidebar.newCollectionButton().click();
 
     // Wait for inline creator to appear, then click the cog button to open advanced modal
     const inlineCreator = page.locator('.inline-collection-creator');

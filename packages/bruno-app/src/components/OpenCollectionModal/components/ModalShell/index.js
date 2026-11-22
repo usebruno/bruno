@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
+import useKeybinding from 'hooks/useKeybinding';
 import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection-modal';
 import {
   addFolderResultToSearch,
@@ -9,6 +10,7 @@ import {
   openCollectionModal,
   openDroppedItems
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { findOpenCollectionPage } from '../../sidebar/pages';
 import BusyOverlay from '../BusyOverlay';
 import DropOverlay from '../DropOverlay';
@@ -43,6 +45,7 @@ const ModalShell = () => {
   const dispatch = useDispatch();
   const importFrom = useImportHandoff();
   const [opener] = useState(() => document.activeElement);
+  const dialogRef = useRef(null);
   const hostSlot = useRef(null);
   const isAddingToSearchRef = useRef(false);
   const pageId = useSelector((state) => state.openCollectionModal.page);
@@ -60,6 +63,15 @@ const ModalShell = () => {
   const [showDropOverlay, setShowDropOverlay] = useState(false);
 
   const close = () => dispatch(closeOpenCollectionModal());
+
+  const showPageFromShortcut = (pageId) => {
+    dispatch(openCollectionModal(pageId));
+    queueMicrotask(() => focusWhenFocusIsLost(getTabbableElements(hostSlot.current)[0]));
+    return false;
+  };
+
+  useKeybinding('importCollection', () => showPageFromShortcut(OPEN_COLLECTION_PAGE.IMPORT), { scopeRef: dialogRef });
+  useKeybinding('openCollection', () => showPageFromShortcut(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER), { scopeRef: dialogRef });
 
   const goBack = () => {
     dispatch(openCollectionModal(page.parent));
@@ -120,6 +132,7 @@ const ModalShell = () => {
   };
 
   const attachDialog = useCallback((dialog) => {
+    dialogRef.current = dialog;
     if (!dialog.contains(document.activeElement)) {
       dialog.focus();
     }

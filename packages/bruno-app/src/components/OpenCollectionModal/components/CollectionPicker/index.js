@@ -21,7 +21,11 @@ const ListItem = ({ children, item, context, ...props }) => (
 
 const Scroller = ({ tabIndex, context, ...props }) => <div {...props} />;
 
-const NoMatch = ({ context }) => <p className="collection-picker-no-match">No collection matches “{context.searchText}”.</p>;
+const NoMatch = ({ context }) => (
+  <p className="collection-picker-no-match" data-testid={`${context.testIdPrefix}-no-match`}>
+    No collection matches “{context.searchText}”.
+  </p>
+);
 
 const CollectionPicker = ({
   collections,
@@ -136,7 +140,7 @@ const CollectionPicker = ({
           className="h-full"
           data={rows}
           increaseViewportBy={600}
-          context={{ searchText: searchText.trim(), lastIndex: rows.length - 1 }}
+          context={{ searchText: searchText.trim(), lastIndex: rows.length - 1, testIdPrefix }}
           computeItemKey={(_index, collection) => toPathKey(collection.path)}
           components={{ Scroller, Item: ListItem, EmptyPlaceholder: NoMatch }}
           itemContent={(_index, collection) => (

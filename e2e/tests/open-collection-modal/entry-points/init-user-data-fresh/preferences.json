@@ -1,0 +1,14 @@
+{
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": false,
+      "hasSeenWelcomeModal": false
+    },
+    "general": {
+      "defaultLocation": "{{collectionPath}}/default-location"
+    },
+    "openCollection": {
+      "autoOpenFolderPicker": false
+    }
+  }
+}

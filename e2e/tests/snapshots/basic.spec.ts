@@ -11,6 +11,7 @@ import {
   createRequest,
   openRequest,
   openCollection,
+  openCollectionFromDialog,
   switchWorkspace,
   selectRequestPaneTab,
   buildCommonLocators
@@ -590,16 +591,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
       await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
       await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
 
-      await app.evaluate(
-        ({ dialog }, targetPath: string) => {
-          (dialog as any).showOpenDialog = () =>
-            Promise.resolve({ canceled: false, filePaths: [targetPath] });
-        },
-        sharedCollectionPath
-      );
-
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+      await openCollectionFromDialog(page, app, sharedCollectionPath);
 
       const locators = buildCommonLocators(page);
       await expect(locators.sidebar.collection('SharedCol')).toBeVisible({ timeout: 10000 });

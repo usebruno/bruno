@@ -18,8 +18,7 @@ test.describe('Create collection', () => {
   });
 
   test('should show validation error for empty name in modal and keep modal open', async ({ page }) => {
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await buildCommonLocators(page).sidebar.newCollectionButton().click();
 
     const inlineCreator = page.locator('.inline-collection-creator');
     await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
@@ -41,8 +40,7 @@ test.describe('Create collection', () => {
   });
 
   test('should show validation error for whitespace-only name in modal and keep modal open', async ({ page }) => {
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await buildCommonLocators(page).sidebar.newCollectionButton().click();
 
     const inlineCreator = page.locator('.inline-collection-creator');
     await inlineCreator.waitFor({ state: 'visible', timeout: 5000 });
@@ -102,13 +100,12 @@ test.describe('Create Collection through sidebar', () => {
     const wsLocation = await createTmpDir('verify-default-collection');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
-    const { plusMenu, toast, sidebar } = buildCommonLocators(page);
+    const { toast, sidebar } = buildCommonLocators(page);
     const { inlineCollectionCreator } = sidebar;
 
     for (const defaultName of ['Untitled Collection', 'Untitled Collection - 1', 'Untitled Collection - 2']) {
       await test.step(`Create collection opens an inline name prefilled with "${defaultName}"`, async () => {
-        await plusMenu.button().click();
-        await plusMenu.createCollection().click();
+        await sidebar.newCollectionButton().click();
         await expect(inlineCollectionCreator.root()).toBeVisible();
         await expect(inlineCollectionCreator.nameInput()).toHaveValue(defaultName);
         await expect(inlineCollectionCreator.advancedButton()).toBeVisible();

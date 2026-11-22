@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import {
   closeAllCollections,
-  openCollection,
+  importCollection,
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../../pages';
@@ -12,37 +12,15 @@ test.describe('Import Postman Collection with OAuth2 token placement', () => {
     await closeAllCollections(page);
   });
 
-  test('token placement drives which field is displayed after import', async ({ page, electronApp, createTmpDir }) => {
+  test('token placement drives which field is displayed after import', async ({ page, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-oauth2-token-placement-collection.json');
     const locators = buildCommonLocators(page);
     const oauth2 = locators.auth.oauth2;
 
     const importDir = await createTmpDir('imported-collection');
 
-    await electronApp.evaluate(({ dialog }, { importDir }) => {
-      const originalShowOpenDialog = dialog.showOpenDialog;
-      dialog.showOpenDialog = async () => {
-        dialog.showOpenDialog = originalShowOpenDialog;
-        return {
-          canceled: false,
-          filePaths: [importDir]
-        };
-      };
-    }, { importDir });
-
     await test.step('Import collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      const importModal = locators.import.modal();
-      await importModal.waitFor({ state: 'visible' });
-      await locators.import.fileInput().setInputFiles(postmanFile);
-      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 5000 });
-      const locationModal = locators.import.locationModal();
-      await expect(locationModal.getByText('OAuth2 Token Placement')).toBeVisible();
-      await locators.import.browseLink(locationModal).click();
-      await locators.import.importButton(locationModal).click();
-      await locationModal.waitFor({ state: 'hidden' });
-      await openCollection(page, 'OAuth2 Token Placement');
+      await importCollection(page, postmanFile, importDir, { expectedCollectionName: 'OAuth2 Token Placement' });
       await expect(locators.sidebar.collection('OAuth2 Token Placement')).toBeVisible();
     });
 

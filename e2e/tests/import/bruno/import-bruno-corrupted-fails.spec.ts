@@ -1,24 +1,29 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { buildCommonLocators } from '../../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Import Corrupted Bruno Collection - Should Fail', () => {
+  test.afterEach(async ({ page }) => {
+    await closeOpenCollectionModal(page);
+  });
+
   test('Import Bruno collection with invalid JSON structure should fail', async ({ page }) => {
     const brunoFile = path.resolve(__dirname, 'fixtures', 'bruno-malformed.json');
+    const { toast, import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const parseError = toast.byMessage('Failed to parse the file');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select the corrupted file on the Import page', async () => {
+      await expect(parseError).toHaveCount(0);
+      await selectImportFiles(page, [brunoFile]);
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    await page.setInputFiles('input[type="file"]', brunoFile);
-
-    const errorLocator = page.getByText(/Failed to parse the file|Unsupported collection format|Invalid|Error/).first();
-    await expect(errorLocator).toBeVisible({ timeout: 10000 });
-
-    // Cleanup: close any open modals
-    await page.getByTestId('modal-close-button').click();
+    await test.step('Verify the file is rejected and the Import page stays open', async () => {
+      await expect(parseError).toBeVisible();
+      await expect(openCollectionModal.pageView('import')).toBeVisible();
+      await expect(importLocators.locationModal()).toBeHidden();
+    });
   });
 });

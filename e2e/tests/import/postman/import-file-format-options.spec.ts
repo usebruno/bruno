@@ -1,7 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as fs from 'fs';
 import * as path from 'path';
-import { closeAllCollections, buildCommonLocators } from '../../../pages';
+import { closeAllCollections, buildCommonLocators, mockBrowseFiles } from '../../../pages';
+import { buildOpenCollectionModalLocators, showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Import Collection File Format Options toggle', () => {
   test.afterAll(async ({ page }) => {
@@ -11,17 +13,17 @@ test.describe('Import Collection File Format Options toggle', () => {
   test('TC-3097: imports with the default OpenCollection (YAML) format', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
     const importDir = await createTmpDir('import-default-yml');
     const collectionDir = path.join(importDir, 'My Collection');
 
-    await test.step('Click Import Collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await expect(locators.modal.title('Import Collection')).toBeVisible();
+    await test.step('Open the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Import');
     });
 
     await test.step('Select the Postman collection file', async () => {
-      await locators.import.fileInput().setInputFiles(postmanFile);
+      await selectImportFiles(page, [postmanFile]);
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 
@@ -40,11 +42,9 @@ test.describe('Import Collection File Format Options toggle', () => {
     });
 
     await test.step('Click Import', async () => {
-      await electronApp.evaluate(({ dialog }, dir) => {
-        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-      }, importDir);
-
+      await mockBrowseFiles(electronApp, [importDir]);
       await locators.import.browseLink(locationModal).click();
+      await expect(locators.import.locationInput()).toHaveValue(importDir);
       await locators.import.importButton(locationModal).click();
       await expect(locationModal).toBeHidden();
     });
@@ -58,15 +58,15 @@ test.describe('Import Collection File Format Options toggle', () => {
   test('TC-3292: File Format dropdown is hidden by default for import collection', { tag: '@sanity' }, async ({ page }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
 
-    await test.step('Click + and Import collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await expect(locators.modal.title('Import Collection')).toBeVisible();
+    await test.step('Open the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Import');
     });
 
     await test.step('Select a file to import', async () => {
-      await locators.import.fileInput().setInputFiles(postmanFile);
+      await selectImportFiles(page, [postmanFile]);
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 
@@ -81,15 +81,15 @@ test.describe('Import Collection File Format Options toggle', () => {
   test('TC-3296: BRU format can be selected while importing collection', { tag: '@sanity' }, async ({ page, electronApp, createTmpDir }) => {
     const postmanFile = path.resolve(__dirname, 'fixtures', 'postman-import-apikey-header-collection.json');
     const locators = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
 
-    await test.step('Open import collection modal', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      await expect(locators.modal.title('Import Collection')).toBeVisible();
+    await test.step('Open the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Import');
     });
 
     await test.step('Upload Postman collection and reach the location modal', async () => {
-      await locators.import.fileInput().setInputFiles(postmanFile);
+      await selectImportFiles(page, [postmanFile]);
       await locators.import.locationModal().waitFor({ state: 'visible', timeout: 10000 });
     });
 
@@ -126,14 +126,12 @@ test.describe('Import Collection File Format Options toggle', () => {
       const importDir = await createTmpDir('import-bru-format');
       const collectionDir = path.join(importDir, 'My Collection');
 
-      await electronApp.evaluate(({ dialog }, dir) => {
-        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-      }, importDir);
-
       const sidebarCollections = locators.sidebar.collection('My Collection');
       const collectionsBeforeImport = await sidebarCollections.count();
 
+      await mockBrowseFiles(electronApp, [importDir]);
       await locators.import.browseLink(locationModal).click();
+      await expect(locators.import.locationInput()).toHaveValue(importDir);
       await locators.import.importButton(locationModal).click();
       await expect(locationModal).toBeHidden();
       await expect(sidebarCollections).toHaveCount(collectionsBeforeImport + 1);

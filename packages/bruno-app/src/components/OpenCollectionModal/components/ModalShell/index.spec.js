@@ -1,8 +1,10 @@
 import React from 'react';
+import Mousetrap from 'mousetrap';
 import { act, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
+import { getKeyBindingOS, getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 import appReducer from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer, {
   collectionsOpeningEnded,
@@ -670,5 +672,90 @@ describe('ModalShell', () => {
     const event = fireEvent.keyDown(document.body, { key: 'Escape' });
 
     expect(event).toBe(true);
+  });
+
+  describe('page shortcuts', () => {
+    const initialApp = appReducer(undefined, { type: 'init' });
+    const shortcutModifier = getKeyBindingOS() === 'mac' ? { metaKey: true } : { ctrlKey: true };
+    const pressO = (element, modifiers) => fireEvent.keyDown(element, { key: 'o', code: 'KeyO', keyCode: 79, which: 79, ...modifiers });
+    const currentPage = (store) => store.getState().openCollectionModal.page;
+
+    const renderOnMyComputer = (preferences = {}) => {
+      const store = configureStore({
+        reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
+        preloadedState: {
+          openCollectionModal: {
+            ...closedState,
+            isOpen: true,
+            page: OPEN_COLLECTION_PAGE.MY_COMPUTER,
+            myComputer: { ...closedState.myComputer, status: 'done', locations: [] }
+          },
+          app: { ...initialApp, preferences: { ...initialApp.preferences, openCollection: { autoOpenFolderPicker: false }, ...preferences } }
+        }
+      });
+      renderWithStore(<ModalShell />, store);
+      const search = screen.getByRole('textbox', { name: 'Search my computer', hidden: true });
+      search.focus();
+      return { store, search };
+    };
+
+    it('goes to Choose folder when its shortcut is pressed in a search box, putting focus on the page', async () => {
+      const { store, search } = renderOnMyComputer();
+
+      pressO(search, { ...shortcutModifier, shiftKey: true });
+
+      expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+      await waitFor(() => expect(screen.getByTestId('page-link')).toHaveFocus());
+    });
+
+    it('goes to Import when its shortcut is pressed in a search box, putting focus in its text box', async () => {
+      const { store, search } = renderOnMyComputer();
+
+      pressO(search, shortcutModifier);
+
+      expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.IMPORT);
+      await waitFor(() => expect(screen.getByTestId('import-page-text')).toHaveFocus());
+    });
+
+    it('leaves a shortcut without Ctrl or Cmd to typing in a search box', () => {
+      const { store, search } = renderOnMyComputer({ keyBindings: { openCollection: { mac: 'shift+bind+o', windows: 'shift+bind+o' } } });
+
+      expect(pressO(search, { shiftKey: true })).toBe(true);
+
+      expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
+    });
+
+    it('runs a shortcut without Ctrl or Cmd from a control that is not a text field', () => {
+      const { store } = renderOnMyComputer({ keyBindings: { openCollection: { mac: 'shift+bind+o', windows: 'shift+bind+o' } } });
+
+      pressO(screen.getByTestId('open-collection-menu-item-recents'), { shiftKey: true });
+
+      expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+    });
+
+    it('handles a shortcut once, without passing it on to the app-wide binding', () => {
+      const combos = getKeyBindingsForActionAllOS('openCollection');
+      const appWideHandler = jest.fn();
+      Mousetrap.bind(combos, appWideHandler);
+      try {
+        const { store } = renderOnMyComputer();
+
+        pressO(screen.getByTestId('open-collection-menu-item-recents'), { ...shortcutModifier, shiftKey: true });
+
+        expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+        expect(appWideHandler).not.toHaveBeenCalled();
+      } finally {
+        Mousetrap.unbind(combos);
+      }
+    });
+
+    it('ignores the shortcuts when keyboard shortcuts are turned off', () => {
+      const { store, search } = renderOnMyComputer({ keybindingsEnabled: false });
+
+      pressO(search, { ...shortcutModifier, shiftKey: true });
+      pressO(search, shortcutModifier);
+
+      expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
+    });
   });
 });

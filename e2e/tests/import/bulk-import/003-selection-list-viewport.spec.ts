@@ -2,7 +2,7 @@ import { test, expect } from '../../../playwright';
 import type { Locator } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { closeAllCollections } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, openBulkImportModal } from '../../../pages';
 
 const getViewportCollectionName = (index: number) => `Viewport Collection ${String(index).padStart(2, '0')}`;
 
@@ -29,6 +29,8 @@ test.describe('Bulk Import Selection List', () => {
   });
 
   test('shows the configured number of visible rows and reveals later rows when scrolled', async ({ page, createTmpDir }) => {
+    const { import: importLocators, modal } = buildCommonLocators(page);
+    const collectionList = importLocators.bulkCollectionsList();
     const sourceFile = path.join(testDataDir, 'sample-postman.json');
     const tempDir = await createTmpDir('bulk-import-selection-list');
     const sourceContent = JSON.parse(await fs.readFile(sourceFile, 'utf-8'));
@@ -48,47 +50,43 @@ test.describe('Bulk Import Selection List', () => {
       importFiles.push(filePath);
     }
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select the ten files and verify the Bulk Import modal lists every collection', async () => {
+      await openBulkImportModal(page, importFiles);
 
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    await page.setInputFiles('input[type="file"]', importFiles);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    const bulkImportModal = page.getByRole('dialog');
-    await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
-    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
-    await expect(collectionsHeading).toBeVisible();
-    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('10');
-
-    const collectionList = collectionsHeading.locator('..').getByTestId('selection-list');
-    await expect(collectionList).toBeVisible();
-
-    const initialVisibleRows = await getFullyVisibleRowNames(collectionList);
-    expect(initialVisibleRows.length).toBeGreaterThan(0);
-    expect(initialVisibleRows.length).toBeLessThan(10);
-    expect(initialVisibleRows[0]).toBe(getViewportCollectionName(1));
-    expect(initialVisibleRows).not.toContain(getViewportCollectionName(10));
-
-    await collectionList.evaluate((list) => {
-      list.scrollTop = list.scrollHeight;
+      await expect(modal.title('Bulk Import')).toBeVisible();
+      await expect(importLocators.bulkCollectionsCount()).toHaveText('10');
+      await expect(collectionList).toBeVisible();
     });
 
-    await expect(async () => {
-      const scrolledVisibleRows = await getFullyVisibleRowNames(collectionList);
-      expect(scrolledVisibleRows.length).toBeGreaterThan(0);
-      expect(scrolledVisibleRows).toContain(getViewportCollectionName(9));
-      expect(scrolledVisibleRows).toContain(getViewportCollectionName(10));
-    }).toPass({ timeout: 5000 });
+    await test.step('Only the first rows are fully visible', async () => {
+      const initialVisibleRows = await getFullyVisibleRowNames(collectionList);
+      expect(initialVisibleRows.length).toBeGreaterThan(0);
+      expect(initialVisibleRows.length).toBeLessThan(10);
+      expect(initialVisibleRows[0]).toBe(getViewportCollectionName(1));
+      expect(initialVisibleRows).not.toContain(getViewportCollectionName(10));
+    });
 
-    // No collections were imported, so afterEach's closeAllCollections is a
-    // no-op. Close the Bulk Import modal explicitly — the page is shared
-    // worker-wide via the worker-scoped electronApp fixture, so the modal
-    // backdrop would otherwise intercept clicks in the next test.
-    await page.getByTestId('modal-close-button').click();
-    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
+    await test.step('Scrolling to the bottom reveals the last rows', async () => {
+      await collectionList.evaluate((list) => {
+        list.scrollTop = list.scrollHeight;
+      });
+
+      await expect(async () => {
+        const scrolledVisibleRows = await getFullyVisibleRowNames(collectionList);
+        expect(scrolledVisibleRows.length).toBeGreaterThan(0);
+        expect(scrolledVisibleRows).toContain(getViewportCollectionName(9));
+        expect(scrolledVisibleRows).toContain(getViewportCollectionName(10));
+      }).toPass({ timeout: 5000 });
+    });
+
+    await test.step('Close the Bulk Import modal', async () => {
+      // No collections were imported, so afterEach's closeAllCollections is a
+      // no-op. Close the Bulk Import modal explicitly — the page is shared
+      // worker-wide via the worker-scoped electronApp fixture, so the modal
+      // backdrop would otherwise intercept clicks in the next test.
+      await modal.closeButton().click();
+
+      await expect(modal.backdrop()).toHaveCount(0);
+    });
   });
 });

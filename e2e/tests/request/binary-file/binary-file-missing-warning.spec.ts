@@ -2,8 +2,7 @@ import * as path from 'path';
 import { test, expect } from '../../../playwright';
 import {
   closeAllCollections,
-  mockBrowseFiles,
-  openCollection,
+  importCollection,
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../../pages';
@@ -15,28 +14,15 @@ test.describe('File / Binary body missing-file warning', () => {
     await closeAllCollections(page);
   });
 
-  test('should show warning for missing binary file', async ({ page, electronApp, createTmpDir }) => {
+  test('should show warning for missing binary file', async ({ page, createTmpDir }) => {
     const collectionFile = path.resolve(__dirname, 'fixtures', 'binary-file-missing-warning.yml');
     const locators = buildCommonLocators(page);
 
     const importDir = await createTmpDir('imported-collection');
 
-    await mockBrowseFiles(electronApp, [importDir]);
-
     await test.step('Import collection', async () => {
-      await locators.plusMenu.button().click();
-      await locators.plusMenu.importCollection().click();
-      const importModal = locators.import.modal();
-      await importModal.waitFor({ state: 'visible' });
-      await locators.import.fileInput().setInputFiles(collectionFile);
-      await locators.import.locationModal().waitFor({ state: 'visible', timeout: 5000 });
-      const locationModal = locators.import.locationModal();
-      await expect(locationModal.getByText('Binary body type')).toBeVisible();
-      await locators.import.browseLink(locationModal).click();
-      await locators.import.importButton(locationModal).click();
-      await locationModal.waitFor({ state: 'hidden' });
+      await importCollection(page, collectionFile, importDir, { expectedCollectionName: 'Binary body type' });
       await expect(locators.sidebar.collection('Binary body type')).toBeVisible();
-      await openCollection(page, 'Binary body type');
     });
 
     await test.step('shows a warning when the binary file does not exist on disk', async () => {

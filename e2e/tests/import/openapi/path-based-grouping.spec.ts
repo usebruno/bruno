@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, expandFolderIn, importCollection } from '../../../pages';
 
 test.describe('OpenAPI Path-Based Grouping', () => {
   test.afterEach(async ({ page }) => {
@@ -9,48 +9,24 @@ test.describe('OpenAPI Path-Based Grouping', () => {
   });
 
   test('should import with path-based folder grouping', async ({ page, createTmpDir }) => {
+    const { sidebar } = buildCommonLocators(page);
+    const collectionName = 'Path Grouping Test API';
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-path-grouping.json');
 
-    // Start the import process
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await importCollection(page, openApiFile, await createTmpDir('path-grouping-test'), {
+      expectedCollectionName: collectionName,
+      groupBy: 'path'
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByTestId('import-collection-modal');
-    await importModal.waitFor({ state: 'visible' });
+    await test.step('Verify path-based folder structure was created', async () => {
+      await expect(sidebar.itemsIn(collectionName, 'users')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'products')).toBeVisible();
+    });
 
-    // Upload the OpenAPI file
-    await page.setInputFiles('input[type="file"]', openApiFile);
+    await test.step('Verify that the products folder contains the {id} subfolder', async () => {
+      await expandFolderIn(page, collectionName, 'products');
 
-    // Wait for location modal to appear after file processing
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await locationModal.waitFor({ state: 'visible', timeout: 10000 });
-    await expect(locationModal.getByText('Path Grouping Test API')).toBeVisible();
-
-    // Select path-based grouping from dropdown
-    await page.getByTestId('grouping-dropdown').click();
-    await page.getByTestId('grouping-option-path').click();
-
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('path-grouping-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-    await locationModal.waitFor({ state: 'hidden' });
-
-    // Verify the collection was imported successfully
-    await expect(page.locator('#sidebar-collection-name').getByText('Path Grouping Test API')).toBeVisible();
-
-    // Configure the collection settings
-    await page.locator('#sidebar-collection-name').getByText('Path Grouping Test API').click();
-
-    // Verify path-based folder structure was created
-    // Should have 'users' and 'products' folders
-    await expect(page.locator('.collection-item-name').getByText('users')).toBeVisible();
-    await expect(page.locator('.collection-item-name').getByText('products')).toBeVisible();
-
-    // Expand the products folder to check for nested structure
-    await page.locator('.collection-item-name').getByText('products').click();
-
-    // Verify that the products folder contains the {id} subfolder
-    await expect(page.locator('.collection-item-name').getByText('{id}')).toBeVisible();
+      await expect(sidebar.folderItemNames(collectionName, 'products')).toContainText(['{id}']);
+    });
   });
 });

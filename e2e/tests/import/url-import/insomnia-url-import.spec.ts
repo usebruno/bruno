@@ -7,6 +7,7 @@ import {
   openCollection,
   buildCommonLocators
 } from '../../../pages';
+import { loadImportText } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Insomnia URL import', () => {
   test.afterEach(async ({ page }) => {
@@ -20,27 +21,16 @@ test.describe('Insomnia URL import', () => {
     test.setTimeout(60_000);
 
     const insomniaUrl = 'https://raw.githubusercontent.com/usebruno/bruno/6f79765b9e92832910fadb8e1df5f83a876206c3/tests/import/insomnia/fixtures/insomnia-v5.yaml';
-    const { plusMenu, import: importLocators, request, sidebar, environment } = buildCommonLocators(page);
+    const { import: importLocators, request, sidebar, environment } = buildCommonLocators(page);
     const collectionName = 'Test API Collection v5';
     const locationModal = importLocators.locationModal();
     const collectionTempDir = await createTmpDir('test-api-collection-v5');
 
-    await test.step('Open import collection modal and switch to URL tab', async () => {
-      await plusMenu.button().click();
-      await plusMenu.importCollection().click();
-      await importLocators.modal().waitFor({ state: 'visible' });
-      await importLocators.urlTab().click();
-    });
-
-    await test.step('Enter the Insomnia collection URL in the URL input text box', async () => {
-      await importLocators.urlInput().waitFor({ state: 'visible' });
-      await importLocators.urlInput().fill(insomniaUrl);
+    await test.step('Load the Insomnia collection URL on the Import page', async () => {
+      await loadImportText(page, insomniaUrl);
     });
 
     await test.step('Import the collection from the URL', async () => {
-      await importLocators.urlImportButton().click();
-      await importLocators.loader().waitFor({ state: 'hidden' });
-
       await locationModal.getByText(collectionName).waitFor({ state: 'visible' });
       await importLocators.locationInput().fill(collectionTempDir);
       await importLocators.importButton().click();

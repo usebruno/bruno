@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs';
-import { closeAllCollections, openCollection, buildCommonLocators } from '../../../pages';
+import { closeAllCollections, openCollection, openCollectionFromDialog, buildCommonLocators } from '../../../pages';
 
 test.describe('Default ignores for node_modules and .git', () => {
   test.afterEach(async ({ page }) => {
@@ -64,20 +64,7 @@ get {
 `
     );
 
-    // Mock the electron dialog
-    await electronApp.evaluate(
-      ({ dialog }, { collectionDir }) => {
-        dialog.showOpenDialog = async () => ({
-          canceled: false,
-          filePaths: [collectionDir]
-        });
-      },
-      { collectionDir }
-    );
-
-    // Open the collection
-    await locators.plusMenu.button().click();
-    await locators.dropdown.tippyItem('Open collection').click();
+    await openCollectionFromDialog(page, electronApp, collectionDir);
 
     // Wait for collection to load
     await expect(locators.sidebar.collection('Node Modules Ignore Test')).toBeVisible({ timeout: 30000 });
@@ -151,20 +138,7 @@ get {
 `
     );
 
-    // Mock the electron dialog
-    await electronApp.evaluate(
-      ({ dialog }, { collectionDir }) => {
-        dialog.showOpenDialog = async () => ({
-          canceled: false,
-          filePaths: [collectionDir]
-        });
-      },
-      { collectionDir }
-    );
-
-    // Open the collection
-    await locators.plusMenu.button().click();
-    await locators.dropdown.tippyItem('Open collection').click();
+    await openCollectionFromDialog(page, electronApp, collectionDir);
 
     // Wait for collection to load
     await expect(locators.sidebar.collection('Git Ignore Test')).toBeVisible({ timeout: 30000 });

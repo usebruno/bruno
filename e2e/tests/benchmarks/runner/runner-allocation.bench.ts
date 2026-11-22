@@ -6,6 +6,7 @@ import { test, expect } from '../../../playwright';
 import { type Page, type ElectronApplication, type CDPSession } from '@playwright/test';
 import {
   openCollection,
+  openCollectionFromDialog,
   closeAllCollections,
   selectEnvironment,
   openRunnerTab,
@@ -50,11 +51,7 @@ const copyCollection = (destDir: string) => {
 const openTestbench = async (page: Page, electronApp: ElectronApplication, dir: string) => {
   await test.step(`Open the ${COLLECTION_NAME} collection`, async () => {
     const locators = buildCommonLocators(page);
-    await electronApp.evaluate(({ dialog }, dir) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    }, dir);
-    await locators.plusMenu.button().click();
-    await locators.dropdown.tippyItem('Open collection').click();
+    await openCollectionFromDialog(page, electronApp, dir);
     await expect(locators.sidebar.collection(COLLECTION_NAME)).toBeVisible({ timeout: 10000 });
     await openCollection(page, COLLECTION_NAME);
   });

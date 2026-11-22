@@ -10,6 +10,8 @@ import {
   readRequestBody,
   buildCommonLocators
 } from '../../../pages';
+import { buildOpenCollectionModalLocators, showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { buildImportPageLocators, selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Import WSDL Collection', () => {
   const testDataDir = path.join(__dirname, 'fixtures');
@@ -20,25 +22,25 @@ test.describe('Import WSDL Collection', () => {
 
   test('TC-815: imports a valid WSDL XML file as a Bruno collection', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'wsdl.xml');
-    const { plusMenu, import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const { import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const importPage = buildImportPageLocators(page);
     const collectionName = 'TestWSDLServiceXML';
     const locationModal = importLocators.locationModal();
     const collectionTempDir = await createTmpDir('wsdl-xml-test');
 
-    await test.step('Open the plus menu and choose Import collection', async () => {
-      await plusMenu.button().click();
-      await plusMenu.importCollection().waitFor({ state: 'visible' });
-      await plusMenu.importCollection().click();
-      await importLocators.modal().waitFor({ state: 'visible' });
+    await test.step('Open the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Import');
     });
 
-    await test.step('Verify that Import dialog shows File', async () => {
-      await expect(importLocators.fileTab()).toContainText('File');
+    await test.step('Verify that the Import page offers file selection', async () => {
+      await expect(importPage.selectFilesLink()).toBeVisible();
+      await expect(importPage.dropZone()).toContainText('WSDL');
     });
 
     await test.step('Choose the WSDL XML file', async () => {
-      await expect(importLocators.chooseFilesButton()).toBeVisible();
-      await importLocators.fileInput().setInputFiles(wsdlFile);
+      await selectImportFiles(page, [wsdlFile]);
       await locationModal.waitFor({ state: 'visible' });
       await expect(locationModal.getByText('WSDL Collection')).toBeVisible();
     });
@@ -67,19 +69,13 @@ test.describe('Import WSDL Collection', () => {
 
   test('Import WSDL JSON file as Bruno collection', async ({ page, createTmpDir }) => {
     const wsdlFile = path.join(testDataDir, 'wsdl-bruno.json');
-    const { plusMenu, import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const { import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
     const collectionName = 'TestWSDLServiceJSON';
     const locationModal = importLocators.locationModal();
     const collectionTempDir = await createTmpDir('wsdl-json-test');
 
-    await test.step('Open import collection modal', async () => {
-      await plusMenu.button().click();
-      await plusMenu.importCollection().click();
-      await importLocators.modal().waitFor({ state: 'visible' });
-    });
-
     await test.step('Choose WSDL JSON file', async () => {
-      await importLocators.fileInput().setInputFiles(wsdlFile);
+      await selectImportFiles(page, [wsdlFile]);
       await locationModal.waitFor({ state: 'visible', timeout: 10000 });
     });
 
