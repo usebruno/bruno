@@ -27,10 +27,10 @@ export const buildCollectionSettingsPanelLocators = (page: Page) => {
   const content = buildPaneTabsLocators(page).collectionSettingsContent;
 
   return {
-    versionRow: () => page.getByTestId('info-version-row'),
+    versionRow: () => content().getByTestId('info-version-row'),
     headersBulkEditToggle: () => content().getByTestId('bulk-edit-toggle'),
-    varsPanel: () => page.getByTestId('collection-vars-panel'),
-    authModeSelector: () => page.getByTestId('auth-mode-selector'),
+    varsPanel: () => content().getByTestId('collection-vars-panel'),
+    authModeSelector: () => content().getByTestId('auth-mode-selector'),
     scriptIntro: () =>
       content().getByText(
         'Write pre and post-request scripts that will run before and after any request in this collection is sent.'
