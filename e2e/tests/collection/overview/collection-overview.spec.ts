@@ -7,7 +7,7 @@ import {
   openCollectionSettings,
   selectCollectionPaneTab
 } from '../../../pages';
-import { buildCollectionSettingsOverviewLocators } from '../../../pages/collection/overview';
+import { buildCollectionSettingsOverviewLocators, saveGeneratedDocs } from '../../../pages/collection/overview';
 
 const environmentCountLabel = (count: number, scope: 'collection' | 'global') =>
   `${count} ${scope} environment${count === 1 ? '' : 's'}`;
