@@ -7,7 +7,7 @@ import {
 } from '../../../pages';
 import { buildCollectionSettingsPanelLocators } from '../../../pages/collection/settings';
 
-test.describe('TC-2618: Tests for Collection settings tabs', () => {
+test.describe('Collection settings tabs', () => {
   const pageErrors: string[] = [];
   const onPageError = (error: Error) => pageErrors.push(error.message);
 
