@@ -371,6 +371,16 @@ const getCollectionFormat = (collectionPath) => {
   throw new Error(`No collection configuration found at: ${collectionPath}`);
 };
 
+/**
+ * Validate that a target path is inside the collection directory.
+ * Prevents path traversal attacks via ../../ in user-supplied paths.
+ */
+const isPathInsideCollection = (targetPath, collectionPath) => {
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedCollection = path.resolve(collectionPath);
+  return resolvedTarget.startsWith(resolvedCollection + path.sep) || resolvedTarget === resolvedCollection;
+};
+
 const safeToRename = (oldPath, newPath) => {
   try {
     // If the new path doesn't exist, it's safe to rename
@@ -771,6 +781,7 @@ module.exports = {
   hasJsonExtension,
   hasBruExtension,
   hasRequestExtension,
+  isPathInsideCollection,
   createDirectory,
   removeDirectory,
   browseDirectory,

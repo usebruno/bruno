@@ -3,7 +3,6 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
-const { buildScriptedEntry } = require('@usebruno/requests').scripting;
 const qs = require('qs');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
@@ -30,13 +29,13 @@ const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, isBinaryRequestBody } = require('../../utils/common');
-const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
-const { getProcessEnvVars } = require('../../store/process-env');
+const { getProcessEnvVars, getCollectionWorkspace } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const Oauth2Store = require('../../store/oauth2');
 const { isRequestTagsIncluded } = require('@usebruno/common');
@@ -46,6 +45,7 @@ const { registerWsEventHandlers } = require('./ws-event-handlers');
 const { getCertsAndProxyConfig, buildCertsAndProxyConfig } = require('./cert-utils');
 const { easterEggResponse } = require('../../utils/woof');
 const { createRunnerExchangeEmitters } = require('./runner-exchange');
+const { createRunRequestByItemPathname } = require('./run-request-by-pathname');
 const { saveRunnerResponseBody } = require('../../services/runner-exchange');
 const { buildFormUrlEncodedPayload, isFormData, getMediaType, extractBoundaryFromContentType } = require('@usebruno/common').utils;
 
@@ -534,8 +534,10 @@ const registerNetworkIpc = (mainWindow) => {
     };
   };
 
-  const sendVariableUpdates = (result, { collectionUid, requestUid, collection }) => {
-    if (result.runtimeVariables) {
+  // With isolateVariables, the updates stay in this run's in-memory state and are not sent to
+  // the app, which would show and persist them.
+  const sendVariableUpdates = (result, { collectionUid, requestUid, collection, isolateVariables = false }) => {
+    if (result.runtimeVariables && !isolateVariables) {
       mainWindow.webContents.send('main:runtime-variables-update', {
         runtimeVariables: result.runtimeVariables,
         requestUid,
@@ -543,7 +545,7 @@ const registerNetworkIpc = (mainWindow) => {
       });
     }
 
-    if (result.envVariables) {
+    if (result.envVariables && !isolateVariables) {
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: result.envVariables,
         requestUid,
@@ -552,20 +554,24 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     if (result.globalEnvironmentVariables) {
-      mainWindow.webContents.send('main:global-environment-variables-update', {
-        globalEnvironmentVariables: result.globalEnvironmentVariables,
-        requestUid,
-        collectionUid
-      });
+      if (!isolateVariables) {
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables,
+          requestUid,
+          collectionUid
+        });
+      }
       collection.globalEnvironmentVariables = result.globalEnvironmentVariables;
     }
 
     if (result.collectionVariables) {
-      mainWindow.webContents.send('main:collection-variables-update', {
-        collectionVariables: result.collectionVariables,
-        requestUid,
-        collectionUid
-      });
+      if (!isolateVariables) {
+        mainWindow.webContents.send('main:collection-variables-update', {
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
       applyCollectionVarsToCollectionRoot(collection, result.collectionVariables);
     }
   };
@@ -599,7 +605,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    isolateVariables = false
   ) => {
     // run pre-request script
     let scriptResult;
@@ -621,7 +628,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection, isolateVariables });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookies = await getDomainsWithCookies();
@@ -705,7 +712,8 @@ const registerNetworkIpc = (mainWindow) => {
     runtimeVariables,
     processEnvVars,
     scriptingConfig,
-    runRequestByItemPathname
+    runRequestByItemPathname,
+    isolateVariables = false
   ) => {
     applySentHeadersToRequest(request, response);
     // run post-response vars
@@ -723,7 +731,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       if (result) {
-        sendVariableUpdates(result, { collectionUid, requestUid, collection });
+        sendVariableUpdates(result, { collectionUid, requestUid, collection, isolateVariables });
       }
 
       if (result?.error) {
@@ -751,7 +759,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionName
       );
 
-      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection });
+      sendVariableUpdates(scriptResult, { collectionUid, requestUid, collection, isolateVariables });
       resetOauth2Credentials({ oauth2CredentialsToReset: scriptResult.oauth2CredentialsToReset, request, collectionUid });
 
       const domainsWithCookiesPost = await getDomainsWithCookies();
@@ -760,7 +768,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null }) => {
+  const runRequest = async ({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground = false, callerBru = null, parentExecutionMode = null, parentRunnerEventData = null, parentRequestUid = null, parentUnresolvedVariables = null, isolateVariables = false, workspacePath = getCollectionWorkspace(collection.uid) }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -769,99 +777,29 @@ const registerNetworkIpc = (mainWindow) => {
     const requestUid = item.requestUid || parentRequestUid || uuid();
     let unresolvedVariables = null;
 
-    const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
-      return new Promise(async (resolve, reject) => {
-        const format = getCollectionFormat(collection.pathname);
-        let itemPathname = path.join(collection.pathname, relativeItemPathname);
-        if (itemPathname && !hasRequestExtension(itemPathname, format)) {
-          itemPathname = `${itemPathname}.${format}`;
-        }
-        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-        if (_item) {
-          // WS/gRPC items live on separate IPC channels and can't be driven via
-          // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-          if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-            const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
-            const startedAt = Date.now();
-            callerBru?._recordScriptedRequest?.({
-              source: 'runRequest',
-              request: {
-                method: (_item.request?.method || 'GET').toString().toUpperCase(),
-                url: _item.request?.url,
-                headers: {},
-                data: null
-              },
-              response: {
-                statusCode: null,
-                statusText: 'Skipped',
-                headers: {},
-                data: null,
-                dataBuffer: '',
-                size: 0,
-                duration: 0
-              },
-              error: null,
-              startedAt,
-              completedAt: startedAt
-            });
-            resolve({
-              status: 'skipped',
-              statusText: `bru.runRequest does not support ${protocolLabel} requests`,
-              headers: {},
-              data: null,
-              duration: 0,
-              size: 0
-            });
-            return;
-          }
-
-          const startedAt = Date.now();
-          let res, err;
-          try {
-            res = await runRequest({ item: _item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: true, callerBru, parentExecutionMode, parentRunnerEventData, parentRequestUid: requestUid, parentUnresolvedVariables: unresolvedVariables });
-          } catch (e) {
-            err = e;
-          }
-          const completedAt = Date.now();
-          const sent = res?.requestSent || {};
-          // Cancel/network-error early-returns don't include requestSent; fall back
-          const fallbackRequest = _item.request || {};
-          callerBru?._recordScriptedRequest?.({
-            source: 'runRequest',
-            ...buildScriptedEntry({
-              request: {
-                method: sent.method || fallbackRequest.method,
-                url: sent.url || res?.url || fallbackRequest.url,
-                headers: sent.headers,
-                data: sent.data
-              },
-              response: res
-                ? {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: res.headers,
-                    data: res.data,
-                    dataBuffer: res.dataBuffer,
-                    size: res.size,
-                    duration: res.duration,
-                    timeline: res.timeline
-                  }
-                : null,
-              error: err || (res?.error ? { message: res.error } : null),
-              startedAt,
-              completedAt
-            })
-          });
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(res);
-          return;
-        }
-        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-      });
-    };
+    // A request from the same collection shares this run's variables and isolation; `target`
+    // replaces them for a request from another collection.
+    const runRequestByItemPathname = createRunRequestByItemPathname({
+      collection,
+      activeEnvironmentName: envVars.__name__,
+      workspacePath,
+      runItem: ({ item: nestedItem, callerBru: nestedCallerBru, target }) => runRequest({
+        item: nestedItem,
+        collection,
+        envVars,
+        processEnvVars,
+        runtimeVariables,
+        isolateVariables,
+        workspacePath,
+        ...target,
+        runInBackground: true,
+        callerBru: nestedCallerBru,
+        parentExecutionMode,
+        parentRunnerEventData,
+        parentRequestUid: requestUid,
+        parentUnresolvedVariables: unresolvedVariables
+      })
+    });
 
     const emitScriptedRequestEvents = (phase, scriptResult) => {
       const entries = scriptResult?.scriptedRequestEntries || [];
@@ -960,7 +898,8 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables,
           processEnvVars,
           scriptingConfig,
-          runRequestByItemPathname
+          runRequestByItemPathname,
+          isolateVariables
         );
       } catch (error) {
         preRequestError = error;
@@ -970,7 +909,7 @@ const registerNetworkIpc = (mainWindow) => {
         preRequestScriptResult = preRequestError.partialResults;
         // Forward any variable mutations the script made before throwing so the UI
         // and disk stay in sync with the partial test results we're about to render.
-        sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection });
+        sendVariableUpdates(preRequestScriptResult, { collectionUid, requestUid, collection, isolateVariables });
       }
 
       emitScriptedRequestEvents('pre-request', preRequestScriptResult);
@@ -1106,7 +1045,7 @@ const registerNetworkIpc = (mainWindow) => {
           responseTime = measureResponseTime(response.config.metadata);
         } else {
           await executeRequestOnFailHandler(request, error, (onFailScriptResult) => {
-            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection });
+            sendVariableUpdates(onFailScriptResult, { collectionUid, requestUid, collection, isolateVariables });
           });
 
           // if it's not a network error, don't continue
@@ -1158,7 +1097,8 @@ const registerNetworkIpc = (mainWindow) => {
             runtimeVariables,
             processEnvVars,
             scriptingConfig,
-            runRequestByItemPathname);
+            runRequestByItemPathname,
+            isolateVariables);
         } catch (error) {
           console.error('Post-response script error:', error);
           postResponseError = error;
@@ -1170,7 +1110,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (postResponseError?.partialResults) {
           postResponseScriptResult = postResponseError.partialResults;
           // Forward any variable mutations the script made before throwing.
-          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection });
+          sendVariableUpdates(postResponseScriptResult, { collectionUid, requestUid, collection, isolateVariables });
         }
 
         emitScriptedRequestEvents('post-response', postResponseScriptResult);
@@ -1265,7 +1205,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
 
-          sendVariableUpdates(testResults, { collectionUid, requestUid, collection });
+          sendVariableUpdates(testResults, { collectionUid, requestUid, collection, isolateVariables });
           resetOauth2Credentials({ oauth2CredentialsToReset: testResults.oauth2CredentialsToReset, request, collectionUid });
 
           !runInBackground && notifyScriptExecution({
@@ -1481,106 +1421,22 @@ const registerNetworkIpc = (mainWindow) => {
         }
       });
 
-      const runRequestByItemPathname = async (relativeItemPathname, callerBru) => {
-        return new Promise(async (resolve, reject) => {
-          const format = getCollectionFormat(collection.pathname);
-          let itemPathname = path.join(collection.pathname, relativeItemPathname);
-          if (itemPathname && !hasRequestExtension(itemPathname, format)) {
-            itemPathname = `${itemPathname}.${format}`;
-          }
-          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
-          if (_item) {
-            // WS/gRPC items live on separate IPC channels and can't be driven via
-            // the HTTP runRequest. Record a Skipped row so the user sees feedback.
-            if (_item.type === 'ws-request' || _item.type === 'grpc-request') {
-              const protocolLabel = _item.type === 'ws-request' ? 'WebSocket' : 'gRPC';
-              const startedAt = Date.now();
-              callerBru?._recordScriptedRequest?.({
-                source: 'runRequest',
-                request: {
-                  method: (_item.request?.method || 'GET').toString().toUpperCase(),
-                  url: _item.request?.url,
-                  headers: {},
-                  data: null
-                },
-                response: {
-                  statusCode: null,
-                  statusText: 'Skipped',
-                  headers: {},
-                  data: null,
-                  dataBuffer: '',
-                  size: 0,
-                  duration: 0
-                },
-                error: null,
-                startedAt,
-                completedAt: startedAt
-              });
-              resolve({
-                status: 'skipped',
-                statusText: `bru.runRequest does not support ${protocolLabel} requests`,
-                headers: {},
-                data: null,
-                duration: 0,
-                size: 0
-              });
-              return;
-            }
-
-            const startedAt = Date.now();
-            let res, err;
-            try {
-              res = await runRequest({
-                item: _item,
-                collection,
-                envVars,
-                processEnvVars,
-                runtimeVariables,
-                runInBackground: true,
-                parentExecutionMode: 'runner',
-                parentRunnerEventData: currentRunnerEventData
-              });
-            } catch (e) {
-              err = e;
-            }
-            const completedAt = Date.now();
-            const sent = res?.requestSent || {};
-            callerBru?._recordScriptedRequest?.({
-              source: 'runRequest',
-              ...buildScriptedEntry({
-                request: {
-                  method: sent.method,
-                  url: sent.url || res?.url,
-                  headers: sent.headers,
-                  data: sent.data
-                },
-                response: res
-                  ? {
-                      status: res.status,
-                      statusText: res.statusText,
-                      headers: res.headers,
-                      data: res.data,
-                      dataBuffer: res.dataBuffer,
-                      size: res.size,
-                      duration: res.duration,
-                      timeline: res.timeline
-                    }
-                  : null,
-                error: err || (res?.error ? { message: res.error } : null),
-                startedAt,
-                completedAt
-              })
-            });
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(res);
-            return;
-          }
-          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
-        });
-      };
+      const runRequestByItemPathname = createRunRequestByItemPathname({
+        collection,
+        activeEnvironmentName: envVars.__name__,
+        workspacePath: getCollectionWorkspace(collectionUid),
+        runItem: ({ item: nestedItem, target }) => runRequest({
+          item: nestedItem,
+          collection,
+          envVars,
+          processEnvVars,
+          runtimeVariables,
+          ...target,
+          runInBackground: true,
+          parentExecutionMode: 'runner',
+          parentRunnerEventData: currentRunnerEventData
+        })
+      });
 
       if (!folder) {
         folder = collection;

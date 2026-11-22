@@ -44,6 +44,10 @@ export const buildTimelineLocators = (page: Page) => ({
   clearButton: () => page.getByRole('button', { name: 'Clear Timeline' }),
   container: () => page.getByTestId('timeline-container'),
   entries: () => page.getByTestId('timeline-container').getByTestId('timeline-entry'),
+  // `kind` is an entry kind from bruno-app's Timeline/entryMeta.js: main, pre, post (runRequest) or oauth.
+  entriesOfKind: (kind: string) =>
+    page.getByTestId('timeline-container').getByTestId('timeline-entry').filter({ has: page.getByTestId(`timeline-badge-${kind}`) }),
+  entryUrl: (entry: Locator) => entry.getByTestId('timeline-url'),
   networkButton: (item: Locator) => item.getByRole('button', { name: 'Network' }),
   networkLogs: (item: Locator) => item.locator('.network-logs-container'),
   headerRow: (item: Locator, name: string) => buildTimelineHeaderRow(page, item, name),

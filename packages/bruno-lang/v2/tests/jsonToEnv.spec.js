@@ -79,6 +79,26 @@ describe('jsonToEnv', () => {
 `);
   });
 
+  it('should not emit @description for an empty or null description', () => {
+    const input = {
+      variables: [
+        { name: 'url', value: 'http://localhost:3000', enabled: true, description: '' },
+        { name: 'port', value: '3000', enabled: true, description: null },
+        { name: 'token', value: '', enabled: true, secret: true, description: '' }
+      ]
+    };
+
+    const output = parser(input);
+    expect(output).toEqual(`vars {
+  url: http://localhost:3000
+  port: 3000
+}
+vars:secret [
+  token
+]
+`);
+  });
+
   it('should stringify multiline description with triple-quoted literal newlines', () => {
     const input = {
       variables: [

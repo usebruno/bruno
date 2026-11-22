@@ -462,13 +462,24 @@ describe('stripBruExtInRunRequest', () => {
   it('does not rewrite when the argument is a compound expression', () => {
     const cases = [
       'bru.runRequest("first.bru" + suffix)',
-      'bru.runRequest("first.bru", { retries: 1 })',
       'bru.runRequest(getPath("first.bru"))',
       'bru.runRequest(`${prefix}` + ".bru")'
     ];
     for (const input of cases) {
       expect(stripBruExtInRunRequest(input)).toBe(input);
     }
+  });
+
+  it('rewrites the path of a call that also passes options, leaving the options as they are', () => {
+    expect(stripBruExtInRunRequest('bru.runRequest("auth/login.bru", { collection: "Auth.bru" });'))
+      .toBe('bru.runRequest("auth/login", { collection: "Auth.bru" });');
+    expect(stripBruExtInRunRequest('bru.runRequest(\n  \'login.bru\' ,\n  options\n)'))
+      .toBe('bru.runRequest(\n  \'login\' ,\n  options\n)');
+  });
+
+  it('reads a regex literal that opens the options, so a later call is still rewritten', () => {
+    expect(stripBruExtInRunRequest('bru.runRequest("a.bru", /"/.test(x) ? o : p); bru.runRequest("b.bru");'))
+      .toBe('bru.runRequest("a", /"/.test(x) ? o : p); bru.runRequest("b");');
   });
 
   it('does not rewrite calls whose argument does not end in .bru', () => {

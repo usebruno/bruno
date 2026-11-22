@@ -58,6 +58,17 @@ const assertValidVariableName = (key) => {
  */
 
 /**
+ * The options of `bru.runRequest`.
+ * @category Types
+ * @typedef {object} RunRequestOptions
+ * @property {string} [collection] - The name of another collection in the same workspace (the
+ *   name `bru.getCollectionName()` returns there) to run the request from. The request runs from
+ *   its saved file, with that collection's own auth, headers, scripts, settings and `.env`, and
+ *   the environment whose name matches the active one. Variables its scripts set stay inside
+ *   that run.
+ */
+
+/**
  * The response `bru.runRequest` resolves with.
  * @category Types
  * @typedef {object} RunRequestResponse
@@ -331,14 +342,20 @@ class Bru {
     };
 
     /**
-     * Run another request of the collection and wait for its response.
+     * Run another request of the collection, or of another collection in the workspace, and
+     * wait for its response.
      *
      * In a gRPC hook it rejects: a gRPC script can't run another request.
-     * @type {(requestPathName: string) => Promise<RunRequestResponse>}
+     * @type {(requestPathName: string, options?: RunRequestOptions) => Promise<RunRequestResponse>}
      * @param requestPathName - The request's path from the collection's folder, with or without
      *   its file extension, such as `'auth/login'`.
+     * @param options - Set `collection` to run the request from another collection of the
+     *   workspace.
      * @example
      * const login = await bru.runRequest('auth/login');
+     * bru.setVar('token', login.data.token);
+     * @example
+     * const login = await bru.runRequest('auth/login', { collection: 'Auth API' });
      * bru.setVar('token', login.data.token);
      * @category Requests
      */

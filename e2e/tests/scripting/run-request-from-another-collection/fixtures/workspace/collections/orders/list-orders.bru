@@ -1,0 +1,20 @@
+meta {
+  name: list-orders
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/query?orderToken={{token}}
+  body: none
+  auth: none
+}
+
+params:query {
+  orderToken: {{token}}
+}
+
+script:pre-request {
+  const login = await bru.runRequest('auth/login', { collection: 'Auth API' });
+  bru.setVar('token', login.data.token);
+}

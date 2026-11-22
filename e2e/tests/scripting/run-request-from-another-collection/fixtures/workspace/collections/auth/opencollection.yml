@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+
+info:
+  name: Auth API
+  version: "1"
+
+request:
+  variables:
+    - name: authHost
+      value: http://localhost:8081
+bundled: false
+extensions: {}
