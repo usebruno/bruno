@@ -16,7 +16,7 @@ test.describe('TC-2618: Tests for Collection settings tabs', () => {
     await closeAllCollections(page);
   });
 
-  test('Verify All Collection Tabs Open Successfully on Clicking on collection', { tag: '@sanity' }, async ({
+  test('TC-2618: Verify all collection settings tabs open and show their content', { tag: '@sanity' }, async ({
     page,
     createTmpDir
   }) => {
