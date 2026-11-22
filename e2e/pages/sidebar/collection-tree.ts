@@ -61,6 +61,9 @@ export const buildSidebarLocators = (page: Page) => {
       collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(folderName) }).getByTestId('invalid-files-badge'),
     itemRow,
     itemByName,
+    // Shown in the row's actions-menu spot while a request runs / after it finished in the background.
+    itemRunningIndicator: (name: string) => itemRow(name).getByTestId('request-running-indicator'),
+    itemUnseenResponseBadge: (name: string) => itemRow(name).getByTestId('unseen-response-badge'),
     itemsIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
     itemRowIn: (collectionName: string, name: string): Locator =>

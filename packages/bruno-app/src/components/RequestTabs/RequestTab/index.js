@@ -34,6 +34,7 @@ import ConfirmApiSpecClose from './ConfirmApiSpecClose';
 import { findApiSpecByPathname, hasUnsavedApiSpecChanges } from 'utils/api-specs';
 import { clearApiSpecDraft, saveApiSpecTabDraft } from 'providers/ReduxStore/slices/apiSpec';
 import toast from 'react-hot-toast';
+import RequestActivityIndicator, { useHasRequestActivity } from 'components/RequestActivityIndicator';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid, hasOverflow, setHasOverflow, dropdownContainerRef }) => {
   const dispatch = useDispatch();
@@ -228,6 +229,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isActive = tab.uid === activeTabUid;
+  const hasRequestActivity = useHasRequestActivity(item);
   // Truthy only when a sidebar folder/collection is focused; those own the
   // new-request shortcut (with folder targeting), so the tab handler yields to them.
   const focusedSidebarPath = useSelector((state) => state.app.focusedSidebarPath);
@@ -717,6 +719,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       </div>
       <GradientCloseButton
         hasChanges={hasChanges}
+        indicator={hasRequestActivity && <RequestActivityIndicator item={item} />}
         onClick={(e) => {
           if (!hasChanges) {
             isWS && closeWsConnection(item.uid);

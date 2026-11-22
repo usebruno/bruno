@@ -114,6 +114,14 @@ const Wrapper = styled.div`
         visibility: visible;
         background-color: transparent !important;
       }
+      .request-activity {
+        visibility: hidden;
+      }
+    }
+
+    /* Request activity sits in the spot of the hidden actions menu and gives way to it */
+    &:has([aria-expanded='true']) .request-activity {
+      visibility: hidden;
     }
 
     &.item-target {

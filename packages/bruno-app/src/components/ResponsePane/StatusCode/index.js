@@ -4,7 +4,7 @@ import statusCodePhraseMap from './get-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
 // Todo: text-error class is not getting pulled in for 500 errors
-const StatusCode = ({ status, statusText, isStreaming }) => {
+const StatusCode = ({ status, statusText, isStreaming, compact, ...props }) => {
   const getTabClassname = (status) => {
     return classnames({
       'text-ok': status >= 100 && status < 200,
@@ -16,8 +16,8 @@ const StatusCode = ({ status, statusText, isStreaming }) => {
   };
 
   return (
-    <StyledWrapper className={`response-status-code ${getTabClassname(status)}`} data-testid="response-status-code">
-      {status} {statusText || statusCodePhraseMap[status]} {isStreaming ? ' - STREAMING' : null}
+    <StyledWrapper className={`response-status-code ${getTabClassname(status)}`} data-testid="response-status-code" {...props}>
+      {status}{!compact && <> {statusText || statusCodePhraseMap[status]} {isStreaming ? ' - STREAMING' : null}</>}
     </StyledWrapper>
   );
 };

@@ -1,4 +1,5 @@
-import reducer, { addTab, restoreTabs, closeTabs, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import reducer, { addTab, focusTab, restoreTabs, closeTabs, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { responseReceived } from 'providers/ReduxStore/slices/collections';
 import { getApiSpecTabUid } from 'utils/api-specs';
 
 const COLLECTION_UID = 'col-1';
@@ -164,5 +165,39 @@ describe('API spec tabs', () => {
 
     state = reducer(state, setSidebarRevealRequest({ uid: 'req-1', requestedAt: 200 }));
     expect(state.sidebarRevealRequest).toEqual({ uid: 'req-1', requestedAt: 200 });
+  });
+});
+
+describe('tabs unseen response', () => {
+  const openTabs = (activeTabUid) => ({
+    ...reducer(undefined, { type: 'init' }),
+    tabs: [{ uid: 'r1', collectionUid: COLLECTION_UID }, { uid: 'r2', collectionUid: COLLECTION_UID }],
+    activeTabUid
+  });
+  const receive = (state, itemUid = 'r1') => reducer(state, responseReceived({ collectionUid: COLLECTION_UID, itemUid, response: { status: 200 } }));
+
+  it('marks a response that arrives while another tab is active as unseen', () => {
+    expect(receive(openTabs('r2')).unseenResponses).toEqual({ r1: true });
+  });
+
+  it('does not mark a response that arrives in the active tab', () => {
+    expect(receive(openTabs('r1')).unseenResponses).toEqual({});
+  });
+
+  it('keeps the mark of a request without a tab until a tab for it opens', () => {
+    const state = receive(openTabs('r2'), 'r3');
+    expect(state.unseenResponses).toEqual({ r3: true });
+    const opened = reducer(state, addTab({ uid: 'r3', collectionUid: COLLECTION_UID, type: 'http-request' }));
+    expect(opened.unseenResponses).toEqual({});
+  });
+
+  it('leaves the state untouched when there is nothing to clear', () => {
+    const state = openTabs('r1');
+    expect(reducer(state, { type: 'any/action' })).toBe(state);
+  });
+
+  it('clears the mark once the tab becomes active', () => {
+    const state = reducer(receive(openTabs('r2')), focusTab({ uid: 'r1' }));
+    expect(state.unseenResponses).toEqual({});
   });
 });

@@ -45,6 +45,7 @@ import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
+import RequestActivityIndicator from 'components/RequestActivityIndicator';
 import InvalidFilesBadge from '../../InvalidFilesBadge';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
@@ -818,7 +819,7 @@ const CollectionItemRow = ({
             </div>
           </div>
           {!isDragging && !isMultiSelected && (
-            <div className="pr-2 collection-actions">
+            <div className="pr-2 collection-actions relative">
               <MenuDropdown
                 ref={menuDropdownRef}
                 items={buildMenuItems()}
@@ -831,6 +832,9 @@ const CollectionItemRow = ({
                   <IconDots size={18} className="collection-item-menu-icon" />
                 </ActionIcon>
               </MenuDropdown>
+              <span className="request-activity absolute inset-y-0 left-0 right-2 flex items-center justify-center pointer-events-none">
+                <RequestActivityIndicator item={item} />
+              </span>
             </div>
           )}
         </div>
