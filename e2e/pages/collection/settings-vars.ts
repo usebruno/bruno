@@ -1,5 +1,7 @@
 import { Locator, Page, test } from '../../playwright';
 import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
+import { buildTableLocator } from '../shared-ui/table';
+import { buildVarsPanelLocators } from '../request/vars';
 
 export type VarsTableType = 'preRequest' | 'postResponse';
 
@@ -12,10 +14,10 @@ const headerCell = (table: Locator, name: string) =>
   table.locator('thead').getByText(name, { exact: true });
 
 export const buildCollectionSettingsVarsLocators = (page: Page) => {
-  const panel = () => page.getByTestId('collection-vars-panel');
-  const table = (type: VarsTableType) => page.getByTestId(TABLE_ID[type]);
-  const row = (type: VarsTableType, name: string) =>
-    table(type).locator(`tbody tr[data-row-name="${name}"]`);
+  const panel = buildVarsPanelLocators(page)('collection').container;
+  const varsTable = (type: VarsTableType) => buildTableLocator(page)(TABLE_ID[type]);
+  const table = (type: VarsTableType) => varsTable(type).container();
+  const row = (type: VarsTableType, name: string) => varsTable(type).rowByName(name);
   const nameCell = (rowLocator: Locator) => rowLocator.getByTestId('column-name');
   const valueCell = (rowLocator: Locator) => rowLocator.getByTestId('column-value');
   const nameInput = (type: VarsTableType, name: string) =>
