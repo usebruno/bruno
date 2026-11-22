@@ -29,16 +29,28 @@ const copiesInsideWiderMounts = (walkableMounts) =>
 const volumeOsFolders = (volumeRoots, pathModule) =>
   volumeRoots.flatMap((volumeRoot) => VOLUME_OS_FOLDERS.map((name) => pathModule.join(volumeRoot, name)));
 
+const innermostMountOf = (folderPath, mounts) => mounts
+  .filter((mount) => folderPath === mount.path || folderPath.startsWith(`${mount.path.replace(/\/$/, '')}/`))
+  .sort((a, b) => b.path.length - a.path.length)[0];
+
+const isWalkableRoot = (rootPath, mounts) => {
+  const mount = innermostMountOf(rootPath, mounts);
+  return !mount || mount.path === '/' || isWalkableMount(mount) || mount.kind === 'duplicate';
+};
+
 const planUnixComputer = ({ mounts, systemFolders, extraRoots }) => {
   const walkableMounts = mounts.filter(isWalkableMount);
   const volumeRoots = mounts.filter((mount) => mount.kind === 'removable').map((mount) => mount.path);
   return {
-    roots: ['/', ...extraRoots, ...volumeRoots],
+    roots: ['/', ...extraRoots.filter((rootPath) => isWalkableRoot(rootPath, mounts))],
+    volumeRoots,
     prunePaths: [
-      ...systemFolders,
-      ...mounts.filter((mount) => !isWalkableMount(mount)).map((mount) => mount.path),
-      ...copiesInsideWiderMounts(walkableMounts),
+      ...systemFolders.filter((folderPath) => !volumeRoots.includes(folderPath)),
       ...volumeOsFolders(volumeRoots, path.posix)
+    ],
+    mountPrunePaths: [
+      ...mounts.filter((mount) => !isWalkableMount(mount)).map((mount) => mount.path),
+      ...copiesInsideWiderMounts(walkableMounts)
     ]
   };
 };
@@ -47,10 +59,12 @@ const planWindowsComputer = ({ mounts, env }) => {
   const driveRoots = mounts.filter(isWalkableMount).map((mount) => mount.path);
   return {
     roots: driveRoots,
+    volumeRoots: [],
     prunePaths: [
       ...volumeOsFolders(driveRoots, path.win32),
       ...WINDOWS_SYSTEM_FOLDER_VARIABLES.map((name) => env[name]).filter(Boolean)
-    ]
+    ],
+    mountPrunePaths: []
   };
 };
 
@@ -64,7 +78,7 @@ const planWholeComputer = ({ platform, mounts, env }) => {
   if (platform === 'win32') {
     return planWindowsComputer({ mounts, env });
   }
-  return { roots: [], prunePaths: [] };
+  return { roots: [], volumeRoots: [], prunePaths: [], mountPrunePaths: [] };
 };
 
 module.exports = {
