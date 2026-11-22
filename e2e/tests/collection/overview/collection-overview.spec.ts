@@ -151,16 +151,9 @@ test.describe('Collection settings overview', () => {
     });
 
     await test.step('Verify that generate saves the HTML documentation locally', async () => {
-      // Electron shows its save dialog for this download, so the test answers it with a temp path.
-      await electronApp.evaluate(({ session }, { directory, separator }) => {
-        session.defaultSession.once('will-download', (_event, item) => {
-          item.setSavePath(`${directory}${separator}${item.getFilename()}`);
-        });
-      }, { directory: docsDirectory, separator: path.sep });
-
       const savedDocsPath = path.join(docsDirectory, `${collectionName}-documentation.html`);
 
-      await generateDocs.generateButton().click();
+      await saveGeneratedDocs(page, electronApp, docsDirectory);
       await expect(generateDocs.modal()).toBeHidden();
 
       await expect.poll(() => fs.readFile(savedDocsPath, 'utf8').catch(() => '')).toContain('</html>');
