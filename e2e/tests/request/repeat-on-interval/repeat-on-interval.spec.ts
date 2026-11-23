@@ -84,6 +84,7 @@ test.describe.serial('Repeat on Interval', () => {
 
     await test.step('Closing the tab stops the repetition at once', async () => {
       const hitsAtClose = hits;
+      const closedAt = Date.now();
       await closeAllTabs(page);
       await openRequest(page, COLLECTION, REQUEST);
       await expect(send.repeatOnIntervalIndicator()).toBeHidden();
@@ -91,8 +92,9 @@ test.describe.serial('Repeat on Interval', () => {
       // Only a check made before the next tick proves the schedule ended on close, not on that tick
       expect(Date.now() - startedAt).toBeLessThan(intervalMs);
 
-      // No locator can observe a request that must not happen: wait past the next tick
-      await page.waitForTimeout(startedAt + intervalMs + 1500 - Date.now());
+      // The next tick is armed only once the first send settles, around the time the tab closes.
+      // No locator can observe a request that must not happen: wait a full interval past the close
+      await page.waitForTimeout(closedAt + intervalMs + 1500 - Date.now());
       expect(hits).toBe(hitsAtClose);
       await expect(send.repeatOnIntervalIndicator()).toBeHidden();
     });
