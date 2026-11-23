@@ -1,5 +1,11 @@
 ## What's New in Bruno v4.4.0
 
+### Bruno Script API Documentation
+
+Introducing the Bruno Script API documentation at [api-reference.usebruno.com](https://api-reference.usebruno.com/), a complete reference for the `req`, `res` and `bru` objects you use in pre-request scripts, post-response scripts and tests.
+
+![Bruno Script API documentation](https://d3icksk7srk4uh.cloudfront.net/4.4.0/api-ref.png)
+
 ### 1Password Secret Manager
 
 Bruno now reads secrets from 1Password through the 1Password Connect server. Add a 1Password account in the Secret Manager, pick the vaults to expose, and reference secrets with the same `{{secret.}}` syntax used by Doppler, Infisical and HashiCorp Vault.
@@ -41,7 +47,7 @@ You can also open the variable list anywhere with a shortkey
 The runner view now opens right away when you click **Run** with a high iteration count, instead of freezing before the results table appears.
 You can also adjust **Concurrent iterations** in parallel mode to keep large runs smooth on lower-spec systems
 
-![Collection Runner](https://d3icksk7srk4uh.cloudfront.net/4.4.0/collec-runner.png)
+![Collection Runner](https://d3icksk7srk4uh.cloudfront.net/4.4.0/runner.png)
 
 ### Mock Servers
 
