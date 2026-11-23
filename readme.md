@@ -128,7 +128,7 @@ Navigate to the directory containing your collection and run it:
 bru run
 
 # Run a single request
-bru run request.bru
+bru run request.yml
 
 # Run a folder against a specific environment
 bru run folder --env Local
