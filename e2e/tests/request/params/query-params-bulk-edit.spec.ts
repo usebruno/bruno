@@ -5,13 +5,15 @@ import {
   closeAllCollections,
   createCollection,
   createRequest,
+  selectRequestPaneTab
+} from '../../../pages';
+import {
+  addQueryParam,
   editQueryParamValue,
-  fillQueryParamRow,
-  selectRequestPaneTab,
   switchQueryParamsToBulkEdit,
   switchQueryParamsToKeyValue,
-  writeBulkEditQueryParams
-} from '../../../pages';
+  replaceQueryParamsInBulkEditor
+} from '../../../pages/request/params';
 
 const collectionName = 'query-params-bulk-sync';
 const requestName = 'echo-params';
@@ -34,18 +36,18 @@ test.describe('Request query params Key/Value and Bulk Edit sync', () => {
       await createRequest(page, requestName, collectionName, { url: 'http://localhost:8081/ping' });
       await selectRequestPaneTab(page, 'Params');
       await queryParams.table().waitFor({ state: 'visible' });
-      await fillQueryParamRow(page, 'existing', 'original');
+      await addQueryParam(page, 'existing', 'original');
       await expect(queryParams.rowByName('existing')).toBeVisible();
       await expect(queryParams.valueByNameText('existing')).toHaveText('original');
     });
 
     await test.step('Bulk Edit shows the existing param as key:value', async () => {
       await switchQueryParamsToBulkEdit(page);
-      await expect(queryParams.bulkLine('existing:original')).toBeVisible();
+      await expect(queryParams.bulkEditorLine('existing:original')).toBeVisible();
     });
 
     await test.step('A param added in Bulk Edit appears in Key/Value view', async () => {
-      await writeBulkEditQueryParams(page, 'existing:original\nnewParam:testValue');
+      await replaceQueryParamsInBulkEditor(page, 'existing:original\nnewParam:testValue');
       await switchQueryParamsToKeyValue(page);
       await expect(queryParams.rowByName('newParam')).toBeVisible();
       await expect(queryParams.valueByNameText('existing')).toHaveText('original');
@@ -56,32 +58,32 @@ test.describe('Request query params Key/Value and Bulk Edit sync', () => {
       await editQueryParamValue(page, 'existing', 'updated');
       await expect(queryParams.valueByNameText('existing')).toHaveText('updated');
       await switchQueryParamsToBulkEdit(page);
-      await expect(queryParams.bulkLine('existing:updated')).toBeVisible();
-      await expect(queryParams.bulkLine('newParam:testValue')).toBeVisible();
-      await expect(queryParams.bulkLine('existing:original')).toHaveCount(0);
+      await expect(queryParams.bulkEditorLine('existing:updated')).toBeVisible();
+      await expect(queryParams.bulkEditorLine('newParam:testValue')).toBeVisible();
+      await expect(queryParams.bulkEditorLine('existing:original')).toHaveCount(0);
     });
 
     await test.step('A param deleted in Bulk Edit is gone from Key/Value view', async () => {
-      await writeBulkEditQueryParams(page, 'existing:updated');
+      await replaceQueryParamsInBulkEditor(page, 'existing:updated');
       await switchQueryParamsToKeyValue(page);
-      await expect(queryParams.nameText('existing')).toBeVisible();
+      await expect(queryParams.rowByName('existing')).toBeVisible();
       await expect(queryParams.valueByNameText('existing')).toHaveText('updated');
-      await expect(queryParams.nameText('newParam')).toHaveCount(0);
+      await expect(queryParams.rowByName('newParam')).toHaveCount(0);
     });
 
     await test.step('Toggling views keeps later edits in sync', async () => {
       await switchQueryParamsToBulkEdit(page);
-      await writeBulkEditQueryParams(page, 'existing:updated\nrapid:one');
+      await replaceQueryParamsInBulkEditor(page, 'existing:updated\nrapid:one');
       await switchQueryParamsToKeyValue(page);
       await expect(queryParams.valueByNameText('rapid')).toHaveText('one');
       await editQueryParamValue(page, 'rapid', 'two');
       await expect(queryParams.valueByNameText('rapid')).toHaveText('two');
       await switchQueryParamsToBulkEdit(page);
-      await expect(queryParams.bulkLine('existing:updated')).toBeVisible();
-      await expect(queryParams.bulkLine('rapid:two')).toBeVisible();
-      await expect(queryParams.bulkLine('rapid:one')).toHaveCount(0);
+      await expect(queryParams.bulkEditorLine('existing:updated')).toBeVisible();
+      await expect(queryParams.bulkEditorLine('rapid:two')).toBeVisible();
+      await expect(queryParams.bulkEditorLine('rapid:one')).toHaveCount(0);
       await switchQueryParamsToKeyValue(page);
-      await expect(queryParams.valueText('two')).toBeVisible();
+      await expect(queryParams.valueByNameText('rapid')).toHaveText('two');
     });
   });
 });
