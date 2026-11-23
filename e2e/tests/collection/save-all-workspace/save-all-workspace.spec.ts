@@ -5,6 +5,7 @@ import {
   addEnvironmentVariable,
   buildCommonLocators,
   closeAllCollections,
+  closeCollectionsMenu,
   closePreferences,
   createApp,
   createCollection,
@@ -16,10 +17,12 @@ import {
   editCodeMirrorEditor,
   fillRequestUrl,
   openCollectionSettings,
+  openCollectionsMenu,
   openExampleFromSidebar,
   openFolderSettings,
   openPreferences,
   openRequest,
+  saveAllFromCollectionsMenu,
   saveTransientViaModal,
   selectAppView,
   selectPreferencesTab,
@@ -44,29 +47,8 @@ const readAllFiles = (dir: string): string =>
     })
     .join('\n');
 
-const draftIndicatorOf = (page: Page, requestName: string) => {
-  const { tabs } = buildCommonLocators(page);
-  return tabs.tabDraftIndicator(tabs.requestTab(requestName).locator('..'));
-};
-
-const openCollectionsMenu = async (page: Page) => {
-  const { sidebar } = buildCommonLocators(page);
-  await sidebar.collectionsActionsMenu().click();
-  await expect(sidebar.saveAllButton()).toBeVisible();
-};
-
-const closeCollectionsMenu = async (page: Page) => {
-  const { sidebar } = buildCommonLocators(page);
-  await sidebar.collectionsActionsMenu().click();
-  await expect(sidebar.saveAllButton()).toBeHidden();
-};
-
-const saveAllFromCollectionsMenu = async (page: Page) => {
-  const { sidebar } = buildCommonLocators(page);
-  await openCollectionsMenu(page);
-  await expect(sidebar.saveAllButton()).not.toHaveAttribute('aria-disabled', 'true');
-  await sidebar.saveAllButton().click();
-};
+const draftIndicatorOf = (page: Page, requestName: string) =>
+  buildCommonLocators(page).tabs.requestTabDraftIndicator(requestName);
 
 const expectSaveAllEnabled = async (page: Page) => {
   await openCollectionsMenu(page);

@@ -1,7 +1,7 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, current } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
   areItemsTheSameExceptSeqUpdate,
@@ -978,28 +978,36 @@ export const collectionsSlice = createSlice({
       }
     },
     saveRequest: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const { collectionUid, itemUid, savedDraft } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, itemUid);
 
         if (item && item.draft) {
-          item.request = item.draft.request;
-          if (item.draft.settings) {
-            item.settings = item.draft.settings;
+          const submittedDraft = savedDraft === undefined ? item.draft : savedDraft;
+          if (!submittedDraft) {
+            return;
           }
-          if (item.draft.app) {
-            item.app = item.draft.app;
+
+          item.request = submittedDraft.request;
+          if (submittedDraft.settings) {
+            item.settings = submittedDraft.settings;
           }
-          item.draft = null;
+          if (submittedDraft.app) {
+            item.app = submittedDraft.app;
+          }
+          if (savedDraft === undefined || isEqual(current(item.draft), savedDraft)) {
+            item.draft = null;
+          }
         }
       }
     },
     saveRequests: (state, action) => {
-      const { collectionUid, itemUids } = action.payload;
+      const { collectionUid, savedDrafts } = action.payload;
 
-      itemUids.forEach((itemUid) => {
-        collectionsSlice.caseReducers.saveRequest(state, { payload: { collectionUid, itemUid } });
+      savedDrafts.forEach(({ itemUid, savedDraft }) => {
+        collectionsSlice.caseReducers.saveRequest(state, { payload: { collectionUid, itemUid, savedDraft } });
       });
     },
     deleteRequestDraft: (state, action) => {

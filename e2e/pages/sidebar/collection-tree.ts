@@ -279,6 +279,46 @@ export const clickEmptySidebarSpace = async (page) => {
   await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
 };
 
+/**
+ * Opens the Collections header "more actions" menu.
+ * @param page - The page object
+ * @returns void
+ */
+export const openCollectionsMenu = async (page: Page) => {
+  await test.step('Open the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await sidebar.collectionsActionsMenu().click();
+    await expect(sidebar.saveAllButton()).toBeVisible();
+  });
+};
+
+/**
+ * Closes the Collections header "more actions" menu.
+ * @param page - The page object
+ * @returns void
+ */
+export const closeCollectionsMenu = async (page: Page) => {
+  await test.step('Close the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await sidebar.collectionsActionsMenu().click();
+    await expect(sidebar.saveAllButton()).toBeHidden();
+  });
+};
+
+/**
+ * Clicks "Save all" in the Collections header menu once it is enabled.
+ * @param page - The page object
+ * @returns void
+ */
+export const saveAllFromCollectionsMenu = async (page: Page) => {
+  await test.step('Save all from the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await openCollectionsMenu(page);
+    await expect(sidebar.saveAllButton()).not.toHaveAttribute('aria-disabled', 'true');
+    await sidebar.saveAllButton().click();
+  });
+};
+
 // sidebar is virtualized, opening a request lower in the list scrolls the collection header
 // out of the viewport, and Virtuoso unmounts it once it passes the overscan.
 // Reset the list to the top so the header row is rendered before we locate it.

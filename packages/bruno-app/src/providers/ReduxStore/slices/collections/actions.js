@@ -6,6 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
@@ -164,6 +165,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       return reject();
     }
 
+    const savedDraft = findItemInCollection(collection, itemUid).draft;
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
@@ -177,7 +179,8 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         dispatch(
           _saveRequest({
             itemUid,
-            collectionUid
+            collectionUid,
+            savedDraft
           })
         );
       })
@@ -464,9 +467,11 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
     saves.push(
       dispatch(saveMultipleRequests(collectionRequestDrafts))
         .then(() => {
-          const itemUids = collectionRequestDrafts.map((draft) => draft.uid);
-          dispatch(_saveRequests({ collectionUid, itemUids }));
-          window.dispatchEvent(new CustomEvent('workspace-requests-saved', { detail: { itemUids } }));
+          const savedDrafts = collectionRequestDrafts.map((draft) => ({ itemUid: draft.uid, savedDraft: draft.draft }));
+          dispatch(_saveRequests({ collectionUid, savedDrafts }));
+          window.dispatchEvent(new CustomEvent('workspace-requests-saved', {
+            detail: { itemUids: savedDrafts.map(({ itemUid }) => itemUid) }
+          }));
         })
         .catch((err) => {
           if (err?.name === 'ValidationError') {
@@ -488,7 +493,11 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
     saves.push(
       dispatch(saveEnvironment(variables, environmentUid, collectionUid))
         .then(() => {
-          dispatch(clearEnvironmentsDraft({ collectionUid }));
+          const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+          const currentDraft = collection ? collection.environmentsDraft : null;
+          if (currentDraft && currentDraft.environmentUid === environmentUid && isEqual(currentDraft.variables, variables)) {
+            dispatch(clearEnvironmentsDraft({ collectionUid }));
+          }
         })
         .catch((err) => {
           toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment');
