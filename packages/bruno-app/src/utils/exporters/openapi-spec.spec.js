@@ -510,53 +510,38 @@ describe('exportApiSpec - duplicate operation variants', () => {
 });
 
 describe('exportApiSpec - operation ids', () => {
-  const requestItem = (name, method, url) => ({
-    name,
+  const requestItem = (fileName, method, url) => ({
+    name: fileName,
     type: 'http-request',
-    pathname: path.join('collection', `${name}.bru`),
-    depth: 1,
+    pathname: path.join('collection', `${fileName}.bru`),
     request: { url: `{{baseUrl}}${url}`, method, params: [], headers: [], body: {}, auth: {} }
   });
 
   const exportItems = (items) => jsyaml.load(exportApiSpec({ variables: { baseUrl: 'https://api.example.com' }, items, name: 'Test API' }).content);
 
-  it('gives requests that share a name their own operation ids and keeps the name as their summary', () => {
+  it('gives each request an operation id from its pathname', () => {
     const spec = exportItems([
       requestItem('List pets', 'GET', '/pets'),
-      requestItem('List pets', 'POST', '/pets'),
-      requestItem('List pets', 'GET', '/pets/search'),
-      requestItem('List pets', 'GET', '/pets/archive'),
+      requestItem('Create pet', 'POST', '/pets'),
+      requestItem('Search pets', 'GET', '/pets/search'),
+      requestItem('Archived pets', 'GET', '/pets/archive'),
       requestItem('Create order', 'POST', '/orders')
     ]);
     const operations = [spec.paths['/pets'].get, spec.paths['/pets'].post, spec.paths['/pets/search'].get, spec.paths['/pets/archive'].get, spec.paths['/orders'].post];
 
-    expect(operations.map(({ operationId, summary }) => [operationId, summary])).toEqual([
-      ['List pets', 'List pets'],
-      ['List pets (POST)', 'List pets'],
-      ['List pets (GET)', 'List pets'],
-      ['List pets (1)', 'List pets'],
-      ['Create order', 'Create order']
+    expect(operations.map(({ operationId }) => operationId)).toEqual([
+      'collection_list_pets_bru',
+      'collection_create_pet_bru',
+      'collection_search_pets_bru',
+      'collection_archived_pets_bru',
+      'collection_create_order_bru'
     ]);
   });
 
-  it('does not give a request an operation id that another request has as its name', () => {
-    const spec = exportItems([
-      requestItem('List pets', 'GET', '/pets'),
-      requestItem('List pets (POST)', 'GET', '/pets/new'),
-      requestItem('List pets', 'POST', '/pets')
-    ]);
+  it('gives a variant an operation id from its own pathname', () => {
+    const operation = exportItems([requestItem('Update user', 'POST', '/users'), requestItem('Update user email', 'POST', '/users')]).paths['/users'].post;
 
-    expect([spec.paths['/pets'].get, spec.paths['/pets/new'].get, spec.paths['/pets'].post].map(({ operationId }) => operationId)).toEqual([
-      'List pets',
-      'List pets (POST)',
-      'List pets (1)'
-    ]);
-  });
-
-  it('gives a variant that has the same name as its operation its own operation id', () => {
-    const operation = exportItems([requestItem('Update user', 'POST', '/users'), requestItem('Update user', 'POST', '/users')]).paths['/users'].post;
-
-    expect([operation.operationId, operation['x-bruno-variants'][0].operationId]).toEqual(['Update user', 'Update user (POST)']);
+    expect([operation.operationId, operation['x-bruno-variants'][0].operationId]).toEqual(['collection_update_user_bru', 'collection_update_user_email_bru']);
   });
 });
 

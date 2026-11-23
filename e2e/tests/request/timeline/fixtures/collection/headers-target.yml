@@ -1,0 +1,8 @@
+info:
+  name: headers-target
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8081/headers
