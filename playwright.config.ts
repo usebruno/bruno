@@ -33,7 +33,12 @@ export default defineConfig({
     },
     {
       name: 'auth',
-      testDir: './e2e/tests/auth'
+      testDir: './e2e/tests/auth',
+      testIgnore: ['oauth2/**'] // oauth2 specs run in their own project (needs a Keycloak IdP)
+    },
+    {
+      name: 'oauth2',
+      testDir: './e2e/tests/auth/oauth2'
     },
     {
       name: 'ssl',
