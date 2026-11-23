@@ -2,13 +2,15 @@ const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 const { getParamFromUrl } = require('../../utils/common');
 
+// The server appends its response to the callback's query or fragment (RFC 6749 §4.1.2, §4.2.2), so only
+// scheme, host and path identify it. One trailing slash is tolerated.
+const getRedirectionEndpoint = (url) => `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
+
 const matchesCallbackUrl = (url, callbackUrl) => {
   if (!url) return false;
-  // Match the callback URL and require an OAuth2 response indicator
-  // (code query params for authorization code flow, or hash fragment for implicit flow).
-  // This prevents false matches on intermediate pages (e.g. /auth/login) when the
-  // callback URL is a root path like https://hostname/.
-  return url.href.startsWith(callbackUrl.href)
+  // The callback path can also serve ordinary pages (e.g. a root callback https://host/), so require an
+  // authorization response: a code for the authorization code flow, a fragment for the implicit flow.
+  return getRedirectionEndpoint(url) === getRedirectionEndpoint(callbackUrl)
     && (url.searchParams.has('code') || url.hash.length > 1);
 };
 
