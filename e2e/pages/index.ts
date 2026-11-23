@@ -53,6 +53,7 @@ export * from './request/websocket';
 // response
 export * from './response/example';
 export * from './response/pane';
+export * from './response/timeline';
 
 // shared-ui
 export * from './shared-ui/autocomplete';
@@ -63,6 +64,7 @@ export * from './shared-ui/code-editor-search';
 export * from './shared-ui/dropdown';
 export * from './shared-ui/file-mode';
 export * from './shared-ui/modal';
+export * from './shared-ui/settings-pane';
 export * from './shared-ui/single-line-editor';
 export * from './shared-ui/table';
 export * from './shared-ui/tags';
