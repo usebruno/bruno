@@ -21,11 +21,17 @@ const patchHttpParser = () => {
 
   let HTTPParser;
   try {
+    // _http_common is Node's internal module that holds the class which parses every HTTP response
     ({ HTTPParser } = require('_http_common'));
   } catch (err) {
     return false;
   }
 
+  /*
+   * kLenientChunkedLength and HTTPParser.prototype.initialize are Node internals, not public API, so they can
+   * change between Node and Electron versions. If either is missing, bail out instead of wrapping a method
+   * that does not exist, which would throw on every response; requests then stay strict as before.
+   */
   if (
     typeof HTTPParser?.kLenientChunkedLength !== 'number'
     || typeof HTTPParser.prototype.initialize !== 'function'
