@@ -15,7 +15,7 @@ import Help from 'components/Help';
 import EndpointVisualDiff from './EndpointVisualDiff';
 
 // Expandable row - can be used with or without decision buttons
-const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions, preserveValues = true }) => {
+const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions, preserveValues = true, resetToSpec = false }) => {
   const dispatch = useDispatch();
   const rowKey = endpoint.id || `${endpoint.method}-${endpoint.path}`;
   const isExpanded = useSelector((state) => {
@@ -43,7 +43,8 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
         collectionPath,
         endpointId: endpoint.id,
         newSpec,
-        preserveValues
+        preserveValues,
+        resetToSpec
       });
 
       if (requestId !== requestIdRef.current) return; // superseded by a newer fetch
@@ -58,7 +59,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, [collectionPath, endpoint.id, newSpec, preserveValues]);
+  }, [collectionPath, endpoint.id, newSpec, preserveValues, resetToSpec]);
 
   // Re-fetch the preview when the preserve toggle changes — the EXPECTED column
   // depends on it. Expanded rows re-fetch in place (the old diff stays visible
@@ -100,7 +101,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
   };
 
   return (
-    <div className={`endpoint-review-row ${showDecisions ? `decision-${decision}` : ''}`}>
+    <div className={`endpoint-review-row ${showDecisions ? `decision-${decision}` : ''}`} data-testid={`openapi-sync-endpoint-${endpoint.id}`}>
       <div
         className="review-row-header"
         role="button"
@@ -113,7 +114,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
           }
         }}
       >
-        <span className="expand-toggle">
+        <span className="expand-toggle" data-testid="openapi-sync-endpoint-toggle">
           {isExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
         </span>
         <MethodBadge method={endpoint.method} />
@@ -123,6 +124,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
         {endpoint.conflict && (
           <StatusBadge
             status="danger"
+            data-testid="openapi-sync-endpoint-conflict"
             rightSection={(
               <Help icon="info" size={11} placement="top" width={250}>
                 This endpoint was modified in both the spec and your collection. Choose which version to keep.
@@ -141,6 +143,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
               className={`decision-btn keep ${decision === 'keep-mine' ? 'selected' : ''}`}
               onClick={() => onDecisionChange('keep-mine')}
               title="Keep your local version"
+              data-testid="openapi-sync-decision-keep"
             >
               <IconX size={12} /> {decisionLabels?.keep || 'Keep Mine'}
             </button>
@@ -148,6 +151,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
               className={`decision-btn accept ${decision === 'accept-incoming' ? 'selected' : ''}`}
               onClick={() => onDecisionChange('accept-incoming')}
               title="Accept the spec version"
+              data-testid="openapi-sync-decision-accept"
             >
               <IconCheck size={12} /> {decisionLabels?.accept || 'Accept Spec'}
             </button>

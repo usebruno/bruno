@@ -1286,6 +1286,34 @@ describe('mergeSpecIntoRequest (reset mode unchanged)', () => {
     expect(out.request.tests).toBe('expect(1)');
     expect(out.request.assertions).toEqual([{ k: 'a' }]);
   });
+
+  it('takes the name and docs from the spec in reset mode', () => {
+    const user = { ...existing, name: 'Mine', request: { ...existing.request, docs: 'My notes' } };
+    const spec = { ...specItem, name: 'From spec', request: { ...specItem.request, docs: 'Spec docs' } };
+    const out = helpers.mergeSpecIntoRequest(user, spec, { fullReset: true });
+    expect([out.name, out.request.docs]).toEqual(['From spec', 'Spec docs']);
+  });
+});
+
+describe('name and docs helpers', () => {
+  const item = (name, docs) => ({ name, request: { docs } });
+
+  it('lists the name and docs that differ, ignoring line endings and surrounding spaces', () => {
+    expect(helpers.changedNameAndDocs(item('A', 'x'), item('B', 'x\r\n'))).toEqual(['name']);
+    expect(helpers.changedNameAndDocs(item('A', 'x'), item('A', 'y'))).toEqual(['docs']);
+    expect(helpers.changedNameAndDocs(item('A', 'x'), item('A', { content: 'x' }))).toEqual(['docs']);
+  });
+
+  it('takes a field from the spec only when the spec changed it and the request does not have it yet', () => {
+    expect(helpers.nameAndDocsFromSpec(item('A', 'x'), item('B', 'y'), item('A', 'x'))).toEqual(['name', 'docs']);
+    expect(helpers.nameAndDocsFromSpec(item('A', 'x'), item('A', 'x'), item('Mine', 'notes'))).toEqual([]);
+    expect(helpers.nameAndDocsFromSpec(item('A', 'x'), item('B', 'y'), item('B', 'y'))).toEqual([]);
+  });
+
+  it('takes nothing from the spec without a stored name or docs to compare against', () => {
+    expect(helpers.nameAndDocsFromSpec(undefined, item('B', 'y'), item('A', 'x'))).toEqual([]);
+    expect(helpers.nameAndDocsFromSpec({ request: { body: {} } }, item('B', 'y'), item('A', 'x'))).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -53,6 +53,7 @@ const CollectionStatusSection = ({
       collectionPath={collection.pathname}
       newSpec={spec}
       showDecisions={false}
+      resetToSpec
       diffLeftLabel="Last Synced Spec"
       diffRightLabel="Current (in collection)"
       swapDiffSides

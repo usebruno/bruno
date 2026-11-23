@@ -77,7 +77,7 @@ const ConfirmSyncModal = ({ groups, onCancel, onSync, isSyncing }) => {
           <Button variant="ghost" color="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={onSync} loading={isSyncing} disabled={isSyncing}>
+          <Button onClick={onSync} loading={isSyncing} disabled={isSyncing} data-testid="openapi-sync-confirm">
             {hasNoChanges ? 'Restore Spec File' : 'Confirm & Sync Collection'}
           </Button>
         </div>

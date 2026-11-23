@@ -8,6 +8,7 @@ export const buildOpenApiSyncLocators = (page: Page) => {
   const workspaceMenu = () => page.getByRole('menu').filter({
     has: page.locator('[data-testid^="spec-source-workspace-menu-"]')
   });
+  const endpointRow = (endpointId: string) => page.getByTestId(`openapi-sync-endpoint-${endpointId}`);
 
   return {
     sourceTab: (key: 'workspace' | 'url' | 'file') => page.getByTestId(`tab-${key}`),
@@ -24,6 +25,20 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     specUpdatesTab: () => page.getByTestId('responsive-tab-spec-updates'),
     overviewBanner: () => page.getByTestId('openapi-sync-overview-banner'),
     specStatusBanner: () => page.getByTestId('openapi-sync-spec-status'),
+    endpointRow,
+    endpointRowToggle: (endpointId: string) => endpointRow(endpointId).getByTestId('openapi-sync-endpoint-toggle'),
+    endpointConflictBadge: (endpointId: string) => endpointRow(endpointId).getByTestId('openapi-sync-endpoint-conflict'),
+    decisionButton: (endpointId: string, decision: 'keep' | 'accept') => endpointRow(endpointId).getByTestId(`openapi-sync-decision-${decision}`),
+    diffPane: (endpointId: string, section: string, side: 'old' | 'new') => endpointRow(endpointId)
+      .locator('.diff-row')
+      .filter({ has: page.locator('.diff-row-title').getByText(section, { exact: true }) })
+      .locator(`.diff-row-pane.${side}`),
+    applyButton: () => page.getByTestId('openapi-sync-apply'),
+    confirmButton: () => page.getByTestId('openapi-sync-confirm'),
+    collectionChangesTab: () => page.getByTestId('responsive-tab-collection-changes'),
+    changeSectionHeader: (title: string) => page.getByText(title, { exact: true }),
+    resetEndpointButton: (endpointId: string) => endpointRow(endpointId).getByRole('button', { name: 'Reset', exact: true }),
+    confirmActionButton: () => page.getByRole('button', { name: 'Confirm', exact: true }),
 
     headerMenu: () => page.getByTestId('openapi-sync-header-menu'),
     editSettingsItem: () => page.getByTestId('openapi-sync-header-menu-settings'),
@@ -45,6 +60,17 @@ export const openConnectedOpenApiSyncTab = async (page: Page, collectionName: st
   await test.step(`Open the OpenAPI tab of connected "${collectionName}"`, async () => {
     await buildSidebarLocators(page).collectionRow(collectionName).click();
     await buildCollectionHeaderLocators(page).openApiSync().click();
+  });
+};
+
+export const checkForUpdates = async (page: Page) => {
+  await test.step('Check the spec for updates', async () => {
+    const { checkUpdatesButton } = buildOpenApiSyncLocators(page);
+    await checkUpdatesButton().click();
+    const finished = await waitForPredicate(() => checkUpdatesButton().isEnabled(), { tries: 150 });
+    if (!finished) {
+      throw new Error('The check for spec updates did not finish');
+    }
   });
 };
 

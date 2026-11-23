@@ -16,64 +16,7 @@ import ConfirmSyncModal from '../ConfirmSyncModal';
 import SpecDiffModal from '../SpecDiffModal';
 import Help from 'components/Help';
 import { setReviewDecision, setReviewDecisions } from 'providers/ReduxStore/slices/openapi-sync';
-
-/**
- * Categorize remoteDrift endpoints using three-way merge.
- * Uses specDrift and collectionDrift to determine who changed each modified endpoint.
- *
- * Returns:
- *  - specAddedEndpoints: new in spec, not yet in collection
- *  - specUpdatedEndpoints: modified in spec (includes conflicts where both sides changed)
- *  - localUpdatedEndpoints: modified only in the collection (spec didn't change)
- *  - specRemovedEndpoints: removed from spec, still in collection
- */
-const categorizeEndpoints = (remoteDrift, specDrift, collectionDrift) => {
-  // Only show endpoints as "New in Spec" if they were actually added to the spec
-  // (i.e., they appear in specDrift.added). Endpoints the user deleted locally that
-  // still exist in both stored and remote spec should not appear here — they belong
-  // in "Collection Changes" only.
-  const specAddedIds = new Set((specDrift?.added || []).map((ep) => ep.id));
-  const specAddedEndpoints = (remoteDrift.missing || []).filter((ep) => specAddedIds.has(ep.id));
-
-  // Only show endpoints as "Removed from Spec" if they were actually in the stored spec
-  // (i.e., they appear in specDrift.removed). Locally-added endpoints that were never in
-  // the spec should not appear here — they belong in "Collection Changes" only.
-  const specRemovedIds = new Set((specDrift?.removed || []).map((ep) => ep.id));
-  const specRemovedEndpoints = (remoteDrift.localOnly || []).filter((ep) => specRemovedIds.has(ep.id));
-
-  // Build lookup sets to determine who changed each modified endpoint
-  const specModifiedIds = new Set((specDrift?.modified || []).map((ep) => ep.id));
-  const localModifiedIds = new Set((collectionDrift?.edited || []).map((ep) => ep.id));
-  const noMergeBase = collectionDrift?.noStoredSpec;
-
-  const specUpdatedEndpoints = [];
-  const localUpdatedEndpoints = [];
-
-  (remoteDrift.modified || []).forEach((ep) => {
-    // When there's no merge base (noStoredSpec), we can't tell who changed what — treat as spec update
-    const specChanged = !noMergeBase && specModifiedIds.has(ep.id);
-    const localChanged = !noMergeBase && localModifiedIds.has(ep.id);
-
-    if (!specChanged && localChanged) {
-      // Only local changed — user modification, spec didn't change
-      localUpdatedEndpoints.push({
-        ...ep,
-        source: 'collection-drift',
-        localAction: 'modified'
-      });
-    } else {
-      // Spec changed, both changed (conflict), no merge base, or sensitivity mismatch
-      specUpdatedEndpoints.push({
-        ...ep,
-        source: 'spec-modified',
-        specAction: 'modified',
-        ...(specChanged && localChanged && { conflict: true, localAction: 'modified' })
-      });
-    }
-  });
-
-  return { specAddedEndpoints, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints };
-};
+import { categorizeEndpoints } from '../utils';
 
 const SyncReviewPage = ({
   specDrift,
@@ -121,7 +64,8 @@ const SyncReviewPage = ({
     const merged = { ...savedDecisions };
     // Spec changes: accept-incoming by default, null for conflicts (must resolve manually)
     specUpdatedEndpoints.forEach((ep) => {
-      if (!(ep.id in merged)) merged[ep.id] = ep.conflict ? null : 'accept-incoming';
+      const undecided = !(ep.id in merged) || (!ep.conflict && merged[ep.id] === null);
+      if (undecided) merged[ep.id] = ep.conflict ? null : 'accept-incoming';
     });
     // Local changes: keep-mine (preserved silently, not shown in review)
     localUpdatedEndpoints.forEach((ep) => {
@@ -410,7 +354,7 @@ const SyncReviewPage = ({
       {hasRemoteUpdates && (
         <div className="sync-info-notice mt-4">
           <IconInfoCircle size={14} className="sync-info-icon" />
-          <span><span className="whats-updated-title">What gets updated:</span> Parameters, headers, body and auth will be updated. Tests, scripts, and assertions are always preserved.</span>
+          <span><span className="whats-updated-title">What gets updated:</span> Parameters, headers, body and auth will be updated, and the name and docs when the spec changed them. Tests, scripts, and assertions are always preserved.</span>
         </div>
       )}
 
@@ -428,6 +372,7 @@ const SyncReviewPage = ({
               onClick={totalChanges === 0 ? handleConfirmApply : () => setShowConfirmation(true)}
               disabled={unresolvedConflicts > 0 || isSyncing}
               loading={isSyncing}
+              data-testid="openapi-sync-apply"
             >
               {buttonLabel}
               {unresolvedConflicts === 0 && <IconArrowRight size={14} style={{ marginLeft: 4 }} />}

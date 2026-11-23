@@ -4,17 +4,27 @@ import { fireEvent } from '@testing-library/react';
 import { renderWithWorkspaceSpecs } from 'components/OpenAPISyncTab/testUtils';
 import OverviewSection from './index';
 
-const renderOverview = (syncConfig) => renderWithWorkspaceSpecs(
+const renderOverview = (syncConfig, drift = {}) => renderWithWorkspaceSpecs(
   <OverviewSection
     collection={{
       uid: 'pets-api',
       items: [],
       brunoConfig: { openapi: [{ sourceUrl: 'https://example.com/openapi.yaml', ...syncConfig }] }
     }}
+    {...drift}
     onTabSelect={jest.fn()}
     onOpenSettings={jest.fn()}
   />
 );
+
+const renamedEndpointDrift = (conflictingFields) => {
+  const pets = { id: 'GET:/pets', method: 'GET', path: '/pets' };
+  return {
+    collectionDrift: { edited: [], modified: [], missing: [], localOnly: [] },
+    specDrift: { added: [], modified: [pets], removed: [] },
+    remoteDrift: { modified: [{ ...pets, conflictingFields }], missing: [], localOnly: [], inSync: [] }
+  };
+};
 
 const detailItem = (getByText, label) => getByText(label).closest('.spec-detail-item');
 
@@ -89,6 +99,18 @@ describe('OverviewSection', () => {
     const { getByText } = renderOverview({ autoCheck: false });
 
     expect(detailItem(getByText, 'Last Synced At')).toHaveTextContent('Auto-check off');
+  });
+
+  it('counts a rename made in both the spec and the collection as a conflict', () => {
+    const { getByText } = renderOverview({}, renamedEndpointDrift(['name']));
+
+    expect(getByText('(1 conflict)')).toBeInTheDocument();
+  });
+
+  it('does not count a rename made only in the spec as a conflict', () => {
+    const { queryByText } = renderOverview({}, renamedEndpointDrift([]));
+
+    expect(queryByText(/conflict/)).not.toBeInTheDocument();
   });
 
   it('shows a value it does not recognise as written', () => {

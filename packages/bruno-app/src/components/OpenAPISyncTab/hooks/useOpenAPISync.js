@@ -9,7 +9,8 @@ import {
   setCollectionUpdate,
   setStoredSpec,
   setStoredSpecMeta,
-  setDrift
+  setDrift,
+  setTabUiState
 } from 'providers/ReduxStore/slices/openapi-sync';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
 import { isHttpUrl } from 'utils/url/index';
@@ -183,6 +184,8 @@ const useOpenAPISync = (collection) => {
       if (!result.storedSpecMissing) {
         await loadCollectionDrift({ clear: true });
       }
+
+      dispatch(setTabUiState({ collectionUid: collection.uid, reviewDecisions: {} }));
     } catch (err) {
       console.error('Error checking for updates:', err);
       setError(formatIpcError(err) || 'Failed to check for updates');

@@ -27,7 +27,8 @@ const StatusBadge = ({
   radius,
   leftSection,
   rightSection,
-  className = ''
+  className = '',
+  'data-testid': testId
 }) => {
   return (
     <StyledWrapper
@@ -36,6 +37,7 @@ const StatusBadge = ({
       $size={size}
       $radius={radius}
       className={className}
+      data-testid={testId}
     >
       {leftSection}
       {children}
