@@ -90,7 +90,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, clearExampleEditModesForItems, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -165,7 +165,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       return reject();
     }
 
-    const savedDraft = findItemInCollection(collection, itemUid).draft;
+    const savedDraft = item.draft;
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
@@ -477,7 +477,7 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
               const savedItem = findItemInCollection(savedCollection, itemUid);
               return Boolean(savedItem) && !savedItem.draft;
             });
-          window.dispatchEvent(new CustomEvent('workspace-requests-saved', { detail: { itemUids } }));
+          dispatch(clearExampleEditModesForItems({ itemUids }));
         })
         .catch((err) => {
           if (err?.name === 'ValidationError') {
@@ -490,7 +490,7 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
   fileDrafts.forEach(({ content, itemUid, collectionUid }) => {
     saves.push(
       dispatch(saveFile(content, itemUid, collectionUid, true)).catch((err) => {
-        toast.error('Failed to save file!');
+        toast.error(err?.message || 'Failed to save file!');
         throw err;
       })
     );

@@ -1,4 +1,4 @@
-import reducer, { addTab, restoreTabs, closeTabs, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import reducer, { addTab, restoreTabs, closeTabs, setSidebarRevealRequest, setExampleEditMode, clearExampleEditModesForItems } from 'providers/ReduxStore/slices/tabs';
 import { getApiSpecTabUid } from 'utils/api-specs';
 
 const COLLECTION_UID = 'col-1';
@@ -111,6 +111,33 @@ describe('tabs mock-server dedup', () => {
     expect(state.tabs).toHaveLength(1);
     expect(state.tabs[0].mockServerUid).toBe(MOCK_SERVER_UID);
     expect(state.activeTabUid).toBe(MOCK_SERVER_UID);
+  });
+});
+
+describe('example edit mode', () => {
+  const makeExampleTabsState = () => ({
+    tabs: [
+      { uid: 'example-1', collectionUid: COLLECTION_UID, itemUid: 'item-1', type: 'response-example' },
+      { uid: 'example-2', collectionUid: COLLECTION_UID, itemUid: 'item-2', type: 'response-example', openInEditMode: true },
+      { uid: 'example-3', collectionUid: COLLECTION_UID, itemUid: 'item-3', type: 'response-example', openInEditMode: true }
+    ],
+    activeTabUid: 'example-1',
+    recentlyClosedTabs: []
+  });
+
+  it('setExampleEditMode enters and exits edit mode on the tab', () => {
+    let state = reducer(makeExampleTabsState(), setExampleEditMode({ uid: 'example-1', editMode: true }));
+    expect(state.tabs[0].openInEditMode).toBe(true);
+
+    state = reducer(state, setExampleEditMode({ uid: 'example-1', editMode: false }));
+    expect(state.tabs[0].openInEditMode).toBeUndefined();
+  });
+
+  it('clearExampleEditModesForItems exits edit mode only for tabs of the given items', () => {
+    const state = reducer(makeExampleTabsState(), clearExampleEditModesForItems({ itemUids: ['item-2'] }));
+
+    expect(state.tabs[1].openInEditMode).toBeUndefined();
+    expect(state.tabs[2].openInEditMode).toBe(true);
   });
 });
 

@@ -504,12 +504,25 @@ export const tabsSlice = createSlice({
         console.error('Tab not found!');
       }
     },
-    // One-shot "just created" flag for response-example tabs — cleared after ResponseExample mounts.
-    clearOpenInEditMode: (state, action) => {
-      const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
+    // `openInEditMode` on a response-example tab is the live edit-mode state of that example.
+    setExampleEditMode: (state, action) => {
+      const { uid, editMode } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
       if (tab) {
-        delete tab.openInEditMode;
+        if (editMode) {
+          tab.openInEditMode = true;
+        } else {
+          delete tab.openInEditMode;
+        }
       }
+    },
+    clearExampleEditModesForItems: (state, action) => {
+      const { itemUids } = action.payload;
+      state.tabs.forEach((tab) => {
+        if (tab.openInEditMode && itemUids.includes(tab.itemUid)) {
+          delete tab.openInEditMode;
+        }
+      });
     },
     collapseRequestPane: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -701,7 +714,8 @@ export const {
   closeTabs,
   closeAllCollectionTabs,
   makeTabPermanent,
-  clearOpenInEditMode,
+  setExampleEditMode,
+  clearExampleEditModesForItems,
   collapseRequestPane,
   collapseResponsePane,
   expandRequestPane,

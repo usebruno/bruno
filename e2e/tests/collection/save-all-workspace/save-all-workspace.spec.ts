@@ -47,9 +47,6 @@ const readAllFiles = (dir: string): string =>
     })
     .join('\n');
 
-const draftIndicatorOf = (page: Page, requestName: string) =>
-  buildCommonLocators(page).tabs.requestTabDraftIndicator(requestName);
-
 const expectSaveAllEnabled = async (page: Page) => {
   await openCollectionsMenu(page);
   await expect(buildCommonLocators(page).sidebar.saveAllButton()).not.toHaveAttribute('aria-disabled', 'true');
@@ -65,7 +62,7 @@ const expectSaveAllDisabled = async (page: Page) => {
 const editRequestUrl = async (page: Page, collectionName: string, requestName: string, url: string) => {
   await openRequest(page, collectionName, requestName, { persist: true });
   await fillRequestUrl(page, url, { replace: true });
-  await expect(draftIndicatorOf(page, requestName)).toBeVisible();
+  await expect(buildCommonLocators(page).tabs.requestTabDraftIndicator(requestName)).toBeVisible();
 };
 
 test.describe('Save all across the workspace', () => {
@@ -87,7 +84,7 @@ test.describe('Save all across the workspace', () => {
   });
 
   test('menu item saves drafts in every collection of the workspace', async ({ page }) => {
-    const { toast } = buildCommonLocators(page);
+    const { tabs, toast } = buildCommonLocators(page);
 
     await test.step('Save all is disabled while nothing is unsaved', async () => {
       await expectSaveAllDisabled(page);
@@ -107,9 +104,9 @@ test.describe('Save all across the workspace', () => {
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/one-edited');
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/two-edited');
 
-      await expect(draftIndicatorOf(page, 'req-two')).not.toBeVisible();
+      await expect(tabs.requestTabDraftIndicator('req-two')).not.toBeVisible();
       await openRequest(page, firstCollection, 'req-one', { persist: true });
-      await expect(draftIndicatorOf(page, 'req-one')).not.toBeVisible();
+      await expect(tabs.requestTabDraftIndicator('req-one')).not.toBeVisible();
     });
 
     await test.step('Save all is disabled again', async () => {
@@ -125,9 +122,12 @@ test.describe('Save all across the workspace', () => {
       await selectPreferencesTab(page, 'Keybindings');
     });
 
-    await test.step('Both save-all shortcuts are listed', async () => {
+    await test.step('Both save-all shortcuts are listed with their key combinations', async () => {
+      const isMac = process.platform === 'darwin';
       await expect(keybindings.row('saveAllWorkspace')).toContainText('Save All in Workspace');
+      await expect(keybindings.keycaps('saveAllWorkspace')).toHaveText(isMac ? ['⌥', '⇧', 'S'] : ['Alt', 'Shift', 'S']);
       await expect(keybindings.row('saveAllTabs')).toContainText('Save All Tabs');
+      await expect(keybindings.keycaps('saveAllTabs')).toHaveText(isMac ? ['⇧', '⌘', 'S'] : ['Ctrl', 'Shift', 'S']);
     });
 
     await test.step('Close Preferences', async () => {
@@ -136,6 +136,8 @@ test.describe('Save all across the workspace', () => {
   });
 
   test('the collection save-all shortcut still saves only the active collection', async ({ page }) => {
+    const { tabs } = buildCommonLocators(page);
+
     await test.step('Edit a request in each collection, ending on the second collection', async () => {
       await editRequestUrl(page, firstCollection, 'req-one', 'https://example.com/one-collection-only');
       await editRequestUrl(page, secondCollection, 'req-two', 'https://example.com/two-collection-only');
@@ -144,13 +146,13 @@ test.describe('Save all across the workspace', () => {
     await test.step('Press the collection save-all shortcut', async () => {
       await page.keyboard.press(saveAllTabsShortcut);
       await expect.poll(() => readAllFiles(collectionsDir)).toContain('https://example.com/two-collection-only');
-      await expect(draftIndicatorOf(page, 'req-two')).not.toBeVisible();
+      await expect(tabs.requestTabDraftIndicator('req-two')).not.toBeVisible();
     });
 
     await test.step('The other collection is still unsaved', async () => {
       expect(readAllFiles(collectionsDir)).not.toContain('https://example.com/one-collection-only');
       await openRequest(page, firstCollection, 'req-one', { persist: true });
-      await expect(draftIndicatorOf(page, 'req-one')).toBeVisible();
+      await expect(tabs.requestTabDraftIndicator('req-one')).toBeVisible();
     });
   });
 

@@ -6,6 +6,8 @@ import {
 } from '../../playwright';
 import { buildModalLocators } from '../shared-ui/modal';
 
+const tabDraftIndicator = (tab: Locator) => tab.locator('.has-changes-icon');
+
 /**
  * Locators for the request tab strip (request, folder and collection settings tabs).
  */
@@ -27,9 +29,9 @@ export const buildRequestTabsLocators = (page: Page) => ({
   closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
   draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
-  tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+  tabDraftIndicator,
   requestTabDraftIndicator: (requestName: string) =>
-    page.locator('.request-tab').filter({ hasText: requestName }).locator('.has-changes-icon')
+    tabDraftIndicator(page.locator('.request-tab').filter({ hasText: requestName }))
 });
 
 const buildLocators = (page: Page) => ({

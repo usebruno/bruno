@@ -984,20 +984,15 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
 
-        if (item && item.draft) {
-          const submittedDraft = savedDraft === undefined ? item.draft : savedDraft;
-          if (!submittedDraft) {
-            return;
+        if (item && item.draft && savedDraft) {
+          item.request = savedDraft.request;
+          if (savedDraft.settings) {
+            item.settings = savedDraft.settings;
           }
-
-          item.request = submittedDraft.request;
-          if (submittedDraft.settings) {
-            item.settings = submittedDraft.settings;
+          if (savedDraft.app) {
+            item.app = savedDraft.app;
           }
-          if (submittedDraft.app) {
-            item.app = submittedDraft.app;
-          }
-          if (savedDraft === undefined || isEqual(current(item.draft), savedDraft)) {
+          if (isEqual(current(item.draft), savedDraft)) {
             item.draft = null;
           }
         }
