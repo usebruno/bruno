@@ -1286,10 +1286,12 @@ describe('mergeSpecIntoRequest (reset mode unchanged)', () => {
     expect(out.request.tests).toBe('expect(1)');
     expect(out.request.assertions).toEqual([{ k: 'a' }]);
   });
+});
 
-  it('takes the name and docs from the spec in reset mode', () => {
-    const user = { ...existing, name: 'Mine', request: { ...existing.request, docs: 'My notes' } };
-    const spec = { ...specItem, name: 'From spec', request: { ...specItem.request, docs: 'Spec docs' } };
+describe('mergeSpecIntoRequest (reset mode name and docs)', () => {
+  it('takes the name and docs from the spec', () => {
+    const user = { name: 'Mine', type: 'http-request', request: { method: 'get', url: '{{old}}/x', params: [], headers: [], docs: 'My notes' } };
+    const spec = { name: 'From spec', type: 'http-request', request: { method: 'get', url: '{{spec}}/x', params: [], headers: [], docs: 'Spec docs' } };
     const out = helpers.mergeSpecIntoRequest(user, spec, { fullReset: true });
     expect([out.name, out.request.docs]).toEqual(['From spec', 'Spec docs']);
   });

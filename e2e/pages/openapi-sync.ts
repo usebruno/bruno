@@ -29,16 +29,17 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     endpointRowToggle: (endpointId: string) => endpointRow(endpointId).getByTestId('openapi-sync-endpoint-toggle'),
     endpointConflictBadge: (endpointId: string) => endpointRow(endpointId).getByTestId('openapi-sync-endpoint-conflict'),
     decisionButton: (endpointId: string, decision: 'keep' | 'accept') => endpointRow(endpointId).getByTestId(`openapi-sync-decision-${decision}`),
+    nameDiff: (endpointId: string, side: 'old' | 'new') => endpointRow(endpointId).getByTestId(`openapi-sync-diff-name-${side}`),
+    docsDiff: (endpointId: string, side: 'old' | 'new') => endpointRow(endpointId).getByTestId(`openapi-sync-diff-docs-${side}`),
     diffPane: (endpointId: string, section: string, side: 'old' | 'new') => endpointRow(endpointId)
       .locator('.diff-row')
       .filter({ has: page.locator('.diff-row-title').getByText(section, { exact: true }) })
       .locator(`.diff-row-pane.${side}`),
     applyButton: () => page.getByTestId('openapi-sync-apply'),
-    confirmButton: () => page.getByTestId('openapi-sync-confirm'),
+    confirmSyncButton: () => page.getByTestId('openapi-sync-confirm'),
     collectionChangesTab: () => page.getByTestId('responsive-tab-collection-changes'),
     changeSectionHeader: (title: string) => page.getByText(title, { exact: true }),
     resetEndpointButton: (endpointId: string) => endpointRow(endpointId).getByRole('button', { name: 'Reset', exact: true }),
-    confirmActionButton: () => page.getByRole('button', { name: 'Confirm', exact: true }),
 
     headerMenu: () => page.getByTestId('openapi-sync-header-menu'),
     editSettingsItem: () => page.getByTestId('openapi-sync-header-menu-settings'),

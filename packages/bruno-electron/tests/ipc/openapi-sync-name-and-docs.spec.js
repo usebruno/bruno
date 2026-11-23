@@ -96,7 +96,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
   const publish = (spec) => fs.writeFileSync(specFile, JSON.stringify(spec));
   const readItem = () => parseRequest(fs.readFileSync(requestFile, 'utf8'), { format });
   const editLocal = (edit) => fs.writeFileSync(requestFile, stringifyRequest(edit(readItem()), { format }));
-  const renameLocal = (name, docs) => editLocal((item) => ({ ...item, name, ...(docs !== undefined && { request: { ...item.request, docs } }) }));
+  const editLocalNameAndDocs = (name, docs) => editLocal((item) => ({ ...item, name, ...(docs !== undefined && { request: { ...item.request, docs } }) }));
   const ids = (list) => list.map(({ id }) => id);
   const changesOf = (list) => list.map(({ changes, conflictingFields }) => [changes, conflictingFields]);
   const requestFiles = () => fs.readdirSync(collectionPath).filter((file) => !['bruno.json', 'opencollection.yml'].includes(file));
@@ -209,7 +209,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('keeps a local name and docs when the user accepts an unrelated spec change', async () => {
     importFrom(petsSpec());
-    renameLocal('My pets', 'My notes');
+    editLocalNameAndDocs('My pets', 'My notes');
     const newSpec = petsSpec({ header: 'X-Trace' });
     publish(newSpec);
 
@@ -225,7 +225,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('reports a conflict when the request and the spec were both renamed, and accepting takes the spec name', async () => {
     importFrom(petsSpec());
-    renameLocal('My pets');
+    editLocalNameAndDocs('My pets');
     const newSpec = petsSpec({ summary: 'List all pets' });
     publish(newSpec);
 
@@ -238,7 +238,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('reports a conflict when the request docs and the spec description both changed', async () => {
     importFrom(petsSpec());
-    renameLocal('List pets', 'My notes');
+    editLocalNameAndDocs('List pets', 'My notes');
     const newSpec = petsSpec({ description: 'Lists every pet.' });
 
     expect(changesOf((await remote(newSpec)).modified)).toEqual([['docs', ['docs']]]);
@@ -255,7 +255,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('treats a request already renamed to the new spec name as in sync', async () => {
     importFrom(petsSpec());
-    renameLocal('List all pets');
+    editLocalNameAndDocs('List all pets');
     const remoteDrift = await remote(petsSpec({ summary: 'List all pets' }));
 
     expect([ids(remoteDrift.modified), ids(remoteDrift.inSync)]).toEqual([[], [PETS.id]]);
@@ -263,7 +263,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('keeps a local rename out of the collection changes while the spec is unchanged', async () => {
     importFrom(petsSpec());
-    renameLocal('My pets', 'My notes');
+    editLocalNameAndDocs('My pets', 'My notes');
     const spec = petsSpec();
     publish(spec);
 
@@ -274,7 +274,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('keeps a name written by an older importer on an unrelated spec change', async () => {
     importFrom(petsSpec());
-    renameLocal('List pets.');
+    editLocalNameAndDocs('List pets.');
     const newSpec = petsSpec({ header: 'X-Trace' });
 
     expect(changesOf((await remote(newSpec)).modified)).toEqual([['-1 headers', []]]);
@@ -284,7 +284,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('keeps the local name and docs when there is no stored spec, including on Restore Spec File', async () => {
     importFrom(petsSpec(), { storeSpec: false });
-    renameLocal('My pets', 'My notes');
+    editLocalNameAndDocs('My pets', 'My notes');
     const newSpec = petsSpec({ summary: 'List all pets', description: 'New docs.' });
     publish(newSpec);
 
@@ -353,7 +353,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('takes the spec name and docs in reset mode', async () => {
     importFrom(petsSpec());
-    renameLocal('My pets', 'My notes');
+    editLocalNameAndDocs('My pets', 'My notes');
     const newSpec = petsSpec({ summary: 'List all pets', description: 'New docs.' });
 
     await handler('renderer:apply-openapi-sync')({ diff: { newSpec }, mode: 'reset' });
@@ -384,7 +384,7 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
 
   it('previews and writes the stored spec name and docs when an endpoint is reset to the spec', async () => {
     importFrom(petsSpec());
-    renameLocal('My pets', 'My notes');
+    editLocalNameAndDocs('My pets', 'My notes');
 
     const { oldData, newData } = await handler('renderer:get-endpoint-diff-data')({ endpointId: PETS.id, newSpec: petsSpec(), resetToSpec: true });
     expect([oldData.name, oldData.request.docs]).toEqual(['My pets', 'My notes']);

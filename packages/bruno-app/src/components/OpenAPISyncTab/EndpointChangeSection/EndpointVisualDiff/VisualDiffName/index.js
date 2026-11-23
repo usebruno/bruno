@@ -6,7 +6,7 @@ const VisualDiffName = ({ oldData, newData, showSide }) => {
   const segments = showSide === 'old' ? computeWordDiffForOld(oldName, newName) : computeWordDiffForNew(oldName, newName);
 
   return (
-    <div className="diff-section">
+    <div className="diff-section" data-testid={`openapi-sync-diff-name-${showSide}`}>
       <div className="diff-section-content">
         {segments.map((segment, index) => (
           <span key={index} className={segment.status === 'unchanged' ? undefined : `diff-inline ${segment.status}`}>

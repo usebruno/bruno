@@ -13,6 +13,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { normalizeLineEndings } = require('@usebruno/common');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
@@ -757,9 +758,7 @@ const mergeAuth = (userAuth, specAuth, preserveValues = true) => {
 
 const RAW_BODY_MODES = ['xml', 'text', 'sparql'];
 
-const withLfLineEndings = (text) => text.replace(/\r\n|\r/g, '\n');
-
-const comparableText = (text) => withLfLineEndings(text).trim();
+const comparableText = (text) => normalizeLineEndings(text).trim();
 
 const textOf = (value) => (typeof value === 'string' ? comparableText(value) : '');
 
@@ -1462,7 +1461,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           const locallyEditedFields = changedNameAndDocs(storedSpecItem, actualItem);
           const conflictingFields = nameAndDocsChanges.filter((field) => locallyEditedFields.includes(field));
 
-          if (anyChange.hasDiff || hasDiff || nameAndDocsChanges.length > 0) {
+          if (anyChange.hasDiff || hasDiff) {
             result.edited.push({ id, method, path: urlPath, filePath: relativePath, pathname: fullPath, name: itemName });
           }
           if (hasDiff || nameAndDocsChanges.length > 0) {
@@ -1599,7 +1598,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             assertions: item.assertions || req.assertions || [],
             script: item.script || req.script || {},
             tests: item.tests || req.tests || '',
-            docs: typeof docs === 'string' ? withLfLineEndings(docs) : ''
+            docs: typeof docs === 'string' ? normalizeLineEndings(docs) : ''
           }
         };
       };

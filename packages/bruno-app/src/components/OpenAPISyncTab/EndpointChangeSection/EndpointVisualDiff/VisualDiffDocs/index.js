@@ -6,7 +6,7 @@ const VisualDiffDocs = ({ oldData, newData, showSide }) => {
   const lines = showSide === 'old' ? computeLineDiffForOld(oldDocs, newDocs) : computeLineDiffForNew(oldDocs, newDocs);
 
   return (
-    <div className="diff-section">
+    <div className="diff-section" data-testid={`openapi-sync-diff-docs-${showSide}`}>
       <div className="code-diff-content">
         {lines.map((line, index) => (
           <div key={index} className={`diff-line ${line.status}`}>

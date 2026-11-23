@@ -30,6 +30,12 @@ const writeSpec = (specFile: string, { summary = 'List pets', description = 'Ret
   }));
 };
 
+const publishSpec = async (specFile: string, change: PetsSpec) => {
+  await test.step(`Publish the spec with ${JSON.stringify(change)}`, async () => {
+    writeSpec(specFile, change);
+  });
+};
+
 const readPetsRequest = (collectionDir: string) => jsyaml.load(fs.readFileSync(path.join(collectionDir, PETS_FILE), 'utf8')) as any;
 
 const importPetsCollection = async (page: Page, createTmpDir: (tag?: string) => Promise<string>, tag: string) => {
@@ -64,7 +70,7 @@ const syncCollection = async (page: Page, collectionDir: string, specFile: strin
   const { sync } = buildCommonLocators(page).openApi;
   await test.step('Sync the collection', async () => {
     await sync.applyButton().click();
-    await sync.confirmButton().click();
+    await sync.confirmSyncButton().click();
     await expect(sync.endpointRow(PETS)).toHaveCount(0, { timeout: 15000 });
     expectSyncedWithSpec(collectionDir, readOpenApiSyncConfig(collectionDir), specFile);
   });
@@ -79,16 +85,16 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
     const locators = buildCommonLocators(page);
     const { sync } = locators.openApi;
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-docs-accept');
-    writeSpec(specFile, { summary: 'List all pets', description: 'Returns every pet in the store.' });
+    await publishSpec(specFile, { summary: 'List all pets', description: 'Returns every pet in the store.' });
 
     await reviewSpecUpdates(page);
 
     await test.step('The diff shows the current and the incoming name and docs', async () => {
       await sync.endpointRowToggle(PETS).click();
-      await expect(sync.diffPane(PETS, 'Name', 'old')).toHaveText('List pets');
-      await expect(sync.diffPane(PETS, 'Name', 'new')).toHaveText('List all pets');
-      await expect(sync.diffPane(PETS, 'Docs', 'old')).toHaveText('Returns every pet.');
-      await expect(sync.diffPane(PETS, 'Docs', 'new')).toHaveText('Returns every pet in the store.');
+      await expect(sync.nameDiff(PETS, 'old')).toHaveText('List pets');
+      await expect(sync.nameDiff(PETS, 'new')).toHaveText('List all pets');
+      await expect(sync.docsDiff(PETS, 'old')).toHaveText('Returns every pet.');
+      await expect(sync.docsDiff(PETS, 'new')).toHaveText('Returns every pet in the store.');
     });
 
     await syncCollection(page, collectionDir, specFile);
@@ -105,7 +111,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
   test('keeps the current name and docs when the user keeps the current version', async ({ page, createTmpDir }) => {
     const { sync } = buildCommonLocators(page).openApi;
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-docs-keep');
-    writeSpec(specFile, { summary: 'List all pets', description: 'Returns every pet in the store.' });
+    await publishSpec(specFile, { summary: 'List all pets', description: 'Returns every pet in the store.' });
 
     await reviewSpecUpdates(page);
 
@@ -127,7 +133,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
     const { sync } = buildCommonLocators(page).openApi;
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-conflict');
     await renamePetsRequest(page, collectionDir, 'My pets');
-    writeSpec(specFile, { summary: 'List all pets' });
+    await publishSpec(specFile, { summary: 'List all pets' });
 
     await reviewSpecUpdates(page);
 
@@ -152,7 +158,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
   test('leaves a new conflict unresolved after checking again', async ({ page, createTmpDir }) => {
     const { sync } = buildCommonLocators(page).openApi;
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-recheck');
-    writeSpec(specFile, { summary: 'List all pets' });
+    await publishSpec(specFile, { summary: 'List all pets' });
 
     await reviewSpecUpdates(page);
 
@@ -174,7 +180,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
   });
 
   test('applies the spec rename after a conflict is resolved by resetting the local changes', async ({ page, createTmpDir }) => {
-    const { sync } = buildCommonLocators(page).openApi;
+    const { openApi: { sync }, modal } = buildCommonLocators(page);
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-reset-conflict');
 
     await test.step('Add a header to the request in the collection', async () => {
@@ -182,7 +188,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
       request.http.headers = [{ name: 'X-Debug', value: '1' }];
       fs.writeFileSync(path.join(collectionDir, PETS_FILE), jsyaml.dump(request));
     });
-    writeSpec(specFile, { summary: 'List all pets' });
+    await publishSpec(specFile, { summary: 'List all pets' });
 
     await reviewSpecUpdates(page);
 
@@ -194,7 +200,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
       await sync.collectionChangesTab().click();
       await sync.changeSectionHeader('Modified in Collection').click();
       await sync.resetEndpointButton(PETS).click();
-      await sync.confirmActionButton().click();
+      await modal.button('Confirm').click();
       await expect(sync.endpointRow(PETS)).toHaveCount(0);
     });
 
@@ -216,7 +222,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
     const { sync } = buildCommonLocators(page).openApi;
     const { specFile, collectionDir } = await importPetsCollection(page, createTmpDir, 'openapi-sync-name-kept');
     await renamePetsRequest(page, collectionDir, 'My pets');
-    writeSpec(specFile, { headers: ['X-Trace'] });
+    await publishSpec(specFile, { headers: ['X-Trace'] });
 
     await reviewSpecUpdates(page);
 
@@ -224,7 +230,7 @@ test.describe('OpenAPI sync: request name and docs from the spec', () => {
       await expect(sync.endpointConflictBadge(PETS)).toHaveCount(0);
       await sync.endpointRowToggle(PETS).click();
       await expect(sync.diffPane(PETS, 'Headers', 'new')).toContainText('X-Trace');
-      await expect(sync.diffPane(PETS, 'Name', 'new')).toHaveCount(0);
+      await expect(sync.nameDiff(PETS, 'new')).toHaveCount(0);
     });
 
     await syncCollection(page, collectionDir, specFile);
