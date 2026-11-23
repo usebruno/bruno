@@ -2,6 +2,8 @@ const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 const { getParamFromUrl } = require('../../utils/common');
 
+const INTERCEPTED_CALLBACK_STATUS_TEXT = 'BRUNO_OAUTH2_CALLBACK';
+
 // The server appends its response to the callback's query or fragment (RFC 6749 §4.1.2, §4.2.2), so only
 // scheme, host and path identify it. One trailing slash is tolerated.
 const getRedirectionEndpoint = (url) => `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
@@ -21,6 +23,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
       data: []
     };
     let currentMainRequest = null;
+
+    // The hops collected before a failure are what explain it, so they travel with the error.
+    const rejectWithDebugInfo = (error) => {
+      error.debugInfo = debugInfo;
+      reject(error);
+    };
 
     let allOpenWindows = BrowserWindow.getAllWindows();
 
@@ -135,7 +143,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
       }
     });
 
-    function onWindowRedirect(url) {
+    function onWindowRedirect(url, { isPendingRedirect = false } = {}) {
       // Handle redirects as needed
       let urlObj;
       let callbackUrlObj;
@@ -154,9 +162,35 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
         callbackUrlObj = null;
       }
 
+      const isErrorResponse = urlObj.searchParams.has('error');
+      const isCallback = callbackUrlObj && matchesCallbackUrl(urlObj, callbackUrlObj);
+      if (!isErrorResponse && !isCallback) return;
+
+      // Closing the window on `will-redirect` stops the redirect before the webRequest hooks see it,
+      // so the URL that ends the flow is recorded here.
+      if (isPendingRedirect) {
+        debugInfo.data.push({
+          request: {
+            url,
+            method: '',
+            headers: {},
+            error: null
+          },
+          response: {
+            url,
+            headers: {},
+            status: '',
+            statusText: INTERCEPTED_CALLBACK_STATUS_TEXT,
+            error: null
+          },
+          fromCache: false,
+          completed: true
+        });
+      }
+
       // Handle OAuth error responses first, so we reject with
       // a descriptive error instead of resolving with a null authorization code
-      if (urlObj.searchParams.has('error')) {
+      if (isErrorResponse) {
         const error = urlObj.searchParams.get('error');
         const errorDescription = urlObj.searchParams.get('error_description');
         const errorUri = urlObj.searchParams.get('error_uri');
@@ -166,16 +200,11 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           errorDescription,
           errorUri
         };
-        reject(new Error(JSON.stringify(errorData)));
-        window.close();
-        return;
-      }
-
-      if (callbackUrlObj && matchesCallbackUrl(urlObj, callbackUrlObj)) {
+        rejectWithDebugInfo(new Error(JSON.stringify(errorData)));
+      } else {
         finalUrl = url;
-        window.close();
-        return;
       }
+      window.close();
     }
 
     // Update currentMainRequest when navigation occurs
@@ -191,7 +220,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
     });
 
     window.webContents.on('will-redirect', (event, url) => {
-      onWindowRedirect(url);
+      onWindowRedirect(url, { isPendingRedirect: true });
     });
 
     window.on('close', () => {
@@ -212,7 +241,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
           const finalUrlObj = new URL(finalUrl);
           const returnedState = getParamFromUrl(finalUrlObj, 'state');
           if (!expectedState || returnedState !== expectedState) {
-            return reject(
+            return rejectWithDebugInfo(
               new Error('OAuth2 state mismatch: the returned state does not match the issued state.')
             );
           }
@@ -241,10 +270,10 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
             return resolve({ authorizationCode, debugInfo });
           }
         } catch (error) {
-          return reject(error);
+          return rejectWithDebugInfo(error);
         }
       } else {
-        return reject(new Error('Authorization window closed'));
+        return rejectWithDebugInfo(new Error('Authorization window closed'));
       }
     });
 
@@ -256,7 +285,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session, additionalH
         console.debug('Ignoring ERR_ABORTED during authorizeUserInWindow');
         return;
       }
-      reject(error);
+      rejectWithDebugInfo(error);
       window.close();
     }
   });
