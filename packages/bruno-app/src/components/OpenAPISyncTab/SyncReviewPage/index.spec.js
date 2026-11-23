@@ -11,7 +11,12 @@ import SyncReviewPage from './index';
 const pets = { id: 'GET:/pets', method: 'GET', path: '/pets', name: 'List pets' };
 const specDrift = { added: [], modified: [pets], removed: [], newSpec: { openapi: '3.0.0', paths: {} } };
 
-const renderReview = (store, { edited = [], conflictingFields = [] } = {}) => {
+const renderReview = (store, {
+  edited = [],
+  conflictingFields = [],
+  collectionDrift = { edited, modified: edited, missing: [], localOnly: [] },
+  isLoading = false
+} = {}) => {
   const onApplySync = jest.fn();
   const utils = render(
     <Provider store={store}>
@@ -19,12 +24,12 @@ const renderReview = (store, { edited = [], conflictingFields = [] } = {}) => {
         <SyncReviewPage
           specDrift={specDrift}
           remoteDrift={{ modified: [{ ...pets, conflictingFields }], missing: [], localOnly: [], inSync: [] }}
-          collectionDrift={{ edited, modified: edited, missing: [], localOnly: [] }}
+          collectionDrift={collectionDrift}
           collectionPath="/collections/pets"
           collectionUid="pets"
           newSpec={specDrift.newSpec}
           isSyncing={false}
-          isLoading={false}
+          isLoading={isLoading}
           onApplySync={onApplySync}
         />
       </ThemeProvider>
@@ -62,6 +67,21 @@ describe('SyncReviewPage', () => {
     renderReview(store, { conflictingFields: ['name'] });
     expect(screen.getByTestId('openapi-sync-decision-accept')).not.toHaveClass('selected');
     expect(screen.getByTestId('openapi-sync-apply')).toBeDisabled();
+  });
+
+  it.each([
+    ['a check is running', { isLoading: true }],
+    ['the collection changes are reloading', { collectionDrift: null }]
+  ])('keeps Sync disabled while %s', (_state, review) => {
+    renderReview(createStore(), review);
+
+    expect(screen.getByTestId('openapi-sync-apply')).toBeDisabled();
+  });
+
+  it('enables Sync once the review has loaded', () => {
+    renderReview(createStore());
+
+    expect(screen.getByTestId('openapi-sync-apply')).toBeEnabled();
   });
 
   it('remembers a choice the user made when the page opens again', () => {

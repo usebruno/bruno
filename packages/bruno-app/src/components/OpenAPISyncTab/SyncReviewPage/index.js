@@ -98,6 +98,7 @@ const SyncReviewPage = ({
     && decidableEndpoints.every((ep) => decisions[ep.id] === 'keep-mine');
 
   const unresolvedConflicts = specUpdatedEndpoints.filter((ep) => ep.conflict && !decisions[ep.id]).length;
+  const isReviewLoading = isLoading || (!collectionDrift && !specDrift?.storedSpecMissing);
 
   // Confirmation summary — grouped endpoint lists
   const confirmGroups = useMemo(() => {
@@ -361,7 +362,7 @@ const SyncReviewPage = ({
           <div className="bar-actions">
             <Button
               onClick={totalChanges === 0 ? handleConfirmApply : () => setShowConfirmation(true)}
-              disabled={unresolvedConflicts > 0 || isSyncing}
+              disabled={unresolvedConflicts > 0 || isSyncing || isReviewLoading}
               loading={isSyncing}
               data-testid="openapi-sync-apply"
             >
