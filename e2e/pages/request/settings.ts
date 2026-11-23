@@ -1,3 +1,4 @@
+import kebabCase from 'lodash/kebabCase';
 import { test, expect, Page } from '../../playwright';
 import { selectRequestPaneTab } from './pane';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
@@ -17,7 +18,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
   maxRedirectsInput: () => page.locator('#maxRedirects'),
   tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
-  tagItem: (tagName: string) => page.getByTestId(`tag-${tagName}`)
+  tagItem: (tagName: string) => page.getByTestId(`tag-${kebabCase(tagName)}`)
 });
 
 /**
