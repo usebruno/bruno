@@ -70,22 +70,26 @@ test.describe.serial('Repeat on Interval', () => {
   test('stops repeating when the request tab is closed', async ({ page }) => {
     const send = buildRequestSendLocators(page);
 
-    await test.step('Start repeating every second', async () => {
+    await test.step('Start repeating every 3 seconds', async () => {
       await openRequest(page, COLLECTION, REQUEST);
       const startHits = hits;
-      await startRepeatOnInterval(page, 1);
+      await startRepeatOnInterval(page, 3);
+      // The first send is immediate
       await expect.poll(() => hits - startHits, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
     });
 
-    await test.step('Closing the tab stops the repetition', async () => {
+    await test.step('Closing the tab stops the repetition at once', async () => {
+      const hitsAtClose = hits;
       await closeAllTabs(page);
+
+      // Reopen before the next tick: the schedule must already be gone, not cleaned up by that tick
+      await openRequest(page, COLLECTION, REQUEST);
       await expect(send.repeatOnIntervalIndicator()).toBeHidden();
 
-      // The scheduler notices the closed tab on its next tick, at most one more send
-      await page.waitForTimeout(1500);
-      const hitsAfterClose = hits;
-      await page.waitForTimeout(2500);
-      expect(hits).toBe(hitsAfterClose);
+      // No locator can observe a request that must not happen: wait past the next tick
+      await page.waitForTimeout(4000);
+      expect(hits).toBe(hitsAtClose);
+      await expect(send.repeatOnIntervalIndicator()).toBeHidden();
     });
   });
 });
