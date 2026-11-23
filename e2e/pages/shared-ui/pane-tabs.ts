@@ -20,7 +20,7 @@ export const buildPaneTabsLocators = (page: Page) => ({
   folderSettingsTab: (key: string) => page.getByTestId(`folder-settings-tab-${key}`),
   folderScriptTab: (key: 'pre-request' | 'post-response') => page.getByTestId(`tab-trigger-${key}`),
   tabTrigger: (key: string) => page.getByTestId(`tab-trigger-${key}`),
-  collectionSettingsContent: () => page.locator('.collection-settings-content'),
+  collectionSettingsContent: () => page.getByTestId('collection-settings-content'),
   requestsNotLoadedTable: () => page.getByTestId('requests-not-loaded'),
   overviewInvalidFilesCount: () => page.getByTestId('info-invalid-files-count'),
   folderSettingsContent: () => page.locator('.folder-settings-content')
