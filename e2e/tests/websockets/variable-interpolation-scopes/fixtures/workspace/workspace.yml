@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: 'WS Variable Scopes'
+  type: workspace
+
+collections:
+  - name: ws-var-scopes-bru
+    path: collections/bru
+  - name: ws-var-scopes-yml
+    path: collections/yml
+
+specs:
+
+docs: ''
