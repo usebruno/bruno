@@ -21,6 +21,15 @@ const buildLocators = (page: Page) => ({
 });
 
 /**
+ * Locates a row in the runner's "Configure requests to run" list by its exact request name.
+ * @param page - The Playwright page object
+ * @param requestName - The request's name as shown in the row
+ * @returns The row locator
+ */
+export const runnerConfigItem = (page: Page, requestName: string): Locator =>
+  page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
+
+/**
  * Builds locators for the runner results view
  * @param page - The Playwright page object
  * @returns Object with locators for runner elements
@@ -169,15 +178,6 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
 };
 
 /**
- * Locates a row in the runner's "Configure requests to run" list by its exact request name.
- * @param page - The Playwright page object
- * @param requestName - The request's name as shown in the row
- * @returns The row locator
- */
-export const runnerConfigItem = (page: Page, requestName: string): Locator =>
-  page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
-
-/**
  * Reads the request names in the runner's "Configure requests to run" list, top to bottom.
  * @param page - The Playwright page object
  * @returns The request names in their configured order
@@ -217,35 +217,13 @@ export const dragRunnerConfigItem = async (
 };
 
 /**
- * Asserts the runner config list shows exactly these requests, in this order.
- * @param page - The Playwright page object
- * @param names - The expected request names, top to bottom
- * @returns void
- */
-export const verifyRunnerConfigOrder = async (page: Page, names: string[]) => {
-  await expect(buildRunnerLocators(page).getRequestItemNameList()).toHaveText(names);
-};
-
-/**
- * Asserts the runner results list shows exactly these requests, in this order. Results are
- * appended as each request starts, so their order is the execution order.
- * @param page - The Playwright page object
- * @param names - The expected request names, in execution order
- * @returns void
- */
-export const verifyRunnerResultOrder = async (page: Page, names: string[]) => {
-  await expect(buildRunnerLocators(page).resultItems()).toHaveText(names.map((name) => new RegExp(`^${name}`)));
-};
-
-/**
- * Leaves the runner results view via its Reset button and waits for the config panel to return.
+ * Leaves the runner results view via its Reset button.
  * @param page - The Playwright page object
  * @returns void
  */
 export const reopenRunnerConfig = async (page: Page) => {
   await test.step('Reopen the runner configuration screen', async () => {
     await buildRunnerLocators(page).resultsResetButton().click();
-    await expect(buildRunnerLocators(page).configPanel()).toBeVisible();
   });
 };
 

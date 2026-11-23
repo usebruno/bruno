@@ -5,8 +5,6 @@ import {
   expandCollection,
   createRequestViaModal,
   dragRunnerConfigItem,
-  verifyRunnerConfigOrder,
-  verifyRunnerResultOrder,
   getRunnerConfigOrder,
   openRunnerTab,
   reopenRunnerConfig,
@@ -37,15 +35,15 @@ test.describe('Runner request reordering', () => {
     });
 
     await dragRunnerConfigItem(page, 'Request E', 'Request A', 'above');
-    await verifyRunnerConfigOrder(page, ['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
+    await expect(runner.getRequestItemNameList()).toHaveText(['Request E', 'Request A', 'Request B', 'Request C', 'Request D']);
 
     await dragRunnerConfigItem(page, 'Request A', 'Request D', 'below');
-    await verifyRunnerConfigOrder(page, ['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
+    await expect(runner.getRequestItemNameList()).toHaveText(['Request E', 'Request B', 'Request C', 'Request D', 'Request A']);
 
     await dragRunnerConfigItem(page, 'Request C', 'Request B', 'above');
 
     await test.step('Verify the UI shows the intended order', async () => {
-      await verifyRunnerConfigOrder(page, REORDERED);
+      await expect(runner.getRequestItemNameList()).toHaveText(REORDERED);
       await expect(runner.configCounter()).toHaveText(`${REORDERED.length} of ${REORDERED.length} selected`);
     });
 
@@ -63,7 +61,7 @@ test.describe('Runner request reordering', () => {
 
     await test.step('Check the run results after the run completes', async () => {
       await expect(runner.runAgainButton()).toBeVisible({ timeout: 60000 });
-      await verifyRunnerResultOrder(page, REORDERED);
+      await expect(runner.resultItems()).toHaveText(REORDERED.map((name) => new RegExp(`^${name}`)));
       await validateRunnerResults(page, { totalRequests: REORDERED.length, passed: REORDERED.length, failed: 0, skipped: 0 });
     });
 
@@ -74,12 +72,13 @@ test.describe('Runner request reordering', () => {
 
     await reopenRunnerConfig(page);
     await test.step('Verify the reordered requests are still listed', async () => {
+      await expect(runner.configPanel()).toBeVisible();
       await expect(runner.requestItems()).toHaveCount(REORDERED.length);
     });
 
     await test.step('Verify Reset restores the original request order', async () => {
       // Reset clears the saved runner configuration, custom order included
-      await verifyRunnerConfigOrder(page, initialOrder);
+      await expect(runner.getRequestItemNameList()).toHaveText(initialOrder);
     });
   });
 });
@@ -98,7 +97,7 @@ test.describe('Runner request checkboxes', () => {
     await openRunnerTab(page, COLLECTION_NAME);
     await test.step('Verify the run configuration lists root and nested requests', async () => {
       await expect(runner.requestItem(NESTED_REQUEST)).toBeVisible({ timeout: 15000 });
-      await verifyRunnerConfigOrder(page, checkboxOrder);
+      await expect(runner.getRequestItemNameList()).toHaveText(checkboxOrder);
     });
 
     await test.step('A checkbox is present next to each request', async () => {
