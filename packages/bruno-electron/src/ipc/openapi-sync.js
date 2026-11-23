@@ -1603,19 +1603,19 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         };
       };
 
-      // EXPECTED column = what sync will actually produce. For an endpoint that
-      // already exists in the collection, that's the merged result (user values +
-      // structural changes), not the raw spec. New endpoints (no actualRequest)
+      // EXPECTED column = what sync, or Reset on a Collection Changes row, will
+      // actually produce. For an endpoint that already exists in the collection,
+      // that's the merged result, not the raw spec. New endpoints (no actualRequest)
       // have nothing to preserve, so show the spec as-is.
       // NOTE: actualRequest is the full parsed item (has a .request property),
       // matching the shape that mergeSpecIntoRequest expects as its first argument.
       let specItemForDisplay = specItem;
       if (specItem && actualRequest) {
-        const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, conversionOptions });
-        const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptionsOf(method, endpointPath));
-        specItemForDisplay = resetToSpec
-          ? { ...specItem, request: { ...merged.request, docs: specItem.request.docs } }
-          : { ...specItem, name: merged.name, request: merged.request };
+        const mergeOptions = resetToSpec
+          ? { fullReset: true }
+          : mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, conversionOptions })(method, endpointPath);
+        const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptions);
+        specItemForDisplay = { ...specItem, name: merged.name, request: merged.request };
       }
 
       return {

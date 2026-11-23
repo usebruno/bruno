@@ -382,6 +382,18 @@ describe.each(['bru', 'yml'])('OpenAPI sync of request names and docs in a %s co
     expect([oldData.request.docs, newData.request.docs]).toEqual(['Line one.\nLine two.', 'Line one.\nLine two.']);
   });
 
+  it('previews the request values that a reset to the spec writes', async () => {
+    const spec = petsSpec({ header: 'X-Trace' });
+    importFrom(spec);
+    editLocal((item) => ({ ...item, request: { ...item.request, headers: item.request.headers.map((header) => ({ ...header, value: 'mine' })) } }));
+
+    const { newData } = await handler('renderer:get-endpoint-diff-data')({ endpointId: PETS.id, newSpec: spec, resetToSpec: true });
+    await handler('renderer:reset-endpoints-to-spec')({ endpoints: [{ method: 'GET', path: '/pets', pathname: requestFile }] });
+
+    const nameAndValue = ({ name, value }) => [name, value];
+    expect(newData.request.headers.map(nameAndValue)).toEqual(readItem().request.headers.map(nameAndValue));
+  });
+
   it('previews and writes the stored spec name and docs when an endpoint is reset to the spec', async () => {
     importFrom(petsSpec());
     editLocalNameAndDocs('My pets', 'My notes');
