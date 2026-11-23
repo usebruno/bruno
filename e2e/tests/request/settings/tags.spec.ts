@@ -26,7 +26,7 @@ test.describe('Request tags', () => {
     });
 
     await addRequestTag(page, TAG_NAME);
-    await expect(settings.addedTagChip()).toContainText(TAG_NAME);
+    await expect(settings.tagItem(TAG_NAME)).toBeVisible();
 
     await saveRequest(page);
 
@@ -38,7 +38,7 @@ test.describe('Request tags', () => {
     });
 
     await test.step('Verify the tag is still shown', async () => {
-      await expect(settings.addedTagChip()).toContainText(TAG_NAME);
+      await expect(settings.tagItem(TAG_NAME)).toBeVisible();
     });
   });
 });

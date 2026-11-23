@@ -17,7 +17,7 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
   maxRedirectsInput: () => page.locator('#maxRedirects'),
   tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
-  addedTagChip: () => page.getByTestId('tag-chip')
+  tagItem: (tagName: string) => page.getByTestId(`tag-${tagName}`)
 });
 
 /**
@@ -51,7 +51,7 @@ export const expectRequestMaxRedirects = async (page: Page, requestName: string,
 };
 
 /**
- * Types a tag into the request Settings tag field and commits it with Enter.
+ * Add a tag onto a request.
  * @param page - The Playwright page object
  * @param tagName - The tag to add
  * @returns void
