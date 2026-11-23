@@ -4,9 +4,10 @@ import {
   closeAllCollections,
   createApp,
   createCollection,
+  openMigrateToYmlModalFromPill,
   saveRequest
 } from '../../../pages';
-import { addCollectionAppCodeFromEmptyState, openMigrateToYmlModalFromPill, setCollectionAppCode } from '../../../pages/collection/collection-app';
+import { addCollectionAppCodeFromEmptyState, setCollectionAppCode } from '../../../pages/collection/collection-app';
 import { CLICK_COUNTER_APP, CLICK_COUNTER_APP_EDITED } from '../../../constants';
 
 const APP_NAME = 'Demo_app';
@@ -38,14 +39,14 @@ test.describe('Migrate to YML — unsaved collection app', () => {
     });
 
     await test.step('Open the migrate modal from the "Migrate to YML" pill', async () => {
-      await expect(collectionApp.pill()).toBeVisible();
-      await expect(collectionApp.pill()).toContainText('Migrate to YML');
+      await expect(migrate.pill()).toBeVisible();
+      await expect(migrate.pill()).toContainText('Migrate to YML');
       await openMigrateToYmlModalFromPill(page);
     });
 
     await test.step('Migrate modal shows the collection, Export Collection, Cancel and Migrate', async () => {
-      await expect(collectionApp.modalTitle()).toHaveText('Migrate to YML format');
-      await expect(collectionApp.modalCollectionName()).toHaveText(collectionName);
+      await expect(migrate.modalTitle()).toHaveText('Migrate to YML format');
+      await expect(migrate.modalCollectionName()).toHaveText(collectionName);
       await expect(migrate.exportBackupButton()).toBeVisible();
       await expect(migrate.exportBackupButton()).toHaveText('Export Collection');
       await expect(migrate.cancelMigrationButton()).toBeVisible();
@@ -58,10 +59,10 @@ test.describe('Migrate to YML — unsaved collection app', () => {
     });
 
     await test.step('Unsaved changes step lists the app and offers Discard All, Back and Save', async () => {
-      await expect(collectionApp.draftsStep()).toBeVisible();
-      await expect(collectionApp.draftsTitle()).toHaveText('Hold on..');
-      await expect(collectionApp.draftsSummary()).toHaveText('You have unsaved changes in 1 item. Save or discard them before migrating.');
-      await expect(collectionApp.draftsItems()).toHaveText([`• App: ${APP_NAME}`]);
+      await expect(migrate.draftsStep()).toBeVisible();
+      await expect(migrate.draftsTitle()).toHaveText('Hold on..');
+      await expect(migrate.draftsSummary()).toHaveText('You have unsaved changes in 1 item. Save or discard them before migrating.');
+      await expect(migrate.draftsItems()).toHaveText([`• App: ${APP_NAME}`]);
 
       await expect(migrate.draftsDiscardAll()).toBeVisible();
       await expect(migrate.draftsDiscardAll()).toBeEnabled();

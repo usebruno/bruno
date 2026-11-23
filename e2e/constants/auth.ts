@@ -11,3 +11,9 @@ export const AUTH_MODE_LABELS = {
   INHERIT: 'Inherit',
   NONE: 'No Auth'
 } as const;
+
+export const SELECTED_AUTH_MODE_LABELS = {
+  ...AUTH_MODE_LABELS,
+  NTLM: 'NTLM',
+  AWSV4: 'AWS Sig V4'
+} as const;
