@@ -4,17 +4,17 @@ import {
   closeAllCollections,
   createCollection,
   createRequest,
+  expandTimelineEntry,
   selectCollectionPaneTab,
   selectResponsePaneTab,
   sendRequest
 } from '../../../pages';
 import {
   buildCollectionSettingsHeadersLocators,
-  fillCollectionHeaderRow,
-  openHeaders,
-  typeAndPickHint
+  openCollectionHeadersTab,
+  pickHeaderHint
 } from '../../../pages/collection/settings-headers';
-import { buildTimelineHeaderLocators } from '../../../pages/response/timeline';
+import { fillRequestHeaderName, fillRequestHeaderValue } from '../../../pages/request/headers';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
 
@@ -33,8 +33,9 @@ test.describe('Collection settings headers', () => {
       await expect(paneTabs.collectionSettingsTab('overview')).toContainClass('active');
     });
 
-    await test.step('Headers becomes the active tab', async () => {
+    await test.step('Verify that Headers becomes the active tab', async () => {
       await selectCollectionPaneTab(page, 'headers');
+      await expect(paneTabs.collectionSettingsTab('headers')).toContainClass('active');
     });
 
     await test.step('The header table, Bulk Edit, and Save are shown', async () => {
@@ -51,12 +52,12 @@ test.describe('Collection settings headers', () => {
 
     await test.step('Open the Headers tab of a new collection', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await openHeaders(page, collectionName);
+      await openCollectionHeadersTab(page, collectionName);
       await expect(collectionSettingsHeaders.rows()).toHaveCount(1);
     });
 
     await test.step('Choose Content-Type from the name suggestions', async () => {
-      await typeAndPickHint(
+      await pickHeaderHint(
         page,
         collectionSettingsHeaders.nameEditor(collectionSettingsHeaders.rows().first()),
         'Content-Ty',
@@ -65,7 +66,7 @@ test.describe('Collection settings headers', () => {
     });
 
     await test.step('Choose application/json from the value suggestions', async () => {
-      await typeAndPickHint(
+      await pickHeaderHint(
         page,
         collectionSettingsHeaders.valueEditor(collectionSettingsHeaders.rows().first()),
         'application/js',
@@ -84,20 +85,19 @@ test.describe('Collection settings headers', () => {
     const collectionName = 'HeadersSave';
     const headerName = 'X-Collection';
     const headerValue = 'from-collection';
-    const { toast, timeline } = buildCommonLocators(page);
+    const { toast, timeline, timelineHeaders } = buildCommonLocators(page);
     const collectionSettingsHeaders = buildCollectionSettingsHeadersLocators(page);
 
     await test.step('Enter a header on the Headers tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await openHeaders(page, collectionName);
-      await fillCollectionHeaderRow(page, headerName, headerValue);
+      await openCollectionHeadersTab(page, collectionName);
+      const row = collectionSettingsHeaders.rows().first();
+      await fillRequestHeaderName(page, row, headerName);
+      await fillRequestHeaderValue(page, row, headerValue);
     });
 
     await test.step('Save persists the header', async () => {
-      const save = collectionSettingsHeaders.saveButton();
-      await expect(save).toBeVisible();
-
-      await save.click();
+      await collectionSettingsHeaders.saveButton().click();
       await expect(toast.byMessage('Collection Settings saved successfully')).toBeVisible();
     });
 
@@ -106,9 +106,7 @@ test.describe('Collection settings headers', () => {
       await sendRequest(page, 200);
 
       await selectResponsePaneTab(page, 'Timeline');
-      await timeline.itemHeader(timeline.items().first()).click();
-
-      const timelineHeaders = buildTimelineHeaderLocators(page);
+      await expandTimelineEntry(page, timeline.entriesOfKind('main').first());
       await expect(timelineHeaders.value(headerName)).toHaveText(headerValue);
     });
   });
@@ -121,8 +119,10 @@ test.describe('Collection settings headers', () => {
 
     await test.step('Add a header on the Headers tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
-      await openHeaders(page, collectionName);
-      await fillCollectionHeaderRow(page, headerName, headerValue);
+      await openCollectionHeadersTab(page, collectionName);
+      const row = collectionSettingsHeaders.rows().first();
+      await fillRequestHeaderName(page, row, headerName);
+      await fillRequestHeaderValue(page, row, headerValue);
     });
 
     await test.step('Bulk Edit shows the header as text', async () => {

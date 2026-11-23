@@ -1,71 +1,62 @@
-import { expect, Locator, Page, test } from '../../playwright';
+import { test, Locator, Page } from '../../playwright';
 import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
-import { openCollectionSettings, selectCollectionPaneTab } from './settings';
+import { buildPaneTabsLocators } from '../shared-ui/pane-tabs';
+import { buildTableLocator } from '../shared-ui/table';
+import { buildCollectionSettingsPanelLocators, openCollectionSettings, selectCollectionPaneTab } from './settings';
 
 /**
  * Locators for the collection settings Headers tab.
  */
 export const buildCollectionSettingsHeadersLocators = (page: Page) => {
-  const content = () => page.getByTestId('collection-settings-content');
-  const table = () => page.getByTestId('collection-headers');
+  const content = buildPaneTabsLocators(page).collectionSettingsContent;
+  const headersTable = buildTableLocator(page)('collection-headers');
+  const codeMirror = buildCodeMirrorLocators(page);
+  const columnHeader = (name: string) => headersTable.container().locator('thead').getByText(name, { exact: true });
+  const nameCell = (row: Locator) => row.getByTestId('column-name');
+  const valueCell = (row: Locator) => row.getByTestId('column-value');
 
   return {
-    table,
-    nameColumnHeader: () => table().locator('.column-name').getByText('Name', { exact: true }),
-    valueColumnHeader: () => table().locator('.column-name').getByText('Value', { exact: true }),
-    rows: () => table().locator('tbody tr'),
-    rowByName: (name: string) => table().locator(`tbody tr[data-row-name="${name}"]`),
-    nameCell: (row: Locator) => row.getByTestId('column-name'),
-    valueCell: (row: Locator) => row.getByTestId('column-value'),
-    nameEditor: (row: Locator) => row.getByTestId('column-name').locator('.CodeMirror'),
-    valueEditor: (row: Locator) => row.getByTestId('column-value').locator('.CodeMirror'),
-    bulkEditToggle: () => page.getByTestId('bulk-edit-toggle'),
-    keyValueEditToggle: () => page.getByTestId('key-value-edit-toggle'),
-    bulkEditor: () => content().locator('.CodeMirror').first(),
+    table: headersTable.container,
+    rows: headersTable.allRows,
+    rowByName: headersTable.rowByName,
+    nameColumnHeader: () => columnHeader('Name'),
+    valueColumnHeader: () => columnHeader('Value'),
+    nameCell,
+    valueCell,
+    nameEditor: (row: Locator) => codeMirror.within(nameCell(row)),
+    valueEditor: (row: Locator) => codeMirror.within(valueCell(row)),
+    bulkEditToggle: buildCollectionSettingsPanelLocators(page).headersBulkEditToggle,
+    keyValueEditToggle: () => content().getByTestId('key-value-edit-toggle'),
+    bulkEditor: () => codeMirror.within(content()),
     saveButton: () => content().getByRole('button', { name: 'Save', exact: true })
   };
 };
 
 /**
- * Open a collection's settings on the Headers tab.
+ * Open a collection's settings and switch to its Headers tab.
+ * @param page - The page object
+ * @param collectionName - The name of the collection
  */
-export const openHeaders = async (page: Page, collectionName: string) => {
-  await test.step(`Open Headers settings for "${collectionName}"`, async () => {
+export const openCollectionHeadersTab = async (page: Page, collectionName: string) => {
+  await test.step(`Open the Headers tab of "${collectionName}"`, async () => {
     await openCollectionSettings(page, collectionName);
     await selectCollectionPaneTab(page, 'headers');
   });
 };
 
 /**
- * Type into a header name/value editor and pick a CodeMirror autocomplete hint.
+ * Type into a header name or value editor and pick an entry from the suggestion list.
+ * @param page - The page object
+ * @param editor - The cell editor, from `nameEditor(row)` or `valueEditor(row)`
+ * @param typed - The text to type so the suggestions open
+ * @param hintText - The suggestion to pick
  */
-export const typeAndPickHint = async (
-  page: Page,
-  editor: Locator,
-  typed: string,
-  hintText: string
-) => {
-  await test.step(`Type "${typed}" and pick hint "${hintText}"`, async () => {
+export const pickHeaderHint = async (page: Page, editor: Locator, typed: string, hintText: string) => {
+  await test.step(`Pick "${hintText}" from the suggestions`, async () => {
     await editor.click();
-    await page.keyboard.type(typed, { delay: 40 });
-
+    await page.keyboard.type(typed);
     const hint = buildCodeMirrorLocators(page).hint(hintText);
-    await expect(hint).toBeVisible();
+    await hint.waitFor({ state: 'visible' });
     await hint.click();
-    await expect(editor).toContainText(hintText);
-  });
-};
-
-/**
- * Type a header name and value into the empty add-row of the Headers table.
- */
-export const fillCollectionHeaderRow = async (page: Page, name: string, value: string) => {
-  await test.step(`Enter collection header "${name}: ${value}"`, async () => {
-    const headers = buildCollectionSettingsHeadersLocators(page);
-    const row = headers.rows().first();
-    await headers.nameEditor(row).click();
-    await page.keyboard.type(name);
-    await headers.valueEditor(row).click();
-    await page.keyboard.type(value);
   });
 };
