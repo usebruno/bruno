@@ -1,43 +1,32 @@
-import { test, expect, Page } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import {
   buildCommonLocators,
+  closeAllCollections,
   createCollection,
   createRequest,
-  openCollectionSettings,
   selectCollectionPaneTab,
   selectResponsePaneTab,
   sendRequest
 } from '../../../pages';
+import {
+  buildCollectionSettingsHeadersLocators,
+  fillCollectionHeaderRow,
+  openHeaders,
+  typeAndPickHint
+} from '../../../pages/collection/settings-headers';
 import { buildTimelineHeaderLocators } from '../../../pages/response/timeline';
 
 const ECHO_HEADERS_URL = 'http://localhost:8081/headers';
 
-type CommonLocators = ReturnType<typeof buildCommonLocators>;
-
-const openHeaders = async (page: Page, collectionName: string) => {
-  await openCollectionSettings(page, collectionName);
-  await selectCollectionPaneTab(page, 'headers');
-};
-
-const typeAndPickHint = async (
-  page: Page,
-  editor: ReturnType<CommonLocators['collectionSettingsHeaders']['nameEditor']>,
-  typed: string,
-  hintText: string
-) => {
-  await editor.click();
-  await page.keyboard.type(typed, { delay: 40 });
-
-  const hint = buildCommonLocators(page).codeMirror.hint(hintText);
-  await expect(hint).toBeVisible();
-  await hint.click();
-  await expect(editor).toContainText(hintText);
-};
-
 test.describe('Collection settings headers', () => {
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
   test('TC-2625: Navigate to Headers Tab from API Collection UI', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'HeadersNavigate';
-    const { collectionSettingsHeaders, paneTabs } = buildCommonLocators(page);
+    const { paneTabs } = buildCommonLocators(page);
+    const collectionSettingsHeaders = buildCollectionSettingsHeadersLocators(page);
 
     await test.step('Open a collection on the Overview tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -58,7 +47,7 @@ test.describe('Collection settings headers', () => {
 
   test('TC-2626: Add a Single Request Header with Valid Name and Value', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     const collectionName = 'HeadersAdd';
-    const { collectionSettingsHeaders } = buildCommonLocators(page);
+    const collectionSettingsHeaders = buildCollectionSettingsHeadersLocators(page);
 
     await test.step('Open the Headers tab of a new collection', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
@@ -67,11 +56,21 @@ test.describe('Collection settings headers', () => {
     });
 
     await test.step('Choose Content-Type from the name suggestions', async () => {
-      await typeAndPickHint(page, collectionSettingsHeaders.nameEditor(collectionSettingsHeaders.rows().first()), 'Content-Ty', 'Content-Type');
+      await typeAndPickHint(
+        page,
+        collectionSettingsHeaders.nameEditor(collectionSettingsHeaders.rows().first()),
+        'Content-Ty',
+        'Content-Type'
+      );
     });
 
     await test.step('Choose application/json from the value suggestions', async () => {
-      await typeAndPickHint(page, collectionSettingsHeaders.valueEditor(collectionSettingsHeaders.rows().first()), 'application/js', 'application/json');
+      await typeAndPickHint(
+        page,
+        collectionSettingsHeaders.valueEditor(collectionSettingsHeaders.rows().first()),
+        'application/js',
+        'application/json'
+      );
     });
 
     await test.step('The table shows the header that was entered', async () => {
@@ -85,17 +84,13 @@ test.describe('Collection settings headers', () => {
     const collectionName = 'HeadersSave';
     const headerName = 'X-Collection';
     const headerValue = 'from-collection';
-    const { collectionSettingsHeaders, toast, timeline } = buildCommonLocators(page);
+    const { toast, timeline } = buildCommonLocators(page);
+    const collectionSettingsHeaders = buildCollectionSettingsHeadersLocators(page);
 
     await test.step('Enter a header on the Headers tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
       await openHeaders(page, collectionName);
-
-      const row = collectionSettingsHeaders.rows().first();
-      await collectionSettingsHeaders.nameEditor(row).click();
-      await page.keyboard.type(headerName);
-      await collectionSettingsHeaders.valueEditor(row).click();
-      await page.keyboard.type(headerValue);
+      await fillCollectionHeaderRow(page, headerName, headerValue);
     });
 
     await test.step('Save persists the header', async () => {
@@ -122,17 +117,12 @@ test.describe('Collection settings headers', () => {
     const collectionName = 'HeadersBulk';
     const headerName = 'X-Bulk';
     const headerValue = 'bulk-value';
-    const { collectionSettingsHeaders } = buildCommonLocators(page);
+    const collectionSettingsHeaders = buildCollectionSettingsHeadersLocators(page);
 
     await test.step('Add a header on the Headers tab', async () => {
       await createCollection(page, collectionName, await createTmpDir(collectionName));
       await openHeaders(page, collectionName);
-
-      const row = collectionSettingsHeaders.rows().first();
-      await collectionSettingsHeaders.nameEditor(row).click();
-      await page.keyboard.type(headerName);
-      await collectionSettingsHeaders.valueEditor(row).click();
-      await page.keyboard.type(headerValue);
+      await fillCollectionHeaderRow(page, headerName, headerValue);
     });
 
     await test.step('Bulk Edit shows the header as text', async () => {
