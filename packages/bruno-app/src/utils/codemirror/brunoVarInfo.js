@@ -689,6 +689,9 @@ export const renderVarInfo = (token, options) => {
     valueContainer._maskedEditor = maskedEditor;
     valueContainer._autoCompleteCleanup = autoCompleteCleanup;
 
+    // on escape click close the popup without saving.
+    valueContainer._cancelEdit = () => cmEditor.setValue(originalValue);
+
     const applySecretMasking = (secretSelected) => {
       const hasSecretRefs = containsSecretVariableReferences(cmEditor.getValue(), collection, item);
       currentShouldMaskValue = secretSelected || hasSecretRefs;
@@ -959,7 +962,7 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
-      if (varInfoSuppressed) {
+      if (varInfoSuppressed || !cm.getWrapperElement().isConnected) {
         return;
       }
       onMouseHover(cm, box, point);
@@ -1139,6 +1142,7 @@ if (!SERVER_RENDERED) {
     let popupTimeout;
     let isPinned = false;
     let isHidden = false;
+    let editorRemovalObserver = null;
 
     const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
@@ -1179,6 +1183,25 @@ if (!SERVER_RENDERED) {
       }
     };
 
+    // Escape closes a popup that was clicked into (pinned) or has focus, and discards an unsaved edit.
+    const onKeyDown = function (e) {
+      if (e.key !== 'Escape' || !(isPinned || popup.contains(document.activeElement))) {
+        return;
+      }
+
+      const valueContainer = popup.querySelector('.var-value-container');
+
+      // open autocomplete list closes first; the next Escape closes the popup.
+      if (valueContainer?._cmEditor?.state.completionActive) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      valueContainer?._cancelEdit?.();
+      hidePopup({ immediate: true });
+    };
+
     // The popup is position:fixed, so any scroller around the editor strands it;
     // scroll events do not bubble, hence the capture-phase listener on document.
     const onScroll = function (e) {
@@ -1208,6 +1231,9 @@ if (!SERVER_RENDERED) {
       CodeMirror.off(document, 'click', onDocumentClick);
       CodeMirror.off(cm, 'change', onEditorChange);
       document.removeEventListener('scroll', onScroll, true);
+      document.removeEventListener('keydown', onKeyDown, true);
+      editorRemovalObserver?.disconnect();
+      editorRemovalObserver = null;
 
       // Cleanup CodeMirror and MaskedEditor instances
       const valueContainer = popup.querySelector('.var-value-container');
@@ -1278,6 +1304,23 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(document, 'click', onDocumentClick);
     CodeMirror.on(cm, 'change', onEditorChange);
     document.addEventListener('scroll', onScroll, true);
+    document.addEventListener('keydown', onKeyDown, true);
+
+    // The popup is attached to document.body, so it can remain open after the editor is removed.
+    // Close the popup when the editor is unmounted.
+    const editorElement = cm.getWrapperElement();
+
+    editorRemovalObserver = new MutationObserver(() => {
+      if (!editorElement.isConnected) {
+        // hidePopup also disconnects this observer
+        hidePopup({ immediate: true });
+      }
+    });
+
+    editorRemovalObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 }
 

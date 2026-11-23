@@ -104,6 +104,7 @@ const RunCollectionItem = ({ collectionUid, item, onClose }) => {
               spellCheck="false"
               value={delay}
               onChange={(e) => setDelay(e.target.value)}
+              data-testid="folder-run-delay-input"
             />
           </div>
 

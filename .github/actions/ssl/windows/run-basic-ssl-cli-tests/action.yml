@@ -10,11 +10,11 @@ runs:
         $ErrorActionPreference = "Stop"
         
         # navigate to basic SSL test collection directory
-        Set-Location tests\ssl\basic-ssl\collections\badssl
+        Set-Location e2e\tests\ssl\basic-ssl\collections\badssl
 
         Write-Host "basic ssl success"
         # should pass
-        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit1.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit1.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
         [xml]$xml1 = Get-Content junit1.xml
         $testsuites1 = if ($xml1.testsuites) { $xml1.testsuites.testsuite } else { $xml1.testsuite }
         $errorCount1 = ($testsuites1 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
@@ -22,7 +22,7 @@ runs:
 
         Write-Host "with default/system ca certs"
         # should pass
-        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit2.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit2.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
         [xml]$xml2 = Get-Content junit2.xml
         $testsuites2 = if ($xml2.testsuites) { $xml2.testsuites.testsuite } else { $xml2.testsuite }
         $errorCount2 = ($testsuites2 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
@@ -33,7 +33,7 @@ runs:
 
         Write-Host "self-signed ssl with validation disabled"
         # should pass
-        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit3.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit3.xml --insecure --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
         [xml]$xml3 = Get-Content junit3.xml
         $testsuites3 = if ($xml3.testsuites) { $xml3.testsuites.testsuite } else { $xml3.testsuite }
         $errorCount3 = ($testsuites3 | Where-Object { $_.errors -eq "0" } | Measure-Object).Count
@@ -42,7 +42,7 @@ runs:
         Write-Host "self-signed ssl with default/system ca certs"
         Write-Host "request will error"
         # should fail
-        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit4.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
+        $process = Start-Process -FilePath "node" -ArgumentList "..\..\..\..\..\..\packages\bruno-cli\bin\bru.js run .\request.bru --output junit4.xml --format junit" -NoNewWindow -Wait -PassThru -RedirectStandardError "nul"
         # Ignore the exit code - we expect this to fail
         [xml]$xml4 = Get-Content junit4.xml
         $testsuites4 = if ($xml4.testsuites) { $xml4.testsuites.testsuite } else { $xml4.testsuite }
