@@ -41,6 +41,7 @@ export * from './request/auth';
 export * from './request/body';
 export * from './request/create';
 export * from './request/generate-code';
+export * from './request/graphql-auth-introspection';
 export * from './request/graphql-query-builder';
 export * from './request/grpc';
 export * from './request/pane';

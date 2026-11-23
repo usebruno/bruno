@@ -88,7 +88,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
         const value = oAuth[key] || '';
 
         return (
-          <div className="flex items-center gap-4 w-full" key={`input-${key}`}>
+          <div className="flex items-center gap-4 w-full" key={`input-${key}`} data-testid={`oauth2-client-credentials-${key}`}>
             <label className="block min-w-[140px]">{label}</label>
             <div className="single-line-editor-wrapper flex-1 flex items-center">
               <SingleLineEditor
