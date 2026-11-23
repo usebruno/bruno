@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   IconCheck,
@@ -59,13 +59,12 @@ const SyncReviewPage = ({
   // Track decisions in Redux (persisted across navigations)
   const savedDecisions = tabUiState.reviewDecisions || {};
 
-  // Compute defaults for any endpoints not yet in Redux
+  // Only explicit choices are saved; defaults are derived here so they follow the current drift
   const decisions = useMemo(() => {
     const merged = { ...savedDecisions };
     // Spec changes: accept-incoming by default, null for conflicts (must resolve manually)
     specUpdatedEndpoints.forEach((ep) => {
-      const undecided = !(ep.id in merged) || (!ep.conflict && merged[ep.id] === null);
-      if (undecided) merged[ep.id] = ep.conflict ? null : 'accept-incoming';
+      if (!(ep.id in merged)) merged[ep.id] = ep.conflict ? null : 'accept-incoming';
     });
     // Local changes: keep-mine (preserved silently, not shown in review)
     localUpdatedEndpoints.forEach((ep) => {
@@ -77,14 +76,6 @@ const SyncReviewPage = ({
     });
     return merged;
   }, [savedDecisions, specUpdatedEndpoints, localUpdatedEndpoints, specRemovedEndpoints, specAddedEndpoints]);
-
-  // Sync computed defaults back to Redux when they differ from saved state
-  useEffect(() => {
-    const hasNewDefaults = Object.keys(decisions).some((id) => !(id in savedDecisions));
-    if (hasNewDefaults) {
-      dispatch(setReviewDecisions({ collectionUid, decisions }));
-    }
-  }, [decisions, savedDecisions, collectionUid, dispatch]);
 
   const handleDecisionChange = (endpointId, decision) => {
     dispatch(setReviewDecision({ collectionUid, endpointId, decision }));
