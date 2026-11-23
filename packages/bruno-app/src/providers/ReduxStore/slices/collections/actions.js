@@ -469,9 +469,15 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
         .then(() => {
           const savedDrafts = collectionRequestDrafts.map((draft) => ({ itemUid: draft.uid, savedDraft: draft.draft }));
           dispatch(_saveRequests({ collectionUid, savedDrafts }));
-          window.dispatchEvent(new CustomEvent('workspace-requests-saved', {
-            detail: { itemUids: savedDrafts.map(({ itemUid }) => itemUid) }
-          }));
+
+          const savedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+          const itemUids = savedDrafts
+            .map(({ itemUid }) => itemUid)
+            .filter((itemUid) => {
+              const savedItem = findItemInCollection(savedCollection, itemUid);
+              return Boolean(savedItem) && !savedItem.draft;
+            });
+          window.dispatchEvent(new CustomEvent('workspace-requests-saved', { detail: { itemUids } }));
         })
         .catch((err) => {
           if (err?.name === 'ValidationError') {
