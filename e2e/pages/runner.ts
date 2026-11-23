@@ -217,12 +217,12 @@ export const dragRunnerConfigItem = async (
 };
 
 /**
- * Leaves the runner results view via its Reset button.
+ * Reset the runner results.
  * @param page - The Playwright page object
  * @returns void
  */
-export const reopenRunnerConfig = async (page: Page) => {
-  await test.step('Reopen the runner configuration screen', async () => {
+export const resetRunnerConfig = async (page: Page) => {
+  await test.step('Reset the runner configuration', async () => {
     await buildRunnerLocators(page).resultsResetButton().click();
   });
 };
@@ -234,7 +234,7 @@ export const reopenRunnerConfig = async (page: Page) => {
  * @returns void
  */
 export const toggleRunnerRequestCheckbox = async (page: Page, requestName: string) => {
-  await test.step(`Toggle the checkbox for "${requestName}"`, async () => {
+  await test.step(`Toggle inclusion of request - "${requestName}"`, async () => {
     await buildRunnerLocators(page).requestCheckbox(requestName).click();
   });
 };

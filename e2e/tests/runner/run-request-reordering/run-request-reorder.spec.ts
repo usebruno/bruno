@@ -7,7 +7,7 @@ import {
   dragRunnerConfigItem,
   getRunnerConfigOrder,
   openRunnerTab,
-  reopenRunnerConfig,
+  resetRunnerConfig,
   toggleRunnerRequestCheckbox,
   validateRunnerResults
 } from '../../../pages';
@@ -70,7 +70,7 @@ test.describe('Runner request reordering', () => {
       await expect(runner.resultItems().first()).not.toHaveText(new RegExp(`^${initialOrder[0]}`));
     });
 
-    await reopenRunnerConfig(page);
+    await resetRunnerConfig(page);
     await test.step('Verify the reordered requests are still listed', async () => {
       await expect(runner.configPanel()).toBeVisible();
       await expect(runner.requestItems()).toHaveCount(REORDERED.length);
