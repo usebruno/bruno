@@ -103,12 +103,19 @@ test.describe.serial('Edit Response Examples', () => {
       await exampleItem.click();
     });
 
-    await test.step('Update example description and verify persistence', async () => {
+    await test.step('Save a multiline description and expand it in read-only view', async () => {
+      const description = 'First line\nSecond  line\nThird line';
       await page.getByTestId('response-example-edit-btn').click();
-      await page.getByTestId('response-example-description-input').clear();
-      await page.getByTestId('response-example-description-input').fill('Updated description for the example');
+      await page.getByTestId('response-example-description-input').fill(description);
       await page.getByTestId('response-example-save-btn').click();
-      await expect(page.getByTestId('response-example-description')).toHaveText('Updated description for the example');
+
+      const preview = page.getByTestId('response-example-description');
+      const text = preview.getByText('First line');
+      await expect(text).toHaveText(/^First line\nSecond {2}line\nThird line$/, { useInnerText: true });
+      await preview.getByRole('button', { name: 'View More' }).click();
+      await expect(text).toHaveText(/^First line\nSecond {2}line\nThird line$/, { useInnerText: true });
+      await preview.getByRole('button', { name: 'View Less' }).click();
+      await expect(preview.getByRole('button', { name: 'View More' })).toBeVisible();
     });
   });
 

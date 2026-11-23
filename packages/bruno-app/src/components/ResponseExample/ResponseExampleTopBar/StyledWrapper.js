@@ -10,6 +10,7 @@ const StyledWrapper = styled.div`
 
   .response-example-description {
     color: ${(props) => props.theme.colors.text.muted};
+    white-space: pre-wrap;
     max-height: 10rem;
     overflow-y: auto;
   }
