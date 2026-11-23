@@ -509,6 +509,42 @@ describe('exportApiSpec - duplicate operation variants', () => {
   });
 });
 
+describe('exportApiSpec - operation ids', () => {
+  const requestItem = (fileName, method, url) => ({
+    name: fileName,
+    type: 'http-request',
+    pathname: path.join('collection', `${fileName}.bru`),
+    request: { url: `{{baseUrl}}${url}`, method, params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const exportItems = (items) => jsyaml.load(exportApiSpec({ variables: { baseUrl: 'https://api.example.com' }, items, name: 'Test API' }).content);
+
+  it('gives each request an operation id from its pathname', () => {
+    const spec = exportItems([
+      requestItem('List pets', 'GET', '/pets'),
+      requestItem('Create pet', 'POST', '/pets'),
+      requestItem('Search pets', 'GET', '/pets/search'),
+      requestItem('Archived pets', 'GET', '/pets/archive'),
+      requestItem('Create order', 'POST', '/orders')
+    ]);
+    const operations = [spec.paths['/pets'].get, spec.paths['/pets'].post, spec.paths['/pets/search'].get, spec.paths['/pets/archive'].get, spec.paths['/orders'].post];
+
+    expect(operations.map(({ operationId }) => operationId)).toEqual([
+      'collection_list_pets_bru',
+      'collection_create_pet_bru',
+      'collection_search_pets_bru',
+      'collection_archived_pets_bru',
+      'collection_create_order_bru'
+    ]);
+  });
+
+  it('gives a variant an operation id from its own pathname', () => {
+    const operation = exportItems([requestItem('Update user', 'POST', '/users'), requestItem('Update user email', 'POST', '/users')]).paths['/users'].post;
+
+    expect([operation.operationId, operation['x-bruno-variants'][0].operationId]).toEqual(['collection_update_user_bru', 'collection_update_user_email_bru']);
+  });
+});
+
 describe('exportApiSpec - parameter and body value preservation', () => {
   it('should export form request body media types without trailing colons', () => {
     const variables = { baseUrl: 'https://api.example.com' };

@@ -24,15 +24,15 @@ runs:
       if: inputs.update-baseline == 'true'
       shell: bash
       run: >-
-        node tests/benchmarks/utils/compare.js
-        --results tests/benchmarks/results/mounting.json
-        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
+        node e2e/tests/benchmarks/utils/compare.js
+        --results e2e/tests/benchmarks/results/mounting.json
+        --baseline e2e/tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
         --update-baseline
 
     - name: Compare Against Baseline
       if: inputs.update-baseline != 'true'
       shell: bash
       run: >-
-        node tests/benchmarks/utils/compare.js
-        --results tests/benchmarks/results/mounting.json
-        --baseline tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
+        node e2e/tests/benchmarks/utils/compare.js
+        --results e2e/tests/benchmarks/results/mounting.json
+        --baseline e2e/tests/benchmarks/mounting/baseline.${{ inputs.os }}.json
