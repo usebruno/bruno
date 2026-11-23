@@ -18,6 +18,7 @@ const { resolveAwsV4Credentials, addAwsV4Interceptor } = require('./awsv4auth-he
 const {
   addDigestInterceptor,
   addEdgeGridInterceptor,
+  allowContentLengthWithTransferEncoding,
   applySentHeadersToRequest,
   measureResponseTime
 } = require('@usebruno/requests');
@@ -174,6 +175,12 @@ const configureRequest = async (
     interpolationOptions,
     followRedirects,
     forwardAuthorizationHeader
+  });
+
+  // Read a response that has both Content-Length and Transfer-Encoding instead of failing with a parse error
+  axiosInstance.interceptors.request.use((config) => {
+    allowContentLengthWithTransferEncoding(config);
+    return config;
   });
 
   if (request.ntlmConfig) {

@@ -23,6 +23,8 @@ export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
 export * as scripting from './scripting';
 
+export { allowContentLengthWithTransferEncoding } from './network/content-length-with-transfer-encoding';
+
 export {
   makeAxiosInstance,
   getSystemProxy,
