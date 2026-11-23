@@ -169,6 +169,15 @@ describe('open collection modal actions', () => {
       expect(browseDirectories).not.toHaveBeenCalled();
     });
 
+    it('stays on a busy page and leaves the folder picker closed', () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      store.dispatch(openCollectionModal('choose-folder'));
+
+      expect(modalState(store).page).toBe('git');
+      expect(browseDirectories).not.toHaveBeenCalled();
+    });
+
     it('starts Choose folder afresh and picks again when it was showing found collections', async () => {
       pickerReturns(Promise.resolve([]));
       const { store } = createStore({ modal: openOn('recents', { ...closedModal.chooseFolder, result: listResult }) });
@@ -618,6 +627,15 @@ describe('open collection modal actions', () => {
       await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, files: [] }));
 
       expect(modalState(store).page).toBe('recents');
+    });
+
+    it('ignores a drop while the page is busy', async () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [] }));
+
+      expect(callIpc).not.toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.anything());
+      expect(modalState(store).page).toBe('git');
     });
 
     it('ignores a drop while collections are opening', async () => {

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { SELECTION_LIST_MAX_WIDTH } from './constants';
 
 const getListHeight = ({ $visibleRows, $rowHeight, $rowGap }) => {
@@ -13,6 +13,26 @@ const StyledWrapper = styled.div`
   width: 100%;
   max-width: ${(props) => props.$maxWidth || SELECTION_LIST_MAX_WIDTH};
   min-width: 0;
+
+  ${(props) => props.$fillHeight && css`
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    .selection-heading {
+      flex: none;
+    }
+
+    .selection-panel {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .selection-toolbar {
+      flex: none;
+    }
+  `}
 
   .selection-heading {
     display: inline-flex;
@@ -124,7 +144,14 @@ const StyledWrapper = styled.div`
     flex-direction: column;
     align-items: stretch;
     gap: ${(props) => `${props.$rowGap}px`};
-    max-height: ${getListHeight};
+    ${(props) => (props.$fillHeight
+      ? css`
+          flex: 1 1 auto;
+          min-height: 0;
+        `
+      : css`
+          max-height: ${getListHeight};
+        `)}
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-gutter: stable;

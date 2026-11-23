@@ -187,6 +187,15 @@ describe('ModalShell', () => {
       expect(queryOverlay()).not.toBeInTheDocument();
     });
 
+    it('does not offer a drop while the page is busy', () => {
+      const store = createStore({ isOpen: true, page: 'choose-folder', pageBusy: true });
+      renderWithStore(<ModalShell />, store);
+
+      fireEvent.dragEnter(dialog(), { dataTransfer: fileDrag });
+
+      expect(queryOverlay()).not.toBeInTheDocument();
+    });
+
     it('offers the drop once collections finish opening during the drag', () => {
       const store = createStore({ isOpen: true, page: 'choose-folder', openingId: 'opening-1' });
       renderWithStore(<ModalShell />, store);

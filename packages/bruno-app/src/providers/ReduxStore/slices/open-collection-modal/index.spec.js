@@ -11,7 +11,8 @@ import reducer, {
   folderNoteDismissed,
   folderResultCleared,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  pageBusyChanged
 } from 'providers/ReduxStore/slices/open-collection-modal';
 
 const initialState = reducer(undefined, { type: 'init' });
@@ -33,6 +34,7 @@ describe('openCollectionModal slice', () => {
       page: null,
       openingId: null,
       importLoadId: null,
+      pageBusy: false,
       chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
     });
   });
@@ -120,6 +122,14 @@ describe('openCollectionModal slice', () => {
 
     expect(reducer(opening, collectionsOpeningEnded('opening-0'))).toBe(opening);
     expect(reducer(opening, collectionsOpeningEnded('opening-1')).openingId).toBeNull();
+  });
+
+  it('tracks a busy page until the modal closes', () => {
+    const busy = applyActions([showOpenCollectionModal('git'), pageBusyChanged(true)]);
+    expect(busy.pageBusy).toBe(true);
+
+    expect(reducer(busy, pageBusyChanged(false)).pageBusy).toBe(false);
+    expect(reducer(busy, hideOpenCollectionModal()).pageBusy).toBe(false);
   });
 
   describe('importLoadId', () => {

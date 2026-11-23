@@ -25,6 +25,7 @@ const SelectionList = ({
   emptyMessage = 'No items found',
   maxWidth = SELECTION_LIST_MAX_WIDTH,
   showSelectedCount = false,
+  fillHeight = false,
   dataTestId
 }) => {
   const [searchText, setSearchText] = useState('');
@@ -81,6 +82,7 @@ const SelectionList = ({
       $visibleRows={listRows}
       $rowHeight={rowHeight}
       $rowGap={rowGap}
+      $fillHeight={fillHeight}
       data-testid={dataTestId}
     >
       <div className="selection-heading" data-testid="selection-heading">

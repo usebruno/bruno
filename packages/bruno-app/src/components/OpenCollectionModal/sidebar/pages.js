@@ -1,4 +1,5 @@
 import {
+  IconBrandGit,
   IconBrandSafari,
   IconClock,
   IconDatabase,
@@ -10,6 +11,7 @@ import ChooseFolderPage from './ChooseFolderPage';
 import ImportPage from './ImportPage';
 import RecentsPage from './RecentsPage';
 import MyComputerPage from './MyComputerPage';
+import GitPage from './GitPage';
 import RegistryPage from './RegistryPage';
 import ApiCatalogPage from './ApiCatalogPage';
 
@@ -60,6 +62,15 @@ export const OPEN_COLLECTION_PAGES = [
     icon: IconDeviceLaptop,
     group: 'sources',
     component: MyComputerPage
+  },
+  {
+    id: 'git',
+    label: 'Git',
+    title: 'Git',
+    description: 'Clone a Git repository and open its collections',
+    icon: IconBrandGit,
+    group: 'sources',
+    component: GitPage
   },
   {
     id: 'registry',

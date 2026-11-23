@@ -194,7 +194,8 @@ export const loadImportableFile = (file) => (dispatch) => {
 };
 
 export const openDroppedItems = ({ folderPaths, hasFolders, files }) => async (dispatch, getState) => {
-  if (getState().openCollectionModal.openingId) {
+  const { openingId, pageBusy } = getState().openCollectionModal;
+  if (openingId || pageBusy) {
     return;
   }
   if (hasFolders && folderPaths.length === 0) {
@@ -245,7 +246,10 @@ export const saveAutoOpenFolderPicker = (enabled) => (dispatch, getState) => {
 };
 
 export const openCollectionModal = (page) => (dispatch, getState) => {
-  const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
+  const { isOpen, openingId, chooseFolder, pageBusy } = getState().openCollectionModal;
+  if (pageBusy) {
+    return;
+  }
   if (page !== CHOOSE_FOLDER_PAGE && chooseFolder.searchId) {
     dispatch(cancelCollectionSearch());
   }

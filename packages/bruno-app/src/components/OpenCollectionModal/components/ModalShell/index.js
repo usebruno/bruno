@@ -39,6 +39,7 @@ const ModalShell = () => {
   const [opener] = useState(() => document.activeElement);
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
+  const isPageBusy = useSelector((state) => state.openCollectionModal.pageBusy);
   const note = useSelector((state) => state.openCollectionModal.chooseFolder.result?.note);
   const page = OPEN_COLLECTION_PAGES.find(({ id }) => id === pageId) || OPEN_COLLECTION_PAGES[0];
   const Page = page.component;
@@ -153,7 +154,7 @@ const ModalShell = () => {
               {isOpening && <BusyOverlay>Opening…</BusyOverlay>}
             </div>
           </div>
-          {showDropOverlay && !isOpening && <DropOverlay />}
+          {showDropOverlay && !isOpening && !isPageBusy ? <DropOverlay /> : null}
         </div>
       </StyledWrapper>
     </Portal>

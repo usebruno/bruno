@@ -3,6 +3,7 @@ import Dropdown from 'components/Dropdown';
 import { IconCaretDown, IconX, IconLoader2 } from '@tabler/icons';
 import InputWrapper from 'ui/InputWrapper';
 import StyledWrapper from './StyledWrapper';
+import { createFitToSpaceModifiers } from './fitToSpace';
 
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
 const ACTION_KEYS = ['Enter'];
@@ -59,6 +60,8 @@ const sameWidthModifier = {
  * @param {string} props.label - Label text displayed above the select
  * @param {string} props.description - Description text displayed below the label
  * @param {string} props.className - Additional CSS class for the wrapper
+ * @param {boolean} props.fitToSpace - Opens the dropdown downward and caps its height to the window space below the trigger (default: false)
+ * @param {Element|function} props.appendTo - Where the dropdown is attached; a Tippy appendTo value (default: the trigger's parent)
  */
 const Select = ({
   data,
@@ -81,6 +84,8 @@ const Select = ({
   required = false,
   size = 'md',
   className,
+  appendTo,
+  fitToSpace = false,
   'data-testid': testId
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -364,8 +369,9 @@ const Select = ({
           placement="bottom-start"
           visible={isOpen}
           onClickOutside={handleClickOutside}
-          popperOptions={{ modifiers: [sameWidthModifier] }}
+          popperOptions={{ modifiers: fitToSpace ? [sameWidthModifier, ...createFitToSpaceModifiers(maxDropdownHeight)] : [sameWidthModifier] }}
           maxWidth="none"
+          appendTo={appendTo}
         >
           <div
             ref={menuRef}

@@ -42,6 +42,14 @@ describe('ModalMenu', () => {
     expect(within(sources).getAllByRole('button').map((item) => item.textContent)).toEqual(sourceLabels);
   });
 
+  it('lists Git under Sources after My computer', () => {
+    renderMenu();
+
+    const sources = screen.getByRole('group', { name: 'Sources' });
+    const labels = within(sources).getAllByRole('button').map((item) => item.textContent);
+    expect(labels.indexOf('Git')).toBe(labels.indexOf('My computer') + 1);
+  });
+
   it('marks only the active page', () => {
     renderMenu('recents');
 
