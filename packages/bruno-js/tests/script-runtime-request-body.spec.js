@@ -66,6 +66,46 @@ describe.each(['nodevm', 'quickjs'])('req.setBody() in a pre-request script on %
     expect(request.data).toStrictEqual(Buffer.alloc(0));
   });
 
+  it('sends a Uint8Array body as its bytes', async () => {
+    const request = makeRequest();
+
+    await runRequestScript(runtime, `req.setBody(new Uint8Array(${JSON.stringify(BINARY_BYTES)}))`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
+  it('sends a Uint8Array body as its bytes when Content-Type is application/json', async () => {
+    const request = makeRequest({ headers: { 'content-type': 'application/json' } });
+
+    await runRequestScript(runtime, `req.setBody(new Uint8Array(${JSON.stringify(BINARY_BYTES)}))`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
+  it('sends a Uint8Array body set with { raw: true } as its bytes', async () => {
+    const request = makeRequest();
+
+    await runRequestScript(runtime, `req.setBody(new Uint8Array(${JSON.stringify(BINARY_BYTES)}), { raw: true })`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
+  it('sends only the bytes inside a Uint8Array view', async () => {
+    const request = makeRequest();
+
+    await runRequestScript(runtime, `req.setBody(new Uint8Array([9, 9, 112, 97, 114, 116, 9, 9]).subarray(2, 6))`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from('part'));
+  });
+
+  it('sends the bytes of a DataView body', async () => {
+    const request = makeRequest();
+
+    await runRequestScript(runtime, `req.setBody(new DataView(new Uint8Array(${JSON.stringify(BINARY_BYTES)}).buffer))`, request);
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
   it('keeps a string body unchanged', async () => {
     const request = makeRequest();
 

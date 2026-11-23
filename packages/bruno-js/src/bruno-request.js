@@ -351,7 +351,8 @@ class BrunoRequest {
    * Replace the request body.
    *
    * With a JSON content type, an object is serialized to JSON. Pass `{ raw: true }` to send `data`
-   * exactly as given. A `Buffer` is always sent as-is.
+   * exactly as given. A `Buffer`, typed array (such as `Uint8Array`) or `DataView` is always sent
+   * as its bytes.
    * @param {any} data - The new body.
    * @param {{ raw?: boolean }} [options] - `raw: true` skips JSON serialization.
    * @example
@@ -359,6 +360,10 @@ class BrunoRequest {
    * @category Body
    */
   setBody(data, options = {}) {
+    if (ArrayBuffer.isView(data) && !Buffer.isBuffer(data)) {
+      data = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+    }
+
     if (options.raw || Buffer.isBuffer(data)) {
       this.req.data = data;
       this.body = data;
