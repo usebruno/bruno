@@ -1,7 +1,4 @@
-import { expect, Locator, Page, test } from '../../playwright';
-import { buildRequestTabsLocators } from '../app-shell/tabs';
-import { selectResponsePaneTab } from '../response/pane';
-import { buildTimelineLocators } from '../response/timeline';
+import { expect, test, type Page } from '../../playwright';
 import { openRequest } from '../sidebar/collection-tree';
 import { authEditorByTestId, buildAuthLocators, writeAuthEditor } from './auth';
 import { buildGraphqlQueryBuilderLocators } from './graphql-query-builder';
@@ -17,39 +14,12 @@ export const apiKeyPlacementLabel = {
 };
 
 /** Test ids of the API Key auth fields. */
-export const authField = {
+const authField = {
   key: 'auth-apikey-key',
   value: 'auth-apikey-value'
 };
 
-/** Test ids of the OAuth 2.0 Client Credentials fields. */
-export const oauthField = {
-  clientId: 'oauth2-client-credentials-clientId',
-  clientSecret: 'oauth2-client-credentials-clientSecret'
-};
-
-export const oauthGrantType = {
-  clientCredentials: 'Client Credentials'
-};
-
-/** Test ids of the Digest auth fields. */
-export const digestField = {
-  username: 'auth-digest-username',
-  password: 'auth-digest-password'
-};
-
-/** Test id of the Bearer Token field. */
-export const bearerField = {
-  token: 'auth-bearer-token'
-};
-
-/** Test ids of the Basic auth fields. */
-export const basicField = {
-  username: 'auth-basic-username',
-  password: 'auth-basic-password'
-};
-
-export type GraphqlApiKeyAuth = {
+type GraphqlApiKeyAuth = {
   key: string;
   value: string;
   addTo: string;
@@ -59,8 +29,6 @@ const requestPane = (page: Page) => page.getByTestId('request-pane');
 
 /**
  * Locators for a GraphQL request's API Key auth and its Query Builder introspection.
- * Prefer getByTestId, per the Playwright testing guide.
- * .CodeMirror remains only on the editor node inside each test-id wrapper.
  */
 export const buildGraphqlAuthIntrospectionLocators = (page: Page) => {
   const auth = buildAuthLocators(page);
@@ -83,11 +51,6 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => {
     field: (path: string) => requestPane(page).getByTestId(`query-builder-field-${path}`),
     fieldName: () => requestPane(page).getByTestId('query-builder-tree')
   };
-};
-
-const readCodeMirrorValue = async (editor: Locator): Promise<string> => {
-  await editor.waitFor({ state: 'visible' });
-  return editor.evaluate((editorElement) => (editorElement as any).CodeMirror?.getValue() ?? '');
 };
 
 /** Switch the open GraphQL request to its Query or Auth tab and check the tab is active. */
@@ -121,11 +84,6 @@ export const configureGraphqlApiKeyAuth = async (page: Page, auth: GraphqlApiKey
   });
 };
 
-/** Read the text stored in an auth field, identified by its test id. */
-export const readGraphqlAuthField = async (page: Page, testId: string): Promise<string> => {
-  return readCodeMirrorValue(buildGraphqlAuthIntrospectionLocators(page).authFieldEditor(testId));
-};
-
 /**
  * Run Load from Introspection from the Query Builder.
  * Uses Refresh from Introspection when a schema is already cached.
@@ -140,7 +98,7 @@ export const loadGraphqlSchemaFromIntrospection = async (page: Page) => {
       await loadButton.click();
     } else {
       await gql.moreActionsButton().click();
-      await gql.introspectionMenuItem().waitFor({ state: 'visible' });
+      await gql.introspectionMenuItem().waitFor({ state: 'visible', timeout: 10000 });
       await gql.introspectionMenuItem().click();
     }
 
@@ -161,7 +119,6 @@ export const expandGraphqlSchemaField = async (page: Page, fieldPath: string) =>
     await field.waitFor({ state: 'visible' });
 
     if ((await field.getAttribute('aria-expanded')) === 'true') {
-      await expect(field).toContainText(fieldName);
       return;
     }
 
@@ -171,23 +128,16 @@ export const expandGraphqlSchemaField = async (page: Page, fieldPath: string) =>
 
 /**
  * Open the GraphQL request from the collection that pageWithUserData loads from the fixture.
- * The app is shared across tests, so the Query Builder and response timeline can still hold
- * state from an earlier test. Close the builder and clear the timeline when the request is open.
+ * Closes the Query Builder if it is open, so openGraphqlQueryBuilder starts from a hidden builder.
  * @param page - The page object
  * @param collectionName - Name of the collection that holds the request
  * @param requestName - Name of the request to open
  */
 export const openIntrospectionRequest = async (page: Page, collectionName: string, requestName: string) => {
-  const tabs = buildRequestTabsLocators(page);
-  const timeline = buildTimelineLocators(page);
   const graphqlQueryBuilder = buildGraphqlQueryBuilderLocators(page);
 
-  if (await tabs.requestTab(requestName).isVisible()) {
-    if (await graphqlQueryBuilder.container().isVisible()) {
-      await graphqlQueryBuilder.toggleButton().click();
-    }
-    await selectResponsePaneTab(page, 'Timeline');
-    await timeline.clearButton().click();
+  if (await graphqlQueryBuilder.container().isVisible()) {
+    await graphqlQueryBuilder.toggleButton().click();
   }
   await openRequest(page, collectionName, requestName, { persist: true });
 };

@@ -23,9 +23,10 @@ test.describe.configure({ mode: 'serial' });
 const COLLECTION_NAME = 'gql-introspection';
 const REQUEST_NAME = 'GQL Introspection';
 const ENVIRONMENT_NAME = 'gql-introspection-env';
+
 test.describe('GraphQL introspection with interpolated API Key auth', () => {
   test('TC-1479: loads the schema after API Key auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
-    const COMPANY_FIELDS = ['ceo', 'name', 'founder'];
+    const SCHEMA_FIELDS = ['ceo', 'name', 'founder'];
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
     await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
@@ -51,7 +52,6 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
       await expect(gql.schemaLoadedToast()).toBeVisible();
       await expect(gql.queryBuilderTree()).toBeVisible();
     });
-    await page.waitForTimeout(5000);
 
     await test.step('Verify the schema includes the company operation', async () => {
       await expect(gql.rootType()).toContainText('Query');
@@ -61,7 +61,7 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
     await expandGraphqlSchemaField(page, 'Query.company');
 
     await test.step('Verify the company fields', async () => {
-      for (const fieldName of COMPANY_FIELDS) {
+      for (const fieldName of SCHEMA_FIELDS) {
         await expect(gql.field(`Query.company.${fieldName}`)).toBeVisible();
       }
     });

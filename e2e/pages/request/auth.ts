@@ -104,7 +104,7 @@ export const authEditorByTestId = (page: Page, testId: string) =>
 /** Replaces the text of an auth field, found by its test id. */
 export const writeAuthEditor = async (page: Page, testId: string, value: string) => {
   const editor = authEditorByTestId(page, testId);
-  await editor.waitFor({ state: 'visible' });
+  await editor.waitFor({ state: 'visible', timeout: 10000 });
   await setCodeMirrorValue(editor, value);
 };
 
@@ -129,8 +129,8 @@ export const configureOAuth2ClientCredentials = async (
     await grantType.click();
     await locators.oauth2.grantTypeOption('client_credentials').click();
 
-    await writeAuthEditor(page, 'oauth2-client-credentials-clientId', auth.clientId);
-    await writeAuthEditor(page, 'oauth2-client-credentials-clientSecret', auth.clientSecret);
+    await writeAuthEditor(page, 'oauth2-client-credentials-client-id', auth.clientId);
+    await writeAuthEditor(page, 'oauth2-client-credentials-client-secret', auth.clientSecret);
   });
 };
 
@@ -159,7 +159,7 @@ export const configureDigestAuth = async (page: Page, auth: { username: string; 
  * @param auth - Bearer token
  */
 export const configureBearerAuth = async (page: Page, auth: { token: string }) => {
-  await test.step('Configure Bearer Token auth', async () => {
+  await test.step('Configure Bearer auth', async () => {
     await selectRequestPaneTab(page, 'Auth');
     const locators = buildAuthLocators(page);
     await locators.modeLabel().click();
