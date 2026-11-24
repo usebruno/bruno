@@ -34,6 +34,15 @@ describe('open collection preferences', () => {
     });
   });
 
+  it('refuses a folder picker setting that is not true or false', async () => {
+    mockPreferencesFile.preferences = { general: { defaultLocation: '/collections' } };
+    const preferences = getPreferences();
+
+    await expect(savePreferences({ ...preferences, openCollection: { autoOpenFolderPicker: 'maybe' } }))
+      .rejects.toThrow('autoOpenFolderPicker must be a `boolean` type');
+    expect(getPreferences().openCollection).toEqual({ autoOpenFolderPicker: true });
+  });
+
   it('keeps the setting through a full save from another preferences screen', async () => {
     mockPreferencesFile.preferences = { openCollection: { autoOpenFolderPicker: false } };
     const preferences = getPreferences();
