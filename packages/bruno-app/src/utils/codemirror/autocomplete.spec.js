@@ -982,8 +982,9 @@ describe('Bruno Autocomplete', () => {
         hint.render(row, result, hint);
 
         expect(hint.entry.path).toBe('bru.setEnvVar');
-        expect(row.querySelector('.CodeMirror-hint-api-name').textContent).toBe('setEnvVar(key, value)');
-        expect(row.querySelector('.CodeMirror-hint-api-summary').textContent).toBe(hint.entry.summary);
+        expect(row.getAttribute('data-testid')).toBe('autocomplete-api-item');
+        expect(row.querySelector('[data-testid="autocomplete-api-name"]').textContent).toBe('setEnvVar(key, value)');
+        expect(row.querySelector('[data-testid="autocomplete-api-summary"]').textContent).toBe(hint.entry.summary);
       });
 
       it('shows the highlighted hint\'s docs beside the list until it closes', () => {
@@ -1001,6 +1002,25 @@ describe('Bruno Autocomplete', () => {
 
         signal(result, 'close');
         expect(details()).toBeNull();
+        list.remove();
+      });
+
+      it('keeps the editor focused when the docs panel is pressed', () => {
+        const { signal } = jest.requireActual('codemirror');
+        const result = apiHints('bru.setEnv', ['bru']);
+        const hint = result.list.find((item) => item.text === 'setEnvVar(key, value)');
+        const list = document.createElement('ul');
+        const row = document.createElement('li');
+        list.appendChild(row);
+        document.body.appendChild(list);
+
+        signal(result, 'select', hint, row);
+        const link = document.querySelector('[data-testid="autocomplete-hint-details"] [data-testid="api-doc-link"]');
+        const mousedown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+        link.dispatchEvent(mousedown);
+
+        expect(mousedown.defaultPrevented).toBe(true);
+        signal(result, 'close');
         list.remove();
       });
     });

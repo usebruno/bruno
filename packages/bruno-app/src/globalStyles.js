@@ -499,12 +499,21 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .bruno-api-doc-example {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
     margin: 0.5rem 0 0;
     padding: 0.375rem 0.5rem;
     background: ${(props) => props.theme.dropdown.hoverBg};
     border-radius: ${(props) => props.theme.border.radius.base};
     font-size: ${(props) => props.theme.font.size.xs};
-    white-space: pre-wrap;
+
+    pre {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      white-space: pre-wrap;
+    }
   }
 
   .bruno-api-doc-link {
@@ -520,11 +529,6 @@ const GlobalStyle = createGlobalStyle`
     &:hover {
       text-decoration: underline;
     }
-  }
-
-  .bruno-api-doc .bruno-api-doc-note {
-    color: ${(props) => props.theme.dropdown.mutedText};
-    font-style: italic;
   }
 
   .CodeMirror-brunoVarInfo :first-child {
@@ -802,7 +806,8 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .secret-toggle-button,
-  .CodeMirror-brunoVarInfo .copy-button {
+  .CodeMirror-brunoVarInfo .copy-button,
+  .bruno-api-doc .copy-button {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -817,12 +822,15 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .secret-toggle-button:hover,
-  .CodeMirror-brunoVarInfo .copy-button:hover {
+  .CodeMirror-brunoVarInfo .copy-button:hover,
+  .bruno-api-doc .copy-button:hover {
     opacity: 1;
   }
 
-  .CodeMirror-brunoVarInfo .copy-success {
+  .CodeMirror-brunoVarInfo .copy-success,
+  .bruno-api-doc .copy-success {
     color: ${(props) => props.theme.colors.text.green} !important;
+    cursor: default;
   }
 
   /* Read-only Note */

@@ -1,10 +1,13 @@
 import { SCRIPT_TYPES } from '@usebruno/common';
 import scriptApiManifest from 'script-api-manifest';
 import { EXTERNAL_LINK_ICON_SVG_TEXT } from 'utils/codemirror/scopeIcons';
+import { createCopyButton } from 'utils/codemirror/copyButton';
 
-const SCRIPT_API_DOCS_URL = 'https://docs.usebruno.com/testing/script/javascript-reference';
+const SCRIPT_API_REFERENCE_URL = 'https://api-reference.usebruno.com/';
 
-// The globals every hint starts with.
+const CALLABLE_GLOBAL_INTERFACES = { res: 'Response' };
+const FUNCTION_GLOBALS = ['test'];
+
 export const HINT_ROOTS = ['bru', 'req', 'res'];
 
 const GRPC_SCRIPT_TYPES = [
@@ -33,14 +36,14 @@ export const getApiEntries = (showHintsFor = [], scriptType) => {
 };
 
 /**
- * Every entry for a path — one per signature of an overloaded method — that exists in the script.
+ * The entry for a path, if it exists in the script.
  * @param {string} path - A dotted member path, such as `bru.setEnvVar`.
  * @param {string} scriptType
- * @returns {object[]}
+ * @returns {object|null}
  */
-export const findApiEntries = (path, scriptType) => {
+export const findApiEntry = (path, scriptType) => {
   const context = toContext(scriptType);
-  return scriptApiManifest.filter((entry) => entry.path === path && entry.contexts.includes(context));
+  return scriptApiManifest.find((entry) => entry.path === path && entry.contexts.includes(context)) ?? null;
 };
 
 /**
@@ -58,8 +61,6 @@ export const getHintTexts = (entry) => {
   const all = call(entry.params);
   return required === all ? [all] : [required, all];
 };
-
-const isSafeModeAvailable = (entry) => entry.runtimes.includes('quickjs');
 
 /** Appends `text` to `parent`, rendering `backticked` spans as code. */
 const appendInlineMarkdown = (parent, text) => {
@@ -132,11 +133,35 @@ const appendSignature = (parent, entry) => {
   parent.appendChild(signature);
 };
 
-const appendDocsLink = (parent) => {
+/**
+ * The entry's TypeDoc page: its parent's interface, anchored by the lowercased member name, or else
+ * its global's page.
+ * @param {object} entry
+ * @returns {string}
+ */
+const getReferenceUrl = (entry) => {
+  const global = rootOf(entry.path);
+  const globalUrl = new URL(`${FUNCTION_GLOBALS.includes(global) ? 'functions' : 'variables'}/${global}.html`, SCRIPT_API_REFERENCE_URL).href;
+  const lastDot = entry.path.lastIndexOf('.');
+  if (lastDot === -1) return globalUrl;
+
+  const parentPath = entry.path.slice(0, lastDot);
+  const isCall = parentPath.endsWith('()');
+  const parent = scriptApiManifest.find((candidate) => candidate.path === (isCall ? parentPath.slice(0, -2) : parentPath));
+  const typeText = isCall ? parent?.returns?.type : parent?.signature.slice(parent.signature.indexOf(': ') + 2);
+  const owner = Object.hasOwn(CALLABLE_GLOBAL_INTERFACES, parentPath)
+    ? CALLABLE_GLOBAL_INTERFACES[parentPath]
+    : (typeText || '').replace(/ \| (null|undefined)/g, '');
+  if (!/^\w+$/.test(owner)) return globalUrl;
+
+  return new URL(`interfaces/${owner}.html#${entry.path.slice(lastDot + 1).toLowerCase()}`, SCRIPT_API_REFERENCE_URL).href;
+};
+
+const appendDocsLink = (parent, entry) => {
   const link = document.createElement('a');
   link.className = 'bruno-api-doc-link';
   link.setAttribute('data-testid', 'api-doc-link');
-  link.href = SCRIPT_API_DOCS_URL;
+  link.href = getReferenceUrl(entry);
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   link.innerHTML = EXTERNAL_LINK_ICON_SVG_TEXT;
@@ -163,13 +188,16 @@ export const renderApiDoc = (entry) => {
   }
 
   if (entry.examples.length) {
-    const example = document.createElement('pre');
+    const example = document.createElement('div');
     example.className = 'bruno-api-doc-example';
-    example.textContent = entry.examples[0];
+    const code = document.createElement('pre');
+    code.textContent = entry.examples[0];
+    example.appendChild(code);
+    example.appendChild(createCopyButton(() => entry.examples[0], { testId: 'api-doc-example-copy' }));
     container.appendChild(example);
   }
 
-  appendDocsLink(container);
+  appendDocsLink(container, entry);
 
   return container;
 };

@@ -780,15 +780,18 @@ const createStandardHintList = (filteredHints, from, to) => {
  */
 const renderApiHint = (element, data, completion) => {
   element.classList.add('CodeMirror-hint-api');
+  element.setAttribute('data-testid', 'autocomplete-api-item');
 
   const name = document.createElement('span');
   name.className = 'CodeMirror-hint-api-name';
+  name.setAttribute('data-testid', 'autocomplete-api-name');
   name.textContent = completion.displayText;
   element.appendChild(name);
 
   if (completion.entry.summary) {
     const summary = document.createElement('span');
     summary.className = 'CodeMirror-hint-api-summary';
+    summary.setAttribute('data-testid', 'autocomplete-api-summary');
     summary.textContent = completion.entry.summary;
     element.appendChild(summary);
   }
@@ -814,7 +817,8 @@ const positionDetailsPanel = (panel, row) => {
 
 /**
  * Shows the docs of the highlighted API hint in a panel beside the hint list, for as long as the
- * list is open.
+ * list is open. A mousedown on the panel keeps the editor focused, so show-hint doesn't close the
+ * list, and the panel with it, before a click on its docs link lands.
  * @param {Object} hintResult - The `{ list, from, to }` object handed to `showHint`
  */
 const attachApiDetailsPanel = (hintResult) => {
@@ -832,6 +836,7 @@ const attachApiDetailsPanel = (hintResult) => {
     panel = document.createElement('div');
     panel.className = 'CodeMirror-hint-details';
     panel.setAttribute('data-testid', 'autocomplete-hint-details');
+    panel.addEventListener('mousedown', (event) => event.preventDefault());
     panel.appendChild(renderApiDoc(completion.entry));
     document.body.appendChild(panel);
     positionDetailsPanel(panel, row);
@@ -1023,7 +1028,11 @@ const handleClickForAutocomplete = (cm, options) => {
   // Defer showHint to ensure editor is focused
   setTimeout(() => {
     cm.showHint({
-      hint: () => createApiHintList(allHints, '', cursor, cursor, showHintsFor, options.scriptType),
+      hint: () => ({
+        list: allHints,
+        from: cursor,
+        to: cursor
+      }),
       completeSingle: false
     });
   }, 0);

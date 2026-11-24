@@ -51,7 +51,7 @@ describe('brunoApiInfo', () => {
       cm = {
         getWrapperElement: () => wrapper,
         coordsChar: jest.fn(),
-        getLine: () => text,
+        getLine: (line) => text.split('\n')[line],
         getTokenAt: () => ({ type: tokenType }),
         charCoords: () => ({ left: 10, top: 10, bottom: 20 }),
         on: jest.fn(),
@@ -77,6 +77,63 @@ describe('brunoApiInfo', () => {
 
       expect(tooltip()).not.toBeNull();
       expect(tooltip().textContent).toContain('bru.setEnvVar(key: string, value: any): void');
+    });
+
+    it('moves the tooltip to another occurrence of the same member', () => {
+      editorWith('bru.setEnvVar(\'token\', \'x\');\n\nbru.setEnvVar(\'id\', 1);');
+      cm.charCoords = ({ line }) => ({ left: 10, top: line * 20, bottom: line * 20 + 10 });
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: 6 });
+      expect(tooltip().style.top).toBe('14px');
+
+      hover({ line: 2, ch: 6 });
+      expect(document.querySelectorAll('[data-testid="api-info-tooltip"]')).toHaveLength(1);
+      expect(tooltip().style.top).toBe('54px');
+    });
+
+    it('keeps the tooltip when the same occurrence is hovered again', () => {
+      editorWith('bru.setEnvVar(\'token\', \'x\');');
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: 6 });
+      const shown = tooltip();
+      hover({ line: 0, ch: 8 });
+
+      expect(tooltip()).toBe(shown);
+    });
+
+    it('shows the docs on the right half of a name\'s last letter', () => {
+      const text = 'bru.setEnvVar';
+      editorWith(text);
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: text.length, sticky: 'before', xRel: -2 });
+
+      expect(tooltip()).not.toBeNull();
+    });
+
+    it('shows nothing past the end of a line or below the last line', () => {
+      const text = 'bru.setEnvVar';
+      editorWith(text);
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: text.length, sticky: 'before', xRel: 40 });
+      expect(tooltip()).toBeNull();
+
+      hover({ line: 0, ch: text.length, sticky: 'before', xRel: 1, outside: 1 });
+      expect(tooltip()).toBeNull();
+    });
+
+    it('shows nothing left of the text, over the gutter or the line\'s padding', () => {
+      editorWith('bru.setEnvVar(\'token\', \'x\');');
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: 0, sticky: 'after', xRel: -4 });
+      expect(tooltip()).toBeNull();
+
+      hover({ line: 0, ch: 0, sticky: 'after', xRel: 1 });
+      expect(tooltip()).not.toBeNull();
     });
 
     it('shows nothing for a member the editor\'s context does not have', () => {
@@ -108,6 +165,22 @@ describe('brunoApiInfo', () => {
       hover({ line: 0, ch: 6 });
       detach();
       detach = null;
+      expect(tooltip()).toBeNull();
+    });
+
+    it('closes the tooltip when a key is pressed, and when the editor scrolls', () => {
+      editorWith('bru.setEnvVar(\'token\', \'x\');');
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+      const handler = (event) => cm.on.mock.calls.find(([name]) => name === event)[1];
+
+      hover({ line: 0, ch: 6 });
+      expect(tooltip()).not.toBeNull();
+      handler('keydown')();
+      expect(tooltip()).toBeNull();
+
+      hover({ line: 0, ch: 6 });
+      expect(tooltip()).not.toBeNull();
+      handler('scroll')();
       expect(tooltip()).toBeNull();
     });
   });

@@ -1,6 +1,6 @@
-const { describe, it, expect } = require('@jest/globals');
+const { describe, it, expect, jest } = require('@jest/globals');
 
-import { findApiEntries, getApiEntries, getHintTexts, renderApiDoc } from './scriptApi';
+import { findApiEntry, getApiEntries, getHintTexts, renderApiDoc } from './scriptApi';
 
 const paths = (entries) => entries.map((entry) => entry.path);
 
@@ -39,19 +39,19 @@ describe('scriptApi', () => {
     });
   });
 
-  describe('findApiEntries', () => {
+  describe('findApiEntry', () => {
     it('finds a member available in the script', () => {
-      expect(paths(findApiEntries('bru.setEnvVar', 'pre-request'))).toEqual(['bru.setEnvVar']);
+      expect(findApiEntry('bru.setEnvVar', 'pre-request').path).toBe('bru.setEnvVar');
     });
 
     it('finds nothing for a member of another script, or no member at all', () => {
-      expect(findApiEntries('res.status', 'pre-request')).toEqual([]);
-      expect(findApiEntries('bru.noSuchMethod', 'tests')).toEqual([]);
+      expect(findApiEntry('res.status', 'pre-request')).toBeNull();
+      expect(findApiEntry('bru.noSuchMethod', 'tests')).toBeNull();
     });
   });
 
   describe('getHintTexts', () => {
-    const entry = (path) => findApiEntries(path, 'post-response')[0];
+    const entry = (path) => findApiEntry(path, 'post-response');
 
     it('names a property by its path', () => {
       expect(getHintTexts(entry('req.headerList'))).toEqual(['req.headerList']);
@@ -67,39 +67,69 @@ describe('scriptApi', () => {
         'req.headerList.has(nameOrItem, value)'
       ]);
     });
+
+    it('offers the members of what a method returns, after the call', () => {
+      const hints = (root, scriptType) => getApiEntries([root], scriptType).flatMap(getHintTexts);
+
+      expect(hints('bru', 'pre-request')).toEqual(expect.arrayContaining([
+        'bru.cookies.jar()',
+        'bru.cookies.jar().getCookie(url, name, callback)',
+        'bru.cookies.jar().getCookies(url, callback)',
+        'bru.cookies.jar().setCookie(url, name, value, callback)',
+        'bru.cookies.jar().setCookie(url, cookie, callback)',
+        'bru.cookies.jar().setCookies(url, cookies, callback)',
+        'bru.cookies.jar().hasCookie(url, name, callback)',
+        'bru.cookies.jar().deleteCookie(url, name, callback)',
+        'bru.cookies.jar().deleteCookies(url, callback)',
+        'bru.cookies.jar().clear(callback)'
+      ]));
+      expect(hints('res', 'post-response')).toEqual(expect.arrayContaining([
+        'res.getSize()',
+        'res.getSize().header',
+        'res.getSize().body',
+        'res.getSize().total'
+      ]));
+    });
   });
 
   describe('renderApiDoc', () => {
     it('renders the full signature, the docs and an example', () => {
-      const doc = renderApiDoc(findApiEntries('bru.setEnvVar', 'pre-request')[0]);
+      const doc = renderApiDoc(findApiEntry('bru.setEnvVar', 'pre-request'));
 
       expect(doc.querySelector('[data-testid="api-doc-signature"]').textContent).toBe('bru.setEnvVar(key: string, value: any): void');
       expect(doc.textContent).toContain('Set a variable of the selected environment');
       expect(doc.querySelector('pre').textContent).toContain('bru.setEnvVar(');
     });
 
+    it('renders a property\'s signature as its path and type, coloring the type', () => {
+      const signature = renderApiDoc(findApiEntry('bru.cookies', 'pre-request')).querySelector('[data-testid="api-doc-signature"]');
+
+      expect(signature.textContent).toBe('bru.cookies: CookieList');
+      expect([...signature.querySelectorAll('span')].map((span) => [span.className, span.textContent])).toEqual([
+        ['bruno-api-doc-type', 'CookieList']
+      ]);
+    });
+
     it('renders backticked text as code', () => {
-      const doc = renderApiDoc(findApiEntries('req.getHeader', 'pre-request')[0]);
+      const doc = renderApiDoc(findApiEntry('req.getHeader', 'pre-request'));
 
       expect([...doc.querySelectorAll('p code')].map((code) => code.textContent)).toContain('req.headerList.get()');
     });
 
-    it('links to the docs, opening outside the app', () => {
-      const link = renderApiDoc(findApiEntries('bru.setEnvVar', 'pre-request')[0]).querySelector('[data-testid="api-doc-link"]');
+    it('copies the example, keeping the editor focused', async () => {
+      const entry = findApiEntry('bru.setEnvVar', 'pre-request');
+      const writeText = jest.fn(() => Promise.resolve());
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      const button = renderApiDoc(entry).querySelector('[data-testid="api-doc-example-copy"]');
 
-      expect(link.href).toBe('https://docs.usebruno.com/testing/script/javascript-reference');
-      expect(link.target).toBe('_blank');
-      expect(link.rel).toBe('noopener noreferrer');
-      expect(link.textContent.trim()).toBe('Docs');
-      expect(link.querySelector('svg')).not.toBeNull();
-    });
+      const mousedown = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      button.dispatchEvent(mousedown);
+      button.click();
+      await Promise.resolve();
 
-    it('notes a member Safe Mode does not provide', () => {
-      const nodeVmOnly = renderApiDoc(findApiEntries('bru.utils', 'pre-request')[0]);
-      const everywhere = renderApiDoc(findApiEntries('bru.setEnvVar', 'pre-request')[0]);
-
-      expect(nodeVmOnly.querySelector('[data-testid="api-doc-safe-mode-note"]')).not.toBeNull();
-      expect(everywhere.querySelector('[data-testid="api-doc-safe-mode-note"]')).toBeNull();
+      expect(mousedown.defaultPrevented).toBe(true);
+      expect(writeText).toHaveBeenCalledWith(entry.examples[0]);
+      expect(button.classList.contains('copy-success')).toBe(true);
     });
   });
 });

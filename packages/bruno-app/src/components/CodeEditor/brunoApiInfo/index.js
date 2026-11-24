@@ -1,11 +1,11 @@
-import { findApiEntries, renderApiDoc } from 'utils/codemirror/scriptApi';
+import { findApiEntry, renderApiDoc } from 'utils/codemirror/scriptApi';
 
 const CodeMirror = require('codemirror');
 
 const IDENTIFIER_CHAR = /[\w$]/;
 const PATH_CHAR = /[\w$.]/;
 const NON_CODE_TOKENS = /\b(string|comment)\b/;
-const HOVER_DELAY_MS = 300;
+const HOVER_DELAY_MS = 50;
 const TOOLTIP_GAP_PX = 4;
 const EDGE_MARGIN_PX = 15;
 
@@ -31,6 +31,19 @@ export const getApiPathAt = (line, ch) => {
 };
 
 /**
+ * The index of the character under the pointer. With `sticky: 'before'` it is `ch - 1`; a positive
+ * `xRel` means past the line's end, and a negative `xRel` at `ch` 0 means left of the text.
+ * @param {{ ch: number, sticky?: string, xRel?: number, outside?: number }} pos
+ * @returns {number | null} Null when the pointer is left of the text or past the end of a line, or
+ *   above or below the text
+ */
+const getCharUnderPointer = (pos) => {
+  if (pos.outside) return null;
+  if (pos.sticky !== 'before') return pos.ch === 0 && pos.xRel < 0 ? null : pos.ch;
+  return pos.xRel > 0 ? null : pos.ch - 1;
+};
+
+/**
  * Shows API docs on hover in `cm`.
  * @param {Object} cm - CodeMirror instance
  * @param {{ scriptType: string }} options
@@ -40,12 +53,12 @@ export const attachApiInfo = (cm, { scriptType }) => {
   const wrapper = cm.getWrapperElement();
   let hoverTimeout = null;
   let tooltip = null;
-  let shownPath = null;
+  let shownOccurrence = null;
 
   const hideTooltip = () => {
     tooltip?.remove();
     tooltip = null;
-    shownPath = null;
+    shownOccurrence = null;
   };
 
   const showTooltip = (entry, anchor) => {
@@ -56,7 +69,6 @@ export const attachApiInfo = (cm, { scriptType }) => {
     tooltip.appendChild(renderApiDoc(entry));
     tooltip.addEventListener('mouseleave', hideTooltip);
     document.body.appendChild(tooltip);
-    shownPath = entry.path;
 
     const maxLeft = window.innerWidth - tooltip.offsetWidth - EDGE_MARGIN_PX;
     const below = anchor.bottom + TOOLTIP_GAP_PX;
@@ -68,21 +80,24 @@ export const attachApiInfo = (cm, { scriptType }) => {
 
   const showDocsAt = (point) => {
     const pos = cm.coordsChar(point, 'window');
-    const line = cm.getLine(pos.line) || '';
-    // Past the middle of a name's last letter the pointer maps to the position after it.
-    const target = getApiPathAt(line, pos.ch) || getApiPathAt(line, pos.ch - 1);
+    const ch = getCharUnderPointer(pos);
+    const target = ch === null ? null : getApiPathAt(cm.getLine(pos.line) || '', ch);
     const token = target && cm.getTokenAt({ line: pos.line, ch: target.start + 1 });
     if (!target || NON_CODE_TOKENS.test(token?.type || '')) {
       hideTooltip();
       return;
     }
 
-    const [entry] = findApiEntries(target.path, scriptType);
+    const entry = findApiEntry(target.path, scriptType);
     if (!entry) {
       hideTooltip();
-    } else if (entry.path !== shownPath) {
-      showTooltip(entry, cm.charCoords({ line: pos.line, ch: target.start }, 'window'));
+      return;
     }
+
+    const occurrence = `${pos.line}:${target.start}:${entry.path}`;
+    if (occurrence === shownOccurrence) return;
+    showTooltip(entry, cm.charCoords({ line: pos.line, ch: target.start }, 'window'));
+    shownOccurrence = occurrence;
   };
 
   const onMouseMove = (event) => {
