@@ -34,8 +34,8 @@ const createSseEventExtractor = () => {
       dropSwallowedLf();
 
       const events = [];
-      let boundaryEnd = 1;
-      while (boundaryEnd > 0) {
+      let boundaryEnd = -1;
+      do {
         let eventEnd = -1;
         boundaryEnd = -1;
         let waitingForLf = false;
@@ -78,7 +78,7 @@ const createSseEventExtractor = () => {
           scanIndex = 0;
           prevLineEndAt = -1;
         }
-      }
+      } while (boundaryEnd > 0);
 
       return events;
     }
