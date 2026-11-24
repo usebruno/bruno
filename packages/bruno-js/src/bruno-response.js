@@ -3,6 +3,15 @@ const _ = require('lodash');
 const HeaderList = require('./header-list');
 
 /**
+ * The size of a response, in bytes, from `res.getSize()`.
+ * @category Types
+ * @typedef {object} ResponseSize
+ * @property {number} header - The size of the status line and headers.
+ * @property {number} body - The size of the body.
+ * @property {number} total - The header and body sizes added.
+ */
+
+/**
  * The HTTP response: status, headers, body and timing.
  */
 class BrunoResponse {
@@ -183,7 +192,7 @@ class BrunoResponse {
    *
    * The body is the bytes received, or the `Content-Length` when those are not known. The header
    * size is that of the status line and headers written as HTTP/1.1.
-   * @returns {{ header: number, body: number, total: number }} The header, body and total sizes.
+   * @returns {ResponseSize} The header, body and total sizes.
    * @category Timing & size
    */
   getSize() {

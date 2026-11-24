@@ -18,7 +18,7 @@ const codemirrorUtilsDir = fileURLToPath(new URL('./src/utils/codemirror/', impo
 const generatedScriptApiManifest = path.join(codemirrorUtilsDir, 'generated', 'script-api-manifest.json');
 const hasGeneratedScriptApiManifest = fs.existsSync(generatedScriptApiManifest);
 if (!hasGeneratedScriptApiManifest && process.env.NODE_ENV === 'production') {
-  throw new Error(`Missing ${generatedScriptApiManifest}. Run \`npm run generate:script-api --workspace=packages/bruno-js -- --manifest-only\` before a production build.`);
+  throw new Error(`Missing ${generatedScriptApiManifest}. Run \`npm run generate:script-api-manifest\` from the repo root before a production build.`);
 }
 const scriptApiManifest = hasGeneratedScriptApiManifest
   ? generatedScriptApiManifest
