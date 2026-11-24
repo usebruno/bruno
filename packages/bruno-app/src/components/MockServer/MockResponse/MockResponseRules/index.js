@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import EditableTable from 'components/EditableTable';
-import AssertionOperator, { isUnaryAssertionOperator } from 'components/RequestPane/Assertions/AssertionOperator';
+import AssertionOperator from 'components/RequestPane/Assertions/AssertionOperator';
+import { isUnaryAssertionOperator } from 'utils/assertions';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
@@ -157,7 +158,7 @@ const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
       readOnly: !editMode,
       placeholder: 'Value',
       render: ({ row, value, onChange: onCellChange }) => {
-        const ignoresValue = isUnaryAssertionOperator(row.operator);
+        const ignoresValue = isUnaryAssertionOperator(row.operator) || MOCK_ONLY_OPERATORS.includes(row.operator);
 
         return (
           <input

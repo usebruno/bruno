@@ -33,8 +33,6 @@ import React from 'react';
  * isArray     : is array
  */
 
-export const isUnaryAssertionOperator = (operator) => operator?.startsWith('is');
-
 const AssertionOperator = ({ operator, onChange, disabled = false, extraOperators = [], ariaLabel }) => {
   const operators = [
     'eq',

@@ -240,7 +240,7 @@ const redactActualValue = (key, actual) => {
 };
 
 const STRING_TARGETS = ['header', 'query', 'path'];
-const TYPE_OPERATORS = new Set(['isNumber', 'isBoolean', 'isTruthy', 'isFalsy', 'isJson', 'isArray', 'isNull']);
+const TYPE_OPERATORS = new Set(['isNumber', 'isBoolean', 'isTruthy', 'isFalsy', 'isJson', 'isArray', 'isNull', 'isNotNull']);
 
 const typedActual = (condition, actual) => {
   if (!STRING_TARGETS.includes(condition?.target) || typeof actual !== 'string' || !TYPE_OPERATORS.has(condition?.operator)) {
