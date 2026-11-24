@@ -11,14 +11,19 @@ import {
   loadGraphqlSchemaFromIntrospection,
   openGraphqlQueryBuilder,
   selectGraphqlRequestTab,
-  openIntrospectionRequest,
   saveRequest,
   selectEnvironment,
-  sendRequest
+  sendRequest,
+  openRequest,
+  closeAllOpenTabs
 } from '../../../pages';
 
 // One Electron app at a time: parallel cold starts time out while the app loads.
 test.describe.configure({ mode: 'serial' });
+
+test.afterEach(async ({ pageWithUserData: page }) => {
+  await closeAllOpenTabs(page);
+});
 
 const COLLECTION_NAME = 'gql-introspection';
 const REQUEST_NAME = 'GQL Introspection';
@@ -29,7 +34,7 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
     const SCHEMA_FIELDS = ['ceo', 'name', 'founder'];
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
+    await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
     await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
 
@@ -72,7 +77,7 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
   test('TC-1475: loads the schema after OAuth 2.0 auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
+    await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
 
     await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
@@ -87,7 +92,6 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
-
     await test.step('Verify the schema includes the company operation', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
@@ -99,7 +103,7 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
   test('TC-1474: loads the schema after Digest auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
+    await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
 
     await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
@@ -126,7 +130,7 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
   test('TC-1473: loads the schema after Bearer Token auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
+    await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
 
     await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();
@@ -152,7 +156,7 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
   test('TC-1472: loads the schema after Basic auth is set from environment variables', { tag: '@sanity' }, async ({ pageWithUserData: page }) => {
     const { tabs, graphqlAuthIntrospection: gql } = buildCommonLocators(page);
 
-    await openIntrospectionRequest(page, COLLECTION_NAME, REQUEST_NAME);
+    await openRequest(page, COLLECTION_NAME, REQUEST_NAME, { persist: true });
 
     await selectEnvironment(page, ENVIRONMENT_NAME);
     await tabs.requestTab(REQUEST_NAME).click();

@@ -1,8 +1,5 @@
 import { expect, test, type Page } from '../../playwright';
-import { openRequest } from '../sidebar/collection-tree';
 import { authEditorByTestId, buildAuthLocators, writeAuthEditor } from './auth';
-import { buildGraphqlQueryBuilderLocators } from './graphql-query-builder';
-
 const graphqlTabLabel = {
   query: 'Query',
   auth: 'Auth'
@@ -124,20 +121,4 @@ export const expandGraphqlSchemaField = async (page: Page, fieldPath: string) =>
 
     await field.getByText(fieldName, { exact: true }).click();
   });
-};
-
-/**
- * Open the GraphQL request from the collection that pageWithUserData loads from the fixture.
- * Closes the Query Builder if it is open, so openGraphqlQueryBuilder starts from a hidden builder.
- * @param page - The page object
- * @param collectionName - Name of the collection that holds the request
- * @param requestName - Name of the request to open
- */
-export const openIntrospectionRequest = async (page: Page, collectionName: string, requestName: string) => {
-  const graphqlQueryBuilder = buildGraphqlQueryBuilderLocators(page);
-
-  if (await graphqlQueryBuilder.container().isVisible()) {
-    await graphqlQueryBuilder.toggleButton().click();
-  }
-  await openRequest(page, collectionName, requestName, { persist: true });
 };
