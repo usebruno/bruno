@@ -382,8 +382,12 @@ test.describe('Tab menu - bulk close actions with unsaved changes', () => {
     await expect(modal).toBeVisible();
 
     await test.step('Inspect req-3 from the modal', async () => {
-      await unsavedChangesModal.item('Request: req-3').hover();
-      await unsavedChangesModal.inspectTabButton('Request: req-3').click();
+      // The button shows only while its row is hovered, and the modal is still sliding in when it
+      // first reports visible, so the pointer can end up off the row; hover again until the click lands.
+      await expect(async () => {
+        await unsavedChangesModal.item('Request: req-3').hover();
+        await unsavedChangesModal.inspectTabButton('Request: req-3').click({ timeout: 3000 });
+      }).toPass();
     });
 
     await test.step('Modal closes, req-3 is active and every tab is still open', async () => {
