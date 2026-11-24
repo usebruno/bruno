@@ -5,7 +5,7 @@ const iconInputStyles = css`
 
   > svg {
     position: absolute;
-    top: 0.5625rem;
+    top: 0.5rem;
     left: 0.625rem;
     color: ${(props) => props.theme.colors.text.muted};
     pointer-events: none;
