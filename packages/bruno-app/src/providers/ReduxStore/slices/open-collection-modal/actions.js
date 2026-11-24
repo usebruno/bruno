@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
-import { updatePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectories, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -187,19 +187,12 @@ export const pickCollectionFolders = () => async (dispatch, getState) => {
   await dispatch(findCollectionsInFolders(folderPaths));
 };
 
-export const saveAutoOpenFolderPicker = (enabled) => async (dispatch, getState) => {
-  const previous = getState().app.preferences;
-  const updated = { ...previous, openCollection: { ...previous.openCollection, autoOpenFolderPicker: enabled } };
-  dispatch(updatePreferences(updated));
-
-  try {
-    await callIpc('renderer:save-auto-open-folder-picker', enabled);
-  } catch (error) {
-    if (getState().app.preferences === updated) {
-      dispatch(updatePreferences(previous));
-    }
+export const saveAutoOpenFolderPicker = (enabled) => (dispatch, getState) => {
+  const { preferences } = getState().app;
+  const updated = { ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } };
+  return dispatch(savePreferences(updated)).catch(() => {
     toast.error('Failed to save preferences');
-  }
+  });
 };
 
 export const cancelCollectionSearch = () => (dispatch, getState) => {

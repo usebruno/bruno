@@ -602,20 +602,26 @@ describe('open collection modal actions', () => {
   });
 
   describe('saveAutoOpenFolderPicker', () => {
-    it('shows the new setting at once and saves only that setting', async () => {
+    beforeEach(() => {
+      window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+    });
+
+    afterEach(() => {
+      delete window.ipcRenderer;
+    });
+
+    it('shows the new setting at once and saves it with the other preferences', async () => {
       const { store } = createStore({ preferences: { general: { defaultLocation: '/collections' } } });
 
       await store.dispatch(saveAutoOpenFolderPicker(false));
 
-      expect(store.getState().app.preferences).toEqual({
-        general: { defaultLocation: '/collections' },
-        openCollection: { autoOpenFolderPicker: false }
-      });
-      expect(callIpc).toHaveBeenCalledWith('renderer:save-auto-open-folder-picker', false);
+      const updated = { general: { defaultLocation: '/collections' }, openCollection: { autoOpenFolderPicker: false } };
+      expect(store.getState().app.preferences).toEqual(updated);
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:save-preferences', updated);
     });
 
     it('puts the setting back and says so when saving fails', async () => {
-      callIpc.mockRejectedValue(new Error('disk full'));
+      window.ipcRenderer.invoke.mockRejectedValue(new Error('disk full'));
       const preferences = { openCollection: { autoOpenFolderPicker: true } };
       const { store } = createStore({ preferences });
 
@@ -627,7 +633,7 @@ describe('open collection modal actions', () => {
 
     it('keeps newer preferences when an older save fails', async () => {
       const save = deferred();
-      callIpc.mockReturnValue(save.promise);
+      window.ipcRenderer.invoke.mockReturnValue(save.promise);
       const { store } = createStore();
 
       const saving = store.dispatch(saveAutoOpenFolderPicker(false));

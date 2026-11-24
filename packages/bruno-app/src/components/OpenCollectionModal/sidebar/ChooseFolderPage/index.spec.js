@@ -102,19 +102,21 @@ describe('ChooseFolderPage', () => {
     expect(browseDirectories).toHaveBeenCalledTimes(1);
   });
 
-  it('saves only the setting and does not open the folder picker', async () => {
+  it('saves the setting and does not open the folder picker', async () => {
     renderPage({ preferences: { general: { defaultLocation: '/collections' } } });
 
     fireEvent.click(autoOpenCheckbox());
 
-    await waitFor(() => expect(callIpc).toHaveBeenCalledWith('renderer:save-auto-open-folder-picker', false));
+    await waitFor(() => expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:save-preferences', {
+      general: { defaultLocation: '/collections' },
+      openCollection: { autoOpenFolderPicker: false }
+    }));
     expect(autoOpenCheckbox()).not.toBeChecked();
-    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith('renderer:save-preferences', expect.anything());
     expect(browseDirectories).not.toHaveBeenCalled();
   });
 
   it('puts the setting back and says so when saving fails', async () => {
-    callIpc.mockRejectedValue(new Error('disk full'));
+    window.ipcRenderer.invoke.mockRejectedValue(new Error('disk full'));
     renderPage();
 
     fireEvent.click(autoOpenCheckbox());
