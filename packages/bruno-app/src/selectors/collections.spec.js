@@ -143,11 +143,38 @@ describe('selectors/collections', () => {
       };
       expect(select(next, 'col-a')).toBe(1);
     });
+
+    it('does not recompute when only collection.collapsed changes', () => {
+      const items = [broken('r1', 'one')];
+      const select = makeSelectInvalidItemCountForCollection();
+      const state = buildTestState({
+        collections: {
+          collections: [{ uid: 'col-a', name: 'A', collapsed: false, items }]
+        }
+      });
+      expect(select(state, 'col-a')).toBe(1);
+      const toggled = buildTestState({
+        collections: {
+          collections: [{ uid: 'col-a', name: 'A', collapsed: true, items }]
+        }
+      });
+      expect(select(toggled, 'col-a')).toBe(1);
+      expect(select.recomputations()).toBe(1);
+    });
   });
 
   describe('makeSelectInvalidItemCountForFolder', () => {
-    it('counts invalid files only under the folder uid', () => {
+    it('counts invalid files in the folder items subtree passed from the row', () => {
       const select = makeSelectInvalidItemCountForFolder();
+      const parentFolder = {
+        uid: 'folder-parent',
+        name: 'parent',
+        type: 'folder',
+        items: [
+          { uid: 'req-nested', name: 'bad', type: 'http-request', error: { message: 'x' }, request: { url: '/b' } },
+          { uid: 'folder-nested', name: 'nested', type: 'folder', items: [request('req-ok', 'ok')] }
+        ]
+      };
       const state = buildTestState({
         collections: {
           collections: [
@@ -155,27 +182,19 @@ describe('selectors/collections', () => {
               uid: 'col-f',
               name: 'Tree',
               items: [
-                {
-                  uid: 'folder-parent',
-                  name: 'parent',
-                  type: 'folder',
-                  items: [
-                    { uid: 'req-nested', name: 'bad', type: 'http-request', error: { message: 'x' }, request: { url: '/b' } },
-                    { uid: 'folder-nested', name: 'nested', type: 'folder', items: [request('req-ok', 'ok')] }
-                  ]
-                },
+                parentFolder,
                 { uid: 'req-root', name: 'root-bad', type: 'http-request', error: { message: 'y' }, request: { url: '/r' } }
               ]
             }
           ]
         }
       });
-      expect(select(state, 'col-f', 'folder-parent')).toBe(1);
+      expect(select(state, 'col-f', parentFolder.items)).toBe(1);
       expect(makeSelectInvalidItemCountForCollection()(state, 'col-f')).toBe(2);
     });
 
-    it('returns 0 for a missing folder uid', () => {
-      expect(makeSelectInvalidItemCountForFolder()(buildState(), 'col-a', 'nope')).toBe(0);
+    it('returns 0 when folder items are omitted', () => {
+      expect(makeSelectInvalidItemCountForFolder()(buildState(), 'col-a', undefined)).toBe(0);
     });
   });
 });

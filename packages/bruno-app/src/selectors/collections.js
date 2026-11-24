@@ -2,7 +2,6 @@ import { createSelector } from '@reduxjs/toolkit';
 import {
   countInvalidItems,
   findCollectionByUid,
-  findItemInCollection,
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections/index';
@@ -27,6 +26,9 @@ export const selectCollections = (state) => state.collections.collections;
 
 export const selectCollectionByUid = (state, collectionUid) =>
   collectionUid ? findCollectionByUid(state.collections.collections, collectionUid) : undefined;
+
+const selectCollectionItemsByUid = (state, collectionUid) =>
+  selectCollectionByUid(state, collectionUid)?.items;
 
 export const selectCollectionSortOrder = (state) => state.collections.collectionSortOrder;
 
@@ -65,24 +67,14 @@ export const makeSelectCollectionWithGlobals = () =>
  * Factory pattern: `const selectCount = useMemo(makeSelectInvalidItemCountForCollection, []);`
  */
 export const makeSelectInvalidItemCountForCollection = () =>
-  createSelector([selectCollectionByUid], (collection) =>
-    collection ? countInvalidItems(collection.items) : 0
-  );
+  createSelector([selectCollectionItemsByUid], (items) => countInvalidItems(items));
 
 /**
  * Memoized invalid parse count for a folder subtree only.
+ * Pass the folder row's `item.items` so the cache is not busted by unrelated collection fields.
  */
 export const makeSelectInvalidItemCountForFolder = () =>
   createSelector(
-    [selectCollectionByUid, (_state, _collectionUid, folderUid) => folderUid],
-    (collection, folderUid) => {
-      if (!collection || !folderUid) {
-        return 0;
-      }
-      const folder = findItemInCollection(collection, folderUid);
-      if (!folder?.items) {
-        return 0;
-      }
-      return countInvalidItems(folder.items);
-    }
+    [(_state, _collectionUid, folderItems) => folderItems],
+    (folderItems) => countInvalidItems(folderItems)
   );

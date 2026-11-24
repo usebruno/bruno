@@ -134,7 +134,7 @@ const CollectionItemRow = ({
   const isFolder = isItemAFolder(item);
   const selectFolderInvalidItemCount = useMemo(makeSelectInvalidItemCountForFolder, []);
   const invalidItemCount = useSelector((state) =>
-    isFolder ? selectFolderInvalidItemCount(state, collectionUid, item.uid) : 0
+    isFolder ? selectFolderInvalidItemCount(state, collectionUid, item.items) : 0
   );
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
