@@ -99,7 +99,7 @@ To re-document an inherited method for one list, add a JSDoc block with no decla
   changing the script API's JSDoc, and CI fails when it is stale.
 - The manifest, the editor's autocomplete and hover data. The generator writes it only to the
   path passed as `--manifest-out <path>`. The root script passes
-  `bruno-app/src/utils/codemirror/generated/script-api-manifest.json`. It is not committed: CI and
+  `packages/bruno-app/src/utils/codemirror/generated/script-api-manifest.json`. It is not committed: CI and
   `npm run setup` generate it alone with `npm run generate:script-api-manifest`. Without it a dev
   build falls back to an empty manifest, so script editors offer no API hints or docs, and a
   production build fails.

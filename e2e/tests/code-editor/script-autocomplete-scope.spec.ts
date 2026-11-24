@@ -17,6 +17,7 @@ const COLLECTION = 'script-autocomplete-scope';
 const REQUEST = 'ScopedHints';
 const OTHER_EDITORS_COLLECTION = 'script-autocomplete-other-editors';
 const GRPC_REQUEST = 'GrpcHints';
+const COLLECTION_TESTS_COLLECTION = 'script-autocomplete-collection-tests';
 
 test.describe.serial('Script autocomplete scope', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
@@ -119,7 +120,7 @@ test.describe.serial('Script autocomplete scope', () => {
   });
 });
 
-test.describe.serial('Script autocomplete in gRPC and collection editors', () => {
+test.describe.serial('Script autocomplete in gRPC editors', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
     const tmpDir = await createTmpDir('script-autocomplete-other-editors');
     await createCollection(page, OTHER_EDITORS_COLLECTION, tmpDir);
@@ -154,10 +155,25 @@ test.describe.serial('Script autocomplete in gRPC and collection editors', () =>
       expect(await readCodeEditorHints(page)).toContain('grpc');
     });
   });
+});
+
+test.describe.serial('Script autocomplete in collection Tests', () => {
+  test.beforeAll(async ({ page, createTmpDir }) => {
+    const tmpDir = await createTmpDir('script-autocomplete-collection-tests');
+    await createCollection(page, COLLECTION_TESTS_COLLECTION, tmpDir);
+    await openCollectionSettings(page, COLLECTION_TESTS_COLLECTION);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await dismissCodeEditorHints(page);
+  });
+
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
 
   test('collection Tests offers bru, req and res as roots', async ({ page }) => {
     await test.step('Request root hints in the collection Tests editor', async () => {
-      await openCollectionSettings(page, OTHER_EDITORS_COLLECTION);
       await showRootScriptHints(page, 'collection-tests');
     });
 
