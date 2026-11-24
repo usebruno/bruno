@@ -9,7 +9,6 @@ import {
   IconInfoCircle,
   IconLoader2
 } from '@tabler/icons';
-import moment from 'moment';
 import Button from 'ui/Button';
 import StatusBadge from 'ui/StatusBadge';
 import Modal from 'components/Modal';
@@ -40,7 +39,6 @@ const CollectionStatusSection = ({
     handleAddAllMissing
   } = useEndpointActions(collection, collectionDrift, reloadDrift);
 
-  const spec = storedSpec || specDrift?.newSpec;
   const hasStoredSpec = collectionDrift && !collectionDrift.noStoredSpec;
   const hasDrift = hasStoredSpec && (collectionDrift.modified?.length > 0
     || collectionDrift.missing?.length > 0
@@ -48,16 +46,16 @@ const CollectionStatusSection = ({
 
   const renderDriftRow = (endpoint, idx, actions) => (
     <ExpandableEndpointRow
-      key={endpoint.id}
+      key={endpoint.pathname || endpoint.id}
       endpoint={endpoint}
       collectionPath={collection.pathname}
-      newSpec={spec}
       showDecisions={false}
       diffLeftLabel="Last Synced Spec"
       diffRightLabel="Current (in collection)"
       swapDiffSides
       collectionUid={collection.uid}
       actions={actions}
+      resetToSpec
     />
   );
 

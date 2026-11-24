@@ -27,7 +27,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     setPendingAction({
       type: 'reset-endpoint',
       title: 'Reset Endpoint',
-      message: `Are you sure you want to reset "${endpoint.method} ${endpoint.path}" to match the spec? Your local changes will be lost.`,
+      message: `Reset "${endpoint.method} ${endpoint.path}" to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.`,
       endpoint
     });
   };
@@ -37,7 +37,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     setPendingAction({
       type: 'reset-all-modified',
       title: 'Reset All Modified',
-      message: `Are you sure you want to reset ${collectionDrift.modified.length} modified endpoint(s) to match the spec? Your local changes will be lost.`
+      message: `Reset ${collectionDrift.modified.length} modified endpoint(s) to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.`
     });
   };
 
@@ -67,7 +67,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     setPendingAction({
       type: 'revert-all',
       title: 'Revert All Changes',
-      message: `Are you sure you want to revert all changes? This will reset ${modifiedCount} modified, restore ${missingCount} missing, and delete ${localOnlyCount} local-only endpoint(s).`
+      message: `Are you sure you want to revert all changes? This will reset ${modifiedCount} modified, restore ${missingCount} missing, and delete ${localOnlyCount} local-only endpoint(s). Your values (tokens, {{env}} references, credentials) will be replaced with the spec's.`
     });
   };
 
@@ -124,7 +124,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
       case 'revert-all': {
         const calls = [];
         if (collectionDrift?.modified?.length > 0) {
-          calls.push(['renderer:reset-endpoints-to-spec', { collectionPath: collection.pathname, endpoints: collectionDrift.modified }]);
+          calls.push(['renderer:reset-endpoints-to-spec', { collectionPath: collection.pathname, endpoints: collectionDrift.modified, fullReset: true }]);
         }
         if (collectionDrift?.missing?.length > 0) {
           calls.push(['renderer:add-missing-endpoints', { collectionPath: collection.pathname, endpoints: collectionDrift.missing }]);

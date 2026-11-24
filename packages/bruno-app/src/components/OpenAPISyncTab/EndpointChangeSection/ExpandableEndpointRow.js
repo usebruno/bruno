@@ -15,7 +15,7 @@ import Help from 'components/Help';
 import EndpointVisualDiff from './EndpointVisualDiff';
 
 // Expandable row - can be used with or without decision buttons
-const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions, preserveValues = true }) => {
+const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions, preserveValues = true, resetToSpec = false }) => {
   const dispatch = useDispatch();
   const rowKey = endpoint.id || `${endpoint.method}-${endpoint.path}`;
   const isExpanded = useSelector((state) => {
@@ -42,8 +42,10 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
       const result = await ipcRenderer.invoke('renderer:get-endpoint-diff-data', {
         collectionPath,
         endpointId: endpoint.id,
+        pathname: endpoint.pathname,
         newSpec,
-        preserveValues
+        preserveValues,
+        resetToSpec
       });
 
       if (requestId !== requestIdRef.current) return; // superseded by a newer fetch
@@ -58,7 +60,7 @@ const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectio
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, [collectionPath, endpoint.id, newSpec, preserveValues]);
+  }, [collectionPath, endpoint.id, endpoint.pathname, newSpec, preserveValues, resetToSpec]);
 
   // Re-fetch the preview when the preserve toggle changes — the EXPECTED column
   // depends on it. Expanded rows re-fetch in place (the old diff stays visible
