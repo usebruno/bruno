@@ -1405,45 +1405,47 @@ const registerNetworkIpc = (mainWindow) => {
         // Collect the raw chunk so runRequest can rebuild the full body on stream close.
         response.sseChunks?.push(newData);
 
-        if (!isEventStream) {
-          const parsed = parseDataFromResponse({ data: newData, headers: {} });
+        if (isEventStream) {
+          // SSE timeline entries are framed per event, but the accumulated response
+          // buffer must preserve the exact raw bytes received on the wire.
           seq += 1;
           mainWindow.webContents.send('main:http-stream-new-data', {
             collectionUid,
             itemUid: item.uid,
             seq,
             timestamp: Date.now(),
-            data: parsed
+            data: { dataBuffer: newData }
           });
+
+          // Transport chunks often do not align with event boundaries; buffer data
+          // and emit only complete events delimited by blank lines.
+          sseExtractor.append(sseDecoder.write(newData));
+          for (const eventData of sseExtractor.extractEvents()) {
+            if (eventData.trim().length) {
+              seq += 1;
+              mainWindow.webContents.send('main:http-stream-new-data', {
+                collectionUid,
+                itemUid: item.uid,
+                seq,
+                timestamp: Date.now(),
+                data: { data: eventData + '\n' }
+              });
+            }
+          }
           return;
         }
 
-        // SSE timeline entries are framed per event, but the accumulated response
-        // buffer must preserve the exact raw bytes received on the wire.
         seq += 1;
+
+        const parsed = parseDataFromResponse({ data: newData, headers: {} });
+
         mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
           itemUid: item.uid,
           seq,
           timestamp: Date.now(),
-          data: { dataBuffer: newData }
+          data: parsed
         });
-
-        // SSE responses: transport chunks often do not align with event boundaries.
-        // Buffer data and emit only complete events delimited by blank lines.
-        sseExtractor.append(sseDecoder.write(newData));
-        for (const eventData of sseExtractor.extractEvents()) {
-          if (eventData.trim().length) {
-            seq += 1;
-            mainWindow.webContents.send('main:http-stream-new-data', {
-              collectionUid,
-              itemUid: item.uid,
-              seq,
-              timestamp: Date.now(),
-              data: { data: eventData + '\n' }
-            });
-          }
-        }
       });
 
       stream.on('close', () => {
