@@ -42,22 +42,35 @@ const StyledWrapper = styled.div`
     top: 10px;
     right: 10px;
     z-index: 10;
-    background: transparent;
-    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: ${(props) => props.theme.modal.body.bg};
+    border: 1px solid ${(props) => props.theme.border.border1};
+    border-radius: ${(props) => props.theme.border.radius.sm};
     color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
-    padding: 6px;
-    opacity: 0.7;
-    transition: all 0.2s ease;
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
     &:hover {
-      opacity: 1;
       color: ${(props) => props.theme.text};
+      border-color: ${(props) => props.theme.border.border2};
     }
 
     &:active {
       transform: translateY(1px);
     }
+  }
+
+  /* Only reveal the copy button while the code block is hovered (or a keyboard user focuses into it),
+     so it never permanently covers the snippet. */
+  &:hover .copy-to-clipboard,
+  &:focus-within .copy-to-clipboard {
+    opacity: 1;
+    visibility: visible;
   }
 `;
 
