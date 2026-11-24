@@ -35,6 +35,7 @@ import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-
 import { buildTitleBarLocators } from './app-shell/title-bar';
 import { buildCloneGitRepositoryLocators } from './collection/git-clone';
 import { buildResponseExampleLocators } from './response/example';
+import { buildGraphqlAuthIntrospectionLocators } from './request/graphql-auth-introspection';
 import { buildGraphqlQueryBuilderLocators } from './request/graphql-query-builder';
 import { buildAuthLocators } from './request/auth';
 import { buildModalLocators } from './shared-ui/modal';
@@ -85,6 +86,7 @@ export const buildCommonLocators = (page: Page) => ({
   request: buildRequestLocators(page),
   setAsVariable: buildSetAsVariableLocators(page),
   responseExample: buildResponseExampleLocators(page),
+  graphqlAuthIntrospection: buildGraphqlAuthIntrospectionLocators(page),
   graphqlQueryBuilder: buildGraphqlQueryBuilderLocators(page),
   saveButton: () => page.getByTestId('save-request-button'),
   settingsSaveButton: () => page.getByRole('button', { name: 'Save' }),
