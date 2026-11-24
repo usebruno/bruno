@@ -1,5 +1,6 @@
 const { setTimeout } = require('node:timers/promises');
 const https = require('https');
+const { StringDecoder } = require('node:string_decoder');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
@@ -1394,24 +1395,52 @@ const registerNetworkIpc = (mainWindow) => {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
-      stream.on('data', (newData) => {
-        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
-        response.sseChunks?.push(newData);
+      const isEventStream = hasStreamHeaders({ get: (name) => response.headers?.[name] });
+      const sseDecoder = new StringDecoder('utf8');
+      let sseBuffer = '';
+
+      const emitStreamData = (rawData) => {
         seq += 1;
-
-        const parsed = parseDataFromResponse({ data: newData, headers: {} });
-
         mainWindow.webContents.send('main:http-stream-new-data', {
           collectionUid,
           itemUid: item.uid,
           seq,
           timestamp: Date.now(),
-          data: parsed
+          data: parseDataFromResponse({ data: Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData, 'utf8'), headers: {} })
         });
+      };
+
+      stream.on('data', (newData) => {
+        // Collect the raw chunk so runRequest can rebuild the full body on stream close.
+        response.sseChunks?.push(newData);
+
+        if (!isEventStream) {
+          emitStreamData(newData);
+          return;
+        }
+
+        // SSE responses: transport chunks often do not align with event boundaries.
+        // Buffer data and emit only complete events delimited by blank lines.
+        sseBuffer += sseDecoder.write(newData);
+        let match;
+        while ((match = sseBuffer.match(/\r?\n\r?\n/))) {
+          const eventData = sseBuffer.slice(0, match.index);
+          sseBuffer = sseBuffer.slice(match.index + match[0].length);
+          if (eventData.trim().length) {
+            emitStreamData(eventData + '\n');
+          }
+        }
       });
 
       stream.on('close', () => {
         if (!cancelTokens[response.cancelTokenUid]) return;
+
+        if (isEventStream) {
+          sseBuffer += sseDecoder.end();
+          if (sseBuffer.trim().length) {
+            emitStreamData(sseBuffer + '\n');
+          }
+        }
 
         mainWindow.webContents.send('main:http-stream-end', {
           collectionUid,
