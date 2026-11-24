@@ -6,16 +6,6 @@ const createSseEventExtractor = () => {
   let prevLineEndAt = -1;
   let swallowLeadingLf = false;
 
-  const dropSwallowedLf = () => {
-    if (swallowLeadingLf) {
-      swallowLeadingLf = false;
-      if (buffer.startsWith('\n')) {
-        buffer = buffer.slice(1);
-        scanIndex = Math.max(0, scanIndex - 1);
-      }
-    }
-  };
-
   return {
     append(text) {
       buffer += text;
@@ -31,7 +21,13 @@ const createSseEventExtractor = () => {
     },
 
     extractEvents() {
-      dropSwallowedLf();
+      if (swallowLeadingLf) {
+        swallowLeadingLf = false;
+        if (buffer.startsWith('\n')) {
+          buffer = buffer.slice(1);
+          scanIndex = Math.max(0, scanIndex - 1);
+        }
+      }
 
       const events = [];
       let boundaryEnd = -1;
