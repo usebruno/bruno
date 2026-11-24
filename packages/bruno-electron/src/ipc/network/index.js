@@ -1399,33 +1399,6 @@ const registerNetworkIpc = (mainWindow) => {
       const isEventStream = hasStreamHeaders({ get: (name) => response.headers?.[name] });
       const sseDecoder = new StringDecoder('utf8');
 
-      const sendStreamData = (data) => {
-        seq += 1;
-        mainWindow.webContents.send('main:http-stream-new-data', {
-          collectionUid,
-          itemUid: item.uid,
-          seq,
-          timestamp: Date.now(),
-          data
-        });
-      };
-
-      const emitStreamData = (rawData) => {
-        sendStreamData(
-          parseDataFromResponse({ data: Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData, 'utf8'), headers: {} })
-        );
-      };
-
-      // SSE timeline entries are framed per event, but the accumulated response
-      // buffer must preserve the exact raw bytes received on the wire.
-      const emitRawStreamBytes = (rawBuffer) => {
-        sendStreamData({ dataBuffer: rawBuffer });
-      };
-
-      const emitSseEvent = (eventText) => {
-        sendStreamData({ data: eventText });
-      };
-
       const sseExtractor = createSseEventExtractor();
 
       stream.on('data', (newData) => {
@@ -1433,19 +1406,41 @@ const registerNetworkIpc = (mainWindow) => {
         response.sseChunks?.push(newData);
 
         if (!isEventStream) {
-          emitStreamData(newData);
+          seq += 1;
+          mainWindow.webContents.send('main:http-stream-new-data', {
+            collectionUid,
+            itemUid: item.uid,
+            seq,
+            timestamp: Date.now(),
+            data: parseDataFromResponse({ data: newData, headers: {} })
+          });
           return;
         }
 
-        // Preserve the exact wire bytes for the response buffer.
-        emitRawStreamBytes(newData);
+        // SSE timeline entries are framed per event, but the accumulated response
+        // buffer must preserve the exact raw bytes received on the wire.
+        seq += 1;
+        mainWindow.webContents.send('main:http-stream-new-data', {
+          collectionUid,
+          itemUid: item.uid,
+          seq,
+          timestamp: Date.now(),
+          data: { dataBuffer: newData }
+        });
 
         // SSE responses: transport chunks often do not align with event boundaries.
         // Buffer data and emit only complete events delimited by blank lines.
         sseExtractor.append(sseDecoder.write(newData));
         for (const eventData of sseExtractor.extractEvents()) {
           if (eventData.trim().length) {
-            emitSseEvent(eventData + '\n');
+            seq += 1;
+            mainWindow.webContents.send('main:http-stream-new-data', {
+              collectionUid,
+              itemUid: item.uid,
+              seq,
+              timestamp: Date.now(),
+              data: { data: eventData + '\n' }
+            });
           }
         }
       });
@@ -1457,7 +1452,14 @@ const registerNetworkIpc = (mainWindow) => {
           sseExtractor.append(sseDecoder.end());
           const remaining = sseExtractor.flush();
           if (remaining.trim().length) {
-            emitSseEvent(remaining + '\n');
+            seq += 1;
+            mainWindow.webContents.send('main:http-stream-new-data', {
+              collectionUid,
+              itemUid: item.uid,
+              seq,
+              timestamp: Date.now(),
+              data: { data: remaining + '\n' }
+            });
           }
         }
 
