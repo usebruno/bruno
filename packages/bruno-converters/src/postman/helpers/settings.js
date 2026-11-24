@@ -1,6 +1,4 @@
-import { utils } from '@usebruno/common';
-
-const { parseMaxRedirects } = utils;
+import { parseMaxRedirects } from '@usebruno/common/utils';
 
 // Maps v2.1 `protocolProfileBehavior` / v3 `settings`; `onWarning` gets each value that can't be imported.
 export const toBrunoRequestSettings = (behavior, onWarning) => {
