@@ -79,6 +79,20 @@ describe('mock-rule-matcher', () => {
 
     expect(evaluateCondition({
       target: 'header',
+      key: 'X-Empty',
+      operator: 'isNotNull',
+      value: ''
+    }, { ...context, headers: { 'x-empty': '' } })).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'body',
+      key: '$.note',
+      operator: 'isNotNull',
+      value: ''
+    }, { ...context, body: { note: null } })).toBe(false);
+
+    expect(evaluateCondition({
+      target: 'header',
       key: 'X-Plan',
       operator: 'not_equals',
       value: 'free'

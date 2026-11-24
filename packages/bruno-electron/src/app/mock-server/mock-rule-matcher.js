@@ -216,7 +216,7 @@ const compareValues = (operator, actual, expected) => {
     case 'isArray':
       return Array.isArray(actual);
     case 'isNotNull':
-      return actual !== null && actual !== undefined && actualText !== '';
+      return actual !== null && actual !== undefined;
     case 'not_equals':
       return actualText !== expectedText;
     case 'eq':
