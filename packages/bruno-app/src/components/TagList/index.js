@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import kebabCase from 'lodash/kebabCase';
 import { IconX, IconTag, IconFolder, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
@@ -75,6 +76,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
                 <button
                   className="tag-item"
                   type="button"
+                  data-testid={`tag-${kebabCase(_tag)}`}
                 >
                   <IconTag size={12} className="tag-icon" aria-hidden="true" />
                   <span className="tag-text" title={_tag}>

@@ -1,0 +1,36 @@
+info:
+  name: AuthorizationCode
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{userinfo_url}}"
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{host}}/realms/{{realm}}/protocol/openid-connect/auth"
+    accessTokenUrl: "{{host}}/realms/{{realm}}/protocol/openid-connect/token"
+    callbackUrl: bruno://app/oauth2/callback
+    credentials:
+      clientId: bruno
+      clientSecret: "{{client_secret}}"
+      placement: body
+    scope: openid
+    pkce:
+      disabled: true
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: false
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -153,7 +153,7 @@ const TimelineItem = ({
           <div className="tl-col-status">
             <Status statusCode={code} />
           </div>
-          <div className="tl-col-method">
+          <div className="tl-col-method" data-testid="timeline-method">
             <Method method={method} />
           </div>
           <div className="tl-col-url" title={url} data-testid="timeline-url">{url}</div>
@@ -172,7 +172,7 @@ const TimelineItem = ({
             <div className="tl-header">
               <div className="tl-header-url" title={`${method || ''} ${url}`}>
                 <span className="tl-header-url-method">{method}</span>
-                <span className="tl-header-url-text">{url}</span>
+                <span className="tl-header-url-text" data-testid="timeline-detail-url">{url}</span>
               </div>
               {sourceFile && (
                 <a
