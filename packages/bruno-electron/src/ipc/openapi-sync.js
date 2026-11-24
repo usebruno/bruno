@@ -13,6 +13,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } = require('@usebruno/common');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
@@ -1925,7 +1926,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
       // Merge new config into existing entry (allowlist keys only)
-      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
+      const allowedKeys = ['sourceUrl', 'groupBy', 'authPlacement', 'requestNameSource', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
       const sanitizedConfig = {};
       for (const key of allowedKeys) {
         if (key in config) {
@@ -1936,6 +1937,14 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // sourceUrl is required — it identifies which entry to create/update
       if (!sanitizedConfig.sourceUrl) {
         throw new Error('sourceUrl is required to update openapi sync config');
+      }
+
+      if ('authPlacement' in sanitizedConfig && !AUTH_PLACEMENTS.includes(sanitizedConfig.authPlacement)) {
+        throw new Error(`authPlacement must be one of: ${AUTH_PLACEMENTS.join(', ')}`);
+      }
+
+      if ('requestNameSource' in sanitizedConfig && !REQUEST_NAME_SOURCES.includes(sanitizedConfig.requestNameSource)) {
+        throw new Error(`requestNameSource must be one of: ${REQUEST_NAME_SOURCES.join(', ')}`);
       }
 
       // Validate sourceUrl — reject protocol-based non-http(s) URLs (e.g. ftp://, file://)

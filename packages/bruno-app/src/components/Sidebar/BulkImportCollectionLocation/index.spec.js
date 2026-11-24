@@ -414,6 +414,15 @@ describe('BulkImportCollectionLocation naming requests', () => {
     expect(namingDropdown()).toHaveTextContent('Summary');
   });
 
+  it('offers Summary, OperationId, Description and Path', async () => {
+    renderBulkImport([ordersSpec]);
+    openConfiguration();
+    fireEvent.click(namingDropdown());
+
+    const options = await screen.findAllByRole('menuitem');
+    expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'OperationId', 'Description', 'Path']);
+  });
+
   it('applies one choice to every OpenAPI spec in the batch, Swagger 2.0 included', async () => {
     renderBulkImport([ordersSpec, swagger2Spec, postmanFile]);
     openConfiguration();

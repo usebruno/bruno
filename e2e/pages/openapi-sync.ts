@@ -23,6 +23,7 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     checkUpdatesButton: () => page.getByTestId('openapi-sync-check-updates'),
     specUpdatesTab: () => page.getByTestId('responsive-tab-spec-updates'),
     overviewBanner: () => page.getByTestId('openapi-sync-overview-banner'),
+    specDetail: (name: 'request-naming' | 'auth-placement') => page.getByTestId(`openapi-sync-detail-${name}`),
     specStatusBanner: () => page.getByTestId('openapi-sync-spec-status'),
 
     headerMenu: () => page.getByTestId('openapi-sync-header-menu'),

@@ -166,13 +166,13 @@ describe('ImportCollectionLocation naming requests', () => {
     expect(namingDropdown()).toHaveTextContent('Summary');
   });
 
-  it('offers Summary, operationId, Description and Path', async () => {
+  it('offers Summary, OperationId, Description and Path', async () => {
     renderImport();
     fireEvent.click(advancedToggle());
     fireEvent.click(namingDropdown());
 
     const options = await screen.findAllByRole('menuitem');
-    expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'operationId', 'Description', 'Path']);
+    expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'OperationId', 'Description', 'Path']);
   });
 
   it('explains the fallback order in the info tooltip', () => {
@@ -189,7 +189,7 @@ describe('ImportCollectionLocation naming requests', () => {
     fireEvent.click(screen.getByTestId('check-for-spec-updates-toggle'));
     fireEvent.click(advancedToggle());
     await chooseNaming('operationId');
-    expect(namingDropdown()).toHaveTextContent('operationId');
+    expect(namingDropdown()).toHaveTextContent('OperationId');
 
     const [collection] = await submitImport(handleSubmit);
 

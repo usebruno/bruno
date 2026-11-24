@@ -23,7 +23,7 @@ const detailValue = (getByText, label) => detailItem(getByText, label).querySele
 describe('OverviewSection', () => {
   it.each([
     ['summary', 'Summary'],
-    ['operationId', 'operationId'],
+    ['operationId', 'OperationId'],
     ['description', 'Description'],
     ['path', 'Path']
   ])('shows the %s naming as %s', (requestNameSource, label) => {
@@ -63,11 +63,27 @@ describe('OverviewSection', () => {
     expect(getByText(explanation)).toBeInTheDocument();
   });
 
-  it('hides naming and auth placement when the sync settings have neither', () => {
-    const { queryByText } = renderOverview({});
+  it.each([
+    ['are missing', {}],
+    ['are empty', { requestNameSource: '', authPlacement: null }],
+    ['are not values the sync knows', { requestNameSource: 'title', authPlacement: 'folder' }],
+    ['use a different letter case', { requestNameSource: 'OperationId', authPlacement: 'Collection' }]
+  ])('shows the defaults the sync applies when the naming and auth placement %s', (_description, syncConfig) => {
+    const { getByText } = renderOverview(syncConfig);
 
-    expect(queryByText('Request Naming')).not.toBeInTheDocument();
-    expect(queryByText('Auth Placement')).not.toBeInTheDocument();
+    expect(detailValue(getByText, 'Request Naming')).toBe('Summary');
+    expect(detailValue(getByText, 'Auth Placement')).toBe('Request');
+  });
+
+  it('explains the default naming and auth placement with the same tooltips as saved ones', () => {
+    const { getByText } = renderOverview({});
+    const authPlacementValue = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
+
+    fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
+    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
+
+    fireEvent.mouseEnter(authPlacementValue.querySelector('svg').parentElement);
+    expect(getByText('Authentication is set separately on each request.')).toBeInTheDocument();
   });
 
   it('shows the auto-check interval next to the last synced time', () => {
@@ -89,13 +105,5 @@ describe('OverviewSection', () => {
     const { getByText } = renderOverview({ autoCheck: false });
 
     expect(detailItem(getByText, 'Last Synced At')).toHaveTextContent('Auto-check off');
-  });
-
-  it('shows a value it does not recognise as written', () => {
-    const { getByText } = renderOverview({ requestNameSource: 'title', authPlacement: 'folder' });
-
-    expect(detailValue(getByText, 'Request Naming')).toBe('title');
-    expect(detailValue(getByText, 'Auth Placement')).toBe('Folder');
-    expect(detailItem(getByText, 'Auth Placement').querySelector('svg')).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { AUTH_PLACEMENTS, DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE, REQUEST_NAME_SOURCES } from '@usebruno/common';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { countEndpoints } from '../utils';
 import moment from 'moment';
@@ -58,8 +59,12 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
   const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
   const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
-  const requestNameSource = openApiSyncConfig?.requestNameSource;
-  const authPlacement = openApiSyncConfig?.authPlacement;
+  const requestNameSource = REQUEST_NAME_SOURCES.includes(openApiSyncConfig?.requestNameSource)
+    ? openApiSyncConfig.requestNameSource
+    : DEFAULT_REQUEST_NAME_SOURCE;
+  const authPlacement = AUTH_PLACEMENTS.includes(openApiSyncConfig?.authPlacement)
+    ? openApiSyncConfig.authPlacement
+    : DEFAULT_AUTH_PLACEMENT;
 
   // Endpoint Summary counts
   // Total: from collection items in Redux; In Sync: from remote spec comparison
@@ -118,17 +123,17 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
       )
     },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
-    requestNameSource && {
+    {
       label: 'Request Naming',
       labelTooltip: 'Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.',
-      value: requestNameSourceLabels[requestNameSource] || requestNameSource
+      value: requestNameSourceLabels[requestNameSource]
     },
-    authPlacement && {
+    {
       label: 'Auth Placement',
       value: capitalize(authPlacement),
       tooltip: authPlacementInfo[authPlacement]
     }
-  ].filter(Boolean);
+  ];
 
   const hasCollectionChanges = changedInCollection > 0;
   const hasSpecUpdates = specUpdatesPending > 0;
@@ -279,7 +284,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
               </div>
               {headerExtra}
             </div>
-            <div className="spec-detail-value">
+            <div className="spec-detail-value" data-testid={`openapi-sync-detail-${label.toLowerCase().replaceAll(' ', '-')}`}>
               {value}
               {tooltip && (
                 <Help icon="info" size={11} placement="top" width={200}>{tooltip}</Help>

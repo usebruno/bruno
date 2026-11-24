@@ -4,7 +4,7 @@ import ImportSettingDropdown from 'components/Sidebar/ImportSettings/ImportSetti
 
 export const requestNameSourceLabels = {
   summary: 'Summary',
-  operationId: 'operationId',
+  operationId: 'OperationId',
   description: 'Description',
   path: 'Path'
 };
