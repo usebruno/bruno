@@ -37,6 +37,11 @@ if (os.platform() === 'linux') {
   app.commandLine.appendSwitch('xdg-portal-required-version', '4');
 }
 
+// Ozone platform is chosen at Chromium startup; BRUNO_USE_X11=1 requires a one-shot relaunch.
+// Must run before the single-instance lock so the first process exits with no side effects.
+const { applyX11RelaunchIfNeeded } = require('./utils/linux-x11-display');
+applyX11RelaunchIfNeeded(app);
+
 if (isBenchmarkEnabled()) {
   app.commandLine.appendSwitch('enable-precise-memory-info');
 }
