@@ -21,6 +21,15 @@ const buildLocators = (page: Page) => ({
 });
 
 /**
+ * Locates a row in the runner's "Configure requests to run" list by its exact request name.
+ * @param page - The Playwright page object
+ * @param requestName - The request's name as shown in the row
+ * @returns The row locator
+ */
+export const runnerConfigItem = (page: Page, requestName: string): Locator =>
+  page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
+
+/**
  * Builds locators for the runner results view
  * @param page - The Playwright page object
  * @returns Object with locators for runner elements
@@ -39,8 +48,12 @@ export const buildRunnerLocators = (page: Page) => ({
   selectAllButton: () => page.getByTestId('runner-select-all'),
   configResetButton: () => page.getByTestId('runner-config-reset'),
   requestItems: () => page.getByTestId('runner-request-item'),
+  getRequestItemNameList: () => page.getByTestId('runner-request-item-name'),
+  requestItem: (name: string) => runnerConfigItem(page, name),
+  requestDragHandle: (name: string) => runnerConfigItem(page, name).getByTestId('runner-request-drag-handle'),
   delayInput: () => page.getByTestId('runner-delay-input'),
   resultItems: () => page.getByTestId('runner-result-item'),
+  resultsResetButton: () => page.getByTestId('runner-reset-button'),
   resultStatus: () => page.getByTestId('runner-result-status'),
   responseTime: () => page.getByTestId('response-time'),
   passedTestRows: () => page.getByTestId('runner-test-row-passed'),
@@ -52,7 +65,10 @@ export const buildRunnerLocators = (page: Page) => ({
   toolbar: () => page.getByTestId('runner-toolbar'),
   filterButton: (key: RunnerFilterKey) => page.getByTestId(`runner-filter-${key}`),
   filterSelect: () => page.getByTestId('runner-filter-select'),
-  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true })
+  filterOption: (label: string) => page.getByRole('menuitem', { name: label, exact: true }),
+  requestCheckbox: (name: string) => runnerConfigItem(page, name).getByTestId('runner-request-checkbox'),
+  requestCheckboxes: () => page.getByTestId('runner-request-checkbox'),
+  requestFolderPath: (name: string) => runnerConfigItem(page, name).getByTestId('runner-request-folder-path')
 });
 
 export type RunnerFilterKey = 'all' | 'passed' | 'failed' | 'skipped';
@@ -162,13 +178,66 @@ export const clearRunnerTags = async (page: Page, root?: Locator) => {
 };
 
 /**
- * Locates a row in the runner's "Configure requests to run" list by its exact request name.
+ * Reads the request names in the runner's "Configure requests to run" list, top to bottom.
  * @param page - The Playwright page object
- * @param requestName - The request's name as shown in the row
- * @returns The row locator
+ * @returns The request names in their configured order
  */
-export const runnerConfigItem = (page: Page, requestName: string): Locator =>
-  page.getByTestId('runner-request-item').filter({ has: page.getByText(requestName, { exact: true }) });
+export const getRunnerConfigOrder = async (page: Page): Promise<string[]> => {
+  return await buildRunnerLocators(page).getRequestItemNameList().allInnerTexts();
+};
+
+/**
+ * Drags a request in the runner config list onto another one.
+ * The panel inserts above the target when the pointer is in the top half of the row and below it
+ * in the bottom half. `position` chooses that half. Dropping below the last row is what moves an
+ * item to the end of the list, since there is no following row to drop above.
+ * @param page - The Playwright page object
+ * @param fromName - The request to move
+ * @param toName - The request to drop it on
+ * @param position - Which half of `toName` receives the drop
+ * @returns void
+ */
+export const dragRunnerConfigItem = async (
+  page: Page,
+  fromName: string,
+  toName: string,
+  position: 'above' | 'below'
+) => {
+  await test.step(`Drag "${fromName}" ${position} "${toName}" in the runner config list`, async () => {
+    const locators = buildRunnerLocators(page);
+    const target = locators.requestItem(toName);
+    const targetBox = await target.boundingBox();
+    if (targetBox === null) {
+      throw new Error(`Runner config item "${toName}" has no bounding box`);
+    }
+    const rowHalf = targetBox.height / 2;
+    const y = position === 'above' ? rowHalf / 2 : rowHalf + rowHalf / 2;
+    await locators.requestDragHandle(fromName).dragTo(target, { targetPosition: { x: targetBox.width / 2, y } });
+  });
+};
+
+/**
+ * Reset the runner results.
+ * @param page - The Playwright page object
+ * @returns void
+ */
+export const resetRunnerConfig = async (page: Page) => {
+  await test.step('Reset the runner configuration', async () => {
+    await buildRunnerLocators(page).resultsResetButton().click();
+  });
+};
+
+/**
+ * Clicks the checkbox on a runner config row, which selects or deselects that request.
+ * @param page - The Playwright page object
+ * @param requestName - The request whose checkbox to click
+ * @returns void
+ */
+export const toggleRunnerRequestCheckbox = async (page: Page, requestName: string) => {
+  await test.step(`Toggle inclusion of request - "${requestName}"`, async () => {
+    await buildRunnerLocators(page).requestCheckbox(requestName).click();
+  });
+};
 
 /**
  * Reads test result counts from the filter buttons in the runner results view
