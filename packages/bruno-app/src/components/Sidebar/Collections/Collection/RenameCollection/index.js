@@ -42,7 +42,7 @@ const RenameCollection = ({ collectionUid, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="md" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="md" title="Rename Collection" confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose} dataTestId="rename-collection-modal">
       <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-medium">
@@ -50,6 +50,7 @@ const RenameCollection = ({ collectionUid, onClose }) => {
           </label>
           <input
             id="collection-name"
+            data-testid="rename-collection-name-input"
             type="text"
             name="name"
             ref={inputRef}

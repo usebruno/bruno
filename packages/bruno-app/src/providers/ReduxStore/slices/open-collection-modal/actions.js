@@ -1,10 +1,9 @@
 import toast from 'react-hot-toast';
-import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import { formatIpcError } from 'utils/common/error';
 import { callIpc } from 'utils/common/ipc';
 import { selectCollections } from 'src/selectors/collections';
-import { updatePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectories, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -22,7 +21,7 @@ import {
   collectionsOpeningStarted,
   collectionsOpeningEnded
 } from './index';
-import { selectOpenCollectionPathKeys } from './selectors';
+import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
 import { readImportableFile, readImportFiles, readImportText } from './import-sources';
@@ -36,9 +35,12 @@ const getSearchLabel = (folderPaths) =>
 const cancelSearchInMain = (searchId) => callIpc('renderer:collection-search:cancel', { requestId: searchId });
 
 export const closeOpenCollectionModal = () => (dispatch, getState) => {
-  const { searchId } = getState().openCollectionModal.chooseFolder;
-  if (searchId) {
-    cancelSearchInMain(searchId);
+  const { openingId, chooseFolder } = getState().openCollectionModal;
+  if (openingId) {
+    return;
+  }
+  if (chooseFolder.searchId) {
+    cancelSearchInMain(chooseFolder.searchId);
   }
   dispatch(hideOpenCollectionModal());
 };
@@ -60,6 +62,14 @@ export const switchToCollection = (collectionPath) => (dispatch, getState) => {
   dispatch(closeOpenCollectionModal());
 };
 
+const describeOpenFailures = (failures) => {
+  if (failures.length > 1) {
+    return `Failed to open ${countOf(failures.length, 'collection')}`;
+  }
+  const [{ path: collectionPath, error }] = failures;
+  return `Failed to open ${getFolderName(collectionPath)}. ${error.split('\n')[0]}`;
+};
+
 export const openCollectionsFromModal = (collectionPaths) => async (dispatch, getState) => {
   if (getState().openCollectionModal.openingId) {
     return;
@@ -69,25 +79,28 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
 
   let result;
   try {
-    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true }));
+    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true, dontSendDisplayErrors: true }));
   } catch (error) {
     dispatch(collectionsOpeningEnded(openingId));
     toast.error('An error occurred while opening the collections');
     return;
   }
 
-  const failedCount = result.failed.length + result.invalid.length;
+  const failures = [
+    ...result.failed,
+    ...result.invalid.map((collectionPath) => ({ path: collectionPath, error: 'The folder doesn’t exist anymore.' }))
+  ];
   if (result.opened.length > 0) {
     toast.success(result.opened.length === 1 ? 'Collection added to workspace' : 'Collections added to workspace');
   }
-  if (failedCount > 0) {
-    toast.error(`Failed to open ${countOf(failedCount, 'collection')}`);
+  if (failures.length > 0) {
+    toast.error(describeOpenFailures(failures));
   }
 
-  if (getState().openCollectionModal.openingId !== openingId) {
-    return;
+  dispatch(collectionsOpeningEnded(openingId));
+  if (result.opened.length > 0) {
+    dispatch(closeOpenCollectionModal());
   }
-  dispatch(result.opened.length > 0 ? closeOpenCollectionModal() : collectionsOpeningEnded(openingId));
 };
 
 export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => async (dispatch, getState) => {
@@ -116,14 +129,12 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
 
   const outcome = getFolderSearchOutcome(searchResult, new Set(selectOpenCollectionPathKeys(getState())), droppedFileCount);
   if (outcome.type === 'list' || outcome.type === 'message') {
-    if (getState().openCollectionModal.page !== CHOOSE_FOLDER_PAGE) {
-      dispatch(showOpenCollectionPage(CHOOSE_FOLDER_PAGE));
-    }
     dispatch(folderSearchFinished({ searchId, result: { id: searchId, ...outcome } }));
     return;
   }
 
   dispatch(folderPickEnded());
+  dispatch(folderResultCleared());
   if (outcome.skippedText) {
     toast(outcome.skippedText);
   }
@@ -225,23 +236,19 @@ export const pickCollectionFolders = () => async (dispatch, getState) => {
   await dispatch(findCollectionsInFolders(folderPaths));
 };
 
-export const saveAutoOpenFolderPicker = (enabled) => async (dispatch, getState) => {
-  const previous = getState().app.preferences;
-  const updated = { ...previous, openCollection: { ...previous.openCollection, autoOpenFolderPicker: enabled } };
-  dispatch(updatePreferences(updated));
-
-  try {
-    await callIpc('renderer:save-auto-open-folder-picker', enabled);
-  } catch (error) {
-    if (getState().app.preferences === updated) {
-      dispatch(updatePreferences(previous));
-    }
+export const saveAutoOpenFolderPicker = (enabled) => (dispatch, getState) => {
+  const { preferences } = getState().app;
+  const updated = { ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } };
+  return dispatch(savePreferences(updated)).catch(() => {
     toast.error('Failed to save preferences');
-  }
+  });
 };
 
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
+  if (page !== CHOOSE_FOLDER_PAGE && chooseFolder.searchId) {
+    dispatch(cancelCollectionSearch());
+  }
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
 
   if (page !== CHOOSE_FOLDER_PAGE || openingId) {
@@ -250,7 +257,7 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
   if (chooseFolder.result) {
     dispatch(folderResultCleared());
   }
-  if (get(getState().app.preferences, 'openCollection.autoOpenFolderPicker', true)) {
+  if (selectAutoOpenFolderPicker(getState())) {
     dispatch(pickCollectionFolders());
   }
 };

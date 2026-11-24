@@ -121,7 +121,7 @@ const renderBulkImport = (filesData, { collections = [] } = {}) => {
 const specUpdatesCheckbox = () => screen.getByRole('checkbox', { name: /Check for Spec Updates/ });
 const configurationToggle = () => screen.queryByRole('button', { name: 'OpenAPI Import configuration' });
 const openConfiguration = () => fireEvent.click(configurationToggle());
-const authPlacementCheckbox = () => screen.getByRole('checkbox', { name: /Set authentication at collection level/ });
+const authPlacementCheckbox = () => screen.getByRole('checkbox', { name: /Inherit authentication from collection folder/ });
 const groupingDropdown = () => screen.getByTestId('grouping-dropdown');
 const namingDropdown = () => screen.getByTestId('request-name-source-dropdown');
 const chooseGrouping = async (value) => {
@@ -361,12 +361,12 @@ describe('BulkImportCollectionLocation collection auth placement', () => {
     ['a Swagger 2.0 spec', swagger2Spec]
   ])('is offered off by default under the collapsed OpenAPI Import configuration when the selection includes %s', (_, spec) => {
     renderBulkImport([spec, postmanFile]);
-    expect(screen.getByText('Set authentication at collection level')).not.toBeVisible();
+    expect(screen.getByText('Inherit authentication from collection folder')).not.toBeVisible();
 
     openConfiguration();
 
     expect(authPlacementCheckbox()).not.toBeChecked();
-    expect(screen.getByText('Requests and folders inherit it instead of getting their own copy.')).toBeInTheDocument();
+    expect(screen.getByText('Requests inherit auth from collection instead of getting their own copy.')).toBeInTheDocument();
   });
 
   it('applies the choice to every OpenAPI spec in the batch, Swagger 2.0 included', async () => {
@@ -507,7 +507,7 @@ describe('BulkImportCollectionLocation OpenAPI Import configuration', () => {
 
     openConfiguration();
 
-    const rows = ['Folder arrangement', 'Check for Spec Updates', 'Naming requests', 'Set authentication at collection level'].map((label) => screen.getByText(label));
+    const rows = ['Folder arrangement', 'Check for Spec Updates', 'Naming requests', 'Inherit authentication from collection folder'].map((label) => screen.getByText(label));
     rows.slice(1).forEach((row, index) => {
       expect(rows[index].compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });

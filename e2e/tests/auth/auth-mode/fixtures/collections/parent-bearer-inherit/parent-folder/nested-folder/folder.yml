@@ -1,0 +1,7 @@
+info:
+  name: nested-folder
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

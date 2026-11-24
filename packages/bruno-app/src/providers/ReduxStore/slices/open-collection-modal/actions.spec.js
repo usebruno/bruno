@@ -81,6 +81,7 @@ const listResult = {
 const folderResult = (folders, collections) => ({
   folders,
   collections,
+  brokenCollectionPaths: [],
   unreadableFolderCount: 0,
   stoppedEarly: false
 });
@@ -293,9 +294,31 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(findCollectionsInFolders(['/work/api']));
 
-      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true });
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true });
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('does not leave the last search’s note on screen when the next pick opens straight away and fails', async () => {
+      searchReturns(Promise.resolve(pickedCollection));
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+      const lastResult = { id: 'search-0', type: 'message', note: { tone: 'info', text: 'docs isn’t a Bruno collection.' } };
+      const { store } = createStore({ modal: openOn('choose-folder', { ...closedModal.chooseFolder, result: lastResult }) });
+
+      await store.dispatch(findCollectionsInFolders(['/work/api']));
+
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse bruno.json');
+      expect(modalState(store)).toMatchObject({ isOpen: true, chooseFolder: { status: 'idle', result: null } });
+    });
+
+    it('brings back the last list when the next search is cancelled', () => {
+      searchReturns(new Promise(() => {}));
+      const { store } = createStore({ modal: openOn('choose-folder', { ...closedModal.chooseFolder, result: listResult }) });
+
+      store.dispatch(findCollectionsInFolders(['/work/docs']));
+      store.dispatch(cancelCollectionSearch());
+
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', result: listResult });
     });
 
     it('says which picked folders were skipped when it opens the rest', async () => {
@@ -348,12 +371,13 @@ describe('open collection modal actions', () => {
       expect(modalState(store).isOpen).toBe(false);
     });
 
-    it('goes back to Choose folder when the search ends while another page shows', async () => {
+    it('cancels the search when another page is opened, so its result never pulls the user back', async () => {
       const search = deferred();
       searchReturns(search.promise);
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       const searching = store.dispatch(findCollectionsInFolders(['/work']));
+      const { searchId } = modalState(store).chooseFolder;
       store.dispatch(openCollectionModal('recents'));
       search.resolve(folderResult(
         [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
@@ -361,11 +385,22 @@ describe('open collection modal actions', () => {
       ));
       await searching;
 
-      expect(modalState(store).page).toBe('choose-folder');
-      expect(modalState(store).chooseFolder.result.note).toEqual({
-        tone: 'info',
-        text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open.'
-      });
+      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
+      expect(modalState(store)).toMatchObject({ page: 'recents', chooseFolder: { status: 'idle', searchId: null, result: null } });
+    });
+
+    it('does not open a collection the search found after the user moved to another page', async () => {
+      const search = deferred();
+      searchReturns(search.promise);
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      const searching = store.dispatch(findCollectionsInFolders(['/work/api']));
+      store.dispatch(openCollectionModal('recents'));
+      search.resolve(pickedCollection);
+      await searching;
+
+      expect(openMultipleCollections).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents' });
     });
 
     it('shows the collections found inside a folder', async () => {
@@ -601,13 +636,19 @@ describe('open collection modal actions', () => {
   });
 
   describe('openCollectionsFromModal', () => {
-    it('keeps the modal open and counts the failures when nothing opened', async () => {
-      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+    it('keeps the modal open and says why in one toast when nothing opened', async () => {
+      openingReturns(Promise.resolve({
+        opened: [],
+        failed: [{ path: '/work/api', error: 'Unable to parse opencollection.yml: Nested mappings are not allowed\n\n  name: a: b\n' }],
+        invalid: []
+      }));
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       await store.dispatch(openCollectionsFromModal(['/work/api']));
 
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse opencollection.yml: Nested mappings are not allowed');
       expect(modalState(store)).toMatchObject({ isOpen: true, openingId: null });
     });
 
@@ -618,8 +659,18 @@ describe('open collection modal actions', () => {
       await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
 
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(toast.error).toHaveBeenCalledWith('Failed to open gone. The folder doesn’t exist anymore.');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('counts the failures in one toast when several collections fail to open', async () => {
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: ['/work/gone'] }));
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
     });
 
     it('opens the collections once even when asked twice', () => {
@@ -633,38 +684,22 @@ describe('open collection modal actions', () => {
       expect(modalState(store).openingId).toEqual(expect.any(String));
     });
 
-    it('leaves a modal opened again in the meantime alone', async () => {
+    it('stays open while collections are opening, so they cannot be opened a second time', async () => {
       const opening = deferred();
       openingReturns(opening.promise);
       const { store } = createStore({ modal: openOn('choose-folder') });
 
       const result = store.dispatch(openCollectionsFromModal(['/work/api']));
       store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal('recents'));
+      store.dispatch(openCollectionsFromModal(['/work/api']));
+
+      expect(modalState(store)).toMatchObject({ isOpen: true, openingId: expect.any(String) });
+      expect(openMultipleCollections).toHaveBeenCalledTimes(1);
+
       opening.resolve({ opened: ['/work/api'], failed: [], invalid: [] });
       await result;
 
-      expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents', openingId: null });
-    });
-
-    it('lets an opening from before a close finish without ending the next one', async () => {
-      const firstOpening = deferred();
-      const secondOpening = deferred();
-      openMultipleCollections
-        .mockReturnValueOnce(() => firstOpening.promise)
-        .mockReturnValueOnce(() => secondOpening.promise);
-      const { store } = createStore({ modal: openOn('choose-folder') });
-
-      const first = store.dispatch(openCollectionsFromModal(['/work/api']));
-      store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal('choose-folder'));
-      store.dispatch(openCollectionsFromModal(['/work/billing']));
-      const { openingId } = modalState(store);
-      firstOpening.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: [] });
-      await first;
-
-      expect(modalState(store)).toMatchObject({ isOpen: true, openingId });
+      expect(modalState(store)).toMatchObject({ isOpen: false, openingId: null });
     });
 
     it('shows an error when opening fails', async () => {
@@ -679,20 +714,26 @@ describe('open collection modal actions', () => {
   });
 
   describe('saveAutoOpenFolderPicker', () => {
-    it('shows the new setting at once and saves only that setting', async () => {
+    beforeEach(() => {
+      window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined) };
+    });
+
+    afterEach(() => {
+      delete window.ipcRenderer;
+    });
+
+    it('shows the new setting at once and saves it with the other preferences', async () => {
       const { store } = createStore({ preferences: { general: { defaultLocation: '/collections' } } });
 
       await store.dispatch(saveAutoOpenFolderPicker(false));
 
-      expect(store.getState().app.preferences).toEqual({
-        general: { defaultLocation: '/collections' },
-        openCollection: { autoOpenFolderPicker: false }
-      });
-      expect(callIpc).toHaveBeenCalledWith('renderer:save-auto-open-folder-picker', false);
+      const updated = { general: { defaultLocation: '/collections' }, openCollection: { autoOpenFolderPicker: false } };
+      expect(store.getState().app.preferences).toEqual(updated);
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:save-preferences', updated);
     });
 
     it('puts the setting back and says so when saving fails', async () => {
-      callIpc.mockRejectedValue(new Error('disk full'));
+      window.ipcRenderer.invoke.mockRejectedValue(new Error('disk full'));
       const preferences = { openCollection: { autoOpenFolderPicker: true } };
       const { store } = createStore({ preferences });
 
@@ -704,7 +745,7 @@ describe('open collection modal actions', () => {
 
     it('keeps newer preferences when an older save fails', async () => {
       const save = deferred();
-      callIpc.mockReturnValue(save.promise);
+      window.ipcRenderer.invoke.mockReturnValue(save.promise);
       const { store } = createStore();
 
       const saving = store.dispatch(saveAutoOpenFolderPicker(false));

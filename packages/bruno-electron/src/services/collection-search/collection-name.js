@@ -1,47 +1,44 @@
+const fs = require('node:fs/promises');
 const path = require('node:path');
-const yaml = require('js-yaml');
-const { readFileStart } = require('./read-file-start');
+const { parseCollection } = require('@usebruno/filestore');
+const { validateSchema } = require('../../app/collections');
 
-const NAME_BYTES = 16 * 1024;
+const MAX_CONFIG_BYTES = 1024 * 1024;
 
-const parseYamlValue = (value) => {
-  const trimmed = value.trim();
+const CONFIG_FILES = [
+  { name: 'opencollection.yml', parse: (text) => parseCollection(text, { format: 'yml' }).brunoConfig },
+  { name: 'bruno.json', parse: JSON.parse }
+];
+
+const findConfigFile = async (collectionPath) => {
+  for (const configFile of CONFIG_FILES) {
+    const filePath = path.join(collectionPath, configFile.name);
+    const stats = await fs.stat(filePath).catch(() => null);
+    if (stats) {
+      return { ...configFile, filePath, stats };
+    }
+  }
+  throw new Error(`No collection config in ${collectionPath}`);
+};
+
+const readCollectionConfig = async (collectionPath) => {
+  const folderName = path.basename(collectionPath);
   try {
-    const parsed = yaml.load(`value: ${trimmed}`).value;
-    return typeof parsed === 'string' ? parsed : trimmed;
+    const { filePath, stats, parse } = await findConfigFile(collectionPath);
+    if (!stats.isFile()) {
+      return { name: folderName, isBroken: true };
+    }
+    if (stats.size > MAX_CONFIG_BYTES) {
+      return { name: folderName, isBroken: false };
+    }
+    const config = parse(await fs.readFile(filePath, 'utf8'));
+    await validateSchema(config);
+    return { name: String(config.name), isBroken: false };
   } catch (error) {
-    return trimmed;
+    return { name: folderName, isBroken: true };
   }
-};
-
-const nameFromOpenCollectionYml = (text) => {
-  const infoBlock = text.match(/^info:\s*\n((?:[ \t]+.*\n?)+)/m);
-  const infoName = infoBlock && infoBlock[1].match(/^[ \t]+name:(.+)$/m);
-  if (infoName) {
-    return parseYamlValue(infoName[1]);
-  }
-  const topLevelName = text.match(/^name:(.+)$/m);
-  return topLevelName ? parseYamlValue(topLevelName[1]) : null;
-};
-
-const nameFromBrunoJson = (text) => {
-  try {
-    const config = JSON.parse(text);
-    return config && typeof config.name === 'string' && config.name.trim() ? config.name.trim() : null;
-  } catch (error) {
-    const match = text.match(/"name"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-    return match ? match[1] : null;
-  }
-};
-
-const readCollectionName = async (collectionPath) => {
-  const ymlText = await readFileStart(path.join(collectionPath, 'opencollection.yml'), NAME_BYTES);
-  const name = ymlText
-    ? nameFromOpenCollectionYml(ymlText.replace(/\r\n?/g, '\n'))
-    : nameFromBrunoJson(await readFileStart(path.join(collectionPath, 'bruno.json'), NAME_BYTES));
-  return name || path.basename(collectionPath);
 };
 
 module.exports = {
-  readCollectionName
+  readCollectionConfig
 };

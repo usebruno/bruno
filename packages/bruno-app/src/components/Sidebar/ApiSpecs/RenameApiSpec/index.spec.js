@@ -15,8 +15,8 @@ jest.mock('providers/ReduxStore/slices/apiSpec', () => ({
   renameApiSpec: jest.fn()
 }));
 
-jest.mock('components/Modal', () => ({ children, title, handleConfirm, confirmDisabled }) => (
-  <div>
+jest.mock('components/Modal', () => ({ children, size, title, handleConfirm, confirmDisabled }) => (
+  <div data-testid="modal" data-size={size}>
     <h1>{title}</h1>
     {children}
     <button type="button" onClick={handleConfirm} disabled={confirmDisabled}>confirm</button>
@@ -50,6 +50,12 @@ describe('the dialog for renaming an API spec', () => {
 
     expect(screen.getByText('Rename API Spec')).toBeInTheDocument();
     expect(nameInput).toHaveValue('Petstore');
+  });
+
+  it('uses the same modal size as Rename Collection', () => {
+    renderModal();
+
+    expect(screen.getByTestId('modal')).toHaveAttribute('data-size', 'md');
   });
 
   it('renames to the trimmed name, then confirms and closes', async () => {

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { setTimeout } = require('node:timers/promises');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
@@ -53,10 +54,14 @@ const printRunSummary = (results) => {
     results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
   );
 
+  const totalTests = summary.totalTests + summary.totalPreRequestTests + summary.totalPostResponseTests;
+  const passedTests = summary.passedTests + summary.passedPreRequestTests + summary.passedPostResponseTests;
+  const failedTests = summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests;
+
   const hasFailures
     = summary.failedRequests > 0
       || summary.failedAssertions > 0
-      || summary.failedTests > 0
+      || failedTests > 0
       || (summary.errorRequests || 0) > 0;
 
   const status = hasFailures
@@ -64,7 +69,7 @@ const printRunSummary = (results) => {
     : chalk.green.bold('✓ PASS');
 
   const requests = formatRequestsCellFromSummary(summary);
-  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const tests = `${passedTests}/${totalTests}`;
   const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
   const headers = [chalk.bold('Metric'), chalk.bold('Result')];
@@ -825,9 +830,22 @@ const handler = async function (argv) {
       });
     };
 
+    const runStartTime = new Date().toISOString();
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let isFirstRequest = true;
+    const isValidDelay = !Number.isNaN(delay) && delay > 0;
     while (currentRequestIndex < requestItems.length) {
+      if (!isFirstRequest && isValidDelay && !runAbortSignal.aborted) {
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
+        await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => {});
+      }
+
+      if (!isFirstRequest && Number.isNaN(delay)) {
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      isFirstRequest = false;
+
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
 
@@ -847,17 +865,6 @@ const handler = async function (argv) {
         persistPaths,
         runAbortSignal
       );
-
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if (isValidDelay && !isLastRun) {
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if (Number.isNaN(delay) && !isLastRun) {
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
 
       results.push({
         ...result,
@@ -971,7 +978,7 @@ const handler = async function (argv) {
       const reporters = {
         json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         junit: (path) => makeJUnitOutput(results, path),
-        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
+        html: (path) => makeHtmlOutput(outputJson, path, { runStartTime, runCompletionTime, environment: environmentName })
       };
 
       for (const formatter of Object.keys(formats)) {

@@ -8,6 +8,7 @@ import {
   isVariableSecret,
   getAvailableAddToScopes,
   getGlobalEnvironmentVariablesMasked,
+  getGlobalEnvironmentName,
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
   getEnvironmentVariables,
@@ -19,7 +20,8 @@ import {
   isCollectionItemCollapsed,
   getVariableNamesWithScope,
   getWorkspaceCollections,
-  getTreePathFromCollectionToItem
+  getTreePathFromCollectionToItem,
+  getCloneDisplayName
 } from './index';
 import * as platformUtils from 'utils/common/platform';
 
@@ -553,6 +555,29 @@ describe('getGlobalEnvironmentVariablesMasked', () => {
 
   it('returns an empty array when there is no active global environment', () => {
     expect(getGlobalEnvironmentVariablesMasked({ globalEnvironments: [], activeGlobalEnvironmentUid: null })).toEqual([]);
+  });
+});
+
+describe('getGlobalEnvironmentName', () => {
+  const globalEnvironments = [
+    { uid: 'genv-1', name: 'Production', variables: [] },
+    { uid: 'genv-2', name: 'Staging', variables: [] }
+  ];
+
+  it('returns the name of the active global environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-2' })).toBe('Staging');
+  });
+
+  it('returns undefined when no global environment is active', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: null })).toBeUndefined();
+  });
+
+  it('returns undefined when the active uid matches no environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-9' })).toBeUndefined();
+  });
+
+  it('returns undefined when there are no global environments', () => {
+    expect(getGlobalEnvironmentName({ activeGlobalEnvironmentUid: 'genv-1' })).toBeUndefined();
   });
 });
 
@@ -1201,5 +1226,51 @@ describe('getTreePathFromCollectionToItem', () => {
     expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
     expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
     expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
+  });
+});
+
+describe('getCloneDisplayName', () => {
+  const collection = {
+    uid: 'c1',
+    items: [
+      { uid: 'req-1', name: 'login', type: 'http-request' },
+      { uid: 'req-2', name: 'login copy', type: 'http-request' },
+      {
+        uid: 'folder-1',
+        name: 'Users',
+        type: 'folder',
+        items: [
+          { uid: 'nested-1', name: 'profile', type: 'http-request' },
+          { uid: 'nested-2', name: 'profile copy', type: 'http-request' }
+        ]
+      }
+    ]
+  };
+
+  it('takes the next free slot among root-level siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[0])).toBe('login copy 2');
+  });
+
+  it('gives a clone of a copy the same base name as a clone of the original', () => {
+    expect(getCloneDisplayName(collection, collection.items[1])).toBe('login copy 2');
+  });
+
+  it('scopes the counter to the item\'s own folder', () => {
+    const nested = collection.items[2].items[0];
+    expect(getCloneDisplayName(collection, nested)).toBe('profile copy 2');
+  });
+
+  it('counts folders and requests alike as siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[2])).toBe('Users copy');
+  });
+
+  it('ignores copies of the same name outside the item\'s folder', () => {
+    const collectionWithRootCopy = {
+      ...collection,
+      items: [...collection.items, { uid: 'req-3', name: 'profile copy 2', type: 'http-request' }]
+    };
+    const nested = collectionWithRootCopy.items[2].items[0];
+
+    expect(getCloneDisplayName(collectionWithRootCopy, nested)).toBe('profile copy 2');
   });
 });

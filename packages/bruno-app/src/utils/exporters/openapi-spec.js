@@ -156,6 +156,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
     return parts[tagIndex];
   };
 
+  const sanitizeId = (name) => {
+    if (!name) return '';
+    return name
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  };
+
   const componentIds = new Set();
 
   const getComponentId = (item) => {
@@ -312,9 +320,14 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           }))
       ];
 
+      const pathParts = item?.pathname?.split(/[\\/]/).filter((part) => part && part.trim()) || [];
+      const operationId = pathParts.length > 0
+        ? sanitizeId(pathParts.join('_').toLowerCase())
+        : sanitizeId(item?.name?.toLowerCase() || '');
+
       const pathBody = {
         summary: item?.name,
-        operationId: item?.name,
+        operationId: operationId,
         description: '',
         tags: [extractTagFromDepth(item)],
         responses: {

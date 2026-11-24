@@ -1,0 +1,8 @@
+{
+  "collections": [
+    {
+      "pathname": "{{projectRoot}}/e2e/tests/snapshots/environment/fixtures/collection",
+      "selectedEnvironment": "local"
+    }
+  ]
+}

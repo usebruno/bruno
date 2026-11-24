@@ -5,9 +5,16 @@ import { countEndpoints } from '../utils';
 import moment from 'moment';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
+import StatusBadge from 'ui/StatusBadge';
 import Help from 'components/Help';
+import { requestNameSourceLabels } from 'components/Sidebar/ImportSettings/RequestNameSourceOption';
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+
+const authPlacementInfo = {
+  collection: 'Authentication is set at the collection level and inherited by each request.',
+  request: 'Authentication is set separately on each request.'
+};
 
 const SUMMARY_CARDS = [
   {
@@ -51,6 +58,8 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
   const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
   const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
+  const requestNameSource = openApiSyncConfig?.requestNameSource;
+  const authPlacement = openApiSyncConfig?.authPlacement;
 
   // Endpoint Summary counts
   // Total: from collection items in Redux; In Sync: from remote spec comparison
@@ -89,10 +98,37 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const details = [
     { label: 'Spec Version', value: version ? `v${version}` : '–' },
     { label: 'Endpoints in Spec', value: endpointCount != null ? endpointCount : '–' },
-    { label: 'Last Synced At', value: lastSyncDate ? moment(lastSyncDate).fromNow() : '–', tooltip: lastSyncDate ? moment(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined },
+    {
+      label: 'Last Synced At',
+      value: lastSyncDate ? moment(lastSyncDate).fromNow() : '–',
+      tooltip: lastSyncDate ? moment(lastSyncDate).format('MMMM D, YYYY [at] h:mm A') : undefined,
+      headerExtra: (
+        <StatusBadge
+          radius="full"
+          rightSection={(
+            <Help icon="info" size={11} placement="left" width={220}>
+              {autoCheckEnabled
+                ? `Bruno checks the spec for changes every ${autoCheckInterval} minutes. You can change this in Edit connection settings.`
+                : 'Bruno does not check the spec for changes on its own. Use Check for updates, or turn it on in Edit connection settings.'}
+            </Help>
+          )}
+        >
+          {autoCheckEnabled ? `Auto-check every ${autoCheckInterval} min` : 'Auto-check off'}
+        </StatusBadge>
+      )
+    },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
-    { label: 'Auto Check for Updates', value: autoCheckEnabled ? `Every ${autoCheckInterval} min` : 'Disabled' }
-  ];
+    requestNameSource && {
+      label: 'Request Naming',
+      labelTooltip: 'Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.',
+      value: requestNameSourceLabels[requestNameSource] || requestNameSource
+    },
+    authPlacement && {
+      label: 'Auth Placement',
+      value: capitalize(authPlacement),
+      tooltip: authPlacementInfo[authPlacement]
+    }
+  ].filter(Boolean);
 
   const hasCollectionChanges = changedInCollection > 0;
   const hasSpecUpdates = specUpdatesPending > 0;
@@ -232,9 +268,17 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
 
       <h4 className="overview-section-title mt-7">Last Synced Spec Details</h4>
       <div className="spec-details-grid">
-        {details.map(({ label, value, tooltip }) => (
+        {details.map(({ label, labelTooltip, headerExtra, value, tooltip }) => (
           <div className="spec-detail-item" key={label}>
-            <div className="spec-detail-label">{label}</div>
+            <div className="spec-detail-header">
+              <div className="spec-detail-label">
+                {label}
+                {labelTooltip && (
+                  <Help icon="info" size={11} placement="top" width={220}>{labelTooltip}</Help>
+                )}
+              </div>
+              {headerExtra}
+            </div>
             <div className="spec-detail-value">
               {value}
               {tooltip && (

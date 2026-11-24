@@ -15,7 +15,7 @@ const {
 const COLLECTION_FIXTURE_DIR = path.resolve(
   __dirname,
   '..', '..', '..', '..',
-  'tests', 'environments', 'api-setEnvVar-secret', 'fixtures', 'collections', 'yml'
+  'e2e', 'tests', 'environments', 'api-setEnvVar-secret', 'fixtures', 'collections', 'yml'
 );
 
 const RUN_TIMEOUT = 60_000;

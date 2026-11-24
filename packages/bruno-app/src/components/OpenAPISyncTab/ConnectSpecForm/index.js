@@ -42,7 +42,9 @@ const ConnectSpecForm = ({ sourceUrl, setSourceUrl, isLoading, error, setError, 
         <OpenAPISyncIcon size={56} className="setup-icon" data-testid="openapi-connect-icon" />
         <h2 className="setup-title">Connect to OpenAPI Spec</h2>
         <p className="setup-description">
-          Keep your collection synchronized with an OpenAPI specification. Changes in the spec will be detected automatically.
+          Keep your collection synchronized with an OpenAPI specification.
+          <br />
+          Changes in the spec will be detected automatically.
         </p>
       </div>
 

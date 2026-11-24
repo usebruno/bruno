@@ -1,4 +1,5 @@
 import { IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import { focusNextTabbable } from '../../utils/focus';
 import StyledWrapper from './StyledWrapper';
 
@@ -27,15 +28,16 @@ const Note = ({ tone, children, action, onDismiss }) => {
           {action.label}
         </button>
       ) : null}
-      <button
+      <ActionIcon
         type="button"
+        size="sm"
         className="note-dismiss"
         aria-label="Dismiss"
         onClick={dismiss}
         data-testid="open-collection-note-dismiss"
       >
         <IconX size={11} strokeWidth={2.2} />
-      </button>
+      </ActionIcon>
     </StyledWrapper>
   );
 };
