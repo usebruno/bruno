@@ -24,6 +24,9 @@ const config = {
   ],
   files: ['**/*'],
   afterSign: 'notarize.js',
+  toolsets: {
+    appimage: '1.0.3'
+  },
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
@@ -99,7 +102,7 @@ const config = {
       'libatspi2.0-0',
       'libuuid1',
       'libsecret-1-0',
-      'libasound2' // #1036
+      'libasound2 | libasound2t64' // https://github.com/electron-userland/electron-builder/issues/9539
     ]
   },
   // Bundle git so Snap/sandbox installs can find it (#5667)
