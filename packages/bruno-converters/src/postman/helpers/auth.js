@@ -41,7 +41,8 @@ const toOAuth2AdditionalParams = (params) => (Array.isArray(params) ? params : [
 
 const toBrunoOAuth2 = (values) => {
   const valueOf = (key) => ensureString(values[key]);
-  const postmanGrantType = valueOf('grant_type');
+  // Postman omits `grant_type` until it is explicitly picked, leaving its default: authorization code.
+  const postmanGrantType = valueOf('grant_type') || 'authorization_code';
   const grantType = OAUTH2_GRANT_TYPES[postmanGrantType] || 'client_credentials';
 
   const additionalParameters = {};

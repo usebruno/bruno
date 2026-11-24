@@ -59,6 +59,24 @@ describe('toBrunoAuth', () => {
     });
   });
 
+  it('falls back to the oauth2 authorization code grant when grant_type is absent', () => {
+    const auth = toBrunoAuth('oauth2', {
+      authUrl: 'https://auth.example.com/authorize',
+      redirect_uri: 'https://app.example.com/callback',
+      accessTokenUrl: 'https://auth.example.com/token',
+      clientId: 'client-id'
+    });
+
+    expect(auth.oauth2).toMatchObject({
+      grantType: 'authorization_code',
+      authorizationUrl: 'https://auth.example.com/authorize',
+      callbackUrl: 'https://app.example.com/callback',
+      pkce: false,
+      accessTokenUrl: 'https://auth.example.com/token',
+      clientId: 'client-id'
+    });
+  });
+
   it('maps oauth2 request params to additional parameters', () => {
     const auth = toBrunoAuth('oauth2', {
       grant_type: 'client_credentials',
