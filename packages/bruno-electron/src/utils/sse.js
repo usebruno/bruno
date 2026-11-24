@@ -30,7 +30,7 @@ const createSseEventExtractor = () => {
       }
 
       const events = [];
-      let boundaryEnd = -1;
+      let boundaryEnd;
       do {
         let eventEnd = -1;
         boundaryEnd = -1;
