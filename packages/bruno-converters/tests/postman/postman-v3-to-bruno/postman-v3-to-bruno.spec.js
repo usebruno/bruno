@@ -374,6 +374,17 @@ describe('postmanToBruno with a v3 collection', () => {
     expect(collection.items.map((item) => item.name)).toEqual(['Same', 'Same_1', 'Same']);
   });
 
+  it('de-duplicates sibling names that differ only by case', async () => {
+    const { collection } = await postmanToBruno(makeV3Collection([
+      makeV3Folder('API', [makeV3Request('Get', { url: 'https://example.com/upper' })]),
+      makeV3Folder('api', [makeV3Request('Get', { url: 'https://example.com/lower' })])
+    ]));
+
+    expect(collection.items.map((item) => item.name)).toEqual(['API', 'api_1']);
+    expect(collection.items[0].items[0].request.url).toBe('https://example.com/upper');
+    expect(collection.items[1].items[0].request.url).toBe('https://example.com/lower');
+  });
+
   it('skips unsupported and malformed items and imports the rest', async () => {
     const grpcItem = { $kind: 'grpc-request', name: 'Greeter', url: 'localhost:50051' };
     const graphqlItem = {

@@ -57,12 +57,12 @@ export const createUniqueNamer = () => {
     let name = baseName;
     let count = 1;
 
-    while (takenNames.has(name)) {
+    while (takenNames.has(name.toLowerCase())) {
       name = `${baseName}_${count}`;
       count++;
     }
 
-    takenNames.add(name);
+    takenNames.add(name.toLowerCase());
     return name;
   };
 };

@@ -201,7 +201,7 @@ export const isSupportedAuthType = (type) => Object.hasOwn(AUTH_MAPPERS, type);
 
 // Unsupported types yield `mode: 'none'`; check `isSupportedAuthType` first to report them.
 export const toBrunoAuth = (type, values = {}) => {
-  const mapper = AUTH_MAPPERS[type];
+  const mapper = isSupportedAuthType(type) ? AUTH_MAPPERS[type] : null;
   return {
     ...emptyAuth('none'),
     ...(mapper ? mapper(values) : {})
