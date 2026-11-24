@@ -406,6 +406,16 @@ describe('CloneGitRepository branch loading', () => {
       expect(screen.getByText('Orders API')).toBeInTheDocument();
     });
 
+    it('shows the skipped paths warning below the collection list', async () => {
+      renderFlow({ initialUrl: API_URL });
+      await cloneAndScan({ collections: [ORDERS], skippedPaths: [BROKEN_PATH] });
+
+      const list = screen.getByTestId('selection-list');
+      const warning = screen.getByText('1 collections were skipped because their config could not be read.');
+
+      expect(list.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('shows only the skipped paths and the no-collections message when every collection was skipped', async () => {
       renderFlow({ initialUrl: API_URL });
       await cloneAndScan({ collections: [], skippedPaths: [BROKEN_PATH] });

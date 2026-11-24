@@ -455,7 +455,6 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
               )}
               {isScanCompleted() && (
                 <div className={classnames('w-full min-w-0 flex flex-col gap-3', { 'flex-1 min-h-0': isInline })}>
-                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                   {collectionPaths.length === 0 && (
                     <div className="scan-warning flex items-start gap-2">
                       <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />
@@ -479,6 +478,7 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
                       fillHeight={isInline}
                     />
                   )}
+                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                 </div>
               )}
             </>
