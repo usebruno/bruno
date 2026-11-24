@@ -53,19 +53,15 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
     await expect(gql.queryBuilder()).toBeVisible();
     await loadGraphqlSchemaFromIntrospection(page);
 
-    await test.step('Verify the schema loaded', async () => {
+    await test.step('Verify that the schema loaded', async () => {
       await expect(gql.schemaLoadedToast()).toBeVisible();
       await expect(gql.queryBuilderTree()).toBeVisible();
     });
 
-    await test.step('Verify the schema includes the company operation', async () => {
+    await test.step('Verify the schema fields', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
-    });
-
-    await expandGraphqlSchemaField(page, 'Query.company');
-
-    await test.step('Verify the company fields', async () => {
+      await expandGraphqlSchemaField(page, 'Query.company');
       for (const fieldName of SCHEMA_FIELDS) {
         await expect(gql.field(`Query.company.${fieldName}`)).toBeVisible();
       }
@@ -92,7 +88,8 @@ test.describe('GraphQL introspection with interpolated OAuth 2.0 auth', () => {
     await selectGraphqlRequestTab(page, 'query');
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
-    await test.step('Verify the schema includes the company operation', async () => {
+
+    await test.step('Verify the schema fields', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
     });
@@ -119,7 +116,7 @@ test.describe('GraphQL introspection with interpolated Digest auth', () => {
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
 
-    await test.step('Verify the schema includes the company operation', async () => {
+    await test.step('Verify the schema fields', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
     });
@@ -145,7 +142,7 @@ test.describe('GraphQL introspection with interpolated Bearer Token auth', () =>
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
 
-    await test.step('Verify the schema includes the company operation', async () => {
+    await test.step('Verify the schema fields', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
     });
@@ -172,7 +169,7 @@ test.describe('GraphQL introspection with interpolated Basic auth', () => {
     await openGraphqlQueryBuilder(page);
     await loadGraphqlSchemaFromIntrospection(page);
 
-    await test.step('Verify the schema includes the company operation', async () => {
+    await test.step('Verify the schema fields', async () => {
       await expect(gql.rootType()).toContainText('Query');
       await expect(gql.fieldName()).toContainText('company');
     });
