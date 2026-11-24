@@ -1,6 +1,7 @@
 import { test, expect } from '../../../playwright';
 import {
   buildRequestSendLocators,
+  buildResponseLocators,
   closeAllCollections,
   closeAllTabs,
   createCollection,
@@ -83,6 +84,8 @@ test.describe('Repeat on Interval', () => {
       await startRepeatOnInterval(page, intervalMs / 1000);
       // The first send is immediate
       await expect.poll(() => hits - startHits, { timeout: 10000 }).toBeGreaterThanOrEqual(1);
+      // The next tick is armed once that send settles, so let it reach the response pane before closing
+      await expect(buildResponseLocators(page).statusCode()).toContainText('200');
     });
 
     await test.step('Closing the tab stops the repetition at once', async () => {
@@ -95,7 +98,6 @@ test.describe('Repeat on Interval', () => {
       // Only a check made before the next tick proves the schedule ended on close, not on that tick
       expect(Date.now() - startedAt).toBeLessThan(intervalMs);
 
-      // The next tick is armed only once the first send settles, around the time the tab closes.
       // No locator can observe a request that must not happen: wait a full interval past the close
       await page.waitForTimeout(closedAt + intervalMs + 1500 - Date.now());
       expect(hits).toBe(hitsAtClose);
