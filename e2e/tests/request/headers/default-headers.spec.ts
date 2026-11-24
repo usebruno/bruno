@@ -319,6 +319,11 @@ test('TC-6200: Verify Headers tab hides Bruno default headers until Show Additio
   const { request } = buildCommonLocators(page);
   const headers = request.headers;
   const collectionTempDir = await createTmpDir(collectionName);
+  const expectDefaultRowsHidden = async () => {
+    for (const name of DEFAULT_HEADERS) {
+      await expect(headers.defaultRow(name)).not.toBeVisible();
+    }
+  };
 
   await test.step('Open the request and show the Headers tab', async () => {
     await createCollection(page, collectionName, collectionTempDir);
@@ -327,6 +332,7 @@ test('TC-6200: Verify Headers tab hides Bruno default headers until Show Additio
 
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
+    await expectDefaultRowsHidden();
     await expect(headers.addRow()).toBeVisible();
     await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
   });
@@ -336,6 +342,7 @@ test('TC-6200: Verify Headers tab hides Bruno default headers until Show Additio
     await selectRequestPaneTab(page, 'Headers');
 
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
+    await expectDefaultRowsHidden();
     await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
   });
 
@@ -375,6 +382,7 @@ test('TC-6200: Verify Headers tab hides Bruno default headers until Show Additio
     await headers.toggleInherited().click();
     await expect(headers.inheritedSectionRow()).not.toBeVisible();
     await expect(headers.requestSectionRow()).not.toBeVisible();
+    await expectDefaultRowsHidden();
     await expect(headers.toggleInherited()).toHaveText(`Show Additional Headers (${DEFAULT_HEADERS.length})`);
 
     await headers.toggleInherited().click();
@@ -402,7 +410,7 @@ test('TC-6201: Verify default headers list shows User-Agent, Accept, Accept-Enco
   });
 
   await test.step('List exactly the five default headers', async () => {
-    await expect(page.getByTestId(/^default-header-row-/)).toHaveCount(DEFAULT_HEADERS.length);
+    await expect(headers.defaultRows()).toHaveCount(DEFAULT_HEADERS.length);
     for (const name of DEFAULT_HEADERS) {
       await expect(headers.defaultRow(name)).toBeVisible();
     }
@@ -449,12 +457,12 @@ test('TC-6201: Verify default headers list shows User-Agent, Accept, Accept-Enco
 
   await test.step('Display derived placeholder when request URL contains unresolved host variable', async () => {
     await fillRequestUrl(page, '{{host}}/path', { replace: true });
+    await expect(request.urlLine()).toContainText('{{host}}/path');
     await expect(headers.defaultRow('Host')).toContainText('<derived from request URL>');
   });
 });
 
 test('TC-6202: Verify unchecked default headers are not included in the HTTP request, while Host is always sent', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-  test.setTimeout(60_000);
   const collectionName = 'default-headers-tc-6202';
   const { request, timeline, timelineHeaders } = buildCommonLocators(page);
   const headers = request.headers;
@@ -482,6 +490,7 @@ test('TC-6202: Verify unchecked default headers are not included in the HTTP req
     await headers.defaultCheckbox('Accept').check();
     await headers.defaultCheckbox('User-Agent').uncheck();
     await sendRequest(page, 200);
+    await expect.poll(async () => readResponsePreviewBody(page)).toMatch(/"accept"\s*:/i);
 
     const body = await readResponsePreviewBody(page);
     expect(body).not.toMatch(/"user-agent"\s*:/i);
@@ -493,6 +502,7 @@ test('TC-6202: Verify unchecked default headers are not included in the HTTP req
     await headers.defaultCheckbox('User-Agent').check();
     await headers.defaultCheckbox('Accept-Encoding').uncheck();
     await sendRequest(page, 200);
+    await expect.poll(async () => readResponsePreviewBody(page)).toMatch(/"user-agent"\s*:/i);
 
     const body = await readResponsePreviewBody(page);
     expect(body).not.toMatch(/"accept-encoding"\s*:/i);
@@ -505,6 +515,12 @@ test('TC-6202: Verify unchecked default headers are not included in the HTTP req
     await headers.defaultCheckbox('Accept-Encoding').check();
     await headers.defaultCheckbox('Connection').uncheck();
     await sendRequest(page, 200);
+    await expect.poll(async () => readResponsePreviewBody(page)).toMatch(/"accept-encoding"\s*:/i);
+
+    const body = await readResponsePreviewBody(page);
+    expect(body).not.toMatch(/"connection"\s*:/i);
+    expect(body).toMatch(/"host"\s*:/i);
+
     await selectResponsePaneTab(page, 'Timeline');
     await timeline.itemHeader(timeline.items().first()).click();
 
@@ -534,7 +550,6 @@ test('TC-6202: Verify unchecked default headers are not included in the HTTP req
 });
 
 test('TC-6203: Verify the headers sent in the HTTP request match exactly what the Headers tab shows', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-  test.setTimeout(60_000);
   const collectionName = 'default-headers-tc-6203';
   const { request, timeline, timelineHeaders } = buildCommonLocators(page);
   const headers = request.headers;
@@ -577,28 +592,34 @@ test('TC-6203: Verify the headers sent in the HTTP request match exactly what th
     }
   });
 
-  await test.step('Send and confirm the echo body matches the enabled headers', async () => {
-    await sendRequest(page, 200);
-    const body = await readResponsePreviewBody(page);
+  // Values as the Headers tab shows them (lower-case names, like the echo). Host shows a placeholder, so it comes from the URL.
+  const expectedHeaders = {
+    'x-test': 'qa-123',
+    'user-agent': await headers.defaultValueText('User-Agent').innerText(),
+    'accept-encoding': await headers.defaultValueText('Accept-Encoding').innerText(),
+    'connection': await headers.defaultValueText('Connection').innerText(),
+    'host': new URL(ECHO_HEADERS_URL).host
+  };
 
-    expect(body).toMatch(/"x-test"\s*:\s*"qa-123"/i);
-    expect(body).toMatch(/"user-agent"\s*:/i);
-    expect(body).toMatch(/"accept-encoding"\s*:/i);
-    expect(body).toMatch(/"host"\s*:/i);
-    expect(body).not.toMatch(/"accept"\s*:/i);
+  await test.step('Send and confirm the echo body matches the enabled headers and their values', async () => {
+    await sendRequest(page, 200);
+
+    for (const [name, value] of Object.entries(expectedHeaders)) {
+      await expect.poll(() => readResponsePreviewBody(page)).toContain(`"${name}": "${value}"`);
+    }
+    // Accept was unchecked, so the server must not have received it
+    await expect.poll(() => readResponsePreviewBody(page)).not.toContain('"accept":');
   });
 
-  await test.step('Confirm Timeline request headers match the Headers tab list', async () => {
+  await test.step('Confirm Timeline request headers match the same headers and values', async () => {
     await selectResponsePaneTab(page, 'Timeline');
     await timeline.itemHeader(timeline.items().first()).click();
     await expect(timelineHeaders.table()).toBeVisible();
 
-    const sentNames = (await timelineHeaders.headerLines())
-      .map((line) => line.split(':')[0].trim().toLowerCase())
-      .sort();
-
-    expect(sentNames).toEqual(['accept-encoding', 'connection', 'host', 'user-agent', 'x-test']);
-    await expect(timelineHeaders.value('X-Test')).toHaveText('qa-123');
+    await expect(timelineHeaders.rows()).toHaveCount(Object.keys(expectedHeaders).length);
+    for (const [name, value] of Object.entries(expectedHeaders)) {
+      await expect(timelineHeaders.value(name)).toHaveText(value);
+    }
   });
 
   await test.step('Replace the default User-Agent with a request header', async () => {
@@ -623,7 +644,6 @@ test('TC-6203: Verify the headers sent in the HTTP request match exactly what th
 });
 
 test('TC-6204: Verify Timeline shows only Host when all omittable default headers are unchecked', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
-  test.setTimeout(60_000);
   const collectionName = 'default-headers-tc-6204';
   const { request, timeline, timelineHeaders } = buildCommonLocators(page);
   const headers = request.headers;
@@ -689,13 +709,13 @@ test('TC-6204: Verify Timeline shows only Host when all omittable default header
     await fillRequestHeaderValue(page, headers.requestRow('X-Test'), 'qa-123');
     await sendRequest(page, 200);
     await selectResponsePaneTab(page, 'Timeline');
-    await timeline.itemHeader(timeline.items().nth(1)).click();
-    await timeline.itemHeader(timeline.items().first()).click();
+    const latestItem = timeline.items().first();
+    await timeline.itemHeader(latestItem).click();
 
-    expect(await sentHeaderNames()).toEqual(['host', 'x-test']);
-    await expect(timelineHeaders.value('X-Test')).toHaveText('qa-123');
+    await expect(timeline.headerValue(latestItem, 'X-Test')).toHaveText('qa-123');
+    await expect(timeline.headerRow(latestItem, 'Host')).toHaveCount(1);
     for (const name of omittableHeaders) {
-      await expect(timelineHeaders.row(name)).toHaveCount(0);
+      await expect(timeline.headerRow(latestItem, name)).toHaveCount(0);
     }
   });
 });
