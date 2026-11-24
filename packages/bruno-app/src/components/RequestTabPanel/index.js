@@ -17,6 +17,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
+import StartPage from 'components/StartPage';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import FileEditor from 'components/FileEditor';
@@ -72,6 +73,7 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector(selectActiveTabUid);
   const focusedTab = useSelector(selectActiveTab);
   const preferences = useSelector((state) => state.app.preferences);
+  const snapshotReady = useSelector((state) => state.app.snapshotReady);
   const activeWorkspace = useSelector(selectActiveWorkspace);
   const resolvedMockServerInstance = useSelector((state) => {
     if (!focusedTab || (focusedTab.type !== 'mock-server' && focusedTab.type !== 'mock-response')) {
@@ -404,6 +406,10 @@ const RequestTabPanel = () => {
 
   if (typeof window === 'undefined') {
     return <div></div>;
+  }
+
+  if (!activeTabUid && snapshotReady) {
+    return activeWorkspace ? <StartPage workspace={activeWorkspace} /> : null;
   }
 
   if (!activeTabUid || !focusedTab) {

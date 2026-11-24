@@ -614,6 +614,15 @@ const getWorkspaceCollections = (workspacePath) => {
   return resolveAndFilterWorkspaceCollections(workspacePath, config.collections);
 };
 
+const getWorkspaceCollectionPathsInsideFolder = (workspacePath) => {
+  return getWorkspaceCollections(workspacePath)
+    .map((collection) => collection.path)
+    .filter((collectionPath) => {
+      const relative = collectionPath ? path.relative(workspacePath, collectionPath) : '..';
+      return !relative.startsWith('..') && !path.isAbsolute(relative);
+    });
+};
+
 const getUnopenableWorkspaceCollections = (workspacePath) => {
   const config = readWorkspaceConfig(workspacePath);
 
@@ -784,6 +793,7 @@ module.exports = {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getWorkspaceCollectionPathsInsideFolder,
   getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   getWorkspaceApiSpecs,

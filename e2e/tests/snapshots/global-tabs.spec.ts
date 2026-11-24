@@ -6,6 +6,7 @@ import {
   createEnvironment,
   buildCommonLocators
 } from '../../pages';
+import { openWorkspaceEnvironmentsTab } from '../../pages/environment/environment';
 import { waitForReadyPage } from '../../utils';
 
 test.describe('Snapshot: Global Tab Restoration', () => {
@@ -62,9 +63,9 @@ test.describe('Snapshot: Global Tab Restoration', () => {
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    await test.step('Switch to workspace environments tab', async () => {
+    await test.step('Open the workspace environments tab', async () => {
       const locators = buildCommonLocators(page);
-      await locators.tabs.requestTab('Environments').click();
+      await openWorkspaceEnvironmentsTab(page);
       await expect(locators.tabs.activeRequestTab()).toContainText('Environments');
     });
 

@@ -26,6 +26,7 @@ const {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getWorkspaceCollectionPathsInsideFolder,
   getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
@@ -270,6 +271,17 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  const detachCollection = async (collectionPath) => {
+    const { generateUidBasedOnHash } = require('../utils/common');
+    const collectionUid = generateUidBasedOnHash(collectionPath);
+    const collectionWatcher = require('../app/collection-watcher');
+    collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+    await require('./mount').unmount(collectionUid).catch(() => {});
+    require('./mount').clearCollectionIndex(collectionPath);
+    require('../store/bruno-config').clearBrunoConfig(collectionUid);
+    require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+  };
+
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
       lastOpenedWorkspaces.remove(workspacePath);
@@ -283,6 +295,24 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     } catch (error) {
       throw error;
     }
+  });
+
+  ipcMain.handle('renderer:delete-workspace', async (event, workspacePath) => {
+    validateWorkspacePath(workspacePath);
+    if (getWorkspaceUid(workspacePath) === defaultWorkspaceManager.getDefaultWorkspaceUid()) {
+      throw new Error('Cannot delete the default workspace');
+    }
+
+    // Stop watching the collections stored inside the folder before their files disappear
+    for (const collectionPath of getWorkspaceCollectionPathsInsideFolder(workspacePath)) {
+      await detachCollection(collectionPath);
+    }
+    if (workspaceWatcher) {
+      workspaceWatcher.removeWatcher(workspacePath);
+    }
+
+    await fsExtra.remove(workspacePath);
+    return { success: true };
   });
 
   ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
@@ -561,17 +591,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
       if (result.removedCollection) {
-        // Detach and clear every cache keyed by this collection's (deterministic, path-derived)
-        // uid — otherwise re-adding the same folder later resurfaces a stale mount/config/uid
-        // cache instead of loading it fresh.
-        const { generateUidBasedOnHash } = require('../utils/common');
-        const collectionUid = generateUidBasedOnHash(collectionPath);
-        const collectionWatcher = require('../app/collection-watcher');
-        collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-        await require('./mount').unmount(collectionUid).catch(() => {});
-        require('./mount').clearCollectionIndex(collectionPath);
-        require('../store/bruno-config').clearBrunoConfig(collectionUid);
-        require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+        await detachCollection(collectionPath);
       }
 
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {

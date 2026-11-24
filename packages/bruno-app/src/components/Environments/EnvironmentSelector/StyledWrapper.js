@@ -89,6 +89,15 @@ const Wrapper = styled.div`
     }
   }
 
+  .tab-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-bottom: 0.375rem;
+    color: ${(props) => props.theme.text};
+    font-size: ${(props) => props.theme.font.size.sm};
+  }
+
   .tab-button {
     color: ${(props) => props.theme.colors.text.subtext0};
     font-size: ${(props) => props.theme.font.size.sm};

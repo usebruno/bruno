@@ -166,3 +166,27 @@ describe('API spec tabs', () => {
     expect(state.sidebarRevealRequest).toEqual({ uid: 'req-1', requestedAt: 200 });
   });
 });
+
+describe('closeTabs fallback', () => {
+  const base = (tabs, activeTabUid) => ({ tabs, activeTabUid, recentlyClosedTabs: [] });
+
+  it('shows the start page instead of a tab from another collection', () => {
+    const state = base([
+      { uid: 'hidden', collectionUid: OTHER_COLLECTION_UID, type: 'collection-settings' },
+      { uid: 'req-1', collectionUid: COLLECTION_UID, type: 'http-request' }
+    ], 'req-1');
+
+    expect(reducer(state, closeTabs({ tabUids: ['req-1'] })).activeTabUid).toBeNull();
+  });
+
+  it('prefers a sibling tab, then the workspace overview', () => {
+    const tabs = [
+      { uid: 'scratch-overview', collectionUid: 'scratch', type: 'workspaceOverview' },
+      { uid: 'req-1', collectionUid: COLLECTION_UID, type: 'http-request' },
+      { uid: 'req-2', collectionUid: COLLECTION_UID, type: 'http-request' }
+    ];
+
+    expect(reducer(base(tabs, 'req-2'), closeTabs({ tabUids: ['req-2'] })).activeTabUid).toBe('req-1');
+    expect(reducer(base(tabs, 'req-2'), closeTabs({ tabUids: ['req-1', 'req-2'] })).activeTabUid).toBe('scratch-overview');
+  });
+});

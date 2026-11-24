@@ -16,6 +16,7 @@ export const buildRequestTabsLocators = (page: Page) => ({
   collectionSettingsTab: () =>
     page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
   activeRequestTab: () => page.locator('.request-tab.active'),
+  workspaceTab: (type: 'workspaceOverview' | 'workspaceEnvironments') => page.getByTestId(`request-tab-${type}`),
   leftChevron: () => page.getByLabel('Left Chevron'),
   scrollContainer: () => page.locator('.tabs-scroll-container'),
   activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),

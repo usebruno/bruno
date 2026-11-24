@@ -13,6 +13,7 @@ let closeWorkspaceAction;
 let workspacesReducer;
 let removeWorkspace;
 let removeCollection;
+let closeTabs;
 
 beforeAll(() => {
   window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(true) };
@@ -21,6 +22,7 @@ beforeAll(() => {
   workspacesReducer = workspacesModule.default;
   ({ removeWorkspace } = workspacesModule);
   ({ removeCollection } = require('providers/ReduxStore/slices/collections'));
+  ({ closeTabs } = require('providers/ReduxStore/slices/tabs'));
 });
 
 beforeEach(() => {
@@ -29,7 +31,7 @@ beforeEach(() => {
 
 const typeOf = (actionCreator) => actionCreator({}).type;
 
-const run = async ({ closing, activeWorkspaceUid }) => {
+const run = async ({ closing, activeWorkspaceUid, options, collections = [], tabs = [] }) => {
   let workspaces = { activeWorkspaceUid, workspaces: [DEFAULT_WORKSPACE, closing] };
 
   const dispatched = [];
@@ -45,9 +47,9 @@ const run = async ({ closing, activeWorkspaceUid }) => {
     }
     return action;
   });
-  const getState = jest.fn(() => ({ workspaces }));
+  const getState = jest.fn(() => ({ workspaces, collections: { collections }, tabs: { tabs } }));
 
-  await closeWorkspaceAction(closing.uid)(dispatch, getState);
+  await closeWorkspaceAction(closing.uid, options)(dispatch, getState);
 
   return { dispatch, dispatched, thunks, finalWorkspaces: () => workspaces };
 };
@@ -110,5 +112,42 @@ describe('closeWorkspaceAction', () => {
 
     await expect(closeWorkspaceAction('missing')(dispatch, getState)).rejects.toThrow('Workspace not found');
     expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('closeWorkspaceAction with deleteFiles', () => {
+  const closing = { uid: 'ws-1', name: 'Team WS', type: 'local', pathname: '/team', scratchCollectionUid: 'scratch-1' };
+  const invokedChannels = () => window.ipcRenderer.invoke.mock.calls.map(([channel]) => channel);
+
+  it('deletes the workspace folder before closing the workspace', async () => {
+    await run({ closing, activeWorkspaceUid: 'ws-1', options: { deleteFiles: true } });
+
+    expect(invokedChannels()).toEqual(['renderer:delete-workspace', 'renderer:close-workspace']);
+  });
+
+  it('keeps the workspace open when deleting its folder fails', async () => {
+    window.ipcRenderer.invoke.mockRejectedValueOnce(new Error('EBUSY: resource busy'));
+
+    await expect(run({ closing, activeWorkspaceUid: 'ws-1', options: { deleteFiles: true } })).rejects.toThrow('EBUSY');
+    expect(invokedChannels()).toEqual(['renderer:delete-workspace']);
+  });
+
+  it('removes only the collections and tabs stored inside the deleted folder', async () => {
+    const collections = [
+      { uid: 'inner', pathname: '/team/collections/api' },
+      { uid: 'outside', pathname: '/elsewhere/legacy' },
+      { uid: 'sibling', pathname: '/team-2/api' }
+    ];
+    const tabs = [
+      { uid: 'inner-tab', collectionUid: 'inner' },
+      { uid: 'outside-tab', collectionUid: 'outside' }
+    ];
+    const { dispatch, dispatched } = await run({ closing, activeWorkspaceUid: 'ws-1', options: { deleteFiles: true }, collections, tabs });
+
+    expect(dispatch).toHaveBeenCalledWith(closeTabs({ tabUids: ['inner-tab'], reopenable: false }));
+    expect(dispatch).toHaveBeenCalledWith(removeCollection({ collectionUid: 'inner' }));
+    const removedUids = dispatched.filter((a) => a?.type === typeOf(removeCollection)).map((a) => a.payload.collectionUid);
+    expect(removedUids).not.toContain('outside');
+    expect(removedUids).not.toContain('sibling');
   });
 });

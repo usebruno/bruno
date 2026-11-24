@@ -11,8 +11,6 @@ import { normalizeMockTabType } from 'utils/mock-server/mock-tab-type';
 
 const MAX_RECENTLY_CLOSED_TABS = 50;
 
-export const NON_CLOSABLE_TAB_TYPES = ['workspaceOverview', 'workspaceEnvironments'];
-
 const ensureTabUid = (tab) => {
   if (!tab.uid) {
     tab.uid = uuid();
@@ -228,6 +226,9 @@ export const tabsSlice = createSlice({
         state.activeTabUid = uid;
       }
     },
+    clearActiveTab: (state) => {
+      state.activeTabUid = null;
+    },
     switchTab: (state, action) => {
       if (!state.tabs || !state.tabs.length) {
         state.activeTabUid = null;
@@ -441,7 +442,7 @@ export const tabsSlice = createSlice({
       // Exclude transient requests — they have no persisted file and can't be reopened
       // reopenable: false marks tabs closed because what they showed is gone
       const closedTabs = action.payload.reopenable === false ? [] : state.tabs.filter((t) =>
-        tabUids.includes(t.uid) && !NON_CLOSABLE_TAB_TYPES.includes(t.type) && !t.isTransient
+        tabUids.includes(t.uid) && !t.isTransient
       );
       if (closedTabs.length > 0) {
         state.recentlyClosedTabs.push(...closedTabs);
@@ -451,9 +452,7 @@ export const tabsSlice = createSlice({
         }
       }
 
-      state.tabs = filter(state.tabs, (t) =>
-        !tabUids.includes(t.uid) || NON_CLOSABLE_TAB_TYPES.includes(t.type)
-      );
+      state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
@@ -466,12 +465,13 @@ export const tabsSlice = createSlice({
           const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
 
           // if there are sibling tabs, set the active tab to the last sibling tab
-          // otherwise, set the active tab to the last tab in the list
+          // otherwise the workspace overview if open, else no active tab (start page) —
+          // never another collection's tab, which the tab bar isn't showing
           if (siblingTabs && siblingTabs.length) {
             state.activeTabUid = last(siblingTabs).uid;
           } else {
             const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
-            state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
+            state.activeTabUid = overviewTab ? overviewTab.uid : null;
           }
         }
       }
@@ -491,7 +491,7 @@ export const tabsSlice = createSlice({
           state.activeTabUid = null;
         } else {
           const overviewTab = find(state.tabs, (t) => t.type === 'workspaceOverview');
-          state.activeTabUid = overviewTab ? overviewTab.uid : last(state.tabs).uid;
+          state.activeTabUid = overviewTab ? overviewTab.uid : null;
         }
       }
     },
@@ -631,7 +631,7 @@ export const tabsSlice = createSlice({
         }
       });
 
-      if (!state.activeTabUid) {
+      if (!state.activeTabUid && activeTabWasInCollection) {
         state.activeTabUid = state.tabs.find((t) => t.collectionUid === collectionUid)?.uid || null;
       }
     },
@@ -677,6 +677,7 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  clearActiveTab,
   switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTabHeight,

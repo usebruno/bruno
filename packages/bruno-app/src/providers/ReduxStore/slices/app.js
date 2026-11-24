@@ -121,6 +121,7 @@ const initialState = {
       secrets: { query: '', expanded: false }
     }
   },
+  isImportingCollection: false,
   isCreatingCollection: false,
   isOpeningCollection: false
 };
@@ -269,6 +270,9 @@ export const appSlice = createSlice({
       if (!state.envVarSearch[context]?.[tab]) return;
       state.envVarSearch[context][tab].expanded = expanded;
     },
+    setIsImportingCollection: (state, action) => {
+      state.isImportingCollection = action.payload;
+    },
     setIsCreatingCollection: (state, action) => {
       state.isCreatingCollection = action.payload;
     },
@@ -322,6 +326,7 @@ export const {
   setClipboard,
   setEnvVarSearchQuery,
   setEnvVarSearchExpanded,
+  setIsImportingCollection,
   setIsCreatingCollection,
   setIsOpeningCollection
 } = appSlice.actions;

@@ -752,7 +752,7 @@ test.describe('Create Workspace', () => {
 
       await test.step('Rename existing workspace - cog should NOT be visible', async () => {
         // Use workspace actions dropdown to start rename
-        const actionsIcon = page.locator('.workspace-actions-trigger');
+        const actionsIcon = page.getByTestId('workspace-actions-trigger');
         await actionsIcon.click();
         await page.locator('.dropdown-item').filter({ hasText: 'Rename' }).click();
 

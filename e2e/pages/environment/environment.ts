@@ -1,4 +1,4 @@
-import { Page, test } from '../../playwright';
+import { Page, test, expect } from '../../playwright';
 import { buildCollectionHeaderLocators } from '../collection/header';
 
 export type EnvironmentScope = 'collection' | 'global';
@@ -346,11 +346,26 @@ export const selectNoEnvironment = async (page: Page) => {
 
 /**
  * Opens the workspace-level Environments tab, which edits global-scoped environments.
+ * The workspace header's environment selector offers Configure once an environment exists;
+ * with none, its Create dialog opens the tab after creating one (named by `firstEnvironmentName`).
  * @param page - The page object
+ * @param firstEnvironmentName - Name for the environment created when the workspace has none
  */
-export const openWorkspaceEnvironmentsTab = async (page: Page) => {
+export const openWorkspaceEnvironmentsTab = async (page: Page, firstEnvironmentName = 'Default') => {
   await test.step('Open the workspace Environments tab', async () => {
-    await buildEnvironmentLocators(page).workspaceEnvTab().click();
+    const locators = buildEnvironmentLocators(page);
+    await page.locator('.home-button').click();
+    await page.getByTestId('collection-header').getByTestId('environment-selector-trigger').click();
+
+    const configureButton = page.getByTestId('configure-env');
+    await expect(configureButton.or(locators.createEnvButton())).toBeVisible();
+    if (await configureButton.isVisible()) {
+      await configureButton.click();
+    } else {
+      await locators.createEnvButton().click();
+      await locators.createModalNameInput().fill(firstEnvironmentName);
+      await locators.createModalCreateButton().click();
+    }
     await page
       .locator('.request-tab.active')
       .locator('.tab-label')

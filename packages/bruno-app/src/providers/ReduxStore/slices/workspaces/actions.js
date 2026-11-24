@@ -700,11 +700,8 @@ export const switchWorkspace = (workspaceUid) => {
       let requestedWorkspaceTabType = null;
       let requestedApiSpecTabUid = null;
 
-      // Add workspace tabs
+      // Restore workspace tabs
       if (scratchCollection?.uid) {
-        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
-        dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
-
         const workspaceApiSpecPathsByKey = new Map(
           (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])
             .map((apiSpec) => normalizePath(apiSpec?.path))
@@ -1146,7 +1143,7 @@ export const renameWorkspaceAction = (workspaceUid, newName) => {
   };
 };
 
-export const closeWorkspaceAction = (workspaceUid) => {
+export const closeWorkspaceAction = (workspaceUid, { deleteFiles = false } = {}) => {
   return async (dispatch, getState) => {
     try {
       const { workspaces } = getState().workspaces;
@@ -1154,6 +1151,16 @@ export const closeWorkspaceAction = (workspaceUid) => {
 
       if (!workspace) {
         throw new Error('Workspace not found');
+      }
+
+      let innerCollectionUids = new Set();
+      if (deleteFiles) {
+        const workspaceFolder = `${normalizePath(workspace.pathname)}/`;
+        innerCollectionUids = new Set(getState().collections.collections
+          .filter((c) => normalizePath(c.pathname).startsWith(workspaceFolder))
+          .map((c) => c.uid));
+
+        await ipcRenderer.invoke('renderer:delete-workspace', workspace.pathname);
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
@@ -1171,8 +1178,19 @@ export const closeWorkspaceAction = (workspaceUid) => {
           await dispatch(switchWorkspace(defaultWorkspace.uid));
         }
       }
+
+      if (deleteFiles) {
+        const innerTabUids = getState().tabs.tabs.filter((t) => innerCollectionUids.has(t.collectionUid)).map((t) => t.uid);
+        if (innerTabUids.length) {
+          dispatch(closeTabs({ tabUids: innerTabUids, reopenable: false }));
+        }
+        innerCollectionUids.forEach((collectionUid) => {
+          dispatch(removeCollection({ collectionUid }));
+          dispatch(clearCollectionState({ collectionUid }));
+        });
+      }
     } catch (error) {
-      toast.error(error.message || 'Failed to close workspace');
+      toast.error(error.message || (deleteFiles ? 'Failed to delete workspace' : 'Failed to close workspace'));
       throw error;
     }
   };

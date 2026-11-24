@@ -1,6 +1,4 @@
-import filter from 'lodash/filter';
 import find from 'lodash/find';
-import last from 'lodash/last';
 import { normalizePath } from 'utils/common/path';
 
 /**
@@ -31,7 +29,7 @@ export function getWorkspaceCollectionUids(state, workspace) {
 
 /**
  * Returns the tab to focus so the active tab is in the current workspace, or null if no change needed.
- * Returns { uid } or { uid, addOverviewFirst: true, scratchCollectionUid }.
+ * Returns { uid } — the workspace overview's uid, or null when nothing should be focused (start page).
  */
 export function getTabToFocusForCurrentWorkspace(state) {
   const activeTabUid = state.tabs?.activeTabUid;
@@ -52,19 +50,8 @@ export function getTabToFocusForCurrentWorkspace(state) {
   if (workspaceCollectionUids.has(activeTab.collectionUid)) {
     return null;
   }
-  const inWorkspaceTabs = filter(state.tabs.tabs, (t) => workspaceCollectionUids.has(t.collectionUid));
-  if (inWorkspaceTabs.length > 0) {
-    const overviewTab = inWorkspaceTabs.find((t) => t.type === 'workspaceOverview');
-    return { uid: (overviewTab || last(inWorkspaceTabs)).uid };
-  }
-  const scratchCollectionUid = activeWorkspace.scratchCollectionUid;
-  if (!scratchCollectionUid) {
-    return null; // No tabs in current workspace and no scratch; cannot focus a valid tab.
-  }
-  const overviewTabUid = `${scratchCollectionUid}-overview`;
-  const overviewTabExists = state.tabs.tabs.some((t) => t.uid === overviewTabUid);
-  if (overviewTabExists) {
-    return { uid: overviewTabUid };
-  }
-  return { uid: overviewTabUid, addOverviewFirst: true, scratchCollectionUid };
+  // Prefer this workspace's overview; otherwise fall through to "no tab" (start page) rather than
+  // focusing another collection's tab that the tab bar isn't showing.
+  const overviewTab = find(state.tabs.tabs, (t) => t.type === 'workspaceOverview' && workspaceCollectionUids.has(t.collectionUid));
+  return { uid: overviewTab ? overviewTab.uid : null };
 }

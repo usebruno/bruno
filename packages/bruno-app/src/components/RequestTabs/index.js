@@ -122,14 +122,12 @@ const RequestTabs = () => {
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}
-      {collectionRequestTabs && collectionRequestTabs.length ? (
+      {activeCollection && collectionRequestTabs.length ? (
         <>
-          {activeCollection && (
-            <CollectionHeader
-              collection={activeCollection}
-              isScratchCollection={isScratchCollection}
-            />
-          )}
+          <CollectionHeader
+            collection={activeCollection}
+            isScratchCollection={isScratchCollection}
+          />
           <div className="flex items-center gap-2 pl-2" ref={collectionTabsRef}>
             <div className={classnames('scroll-chevrons', { hidden: !showChevrons })}>
               <ActionIcon size="lg" onClick={leftSlide} aria-label="Left Chevron" style={{ marginBottom: '3px' }}>

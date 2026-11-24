@@ -354,6 +354,57 @@ describe('getUnopenableWorkspaceCollections', () => {
   });
 });
 
+describe('getWorkspaceCollectionPathsInsideFolder', () => {
+  const { getWorkspaceCollectionPathsInsideFolder } = require('../../src/utils/workspace-config');
+
+  let rootPath;
+  let workspacePath;
+
+  const makeCollection = (dir) => {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'bruno.json'), JSON.stringify({ name: 'x', version: '1', type: 'collection' }));
+  };
+
+  const writeYml = (collectionPaths) => {
+    const lines = ['opencollection: 1.0.0', 'info:', '  name: "Test"', '  type: workspace', 'collections:'];
+    collectionPaths.forEach((collectionPath, index) => {
+      lines.push(`  - name: "c${index}"`);
+      lines.push(`    path: "${collectionPath}"`);
+    });
+    lines.push('specs: []');
+    lines.push('docs: \'\'');
+    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), lines.join('\n'));
+  };
+
+  beforeEach(() => {
+    rootPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-ws-inside-'));
+    workspacePath = path.join(rootPath, 'ws');
+    fs.mkdirSync(workspacePath);
+  });
+
+  afterEach(() => {
+    fs.rmSync(rootPath, { recursive: true, force: true });
+  });
+
+  it('returns only the collections stored inside the workspace folder', () => {
+    const inside = path.join(workspacePath, 'collections', 'api');
+    const outside = path.join(rootPath, 'elsewhere', 'legacy');
+    makeCollection(inside);
+    makeCollection(outside);
+    writeYml(['collections/api', outside]);
+
+    expect(getWorkspaceCollectionPathsInsideFolder(workspacePath)).toEqual([inside]);
+  });
+
+  it('does not treat a sibling folder that shares the name prefix as inside', () => {
+    const sibling = path.join(rootPath, 'ws-other', 'api');
+    makeCollection(sibling);
+    writeYml([sibling]);
+
+    expect(getWorkspaceCollectionPathsInsideFolder(workspacePath)).toEqual([]);
+  });
+});
+
 describe('workspace specs normalization', () => {
   const {
     readWorkspaceConfig,

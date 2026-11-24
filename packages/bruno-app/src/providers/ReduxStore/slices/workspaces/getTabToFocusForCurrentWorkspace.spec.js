@@ -68,10 +68,9 @@ describe('getTabToFocusForCurrentWorkspace', () => {
     const result = getTabToFocusForCurrentWorkspace(state);
     expect(result).not.toBeNull();
     expect(result.uid).toBe('scratch-b-overview');
-    expect(result.addOverviewFirst).toBeUndefined();
   });
 
-  it('returns last in-workspace tab when multiple request tabs exist in current workspace', () => {
+  it('returns no tab (start page) rather than another collection\'s tab when the overview is closed', () => {
     const state = buildState({
       tabs: {
         activeTabUid: 'req-a',
@@ -83,11 +82,10 @@ describe('getTabToFocusForCurrentWorkspace', () => {
       }
     });
     const result = getTabToFocusForCurrentWorkspace(state);
-    expect(result).not.toBeNull();
-    expect(result.uid).toBe('req-b2');
+    expect(result).toEqual({ uid: null });
   });
 
-  it('treats active tab with no collectionUid as not in workspace and returns in-workspace tab', () => {
+  it('treats active tab with no collectionUid as not in workspace', () => {
     const state = buildState({
       tabs: {
         activeTabUid: 'malformed',
@@ -98,11 +96,10 @@ describe('getTabToFocusForCurrentWorkspace', () => {
       }
     });
     const result = getTabToFocusForCurrentWorkspace(state);
-    expect(result).not.toBeNull();
-    expect(result.uid).toBe('req-b');
+    expect(result).toEqual({ uid: null });
   });
 
-  it('returns overview with addOverviewFirst when no in-workspace tabs and overview missing', () => {
+  it('returns no tab (start page) when no in-workspace tabs and overview closed', () => {
     const state = buildState({
       tabs: {
         activeTabUid: 'req-a',
@@ -112,13 +109,10 @@ describe('getTabToFocusForCurrentWorkspace', () => {
       }
     });
     const result = getTabToFocusForCurrentWorkspace(state);
-    expect(result).not.toBeNull();
-    expect(result.uid).toBe('scratch-b-overview');
-    expect(result.addOverviewFirst).toBe(true);
-    expect(result.scratchCollectionUid).toBe('scratch-b');
+    expect(result).toEqual({ uid: null });
   });
 
-  it('returns null when no in-workspace tabs and no scratch', () => {
+  it('returns no tab (start page) when no in-workspace tabs and no scratch', () => {
     const wsBNoScratch = {
       uid: 'workspace-b',
       scratchCollectionUid: null,
@@ -137,6 +131,6 @@ describe('getTabToFocusForCurrentWorkspace', () => {
         tabs: [{ uid: 'req-a', collectionUid: 'col-a' }]
       }
     });
-    expect(getTabToFocusForCurrentWorkspace(state)).toBeNull();
+    expect(getTabToFocusForCurrentWorkspace(state)).toEqual({ uid: null });
   });
 });

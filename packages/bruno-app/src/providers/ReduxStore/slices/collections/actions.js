@@ -88,7 +88,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, clearActiveTab, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -3769,20 +3769,17 @@ export const revealTabInSidebar = (tabUid) => (dispatch, getState) => {
 };
 
 /**
- * If the current active tab belongs to another workspace, focus a tab in the current workspace.
+ * If the current active tab belongs to another workspace, focus this workspace's Overview, or show the start page.
  */
 export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
   const state = getState();
   const result = getTabToFocusForCurrentWorkspace(state);
   if (!result) {
-    return; // Already in workspace, no active workspace, or unfixable (no workspace tabs and no scratch).
+    return; // Already in workspace, or no active workspace.
   }
-  if (result.addOverviewFirst && result.scratchCollectionUid) {
-    dispatch(addTab({
-      uid: result.uid,
-      collectionUid: result.scratchCollectionUid,
-      type: 'workspaceOverview'
-    }));
+  if (!result.uid) {
+    dispatch(clearActiveTab());
+    return;
   }
   dispatch(focusTab({ uid: result.uid }));
 };
@@ -3829,7 +3826,7 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // would rewrite scroll position to localStorage right after we cleared it.
   each(tabUids, (tabUid) => clearPersistedScope(tabUid));
 
-  // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: prefer any open in-workspace tab, then workspace overview if none.
+  // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: its overview if open, else the start page.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
   await dispatch(ensureActiveTabInCurrentWorkspace());
 

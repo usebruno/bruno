@@ -11,6 +11,10 @@ export const buildCollectionHeaderLocators = (page: Page) => {
     overflowMenu: () => collectionHeader.getByTestId('more-actions'),
     overflowMenuItem: (itemId: string) => page.getByTestId(`more-actions-${itemId}`),
     envSelectorTrigger: () => collectionHeader.getByTestId('environment-selector-trigger'),
+    actions: () => collectionHeader.getByTestId('collection-header-actions'),
+    envSelectorGlobalTitle: () => page.getByTestId('env-title-global'),
+    workspaceActionsTrigger: () => collectionHeader.getByTestId('collection-header-actions').getByTestId('workspace-actions-trigger'),
+    workspaceActionsItem: (itemId: string) => page.getByTestId(`workspace-actions-${itemId}`),
     openApiSync: () => collectionHeader.getByRole('button', { name: 'OpenAPI', exact: true })
   };
 };

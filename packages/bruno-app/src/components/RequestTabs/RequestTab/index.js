@@ -261,7 +261,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       } else {
         dispatch(closeTabs({ tabUids: [tab.uid] }));
       }
-    } else if (tab.type === 'global-environment-settings') {
+    } else if (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') {
       if (globalEnvironmentDraft) {
         setShowConfirmGlobalEnvironmentClose(true);
       } else {
@@ -489,7 +489,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
             }}
           />
         )}
-        {showConfirmGlobalEnvironmentClose && tab.type === 'global-environment-settings' && (
+        {showConfirmGlobalEnvironmentClose && (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') && (
           <ConfirmCloseEnvironment
             isGlobal={true}
             isDotEnv={globalEnvironmentDraft?.environmentUid?.startsWith('dotenv:')}
@@ -568,9 +568,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ) : tab.type === 'global-environment-settings' ? (
           <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : tab.type === 'workspaceOverview' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
         ) : tab.type === 'workspaceEnvironments' ? (
-          <SpecialTab handleCloseClick={null} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
+          <SpecialTab handleCloseClick={handleCloseGlobalEnvironmentSettings} type={tab.type} hasDraft={hasGlobalEnvironmentDraft} />
         ) : tab.type === 'mock-server' ? (
           <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={tab.tabName} />
         ) : tab.type === 'api-spec' ? (
