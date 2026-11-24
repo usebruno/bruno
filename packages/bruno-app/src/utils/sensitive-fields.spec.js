@@ -472,11 +472,20 @@ describe('environment table usage flags', () => {
   it('does not flag a secret environment variable, and flags a non-secret environment variable that wins over a collection variable', () => {
     const secretVariable = tokenVariable('secret-token', { secret: true, value: '' });
     const plainVariable = tokenVariable('plain-token');
+    const keychainSecretVariable = tokenVariable('keychain-secret', {
+      value: '@keychain.getUser:(developer::Bruno::0123456789abcdef).secret'
+    });
     const collection = collectionWithEnvVariables(requestWithAuthValue('auth.bearer.token', '{{token}}'), [secretVariable]);
     collection.root.request.vars = { req: [plain('token', 'COLLECTION_PLAINTEXT')], res: [] };
 
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [secretVariable] })]).toEqual([]);
     expect([...findUsedEnvironmentVariableUids(collection, { uid: 'env-1', variables: [plainVariable] })]).toEqual(['plain-token']);
+
+    const keychainCollection = collectionWithEnvVariables(
+      requestWithAuthValue('auth.bearer.token', '{{token}}'),
+      [keychainSecretVariable]
+    );
+    expect([...findUsedEnvironmentVariableUids(keychainCollection, { uid: 'env-1', variables: [keychainSecretVariable] })]).toEqual([]);
   });
 
   it('does not flag the environment variable when a request or folder variable wins', () => {

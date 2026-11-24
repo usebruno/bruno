@@ -156,7 +156,7 @@ const buildGrpcRequest = async (item, collection, environment, runtimeVariables)
   const { headers, headerEntries } = buildHeaderEntries(get(request, 'headers', []).filter((h) => h.enabled));
 
   const processEnvVars = getProcessEnvVars(collection.uid);
-  const envVars = getEnvVars(environment);
+  const envVars = await getEnvVars(environment);
 
   let grpcRequest = {
     uid: item.uid,

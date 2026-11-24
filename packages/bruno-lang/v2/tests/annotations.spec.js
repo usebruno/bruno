@@ -1382,6 +1382,20 @@ vars:externalsecrets:my-vault {
   });
 });
 
+describe('Keychain expressions in environment variables', () => {
+  it('roundtrips the selected Keychain user and field as a variable value', () => {
+    const expression = '@keychain.getUser:(developer::Bruno%20API::0123456789abcdef).secret';
+    const input = `vars {
+  apiToken: ${expression}
+}
+`;
+
+    const parsed = envParser(input);
+    expect(parsed.variables.find((variable) => variable.name === 'apiToken').value).toBe(expression);
+    expect(jsonToEnv(parsed)).toEqual(input);
+  });
+});
+
 describe('collection pair annotations', () => {
   it('above-line annotation on a header (collection)', () => {
     const input = `headers {

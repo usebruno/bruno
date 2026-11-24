@@ -20,6 +20,8 @@ export const sendNetworkRequest = async (item, collection, environment, runtimeV
             duration: response.duration,
             timeline: response.timeline,
             stream: response.stream,
+            keychainRefreshAvailable: response.keychainRefreshAvailable,
+            keychainRefreshError: response.keychainRefreshError,
             requestSent: response.requestSent
           });
         })

@@ -144,8 +144,15 @@ export const findOverridingVariableScope = (variableName, { collection, item, ta
 };
 
 /** True when the winning row is a secret collection-environment or global-environment variable. */
+const KEYCHAIN_SECRET_EXPRESSION = /^@keychain\.getUser:\([^)]*\)\.secret$/;
+
+const variableProvidesSecret = (variable) => (
+  !!variable?.secret
+  || (typeof variable?.value === 'string' && KEYCHAIN_SECRET_EXPRESSION.test(variable.value))
+);
+
 const isSecretEnvironmentVariable = (resolved) => (
-  (resolved?.type === 'environment' || resolved?.type === 'global') && !!resolved.variable?.secret
+  (resolved?.type === 'environment' || resolved?.type === 'global') && variableProvidesSecret(resolved.variable)
 );
 
 /** True when the field has text outside {{name}}. */
@@ -273,7 +280,7 @@ const collectSentVariableUids = (collection, scopeType) => {
         scanContext
       });
       const row = resolved?.variable;
-      const isSentInThisScope = resolved?.type === scopeType && row?.uid && !row.secret;
+      const isSentInThisScope = resolved?.type === scopeType && row?.uid && !variableProvidesSecret(row);
       if (isSentInThisScope) {
         uids.add(row.uid);
       }

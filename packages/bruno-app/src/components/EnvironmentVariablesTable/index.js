@@ -8,7 +8,10 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconGripVertical,
-  IconMinusVertical
+  IconMinusVertical,
+  IconLink,
+  IconKey,
+  IconRefresh
 } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
@@ -41,6 +44,7 @@ import { useResizableColumns } from 'hooks/useResizableColumns';
 import ColumnSortHeader from 'components/EditableTable/ColumnSortHeader';
 import { useReconcileSavedEnvironment } from './useReconcileSavedEnvironment';
 import InheritedVariableRow from './InheritedVariableRow';
+import MacKeychainPicker from './MacKeychainPicker';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const MIN_H = 35 * 2;
@@ -147,34 +151,89 @@ const EnvVarValueCell = ({
   formik,
   handleRowFocus,
   handleSave,
-  renderSensitiveWarning
+  renderSensitiveWarning,
+  collectionPathname
 }) => {
   const editorRef = useRef(null);
   const [compact, setCompact] = useState(true);
+  const [keychainPickerRequest, setKeychainPickerRequest] = useState(0);
 
   const showAsSecret = variable.secret && !isLastEmptyRow;
+  const canUseKeychain = window.macOSKeychainAvailable && !!collectionPathname && !isLastEmptyRow;
+  const isKeychainLinked = typeof variable.value === 'string'
+    && /^@keychain\.getUser:\([^)]*::[^)]*::[a-f0-9]{16}\)\.(username|secret)$/.test(variable.value);
   const [masked, setMasked] = useState(showAsSecret);
 
   useEffect(() => {
     setMasked(showAsSecret);
   }, [showAsSecret]);
 
+  const handleKeychainRefresh = async () => {
+    try {
+      await window.ipcRenderer.invoke('renderer:refresh-keychain-expression', variable.value);
+      toast.success(variable.value.endsWith('.secret')
+        ? 'Keychain password refreshed in memory.'
+        : 'Keychain username link refreshed.');
+    } catch (error) {
+      toast.error(error.message || 'Unable to refresh the Keychain password.');
+    }
+  };
+
   return (
     <VarValueCell
       onCompactChange={setCompact}
-      trailingContent={showAsSecret ? (
-        <SecretEyeButton
-          masked={masked}
-          testId="secret-reveal-toggle"
-          onToggle={() => editorRef.current?.toggleVisibleSecret()}
-        />
+      trailingContent={showAsSecret || canUseKeychain ? (
+        <div className="flex items-center gap-1">
+          {showAsSecret ? (
+            <SecretEyeButton
+              masked={masked}
+              testId="secret-reveal-toggle"
+              onToggle={() => editorRef.current?.toggleVisibleSecret()}
+            />
+          ) : null}
+          {isKeychainLinked ? (
+            <span className="px-1 text-green-600" title="Linked to macOS Keychain" data-testid="keychain-linked-indicator">
+              <IconKey size={14} strokeWidth={1.5} />
+            </span>
+          ) : null}
+          {canUseKeychain && isKeychainLinked ? (
+            <button
+              type="button"
+              className="p-1 text-green-600 hover:text-green-800"
+              title="Refresh Keychain link"
+              aria-label="Refresh Keychain link"
+              data-testid="refresh-keychain-link"
+              onClick={handleKeychainRefresh}
+            >
+              <IconRefresh size={14} strokeWidth={1.5} />
+            </button>
+          ) : null}
+          {canUseKeychain ? (
+            <button
+              type="button"
+              className={`p-1 hover:text-blue-600${isKeychainLinked ? ' text-green-600' : ' text-gray-500'}`}
+              title={isKeychainLinked ? 'Change Keychain link' : 'Link a Keychain value'}
+              aria-label={isKeychainLinked ? 'Change Keychain link' : 'Link a Keychain value'}
+              data-testid="open-keychain-picker"
+              onClick={() => setKeychainPickerRequest((request) => request + 1)}
+            >
+              <IconLink size={14} strokeWidth={1.5} />
+            </button>
+          ) : null}
+        </div>
       ) : null}
       editor={(
         <div
-          className="flex items-center"
+          className={`flex items-center${isKeychainLinked ? ' rounded bg-green-50 ring-1 ring-green-500/40 dark:bg-green-900/20' : ''}`}
           onFocus={() => handleRowFocus(variable.uid)}
         >
           {renderSensitiveWarning && renderSensitiveWarning(variable)}
+          {canUseKeychain ? (
+            <MacKeychainPicker
+              openRequest={keychainPickerRequest}
+              onSelect={(expression) => formik.setFieldValue(`${actualIndex}.value`, expression, false)}
+            />
+          ) : null}
           <MultiLineEditor
             ref={editorRef}
             theme={storedTheme}
@@ -1133,6 +1192,7 @@ const EnvironmentVariablesTable = ({
                     handleRowFocus={handleRowFocus}
                     handleSave={handleSave}
                     renderSensitiveWarning={renderOwnSensitiveWarning}
+                    collectionPathname={collection?.pathname}
                   />
                 </td>
                 <td style={{ width: columnWidths.description }}>

@@ -33,7 +33,7 @@ const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseData
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars, refreshKeychainEnvironmentValues, getTreePathFromCollectionToItem, getEffectiveTagsByUid, mergeVars, sortByNameThenSequence } = require('../../utils/collection');
 const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, getOAuth2TokenUsingImplicitGrant, updateCollectionOauth2Credentials, clearOauth2CredentialsByCredentialsId } = require('../../utils/oauth2');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -396,7 +396,7 @@ const fetchGqlSchemaHandler = async (event, endpoint, environment, _request, col
     const resolvedRequest = cloneDeep(_request);
     // mergeVars modifies the request in place, but we'll assign it to ensure consistency
     mergeVars(collection, resolvedRequest, requestTreePath);
-    const envVars = getEnvVars(environment);
+    const envVars = await getEnvVars(environment);
 
     const globalEnvironmentVars = collection.globalEnvironmentVariables;
     const folderVars = resolvedRequest.folderVariables;
@@ -1387,9 +1387,16 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     let seq = 0;
     const collectionUid = collection.uid;
-    const envVars = getEnvVars(environment);
+    const envVars = await getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const response = await runRequest({ item, collection, envVars, processEnvVars, runtimeVariables, runInBackground: false });
+    if (response?.status === 401) {
+      try {
+        response.keychainRefreshAvailable = (await refreshKeychainEnvironmentValues(environment)) > 0;
+      } catch (error) {
+        response.keychainRefreshError = error.message;
+      }
+    }
     if (response.stream) {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
@@ -1464,7 +1471,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       scriptingConfig.cacheModules = false;
-      const envVars = getEnvVars(environment);
+      const envVars = await getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       let stopRunnerExecution = false;
       let currentAbortController;

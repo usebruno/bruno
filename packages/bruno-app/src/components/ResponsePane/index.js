@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import { IconRefresh } from '@tabler/icons';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -27,6 +28,7 @@ import WSMessagesList from './WsResponsePane/WSMessagesList';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { useSetAsVariable } from 'providers/SetAsVariable/context';
 import useResponsePaneErrors from 'hooks/useResponsePaneErrors';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 // Width threshold for expanded right-side action buttons
 const RIGHT_CONTENT_EXPANDED_WIDTH = 135;
@@ -243,6 +245,20 @@ const ResponsePane = ({ item, collection }) => {
   const rightContent = !isLoading ? (
     <div ref={rightContentRef} className="flex justify-end items-center right-side-container gap-3">
       {errorsIcon}
+      {response.keychainRefreshAvailable ? (
+        <button
+          type="button"
+          className="flex items-center gap-1 whitespace-nowrap text-sm text-green-700 hover:underline dark:text-green-400"
+          data-testid="retry-with-refreshed-keychain"
+          onClick={() => dispatch(sendRequest(item, collection.uid))}
+        >
+          <IconRefresh size={14} strokeWidth={1.5} />
+          Retry with refreshed Keychain
+        </button>
+      ) : null}
+      {response.keychainRefreshError ? (
+        <span className="text-xs text-red-600" title={response.keychainRefreshError}>Keychain refresh failed</span>
+      ) : null}
       {isResponseTabActive && item?.response && !(item.response?.stream ?? false) ? (
         <>
           {/* Result View Tabs (Visualizations + Response Format) */}

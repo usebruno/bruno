@@ -69,7 +69,7 @@ const prepareWsRequest = async (item, collection, environment, runtimeVariables,
     headers['Sec-WebSocket-Protocol'] = socketProtocols;
   }
 
-  const envVars = getEnvVars(environment);
+  const envVars = await getEnvVars(environment);
   const processEnvVars = getProcessEnvVars(collection.uid);
   const { promptVariables = {} } = collection;
 

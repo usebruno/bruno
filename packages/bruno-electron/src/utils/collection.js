@@ -1,4 +1,5 @@
 const { get, each, find, isString, filter } = require('lodash');
+const { getGenericPassword, refreshGenericPassword, validateGenericPasswordReference } = require('./macos-keychain');
 const fs = require('fs');
 const { getRequestUid, getExampleUid } = require('../cache/requestUids');
 const { uuid } = require('./common');
@@ -17,6 +18,65 @@ const { GRPC_SCRIPT_KEYS, getEffectiveTags, getFolderTags, getOwnTags, normalize
  * via the UI takes effect at request-execution time without requiring a save.
  */
 const resolveTypedValue = (v) => parseValueByDataType(v.value, v.dataType);
+
+const resolveKeychainUserExpression = async (value, { refresh = false } = {}) => {
+  if (typeof value !== 'string' || !value.startsWith('@keychain.getUser:')) {
+    return { matched: false };
+  }
+
+  const match = value.match(/^@keychain\.getUser:\(([^)]+)\)\.(username|secret)$/);
+  if (!match) {
+    throw new Error('Invalid Keychain expression. Use @keychain.getUser:(selected-user).username or .secret');
+  }
+
+  let account;
+  let service;
+  let keychainId;
+  try {
+    const referenceParts = match[1].split('::');
+    if (referenceParts.length !== 3) throw new Error('Invalid reference');
+    [account, service] = referenceParts.slice(0, 2).map(decodeURIComponent);
+    keychainId = referenceParts[2];
+  } catch {
+    throw new Error('Invalid Keychain user reference');
+  }
+
+  if (!service || !account || !/^[a-f0-9]{16}$/.test(keychainId)) {
+    throw new Error('Invalid Keychain user reference');
+  }
+
+  if (match[2] === 'username') {
+    if (refresh) await validateGenericPasswordReference({ service, account, keychainId });
+    return { matched: true, value: account };
+  }
+
+  return {
+    matched: true,
+    value: await (refresh ? refreshGenericPassword : getGenericPassword)({ service, account, keychainId })
+  };
+};
+
+const refreshKeychainUserExpression = async (value) => {
+  const result = await resolveKeychainUserExpression(value, { refresh: true });
+  if (!result.matched) {
+    throw new Error('A Keychain expression is required to refresh');
+  }
+  return true;
+};
+
+const refreshKeychainEnvironmentValues = async (environment = {}) => {
+  const variables = [...(environment?.inheritedVariables || []), ...(environment?.variables || [])];
+  let refreshedCount = 0;
+
+  for (const variable of variables) {
+    if (!variable.enabled || typeof variable.value !== 'string' || !variable.value.startsWith('@keychain.getUser:')) continue;
+    if (!variable.value.endsWith('.secret')) continue;
+    const result = await resolveKeychainUserExpression(variable.value, { refresh: true });
+    if (result.matched && variable.value.endsWith('.secret')) refreshedCount += 1;
+  }
+
+  return refreshedCount;
+};
 
 const FORMAT_CONFIG = {
   yml: { ext: '.yml', collectionFile: 'opencollection.yml', folderFile: 'folder.yml' },
@@ -821,7 +881,7 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
   return requests;
 };
 
-const getEnvVars = (environment = {}) => {
+const getEnvVars = async (environment = {}) => {
   const variables = [...(environment?.inheritedVariables || []), ...(environment?.variables || [])];
   if (!variables.length) {
     return {
@@ -832,9 +892,12 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   // Apply secrets last so a secret wins over a plain variable of the same name.
   const enabledVars = variables.filter((variable) => variable.enabled);
-  [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)].forEach((variable) => {
-    envVars[variable.name] = resolveTypedValue(variable);
-  });
+  for (const variable of [...enabledVars.filter((v) => !v.secret), ...enabledVars.filter((v) => v.secret)]) {
+    const keychainResult = await resolveKeychainUserExpression(variable.value);
+    envVars[variable.name] = keychainResult.matched
+      ? parseValueByDataType(keychainResult.value, variable.dataType)
+      : resolveTypedValue(variable);
+  }
 
   return {
     ...envVars,
@@ -1029,6 +1092,9 @@ module.exports = {
   sortFolder,
   getAllRequestsInFolderRecursively,
   getEnvVars,
+  resolveKeychainUserExpression,
+  refreshKeychainUserExpression,
+  refreshKeychainEnvironmentValues,
   getFormattedCollectionOauth2Credentials,
   sortByNameThenSequence,
   resolveInheritedSettings

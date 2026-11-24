@@ -9,6 +9,7 @@ const {
 const benchmarkEnabled = isBenchmarkEnabled();
 
 contextBridge.exposeInMainWorld('isPlaywright', process.env.PLAYWRIGHT === 'true');
+contextBridge.exposeInMainWorld('macOSKeychainAvailable', process.platform === 'darwin');
 contextBridge.exposeInMainWorld('isBenchmarkBuild', benchmarkEnabled);
 
 if (benchmarkEnabled) {
