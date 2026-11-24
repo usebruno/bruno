@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { IconFolder, IconWorld, IconApi, IconShare, IconBook, IconTag } from '@tabler/icons';
-import { areItemsLoading, getItemsLoadStats, getCollectionVersion, countInvalidItems } from 'utils/collections/index';
+import { areItemsLoading, getItemsLoadStats, getCollectionVersion } from 'utils/collections/index';
 import { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { makeSelectInvalidItemCountForCollection } from 'src/selectors/collections';
 import ShareCollection from 'components/ShareCollection/index';
 import GenerateDocumentation from 'components/Sidebar/Collections/Collection/GenerateDocumentation';
 import ChangeCollectionVersion from 'components/Sidebar/Collections/Collection/ChangeCollectionVersion';
@@ -15,7 +16,8 @@ import Migration from '../Migration';
 const Info = ({ collection }) => {
   const dispatch = useDispatch();
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
-  const invalidItemCount = countInvalidItems(collection.items);
+  const selectInvalidItemCount = useMemo(makeSelectInvalidItemCountForCollection, []);
+  const invalidItemCount = useSelector((state) => selectInvalidItemCount(state, collection.uid));
 
   const isCollectionLoading = areItemsLoading(collection);
   const { loading: itemsLoadingCount, total: totalItems } = getItemsLoadStats(collection);

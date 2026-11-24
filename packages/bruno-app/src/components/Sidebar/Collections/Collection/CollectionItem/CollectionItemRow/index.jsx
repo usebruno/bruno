@@ -51,15 +51,14 @@ import {
   getTabUidForItem as getTabUidForItemSelector,
   isTabForItemActive as isTabForItemActiveSelector
 } from 'src/selectors/tab';
-import { selectCollectionByUid } from 'src/selectors/collections';
+import { makeSelectInvalidItemCountForFolder, selectCollectionByUid } from 'src/selectors/collections';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
   getInitialExampleName,
   findParentItemInCollection,
   getSortedDraggedItems,
-  isCollectionItemCollapsed,
-  countInvalidItems
+  isCollectionItemCollapsed
 } from 'utils/collections/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -132,7 +131,10 @@ const CollectionItemRow = ({
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
-  const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
+  const selectFolderInvalidItemCount = useMemo(makeSelectInvalidItemCountForFolder, []);
+  const invalidItemCount = useSelector((state) =>
+    isFolder ? selectFolderInvalidItemCount(state, collectionUid, item.items) : 0
+  );
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
 
