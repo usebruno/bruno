@@ -37,7 +37,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save, readOnly }) =
   return (
     <StyledWrapper className="w-full">
       <label className="block mb-1">Token</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <div className="single-line-editor-wrapper flex items-center" data-testid="auth-bearer-token">
         <SingleLineEditor
           value={bearerToken}
           theme={storedTheme}
