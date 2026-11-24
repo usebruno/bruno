@@ -27,7 +27,7 @@ describe('CLI API key query parameters', () => {
   it('interpolates the URL and API key while preserving the auth mode', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bru-apikey-'));
     try {
-      const fixture = path.resolve(__dirname, '../../../../../tests/auth/apikey/fixtures/collections/apikey-auth-mode-test');
+      const fixture = path.resolve(__dirname, '../../../../../e2e/tests/auth/apikey/fixtures/collections/apikey-auth-mode-test');
       fs.cpSync(fixture, dir, { recursive: true });
       const requestPath = path.join(dir, 'dynamic-query-key.bru');
       const request = fs.readFileSync(requestPath, 'utf8')

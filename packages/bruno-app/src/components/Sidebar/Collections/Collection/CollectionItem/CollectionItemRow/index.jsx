@@ -49,13 +49,13 @@ import InvalidFilesBadge from '../../InvalidFilesBadge';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
-  isTabForItemActive as isTabForItemActiveSelector,
-  isTabForItemPresent as isTabForItemPresentSelector
+  isTabForItemActive as isTabForItemActiveSelector
 } from 'src/selectors/tab';
-import { isEqual } from 'lodash';
+import { selectCollectionByUid } from 'src/selectors/collections';
 import {
   canCollectionItemBeDropped,
   determineCollectionItemDrop,
+  getCloneDisplayName,
   getInitialExampleName,
   findParentItemInCollection,
   getSortedDraggedItems,
@@ -87,23 +87,17 @@ const CollectionItemRow = ({
   multiDragItems: multiDragItemsForSelection
 }) => {
   const { dropdownContainerRef } = useSidebarAccordion();
-  const selectorInput = {
-    itemUid: item.uid,
-    itemPathname: item.pathname,
-    collectionUid
-  };
-
-  const _isTabForItemActiveSelector = isTabForItemActiveSelector(selectorInput);
-  const isTabForItemActive = useSelector(_isTabForItemActiveSelector, isEqual);
-
-  const _isTabForItemPresentSelector = isTabForItemPresentSelector(selectorInput);
-  const isTabForItemPresent = useSelector(_isTabForItemPresentSelector, isEqual);
-
-  const _tabUidForItemSelector = getTabUidForItemSelector(selectorInput);
-  const tabUidForItem = useSelector(_tabUidForItemSelector, isEqual);
+  const tabSelectorInput = useMemo(
+    () => ({ itemUid: item.uid, itemPathname: item.pathname, collectionUid }),
+    [item.uid, item.pathname, collectionUid]
+  );
+  const tabUidForItem = useSelector(useMemo(() => getTabUidForItemSelector(tabSelectorInput), [tabSelectorInput]));
+  const isTabForItemActive = useSelector(
+    useMemo(() => isTabForItemActiveSelector(tabSelectorInput), [tabSelectorInput])
+  );
+  const isTabForItemPresent = tabUidForItem !== null;
 
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
-  const collection = useSelector((state) => state.collections.collections.find((c) => c.uid === collectionUid));
   const store = useStore();
   const { hasCopiedItems } = useSelector((state) => state.app.clipboard);
   const selectedSidebarUids = useSelector((state) => state.collections.selectedSidebarUids);
@@ -179,14 +173,14 @@ const CollectionItemRow = ({
 
   const [{ isDragging }, drag, dragPreview] = useDrag({
     type: isRedirectedToCollectionDrag ? 'collection' : 'collection-item',
-    item: isRedirectedToCollectionDrag
-      ? { ...collection, wasSelected: true, multiSelectedItems: multiDragCollections }
+    item: () => (isRedirectedToCollectionDrag
+      ? { ...selectCollectionByUid(store.getState(), collectionUid), wasSelected: true, multiSelectedItems: multiDragCollections }
       : {
           ...item,
           sourceCollectionUid: collectionUid,
           wasSelected: isSelected,
           ...(multiDragItems ? { multiSelectedItems: multiDragItems } : {})
-        },
+        }),
     canDrag: !isDragDisabled,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -667,11 +661,12 @@ const CollectionItemRow = ({
     toast.success(`${getItemTypeLabel(item)} copied`);
   };
 
-  // One-click clone: display name becomes "<source> copy"; the filesystem name
-  // uniqueness is resolved silently by electron.
+  // One-click clone: display name takes the next free copy slot among siblings; the filesystem
+  // name uniqueness is resolved silently by electron.
   const handleCloneItem = () => {
     if (!isCloneable) return;
-    dispatch(cloneItem(`${item.name} copy`, sanitizeName(`${item.name} copy`), item.uid, collectionUid))
+    const newName = getCloneDisplayName(selectCollectionByUid(store.getState(), collectionUid), item);
+    dispatch(cloneItem(newName, sanitizeName(newName), item.uid, collectionUid))
       .then(() => toast.success(`${getItemTypeLabel(item)} cloned!`))
       .catch((err) => toast.error(formatIpcError(err) || `An error occurred while cloning the ${getItemTypeLabel(item).toLowerCase()}`));
   };
@@ -680,6 +675,7 @@ const CollectionItemRow = ({
     // Determine target folder: if item is a folder, paste into it; otherwise paste into parent folder
     let targetFolderUid = item.uid;
     if (!isFolder) {
+      const collection = selectCollectionByUid(store.getState(), collectionUid);
       const parentFolder = findParentItemInCollection(collection, item.uid);
       targetFolderUid = parentFolder ? parentFolder.uid : null;
     }

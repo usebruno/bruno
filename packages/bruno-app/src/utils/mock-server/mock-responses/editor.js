@@ -97,11 +97,33 @@ export const mockResponseFromEditorItem = (item, responseUid, rules, savedMockRe
 export const hasUnsavedMockResponseChanges = (editor, responseUid) => {
   if (!editor) return false;
   try {
-    const draft = mockResponseFromEditorItem(editor.item, responseUid, editor.rules, editor.savedMockResponse);
-    return !isEqual(draft, editor.savedMockResponse);
+    const { savedMockResponse } = editor;
+    const draft = mockResponseFromEditorItem(editor.item, responseUid, editor.rules, savedMockResponse);
+    const saved = mockResponseFromEditorItem(
+      buildMockResponseEditorItem(savedMockResponse),
+      responseUid,
+      savedMockResponse.rules,
+      savedMockResponse
+    );
+    return !isEqual(draft, saved);
   } catch {
     return true;
   }
+};
+
+export const getUnsavedMockResponses = (editors) => (
+  Object.entries(editors)
+    .filter(([responseUid, editor]) => hasUnsavedMockResponseChanges(editor, responseUid))
+    .map(([responseUid, editor]) => ({ uid: responseUid, name: editor.savedMockResponse?.name }))
+);
+
+export const shouldRebuildMockResponseEditor = (editor, storedResponse) => {
+  if (!editor || editor.savedMockResponse?.uid !== storedResponse.uid) {
+    return true;
+  }
+
+  return !isEqual(editor.savedMockResponse, storedResponse)
+    && !hasUnsavedMockResponseChanges(editor, storedResponse.uid);
 };
 
 export const findItemForExampleEditor = (state, collectionUid, itemUid) => {

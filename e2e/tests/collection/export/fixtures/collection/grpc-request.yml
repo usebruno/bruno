@@ -1,0 +1,9 @@
+info:
+  name: grpc-request
+  type: grpc
+  seq: 2
+
+grpc:
+  url: grpc://localhost:50051
+  method: /hello.HelloService/SayHello
+  methodType: unary

@@ -9,6 +9,7 @@ const onboardUser = require('../app/onboarding');
 const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
 const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
+const mockServer = require('../app/mock-server/mock-server');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -53,7 +54,11 @@ const registerPreferencesIpc = (mainWindow) => {
 
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
+      const wasMockServerEnabled = mockServer.isMockServerEnabled();
       await savePreferences(preferences);
+      if (wasMockServerEnabled && !mockServer.isMockServerEnabled()) {
+        await mockServer.stopAll().catch((error) => console.error('Failed to stop mock servers', error));
+      }
     } catch (error) {
       return Promise.reject(error);
     }

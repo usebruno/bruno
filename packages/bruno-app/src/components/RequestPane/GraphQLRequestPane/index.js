@@ -258,6 +258,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
               <button
                 type="button"
                 className="variables-header"
+                data-testid="graphql-variables-toggle"
                 onClick={() => dispatch(updateVariablesPaneOpen({ uid: item.uid, variablesPaneOpen: !variablesOpen }))}
                 aria-expanded={variablesOpen}
               >
@@ -271,7 +272,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
                 <span>Variables</span>
               </button>
               {variablesOpen && (
-                <div className="flex-1 min-h-0 relative">
+                <div className="flex-1 min-h-0 relative" data-testid="graphql-variables-editor">
                   <GraphQLVariables item={item} variables={variables} collection={collection} />
                 </div>
               )}
@@ -337,11 +338,12 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
           <ActionIcon
             label={showQueryBuilder ? 'Hide Query Builder' : 'Show Query Builder'}
             onClick={toggleQueryBuilder}
+            data-testid="graphql-query-builder-toggle"
           >
             <IconSidebarToggle collapsed={!showQueryBuilder} size={16} strokeWidth={1.5} />
           </ActionIcon>
           <MenuDropdown items={queryMenuItems} placement="bottom-end">
-            <ActionIcon label="More actions">
+            <ActionIcon label="More actions" data-testid="graphql-query-actions">
               <IconDots size={16} strokeWidth={1.5} />
             </ActionIcon>
           </MenuDropdown>
@@ -381,7 +383,7 @@ const GraphQLRequestPane = ({ item, collection, onSchemaLoad, toggleDocs, handle
       <section ref={queryBuilderContainerRef} className={classnames('flex w-full flex-1 mt-4 min-h-0')}>
         {requestPaneTab === 'query' && showQueryBuilder && (
           <>
-            <div className="graphql-query-builder-container" style={{ width: `${queryBuilderWidth}px`, minWidth: `${queryBuilderWidth}px` }}>
+            <div className="graphql-query-builder-container" data-testid="graphql-query-builder" style={{ width: `${queryBuilderWidth}px`, minWidth: `${queryBuilderWidth}px` }}>
               <QueryBuilder
                 schema={schema}
                 onQueryChange={onQueryChange}

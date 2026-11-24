@@ -14,8 +14,7 @@ const isFixMode = process.argv.some((arg) => arg === '--fix' || arg === '--fix-d
 
 const mainLintFiles = [
   './eslint.config.js',
-  'tests/**/*.{ts,js}',
-  'playwright/**/*.{js,ts}',
+  'e2e/**/*.{ts,js}',
   'packages/bruno-app/**/*.{js,jsx,ts}',
   'packages/bruno-app/plugins/**/*.{js,cjs,mjs}',
   'packages/bruno-app/src/test-utils/mocks/codemirror.js',
@@ -24,6 +23,7 @@ const mainLintFiles = [
   'packages/bruno-converters/**/*.js',
   'packages/bruno-electron/**/*.js',
   'packages/bruno-filestore/**/*.ts',
+  'packages/bruno-io/**/*.ts',
   'packages/bruno-schema-types/**/*.ts',
   'packages/bruno-js/**/*.js',
   'packages/bruno-lang/**/*.js',
@@ -95,6 +95,22 @@ module.exports = runESMImports().then(() => defineConfig([
       'no-self-compare': 'warn',
       'no-empty': ['warn', { allowEmptyCatch: true }],
       'no-use-before-define': ['warn', { functions: false }]
+    }
+  },
+  {
+    // Page objects never import index.ts or locators.ts: both import every page object,
+    // so importing either from inside e2e/pages/ creates a circular import.
+    files: ['e2e/pages/**/*.{ts,js}'],
+    ignores: ['e2e/pages/index.ts'], // the barrel re-exports every page object, including locators.ts
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            regex: '^(\\.\\.?/)+(index|locators)$|^\\.\\.?/?$|^(\\.\\./)+\\.\\.$',
+            message: 'Page objects import the specific file they need, never index.ts or locators.ts (that creates a circular import).'
+          }
+        ]
+      }]
     }
   },
   {
@@ -247,6 +263,25 @@ module.exports = runESMImports().then(() => defineConfig([
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: './packages/bruno-filestore/tsconfig.json'
+      }
+    },
+    rules: {
+      'no-undef': 'error'
+    }
+  },
+  {
+    files: ['packages/bruno-io/**/*.ts'],
+    ignores: ['**/*.config.js', '**/dist/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      },
+      parser: require('@typescript-eslint/parser'),
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './packages/bruno-io/tsconfig.json'
       }
     },
     rules: {

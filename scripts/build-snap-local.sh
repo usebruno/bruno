@@ -2,10 +2,10 @@
 #
 # Build a Bruno snap locally on an Ubuntu host.
 #
-# electron-builder 24 defaults to the core20 base and runs `snapcraft snap`;
-# Snapcraft 9 dropped both. On Snapcraft >= 9 this script overrides the base to
-# match the host (no config file edits) and packs the generated snap project
-# itself with `snapcraft pack --destructive-mode`.
+# electron-builder's legacy `snap` config (which we use) defaults to the core20
+# base and runs `snapcraft snap`; Snapcraft 9 dropped both. On Snapcraft >= 9
+# this script overrides the base to match the host (no config file edits) and
+# packs the generated snap project itself with `snapcraft pack --destructive-mode`.
 #
 # Usage: ./scripts/build-snap-local.sh [--skip-web]
 #   --skip-web   reuse the existing packages/bruno-app/dist build
@@ -45,11 +45,12 @@ if [ -z "${SNAP_BASE:-}" ]; then
   esac
 fi
 
-# electron-builder 24 emits a core20/core22-style manifest (e.g. `architectures`),
-# which Snapcraft rejects for core24 and later
+# The legacy `snap` config emits a core20/core22-style manifest (e.g. `architectures`),
+# which Snapcraft rejects for core24 and later. core24 needs migrating the config
+# to electron-builder's `snapcraft.core24` options.
 case "$SNAP_BASE" in
   core20|core22) ;;
-  *) echo "Base $SNAP_BASE is not supported by electron-builder 24; build on Ubuntu 20.04 or 22.04" >&2; exit 1 ;;
+  *) echo "Base $SNAP_BASE is not supported by the legacy snap config; build on Ubuntu 20.04 or 22.04" >&2; exit 1 ;;
 esac
 
 case "$(uname -m)" in

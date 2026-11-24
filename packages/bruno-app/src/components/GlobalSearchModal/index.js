@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
+import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectTabByUid } from 'src/selectors/tab';
 import {
   IconSearch,
   IconX,
@@ -27,11 +29,13 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
   const debounceTimeoutRef = useRef(null);
   const dispatch = useDispatch();
 
-  const allCollections = useSelector((state) => state.collections.collections);
-  const { workspaces, activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const tabs = useSelector((state) => state.tabs.tabs);
+  const store = useStore();
+  const activeWorkspace = useSelector(selectActiveWorkspace);
 
-  const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
+  // Intentional whole-array subscription: the search renders results derived
+  // from every collection, and the modal is only mounted while open, so it is
+  // never on the keystroke path.
+  const allCollections = useSelector(selectCollections);
 
   const collections = useMemo(() => {
     if (!activeWorkspace) return allCollections;
@@ -40,7 +44,7 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
       activeWorkspace.collections?.map((wc) => normalizePath(wc.path)) || []
     );
     return allCollections.filter((c) => workspacePaths.has(normalizePath(c.pathname)));
-  }, [activeWorkspace, allCollections, workspaces]);
+  }, [activeWorkspace, allCollections]);
 
   const createCollectionResults = () => {
     const collectionResults = collections.map((collection) => ({
@@ -255,7 +259,8 @@ const GlobalSearchModal = ({ isOpen, onClose }) => {
     expandItemPath(result);
 
     if (result.type === SEARCH_TYPES.REQUEST) {
-      const existingTab = tabs.find((tab) => tab.uid === result.item.uid);
+      // Only needed at click time; no reason to subscribe the modal to tabs.
+      const existingTab = selectTabByUid(store.getState(), result.item.uid);
 
       if (existingTab) {
         dispatch(focusTab({ uid: result.item.uid }));

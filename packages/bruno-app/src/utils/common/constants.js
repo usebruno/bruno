@@ -37,7 +37,7 @@ export const AUTOCOMPLETE_SCOPES = {
 
 /**
  * Which keystrokes open the variable autocomplete dropdown in a field (passed as the editors'
- * `variableAutocomplete` prop). Ctrl+Space (the manual trigger) works in every mode.
+ * `variableAutocomplete` prop). The Trigger Autocomplete shortcut (the manual trigger) works in every mode.
  */
 export const AUTOCOMPLETE_TRIGGER = {
   SINGLE_BRACE: 'singleBrace', // `{` opens it (and `{{` still does)

@@ -52,6 +52,10 @@ runs:
       shell: ${{ inputs.shell }}
       run: npm run test --workspace=packages/bruno-filestore
 
+    - name: Test Package bruno-io
+      shell: ${{ inputs.shell }}
+      run: npm run test --workspace=packages/bruno-io
+
     - name: Test Package bruno-sqlite
       shell: ${{ inputs.shell }}
       run: npm run test --workspace=packages/bruno-sqlite

@@ -145,3 +145,31 @@ runtime:
     });
   });
 });
+
+describe('parseItem — oauth2 additional parameters', () => {
+  it('reads an empty value in hand-written yml as an empty string', () => {
+    const yml = `info:
+  name: token-request
+  type: http
+
+http:
+  method: POST
+  url: https://example.com
+  auth:
+    type: oauth2
+    flow: client_credentials
+    accessTokenUrl: https://auth.example.com/token
+    additionalParameters:
+      accessTokenRequest:
+        - name: empty_value
+          value:
+          placement: query
+`;
+
+    const item = parseItem(yml);
+
+    expect(item.request!.auth!.oauth2!.additionalParameters!.token).toEqual([
+      { name: 'empty_value', value: '', sendIn: 'queryparams', enabled: true }
+    ]);
+  });
+});

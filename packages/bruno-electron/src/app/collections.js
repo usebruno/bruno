@@ -197,5 +197,6 @@ module.exports = {
   getCollectionConfigFile,
   openCollection,
   openCollectionsByPathname,
-  registerScratchCollectionPath
+  registerScratchCollectionPath,
+  validateSchema
 };

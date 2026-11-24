@@ -4,9 +4,10 @@
  * Single source of truth for sanitizing display names into filesystem-safe
  * names and validating names. Consumed by the Electron main process and the
  * renderer (and re-exported from each package's local helper so existing import
- * paths keep working). Collision-suffix resolution (`nextSuffixedName`) lives in
- * the Electron filesystem utils, since that's the only place collisions are
- * resolved against the real filesystem.
+ * paths keep working). `generateUniqueName` resolves collisions against a
+ * caller-supplied check, so the Electron main process and the CLI share it;
+ * filesystem-probing suffix resolution (`nextSuffixedName`) stays in the
+ * Electron filesystem utils.
  */
 
 const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -72,4 +73,49 @@ export const validateNameError = (name: string): string => {
   }
 
   return '';
+};
+
+/**
+ * Returns `baseName`, or `baseName copy`, `baseName copy 2`, ... — the first that `checkExists`
+ * reports as free.
+ */
+export const generateUniqueName = (baseName: string, checkExists: (name: string) => boolean): string => {
+  if (!checkExists(baseName)) {
+    return baseName;
+  }
+
+  let counter = 1;
+  let uniqueName = `${baseName} copy`;
+
+  while (checkExists(uniqueName)) {
+    counter++;
+    uniqueName = `${baseName} copy ${counter}`;
+  }
+  return uniqueName;
+};
+
+const copySuffix = /( copy( \d+)?)+$/;
+
+/**
+ * Strips every trailing ` copy` / ` copy N` token, so a clone of a clone keeps the original base
+ * name instead of stacking another token. Falls back to `name` when stripping leaves nothing.
+ */
+export const stripCopySuffix = (name: string): string => name.replace(copySuffix, '') || name;
+
+/**
+ * Returns `<base> copy`, then `<base> copy 2`, ... — the first free among `existingNames`, where
+ * `base` is `sourceName` with any trailing copy token removed.
+ */
+export const nextCopyName = (sourceName: string, existingNames: string[]): string => {
+  const base = stripCopySuffix(sourceName);
+  const taken = new Set(existingNames);
+
+  return generateUniqueName(base, (name) => name === base || taken.has(name));
+};
+
+export const getFilenameWithFormat = (item: { name: string; filename?: string | null }, format: string): string => {
+  if (item.filename) {
+    return `${item.filename.replace(/\.(bru|yml)$/, '')}.${format}`;
+  }
+  return `${item.name}.${format}`;
 };

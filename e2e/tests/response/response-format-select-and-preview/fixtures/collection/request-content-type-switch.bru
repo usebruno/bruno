@@ -1,0 +1,17 @@
+meta {
+  name: request-content-type-switch
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8081/api/echo/text
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}

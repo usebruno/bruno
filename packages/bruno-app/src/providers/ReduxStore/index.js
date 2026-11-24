@@ -12,6 +12,7 @@ import workspacesReducer from './slices/workspaces';
 import apiSpecReducer from './slices/apiSpec';
 import openapiSyncReducer from './slices/openapi-sync';
 import mockServerReducer from './slices/mock-server/index';
+import openCollectionModalReducer from './slices/open-collection-modal';
 import chatReducer from './slices/chat';
 import collectionMigrationReducer from './slices/collection-migration';
 import { draftDetectMiddleware } from './middlewares/draft/middleware';
@@ -40,6 +41,7 @@ export const store = configureStore({
     workspaces: workspacesReducer,
     apiSpec: apiSpecReducer,
     openapiSync: openapiSyncReducer,
+    openCollectionModal: openCollectionModalReducer,
     mockServer: mockServerReducer,
     chat: chatReducer,
     collectionMigration: collectionMigrationReducer

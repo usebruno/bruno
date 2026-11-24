@@ -66,6 +66,9 @@ const defaultPreferences = {
     defaultLocation: '',
     defaultWorkspacePath: ''
   },
+  openCollection: {
+    autoOpenFolderPicker: true
+  },
   autoSave: {
     enabled: false,
     interval: 1000
@@ -84,8 +87,9 @@ const defaultPreferences = {
   ai: {
     enabled: false,
     providers: {
-      openai: { enabled: false },
-      anthropic: { enabled: false }
+      'openai': { enabled: false },
+      'anthropic': { enabled: false },
+      'github-copilot': { enabled: false }
     },
     models: {},
     defaultModel: '',
@@ -187,6 +191,9 @@ const preferencesSchema = Yup.object().shape({
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
     defaultWorkspacePath: Yup.string().max(1024).nullable()
+  }),
+  openCollection: Yup.object({
+    autoOpenFolderPicker: Yup.boolean()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),

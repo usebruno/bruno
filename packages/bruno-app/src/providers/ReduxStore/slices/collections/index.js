@@ -26,6 +26,7 @@ import { getUniqueTagsFromItems } from 'utils/collections/index';
 import { DEFAULT_HTTP_ITEM_SETTINGS, GRPC_SCRIPT_KEYS, SCRIPT_TYPES } from '@usebruno/common';
 import * as exampleReducers from './exampleReducers';
 import * as mockResponseEditorReducers from './mockResponseEditorReducers';
+import { closeTabs, closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 
 const FILE_DERIVED_REQUEST_FIELDS = [
   'name',
@@ -387,6 +388,16 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+      }
+    },
+
+    updateSettingsSection: (state, action) => {
+      const { collectionUid, section } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.settingsSection = section;
       }
     },
     updatedFolderSettingsSelectedTab: (state, action) => {
@@ -4291,8 +4302,24 @@ export const collectionsSlice = createSlice({
     syncMockResponseEditorSaved: mockResponseEditorReducers.syncMockResponseEditorSaved,
     updateMockResponseRules: mockResponseEditorReducers.updateMockResponseRules,
     cancelMockResponseEditorEdit: mockResponseEditorReducers.cancelMockResponseEditorEdit,
+    setMockResponseEditMode: mockResponseEditorReducers.setMockResponseEditMode,
     removeMockResponseEditor: mockResponseEditorReducers.removeMockResponseEditor
     /* End Response Example Actions */
+  },
+  extraReducers: (builder) => {
+    builder.addCase(closeTabs, (state, action) => {
+      for (const tabUid of action.payload.tabUids || []) {
+        delete state.mockResponseEditors[tabUid];
+      }
+    });
+    builder.addCase(closeAllCollectionTabs, (state, action) => {
+      const { collectionUid } = action.payload;
+      for (const responseUid of Object.keys(state.mockResponseEditors)) {
+        if (state.mockResponseEditors[responseUid]?.collectionUid === collectionUid) {
+          delete state.mockResponseEditors[responseUid];
+        }
+      }
+    });
   }
 });
 
@@ -4309,6 +4336,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updateSettingsSection,
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
@@ -4521,6 +4549,7 @@ export const {
   syncMockResponseEditorSaved,
   updateMockResponseRules,
   cancelMockResponseEditorEdit,
+  setMockResponseEditMode,
   removeMockResponseEditor,
   addTransientDirectory,
   addSaveTransientRequestModal,

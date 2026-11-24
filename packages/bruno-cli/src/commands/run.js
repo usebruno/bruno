@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { setTimeout } = require('node:timers/promises');
 const chalk = require('chalk');
 const path = require('path');
 const { forOwn, cloneDeep } = require('lodash');
@@ -53,10 +54,14 @@ const printRunSummary = (results) => {
     results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
   );
 
+  const totalTests = summary.totalTests + summary.totalPreRequestTests + summary.totalPostResponseTests;
+  const passedTests = summary.passedTests + summary.passedPreRequestTests + summary.passedPostResponseTests;
+  const failedTests = summary.failedTests + summary.failedPreRequestTests + summary.failedPostResponseTests;
+
   const hasFailures
     = summary.failedRequests > 0
       || summary.failedAssertions > 0
-      || summary.failedTests > 0
+      || failedTests > 0
       || (summary.errorRequests || 0) > 0;
 
   const status = hasFailures
@@ -64,7 +69,7 @@ const printRunSummary = (results) => {
     : chalk.green.bold('✓ PASS');
 
   const requests = formatRequestsCellFromSummary(summary);
-  const tests = `${summary.passedTests}/${summary.totalTests}`;
+  const tests = `${passedTests}/${totalTests}`;
   const assertions = `${summary.passedAssertions}/${summary.totalAssertions}`;
 
   const headers = [chalk.bold('Metric'), chalk.bold('Result')];
@@ -136,10 +141,16 @@ const builder = async (yargs) => {
       default: 'safe',
       type: 'string'
     })
+    .option('cache-modules', {
+      type: 'boolean',
+      default: false,
+      describe: 'Share npm modules across script runs in the developer sandbox'
+    })
     .option('experimental-cache-modules', {
       type: 'boolean',
       default: false,
-      describe: 'Share npm modules across script runs in the developer sandbox (experimental)'
+      deprecated: 'use --cache-modules',
+      describe: 'Share npm modules across script runs in the developer sandbox'
     })
     .option('output', {
       alias: 'o',
@@ -316,6 +327,7 @@ const handler = async function (argv) {
       reporterJunit,
       reporterHtml,
       sandbox,
+      cacheModules: cacheModulesFlag,
       experimentalCacheModules,
       testsOnly,
       bail,
@@ -613,10 +625,14 @@ const handler = async function (argv) {
     if (verbose) {
       options['verbose'] = true;
     }
-    if (experimentalCacheModules && sandbox !== 'developer') {
-      console.warn(chalk.yellow('--experimental-cache-modules requires --sandbox developer; ignoring flag'));
+    if (experimentalCacheModules) {
+      console.warn(chalk.yellow('--experimental-cache-modules is deprecated and will be removed in a future release; use --cache-modules instead'));
     }
-    options['cacheModules'] = sandbox === 'developer' && experimentalCacheModules === true;
+    const cacheModules = cacheModulesFlag === true || experimentalCacheModules === true;
+    if (cacheModules && sandbox !== 'developer') {
+      console.warn(chalk.yellow('--cache-modules requires --sandbox developer; ignoring flag'));
+    }
+    options['cacheModules'] = sandbox === 'developer' && cacheModules;
     if (cacert && cacert.length) {
       if (insecure) {
         console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
@@ -814,9 +830,22 @@ const handler = async function (argv) {
       });
     };
 
+    const runStartTime = new Date().toISOString();
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
+    let isFirstRequest = true;
+    const isValidDelay = !Number.isNaN(delay) && delay > 0;
     while (currentRequestIndex < requestItems.length) {
+      if (!isFirstRequest && isValidDelay && !runAbortSignal.aborted) {
+        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
+        await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => {});
+      }
+
+      if (!isFirstRequest && Number.isNaN(delay)) {
+        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
+      }
+      isFirstRequest = false;
+
       const requestItem = cloneDeep(requestItems[currentRequestIndex]);
       const { name, pathname } = requestItem;
 
@@ -836,17 +865,6 @@ const handler = async function (argv) {
         persistPaths,
         runAbortSignal
       );
-
-      const isLastRun = currentRequestIndex === requestItems.length - 1;
-      const isValidDelay = !Number.isNaN(delay) && delay > 0;
-      if (isValidDelay && !isLastRun) {
-        console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if (Number.isNaN(delay) && !isLastRun) {
-        console.log(chalk.red(`Ignoring delay because it's not a valid number.`));
-      }
 
       results.push({
         ...result,
@@ -960,7 +978,7 @@ const handler = async function (argv) {
       const reporters = {
         json: (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
         junit: (path) => makeJUnitOutput(results, path),
-        html: (path) => makeHtmlOutput(outputJson, path, runCompletionTime, environmentName)
+        html: (path) => makeHtmlOutput(outputJson, path, { runStartTime, runCompletionTime, environment: environmentName })
       };
 
       for (const formatter of Object.keys(formats)) {
