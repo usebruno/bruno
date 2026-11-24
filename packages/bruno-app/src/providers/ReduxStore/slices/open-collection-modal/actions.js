@@ -24,7 +24,7 @@ import {
 import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
-import { readImportableFile, readImportFiles, readImportText } from './import-sources';
+import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
 
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
 const IMPORT_PAGE = 'import';
@@ -186,7 +186,7 @@ export const loadImportFiles = (files) => async (dispatch) => {
   return importData;
 };
 
-export const loadImportText = (text) => loadImportData(() => readImportText(text));
+export const loadImportUrl = (url) => loadImportData(() => readImportUrl(url));
 
 export const loadImportableFile = (file) => (dispatch) => {
   dispatch(showOpenCollectionPage(IMPORT_PAGE));

@@ -6,14 +6,14 @@ import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import openCollectionModalReducer from './index';
-import { readImportableFile, readImportFiles, readImportText } from './import-sources';
+import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
   findCollectionsInFolders,
   loadImportableFile,
   loadImportFiles,
-  loadImportText,
+  loadImportUrl,
   openCollectionModal,
   openCollectionsFromModal,
   openDroppedItems,
@@ -35,7 +35,7 @@ jest.mock('react-hot-toast', () => {
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('./import-sources', () => ({
   readImportFiles: jest.fn(),
-  readImportText: jest.fn(),
+  readImportUrl: jest.fn(),
   readImportableFile: jest.fn()
 }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
@@ -497,19 +497,19 @@ describe('open collection modal actions', () => {
     });
 
     it('marks the page as loading while it reads', () => {
-      readImportText.mockReturnValue(new Promise(() => {}));
+      readImportUrl.mockReturnValue(new Promise(() => {}));
       const { store } = createStore({ modal: openOn('import') });
 
-      store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
 
       expect(modalState(store).importLoadId).toEqual(expect.any(String));
     });
 
     it('shows why in a toast when it cannot be read, without the IPC prefix', async () => {
-      readImportText.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
+      readImportUrl.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
       const { store } = createStore({ modal: openOn('import') });
 
-      await expect(store.dispatch(loadImportText('{}'))).resolves.toBeNull();
+      await expect(store.dispatch(loadImportUrl('https://example.com/spec.yaml'))).resolves.toBeNull();
 
       expect(toast.error).toHaveBeenCalledWith('No such file');
       expect(modalState(store).importLoadId).toBeNull();
@@ -517,10 +517,10 @@ describe('open collection modal actions', () => {
 
     it('ignores a read that finishes after the page was left', async () => {
       const reading = deferred();
-      readImportText.mockReturnValue(reading.promise);
+      readImportUrl.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn('import') });
 
-      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal('recents'));
       reading.resolve(importData);
 
@@ -530,10 +530,10 @@ describe('open collection modal actions', () => {
 
     it('stays quiet about a failed read after the page was left', async () => {
       const reading = deferred();
-      readImportText.mockReturnValue(reading.promise);
+      readImportUrl.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn('import') });
 
-      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal('recents'));
       reading.reject(new Error('Nope'));
 

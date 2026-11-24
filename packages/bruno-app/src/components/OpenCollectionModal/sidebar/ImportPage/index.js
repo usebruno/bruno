@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { useSelector } from 'react-redux';
 import { IconAlertTriangle, IconCheck, IconLink, IconUpload } from '@tabler/icons';
 import Button from 'ui/Button';
-import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { loadImportFiles, loadImportUrl } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
@@ -34,20 +34,12 @@ const ImportPage = () => {
 
   const trimmedText = text.trim();
   const hint = trimmedText ? describeImportText(trimmedText) : null;
-  const isLoadDisabled = !trimmedText || hint.isWarning;
+  const isLoadDisabled = !trimmedText || Boolean(hint?.isWarning);
 
   const loadText = (event) => {
     event.preventDefault();
-    importFrom(loadImportText(trimmedText));
-  };
-
-  const loadOnEnter = (event) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
-      return;
-    }
-    event.preventDefault();
     if (!isLoadDisabled && !isLoading) {
-      importFrom(loadImportText(trimmedText));
+      importFrom(loadImportUrl(trimmedText));
     }
   };
 
@@ -61,14 +53,13 @@ const ImportPage = () => {
       <form className="import-url-row" onSubmit={loadText}>
         <div className="import-url-field">
           <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
-          <textarea
-            rows={1}
-            wrap="off"
+          <input
+            type="text"
+            spellCheck={false}
             placeholder="Paste a file URL, e.g. https://example.com/openapi.yaml"
             aria-label="Paste a file URL"
             value={text}
             onChange={(event) => setText(event.target.value)}
-            onKeyDown={loadOnEnter}
             readOnly={isLoading}
             data-testid="import-page-text"
           />

@@ -1,6 +1,6 @@
 import { callIpc } from 'utils/common/ipc';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
-import { readImportableFile, readImportFiles, readImportText } from './import-sources';
+import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('utils/importers/common', () => ({ fetchAndValidateApiSpecFromUrl: jest.fn() }));
@@ -136,78 +136,52 @@ describe('import sources', () => {
     });
   });
 
-  describe('readImportText', () => {
+  describe('readImportUrl', () => {
     const url = 'https://example.com/openapi.yaml';
 
     it('fetches a URL and keeps where it came from', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openApi, specType: 'openapi', rawContent: 'raw' });
 
-      await expect(readImportText(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
+      await expect(readImportUrl(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
       expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledWith({ url });
     });
 
-    it('refuses a malformed URL without fetching', async () => {
-      await expect(readImportText('http://')).rejects.toThrow('Please enter a valid URL');
+    it.each([
+      ['a malformed URL', 'http://'],
+      ['pasted file content', 'openapi: 3.0.0\ninfo:\n  title: Orders']
+    ])('refuses %s without fetching', async (_description, text) => {
+      await expect(readImportUrl(text)).rejects.toThrow('Please enter a valid URL');
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
     });
 
     it('says when the fetch fails', async () => {
       fetchAndValidateApiSpecFromUrl.mockRejectedValue(new Error('404'));
 
-      await expect(readImportText(url)).rejects.toThrow('URL import failed. Please check the URL and try again.');
+      await expect(readImportUrl(url)).rejects.toThrow('URL import failed. Please check the URL and try again.');
     });
 
     it('says when a fetched document is in no format it knows', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: { hello: 'world' }, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('does not mistake a fetched web page for WSDL', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: '<html>definitions</html>', specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('says when a fetched document is empty', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: null, specType: 'unknown', rawContent: '~' });
 
-      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('recognises a fetched OpenCollection document', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openCollection, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportText(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
-    });
-
-    it('reads pasted JSON', async () => {
-      const text = JSON.stringify(postman);
-
-      await expect(readImportText(text)).resolves.toEqual({ rawData: postman, type: 'postman', rawContent: text });
-    });
-
-    it('reads pasted JSON with a duplicate key', async () => {
-      const text = '{"openapi":"3.0.0","info":{"title":"A","title":"B","version":"1"},"paths":{}}';
-
-      await expect(readImportText(text)).resolves.toMatchObject({ type: 'openapi' });
-    });
-
-    it('reads pasted YAML', async () => {
-      const text = 'openapi: 3.0.0\ninfo:\n  title: Orders\n  version: "1"\npaths: {}';
-
-      await expect(readImportText(text)).resolves.toMatchObject({ type: 'openapi', rawContent: text });
-    });
-
-    it.each([
-      ['plain words', 'just some words'],
-      ['broken YAML', 'a: [unclosed']
-    ])('says when %s cannot be parsed', async (_description, text) => {
-      await expect(readImportText(text)).rejects.toThrow('Could not parse the text as JSON or YAML');
-    });
-
-    it('says when pasted text is in no format it knows', async () => {
-      await expect(readImportText('{ "hello": "world" }')).rejects.toThrow('Unsupported collection format');
+      await expect(readImportUrl(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
     });
   });
 

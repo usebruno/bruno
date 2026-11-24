@@ -2,7 +2,7 @@ import { HTTP_URL } from 'providers/ReduxStore/slices/open-collection-modal/impo
 
 export const describeImportText = (text) => {
   if (!HTTP_URL.test(text)) {
-    return { text: 'Raw text · Bruno detects the format' };
+    return null;
   }
   if (/\.zip(\?.*)?$/i.test(text)) {
     return { isWarning: true, text: 'Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.' };

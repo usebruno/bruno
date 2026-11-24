@@ -1,4 +1,3 @@
-import jsyaml from 'js-yaml';
 import { callIpc } from 'utils/common/ipc';
 import { isBrunoCollection } from 'utils/importers/bruno-collection';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
@@ -99,8 +98,9 @@ export const readImportableFile = async ({ path, name }) => {
   return parseImportFile(text, { name, type: /\.json$/i.test(name) ? 'application/json' : '' }, path);
 };
 
-const readImportUrl = async (url) => {
-  if (!isValidUrl(url)) {
+export const readImportUrl = async (value) => {
+  const url = value.trim();
+  if (!HTTP_URL.test(url) || !isValidUrl(url)) {
     throw new Error('Please enter a valid URL');
   }
   let fetched;
@@ -114,35 +114,4 @@ const readImportUrl = async (url) => {
     throw new Error(UNSUPPORTED_FORMAT);
   }
   return { rawData: fetched.data, type, sourceUrl: url, rawContent: fetched.rawContent };
-};
-
-const parseRawText = (text) => {
-  let data = null;
-  try {
-    data = JSON.parse(text);
-  } catch (jsonError) {
-    try {
-      data = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
-    } catch (yamlError) {
-      data = null;
-    }
-  }
-  if (!data || typeof data !== 'object') {
-    throw new Error('Could not parse the text as JSON or YAML');
-  }
-  return data;
-};
-
-const readRawText = async (text) => {
-  const data = parseRawText(text);
-  const type = detectImportFormat(data);
-  if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
-  }
-  return { rawData: data, type, rawContent: text };
-};
-
-export const readImportText = (value) => {
-  const text = value.trim();
-  return HTTP_URL.test(text) ? readImportUrl(text) : readRawText(text);
 };

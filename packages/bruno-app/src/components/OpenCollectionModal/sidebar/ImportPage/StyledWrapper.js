@@ -24,13 +24,6 @@ const StyledWrapper = styled.div`
     ${iconInputStyles}
     flex: 1;
     min-width: 0;
-
-    textarea {
-      display: block;
-      resize: none;
-      overflow: hidden;
-      line-height: 1.875rem;
-    }
   }
 
   .import-message {
