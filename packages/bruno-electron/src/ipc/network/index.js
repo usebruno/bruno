@@ -1406,13 +1406,14 @@ const registerNetworkIpc = (mainWindow) => {
         response.sseChunks?.push(newData);
 
         if (!isEventStream) {
+          const parsed = parseDataFromResponse({ data: newData, headers: {} });
           seq += 1;
           mainWindow.webContents.send('main:http-stream-new-data', {
             collectionUid,
             itemUid: item.uid,
             seq,
             timestamp: Date.now(),
-            data: parseDataFromResponse({ data: newData, headers: {} })
+            data: parsed
           });
           return;
         }
