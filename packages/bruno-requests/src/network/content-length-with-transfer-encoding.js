@@ -1,6 +1,8 @@
 const http = require('node:http');
 const https = require('node:https');
 
+// Need to add test case for this
+
 // Property set on a ClientRequest to opt that one request in; read by the patched parser setup
 const ALLOW_BOTH_HEADERS_MARKER = '__allowContentLengthWithTransferEncoding';
 const TRANSPORT_WRAPPED_MARKER = '__contentLengthWithTransferEncodingTransport';
