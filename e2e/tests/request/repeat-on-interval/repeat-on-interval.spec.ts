@@ -13,28 +13,31 @@ import { startLocalServer } from '../../../servers';
 const COLLECTION = 'repeat-on-interval';
 const REQUEST = 'Counter';
 
-test.describe.serial('Repeat on Interval', () => {
+test.describe('Repeat on Interval', () => {
+  // Shared by the tests in a worker: each one only compares hits counted during its own run
   let hits = 0;
   let server: Awaited<ReturnType<typeof startLocalServer>>;
 
-  test.beforeAll(async ({ page, createTmpDir }) => {
+  test.beforeAll(async () => {
     server = await startLocalServer((_req, res) => {
       hits += 1;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ hits }));
     });
+  });
 
+  test.afterAll(() => {
+    server?.close();
+  });
+
+  test.beforeEach(async ({ page, createTmpDir }) => {
     await page.locator('[data-app-state="loaded"]').waitFor();
     await createCollection(page, COLLECTION, await createTmpDir('repeat-on-interval'));
     await createRequest(page, REQUEST, COLLECTION, { url: server.url, method: 'GET' });
   });
 
-  test.afterAll(async ({ page }) => {
-    try {
-      await closeAllCollections(page);
-    } finally {
-      server?.close();
-    }
+  test.afterEach(async ({ page }) => {
+    await closeAllCollections(page);
   });
 
   test('sends the request repeatedly and stops on Cancel', async ({ page }) => {
