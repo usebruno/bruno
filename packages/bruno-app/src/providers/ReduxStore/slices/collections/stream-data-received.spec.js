@@ -55,10 +55,20 @@ describe('streamDataReceived — response size accounting', () => {
 
   test('does not count SSE timeline-only messages (data only)', () => {
     let state = makeInitialState();
-    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: A\n' })));
+    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: A\n', timelineOnly: true })));
 
     const { response } = state.collections[0].items[0];
     expect(response.size).toBe(0);
+    expect(response.data).toHaveLength(1);
+  });
+
+  test('counts non-SSE stream messages that have no dataBuffer by data length', () => {
+    let state = makeInitialState();
+    const message = 'chunk without raw buffer';
+    state = reducer(state, streamDataReceived(streamMessage({ data: message })));
+
+    const { response } = state.collections[0].items[0];
+    expect(response.size).toBe(message.length);
     expect(response.data).toHaveLength(1);
   });
 
@@ -66,8 +76,8 @@ describe('streamDataReceived — response size accounting', () => {
     let state = makeInitialState();
     const chunk = Buffer.from('data: A\n\ndata: B\n\n');
     state = reducer(state, streamDataReceived(streamMessage({ dataBuffer: chunk }, 1)));
-    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: A\n' }, 2)));
-    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: B\n' }, 3)));
+    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: A\n', timelineOnly: true }, 2)));
+    state = reducer(state, streamDataReceived(streamMessage({ data: 'data: B\n', timelineOnly: true }, 3)));
 
     const { response } = state.collections[0].items[0];
     expect(response.size).toBe(chunk.length);

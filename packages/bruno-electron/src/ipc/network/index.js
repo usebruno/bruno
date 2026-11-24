@@ -1429,7 +1429,7 @@ const registerNetworkIpc = (mainWindow) => {
                 itemUid: item.uid,
                 seq,
                 timestamp: Date.now(),
-                data: { data: eventData + '\n' }
+                data: { data: eventData + '\n', timelineOnly: true }
               });
             }
           }
@@ -1462,7 +1462,7 @@ const registerNetworkIpc = (mainWindow) => {
               itemUid: item.uid,
               seq,
               timestamp: Date.now(),
-              data: { data: remaining + '\n' }
+              data: { data: remaining + '\n', timelineOnly: true }
             });
           }
         }
