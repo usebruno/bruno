@@ -43,6 +43,7 @@ import { buildDropdownLocators } from './shared-ui/dropdown';
 import { buildItemActionLocators } from './sidebar/item-actions';
 import { buildResponseLocators } from './response/pane';
 import { buildRequestTabsLocators } from './app-shell/tabs';
+import { buildUnsavedChangesModalLocators } from './app-shell/unsaved-changes-modal';
 import { buildPaneTabsLocators } from './shared-ui/pane-tabs';
 import { buildTableLocator } from './shared-ui/table';
 import { buildAssertionsTableLocator } from './request/assertions';
@@ -103,6 +104,7 @@ export const buildCommonLocators = (page: Page) => ({
   actions: buildItemActionLocators(page),
   dropdown: buildDropdownLocators(page),
   tabs: buildRequestTabsLocators(page),
+  unsavedChangesModal: buildUnsavedChangesModalLocators(page),
   paneTabs: buildPaneTabsLocators(page),
   docs: buildDocsLocators(page),
   aiAssist: buildAiAssistLocators(page),
