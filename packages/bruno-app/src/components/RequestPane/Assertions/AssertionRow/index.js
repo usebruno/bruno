@@ -4,6 +4,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
 import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
+import { isUnaryAssertionOperator } from 'utils/assertions';
 
 /**
  * Assertion operators
@@ -76,25 +77,10 @@ const parseAssertionOperator = (str = '') => {
     'isArray'
   ];
 
-  const unaryOperators = [
-    'isEmpty',
-    'isNotEmpty',
-    'isNull',
-    'isUndefined',
-    'isDefined',
-    'isTruthy',
-    'isFalsy',
-    'isJson',
-    'isNumber',
-    'isString',
-    'isBoolean',
-    'isArray'
-  ];
-
   const [operator, ...rest] = str.split(' ');
   const value = rest.join(' ');
 
-  if (unaryOperators.includes(operator)) {
+  if (isUnaryAssertionOperator(operator)) {
     return {
       operator,
       value: ''
@@ -112,25 +98,6 @@ const parseAssertionOperator = (str = '') => {
     operator: 'eq',
     value: str
   };
-};
-
-const isUnaryOperator = (operator) => {
-  const unaryOperators = [
-    'isEmpty',
-    'isNotEmpty',
-    'isNull',
-    'isUndefined',
-    'isDefined',
-    'isTruthy',
-    'isFalsy',
-    'isJson',
-    'isNumber',
-    'isString',
-    'isBoolean',
-    'isArray'
-  ];
-
-  return unaryOperators.includes(operator);
 };
 
 const AssertionRow = ({
@@ -156,7 +123,7 @@ const AssertionRow = ({
             handleAssertionChange(
               {
                 target: {
-                  value: isUnaryOperator(op) ? op : `${op} ${value}`
+                  value: isUnaryAssertionOperator(op) ? op : `${op} ${value}`
                 }
               },
               assertion,
@@ -165,7 +132,7 @@ const AssertionRow = ({
         />
       </td>
       <td>
-        {!isUnaryOperator(operator) ? (
+        {!isUnaryAssertionOperator(operator) ? (
           <SingleLineEditor
             value={value}
             theme={storedTheme}

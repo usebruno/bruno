@@ -48,7 +48,7 @@ import { getRevealInFolderLabel } from 'utils/common/platform';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { useIsMockServerEnabled } from 'utils/mock-server/is-enabled';
 import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import { getMockServerInstances, openMockServerDashboard } from 'utils/mock-server/mock-server-instances';
 
@@ -89,8 +89,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const tabCountsByCollection = useSelector(selectTabCountsByCollection);
   const firstTabUidByCollection = useSelector(selectFirstTabUidByCollection);
 
-  const gitRootPath = collection?.git?.gitRootPath;
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const isMockServerEnabled = useIsMockServerEnabled();
   const mockServerInstances = useSelector((state) => getMockServerInstances(state, activeWorkspaceUid));
 
   // Active request (used by the Request / App / File view-mode toggle)
@@ -308,7 +307,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     ));
 
     if (existingInstance) {
-      dispatch(openMockServerDashboard(existingInstance, collection.uid));
+      dispatch(openMockServerDashboard(existingInstance));
       return;
     }
 

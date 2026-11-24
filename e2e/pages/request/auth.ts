@@ -2,6 +2,7 @@ import { test, expect, Page } from '../../playwright';
 import { AUTH_MODE_LABELS } from '../../constants';
 import { selectRequestPaneTab } from './pane';
 import { readField, typeIntoField, writeFieldValue } from '../shared-ui/single-line-editor';
+import { setCodeMirrorValue } from '../shared-ui/code-editor';
 import { expandFolder, openRequest } from '../sidebar/collection-tree';
 
 /**
@@ -41,6 +42,7 @@ export const buildAuthLocators = (page: Page) => ({
     tokenHeaderPrefixField: () => page.getByTestId('token-header-prefix'),
     tokenQueryParamKeyField: () => page.getByTestId('token-query-param-key'),
     grantTypeMenu: () => page.getByTestId('grant-type-dropdown-dropdown'),
+    grantTypeOption: (grantType: string) => page.getByTestId(`grant-type-dropdown-${grantType}`),
     additionalParams: () => page.getByTestId('oauth2-additional-params'),
     additionalParamsTab: (tab: 'authorization' | 'token' | 'refresh') => page.getByTestId(`oauth2-additional-params-tab-${tab}`),
     addParameterButton: () => page.getByTestId('oauth2-additional-params-add'),
@@ -93,4 +95,94 @@ export const expectAuthState = async (page: Page, modeLabel: string, fields: Aut
 export const selectApiKeyAuth = async (page: Page) => {
   await selectAuthMode(page, AUTH_MODE_LABELS.APIKEY);
   await expect(buildAuthLocators(page).apiKey.placementLabel()).toContainText('Header');
+};
+
+/** The CodeMirror editor inside an auth field, found by the field's test id. */
+export const authEditorByTestId = (page: Page, testId: string) =>
+  page.getByTestId(testId).locator('.CodeMirror').first();
+
+/** Replaces the text of an auth field, found by its test id. */
+export const writeAuthEditor = async (page: Page, testId: string, value: string) => {
+  const editor = authEditorByTestId(page, testId);
+  await editor.waitFor({ state: 'visible', timeout: 10000 });
+  await setCodeMirrorValue(editor, value);
+};
+
+/**
+ * Select OAuth 2.0 Client Credentials on the open request and fill the client id and secret.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Client id and client secret
+ */
+export const configureOAuth2ClientCredentials = async (
+  page: Page,
+  auth: { clientId: string; clientSecret: string }
+) => {
+  await test.step('Configure OAuth 2.0 Client Credentials auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    const locators = buildAuthLocators(page);
+    const grantType = locators.oauth2.grantTypeDropdown();
+
+    await locators.modeLabel().click();
+    await locators.dropdownItem('oauth2').click();
+
+    await grantType.click();
+    await locators.oauth2.grantTypeOption('client_credentials').click();
+
+    await writeAuthEditor(page, 'oauth2-client-credentials-client-id', auth.clientId);
+    await writeAuthEditor(page, 'oauth2-client-credentials-client-secret', auth.clientSecret);
+  });
+};
+
+/**
+ * Select Digest auth on the open request and fill the username and password.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Digest username and password
+ */
+export const configureDigestAuth = async (page: Page, auth: { username: string; password: string }) => {
+  await test.step('Configure Digest auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    const locators = buildAuthLocators(page);
+    await locators.modeLabel().click();
+    await locators.dropdownItem('digest').click();
+
+    await writeAuthEditor(page, 'auth-digest-username', auth.username);
+    await writeAuthEditor(page, 'auth-digest-password', auth.password);
+  });
+};
+
+/**
+ * Select Bearer Token auth on the open request and fill the token.
+ * Works for any request type that shares the Auth tab. The token may contain a `{{variable}}` token.
+ * @param page - The page object
+ * @param auth - Bearer token
+ */
+export const configureBearerAuth = async (page: Page, auth: { token: string }) => {
+  await test.step('Configure Bearer auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    const locators = buildAuthLocators(page);
+    await locators.modeLabel().click();
+    await locators.dropdownItem('bearer').click();
+
+    await writeAuthEditor(page, 'auth-bearer-token', auth.token);
+  });
+};
+
+/**
+ * Select Basic auth on the open request and fill the username and password.
+ * Works for any request type that shares the Auth tab. Values may contain `{{variable}}` tokens.
+ * @param page - The page object
+ * @param auth - Basic username and password
+ */
+export const configureBasicAuth = async (page: Page, auth: { username: string; password: string }) => {
+  await test.step('Configure Basic auth', async () => {
+    await selectRequestPaneTab(page, 'Auth');
+    const locators = buildAuthLocators(page);
+    await locators.modeLabel().click();
+    await locators.dropdownItem('basic').click();
+
+    await writeAuthEditor(page, 'auth-basic-username', auth.username);
+    await writeAuthEditor(page, 'auth-basic-password', auth.password);
+  });
 };

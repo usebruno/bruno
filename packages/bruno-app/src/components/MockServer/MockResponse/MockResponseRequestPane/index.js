@@ -78,8 +78,7 @@ const MockResponseRequestPane = ({
           />
         );
       case 'demo-request': {
-        const hasDetails = demoRequest.headers.length || demoRequest.params.length || demoRequest.body;
-
+        const hasDetails = demoRequest.headers.length || demoRequest.params.length || demoRequest.body || demoRequest.pathParams?.length;
         return (
           <div className="demo-request flex flex-col w-full" data-testid="mock-response-demo-request">
             {hasDetails ? (
@@ -93,6 +92,20 @@ const MockResponseRequestPane = ({
                 {demoRequest.params.length ? (
                   <DemoKeyValueTable title="Query Params" rows={demoRequest.params} />
                 ) : null}
+                {demoRequest.pathParams.length ? (
+                  <>
+                    <div className="demo-section">
+                      <div className="demo-section-title">URL</div>
+                      <pre className="demo-body">
+                        {demoRequest.method} {demoRequest.url}
+                      </pre>
+                    </div>
+                    <DemoKeyValueTable
+                      title="Path Params"
+                      rows={demoRequest.pathParams}
+                    />
+                  </>
+                ) : null}
                 {demoRequest.body ? (
                   <div className="demo-section">
                     <div className="demo-section-title">Body</div>
@@ -103,7 +116,7 @@ const MockResponseRequestPane = ({
             ) : (
               <div className="demo-hint">
                 No rules defined - any {demoRequest.method} {demoRequest.url} request matches this response.
-                Add rules to see the matching headers, query params, or body here.
+                Add rules to see the matching headers, query params, path params, or body here.
               </div>
             )}
           </div>

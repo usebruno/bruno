@@ -1,0 +1,24 @@
+info:
+  name: GQL Introspection
+  type: graphql
+  seq: 1
+
+graphql:
+  method: POST
+  url: '{{baseUrl}}'
+  body:
+    query: |-
+      query GetCompany {
+        company {
+          ceo
+          name
+          founder
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
