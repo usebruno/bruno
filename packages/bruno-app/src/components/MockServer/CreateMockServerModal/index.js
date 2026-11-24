@@ -32,7 +32,6 @@ import {
   getMockServerPortRangeError,
   getMockServerNameError,
   openMockServerDashboard,
-  resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort,
   updateMockServerTabName,
@@ -401,17 +400,10 @@ const CreateMockServerModal = ({
           }
         }
 
-        const tabCollectionUid = resolveTabCollectionUid({
-          sourceType: resolvedSourceType,
-          collectionUid: values.collectionUid,
-          activeWorkspace,
-          workspaceCollections
-        });
-
         if (isEditing) {
           dispatch(updateMockServerTabName(savedInstance));
         } else {
-          dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
+          dispatch(openMockServerDashboard(savedInstance));
         }
 
         if (syncError) {

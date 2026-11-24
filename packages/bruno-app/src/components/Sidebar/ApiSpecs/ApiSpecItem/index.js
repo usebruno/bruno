@@ -3,7 +3,7 @@ import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
 import { useSidebarAccordion } from 'components/Sidebar/SidebarAccordionContext';
-import { useBetaFeature, BETA_FEATURES } from 'utils/beta-features';
+import { useIsMockServerEnabled } from 'utils/mock-server/is-enabled';
 import { isApiSpecTabForPathname } from 'utils/api-specs';
 import { isOpenApiSpec } from 'utils/importers/openapi-collection';
 import brunoPath from 'utils/common/path';
@@ -22,7 +22,7 @@ import { getApiSpecMenuItems } from './getApiSpecMenuItems';
 const ApiSpecItem = ({ apiSpec }) => {
   const dispatch = useDispatch();
   const { dropdownContainerRef } = useSidebarAccordion();
-  const isMockServerEnabled = useBetaFeature(BETA_FEATURES.MOCK_SERVER);
+  const isMockServerEnabled = useIsMockServerEnabled();
   const menuDropdownRef = useRef(null);
 
   const isActive = useSelector((state) => {
