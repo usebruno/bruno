@@ -1,6 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit';
 import {
+  countInvalidItems,
   findCollectionByUid,
+  findItemInCollection,
   getGlobalEnvironmentVariables,
   getGlobalEnvironmentVariablesMasked
 } from 'utils/collections/index';
@@ -55,5 +57,32 @@ export const makeSelectCollectionWithGlobals = () =>
         globalEnvironments,
         activeGlobalEnvironmentUid
       };
+    }
+  );
+
+/**
+ * Memoized invalid parse count for a collection tree ({@link countInvalidItems} on `collection.items`).
+ * Factory pattern: `const selectCount = useMemo(makeSelectInvalidItemCountForCollection, []);`
+ */
+export const makeSelectInvalidItemCountForCollection = () =>
+  createSelector([selectCollectionByUid], (collection) =>
+    collection ? countInvalidItems(collection.items) : 0
+  );
+
+/**
+ * Memoized invalid parse count for a folder subtree only.
+ */
+export const makeSelectInvalidItemCountForFolder = () =>
+  createSelector(
+    [selectCollectionByUid, (_state, _collectionUid, folderUid) => folderUid],
+    (collection, folderUid) => {
+      if (!collection || !folderUid) {
+        return 0;
+      }
+      const folder = findItemInCollection(collection, folderUid);
+      if (!folder?.items) {
+        return 0;
+      }
+      return countInvalidItems(folder.items);
     }
   );

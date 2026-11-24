@@ -3,7 +3,9 @@ import {
   selectCollections,
   selectCollectionByUid,
   selectActiveWorkspace,
-  makeSelectCollectionWithGlobals
+  makeSelectCollectionWithGlobals,
+  makeSelectInvalidItemCountForCollection,
+  makeSelectInvalidItemCountForFolder
 } from './collections';
 
 const request = (uid, name) => ({ uid, name, type: 'http-request', request: { url: `/${name}` } });
@@ -83,6 +85,97 @@ describe('selectors/collections', () => {
 
     it('returns undefined for a missing collection', () => {
       expect(makeSelectCollectionWithGlobals()(buildState(), 'missing')).toBeUndefined();
+    });
+  });
+
+  describe('makeSelectInvalidItemCountForCollection', () => {
+    const broken = (uid, name) => ({
+      uid,
+      name,
+      type: 'http-request',
+      error: { message: 'parse failed' },
+      request: { url: `/${name}` }
+    });
+
+    it('counts invalid nodes in the collection tree and ignores transient items', () => {
+      const select = makeSelectInvalidItemCountForCollection();
+      const state = buildTestState({
+        collections: {
+          collections: [
+            {
+              uid: 'col-invalid',
+              name: 'Invalid',
+              items: [
+                broken('req-broken', 'broken'),
+                { uid: 'req-ok', name: 'ok', type: 'http-request', request: { url: '/ok' } },
+                { uid: 'req-transient', name: 'temp', type: 'http-request', isTransient: true, error: { message: 'x' }, request: { url: '/t' } }
+              ]
+            }
+          ]
+        }
+      });
+      expect(select(state, 'col-invalid')).toBe(1);
+    });
+
+    it('returns 0 for an unknown collection uid', () => {
+      expect(makeSelectInvalidItemCountForCollection()(buildState(), 'missing')).toBe(0);
+    });
+
+    it('returns the same count when an unrelated collection changes', () => {
+      const select = makeSelectInvalidItemCountForCollection();
+      const state = buildTestState({
+        collections: {
+          collections: [
+            { uid: 'col-a', name: 'A', items: [broken('r1', 'one')] },
+            { uid: 'col-b', name: 'B', items: [request('r2', 'two')] }
+          ]
+        }
+      });
+      expect(select(state, 'col-a')).toBe(1);
+      const next = {
+        ...state,
+        collections: {
+          ...state.collections,
+          collections: state.collections.collections.map((c) =>
+            c.uid === 'col-b' ? { ...c, name: 'B renamed' } : c
+          )
+        }
+      };
+      expect(select(next, 'col-a')).toBe(1);
+    });
+  });
+
+  describe('makeSelectInvalidItemCountForFolder', () => {
+    it('counts invalid files only under the folder uid', () => {
+      const select = makeSelectInvalidItemCountForFolder();
+      const state = buildTestState({
+        collections: {
+          collections: [
+            {
+              uid: 'col-f',
+              name: 'Tree',
+              items: [
+                {
+                  uid: 'folder-parent',
+                  name: 'parent',
+                  type: 'folder',
+                  items: [
+                    { uid: 'req-nested', name: 'bad', type: 'http-request', error: { message: 'x' }, request: { url: '/b' } },
+                    { uid: 'folder-nested', name: 'nested', type: 'folder', items: [request('req-ok', 'ok')] }
+                  ]
+                },
+                { uid: 'req-root', name: 'root-bad', type: 'http-request', error: { message: 'y' }, request: { url: '/r' } }
+              ]
+            }
+          ]
+        }
+      });
+      expect(select(state, 'col-f', 'folder-parent')).toBe(1);
+      expect(makeSelectInvalidItemCountForCollection()(state, 'col-f')).toBe(2);
+    });
+
+    it('returns 0 for a missing folder uid', () => {
+      expect(makeSelectInvalidItemCountForFolder()(buildState(), 'col-a', 'nope')).toBe(0);
     });
   });
 });

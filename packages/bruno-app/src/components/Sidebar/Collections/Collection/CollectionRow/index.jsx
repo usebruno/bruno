@@ -38,8 +38,9 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { getSortedDraggedItems, countInvalidItems } from 'utils/collections';
+import { getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
+import { makeSelectInvalidItemCountForCollection } from 'src/selectors/collections';
 
 import RenameCollection from '../RenameCollection';
 import StyledWrapper from './StyledWrapper';
@@ -77,7 +78,8 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
   const isLoading = collection.isLoading;
-  const invalidItemCount = useMemo(() => countInvalidItems(collection.items), [collection.items]);
+  const selectInvalidItemCount = useMemo(makeSelectInvalidItemCountForCollection, []);
+  const invalidItemCount = useSelector((state) => selectInvalidItemCount(state, collection.uid));
   const collectionRef = useRef(null);
 
   const selectIsCollectionFocused = useMemo(() => isTabForItemActive({ itemUid: collection.uid }), [collection.uid]);
