@@ -46,6 +46,12 @@ describe('createSseEventExtractor', () => {
     expect(ex.extractEvents()).toEqual(['data: B']);
   });
 
+  it('handles a line ending at buffer position zero', () => {
+    const ex = createSseEventExtractor();
+    ex.append('\n\ndata: A\n\n');
+    expect(ex.extractEvents()).toEqual(['', 'data: A']);
+  });
+
   it('returns the remaining partial event on flush', () => {
     const ex = createSseEventExtractor();
     ex.append('data: A\n\ndata: tail');
