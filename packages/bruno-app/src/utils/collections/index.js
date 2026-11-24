@@ -2590,6 +2590,8 @@ export const getWorkspaceCollections = ({ collections = [], workspaces = [], act
 
 const hasAnyExampleChanges = (item) => Boolean(item.draft) && !isEqual(item.examples || [], item.draft.examples || []);
 
+// Keyed on immutable store items: an edit gives the item a new identity, so an entry can
+// never go stale as long as the predicates below stay pure functions of the item.
 const unsavedItemChangesCache = new WeakMap();
 
 const hasUnsavedItemChanges = (item) => {

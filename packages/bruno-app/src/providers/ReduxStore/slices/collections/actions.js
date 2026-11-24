@@ -268,13 +268,10 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:save-multiple-requests', itemsToSave)
-      .then(resolve)
-      .catch((err) => {
-        toast.error('Failed to save requests!');
-        reject(err);
-      });
+    ipcRenderer.invoke('renderer:save-multiple-requests', itemsToSave).then(resolve).catch(reject);
+  }).catch((err) => {
+    toast.error(err?.name === 'ValidationError' ? err.message : 'Failed to save requests!');
+    throw err;
   });
 };
 
@@ -478,12 +475,6 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
               return Boolean(savedItem) && !savedItem.draft;
             });
           dispatch(clearExampleEditModesForItems({ itemUids }));
-        })
-        .catch((err) => {
-          if (err?.name === 'ValidationError') {
-            toast.error(err.message);
-          }
-          throw err;
         })
     );
   });

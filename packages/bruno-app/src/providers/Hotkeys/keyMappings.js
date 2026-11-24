@@ -236,6 +236,34 @@ export const getMergedKeyBindings = (userKeyBindings) => {
   return merged;
 };
 
+const normalizedComboSignature = (keysStr) => {
+  const parts = fromKeysString(keysStr)
+    .map((part) => part.toLowerCase())
+    .sort();
+  return parts.length ? parts.join('+') : null;
+};
+
+/**
+ * A default combo yields to a user-customized combo: when a newly introduced default
+ * collides with a combo the user had already assigned to another action, only the
+ * user's binding may fire.
+ */
+const defaultComboYieldsToUserCombo = (action, merged, userKeyBindings, os) => {
+  if (!userKeyBindings || userKeyBindings[action]?.[os]) {
+    return false;
+  }
+
+  const signature = normalizedComboSignature(merged[action][os]);
+  if (!signature) {
+    return false;
+  }
+
+  return Object.entries(userKeyBindings).some(
+    ([otherAction, binding]) =>
+      otherAction !== action && merged[otherAction] && normalizedComboSignature(binding?.[os]) === signature
+  );
+};
+
 /**
  * Retrieves the Mousetrap-compatible key combos for a specific action across all operating systems.
  * Reads from merged defaults + user preferences.
@@ -253,6 +281,11 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
     return null;
   }
 
-  const combo = toMousetrapCombo(actionBindings[getKeyBindingOS()]);
+  const os = getKeyBindingOS();
+  if (defaultComboYieldsToUserCombo(action, merged, userKeyBindings, os)) {
+    return null;
+  }
+
+  const combo = toMousetrapCombo(actionBindings[os]);
   return combo ? [combo] : null;
 };
