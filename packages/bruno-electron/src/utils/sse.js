@@ -20,6 +20,7 @@ const createSseEventExtractor = () => {
     append(text) {
       buffer += text;
     },
+
     flush() {
       const remaining = buffer;
       buffer = '';
@@ -28,6 +29,7 @@ const createSseEventExtractor = () => {
       swallowLeadingLf = false;
       return remaining;
     },
+
     extractEvents() {
       dropSwallowedLf();
       const events = [];
