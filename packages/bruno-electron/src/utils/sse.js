@@ -33,14 +33,13 @@ const createSseEventExtractor = () => {
     extractEvents() {
       dropSwallowedLf();
       const events = [];
-      let boundaryFound = true;
-      while (boundaryFound) {
+      let boundaryFound = false;
+      while (!boundaryFound) {
         let eventEnd = -1;
         let boundaryEnd = -1;
-        boundaryFound = false;
         let waitingForLf = false;
 
-        while (!boundaryFound && !waitingForLf && scanIndex < buffer.length) {
+        while (boundaryEnd === -1 && !waitingForLf && scanIndex < buffer.length) {
           const ch = buffer[scanIndex];
           const isLastChar = scanIndex + 1 === buffer.length;
           let termLen = 0;
@@ -66,20 +65,22 @@ const createSseEventExtractor = () => {
           } else if (prevLineEndAt !== -1) {
             eventEnd = prevLineEndAt;
             boundaryEnd = scanIndex + termLen;
-            boundaryFound = true;
           } else {
             prevLineEndAt = scanIndex;
             scanIndex += termLen;
           }
         }
 
-        if (boundaryFound) {
+        if (boundaryEnd !== -1) {
           events.push(buffer.slice(0, eventEnd));
           buffer = buffer.slice(boundaryEnd);
           scanIndex = 0;
           prevLineEndAt = -1;
+        } else {
+          boundaryFound = true;
         }
       }
+
       return events;
     }
   };

@@ -1406,6 +1406,18 @@ const registerNetworkIpc = (mainWindow) => {
         response.sseChunks?.push(newData);
 
         if (isEventStream) {
+          // SSE timeline entries are framed per event, but the accumulated response
+          // buffer must preserve the exact raw bytes received on the wire. Send them
+          // as chunks arrive so cancellation cannot discard bytes already received.
+          seq += 1;
+          mainWindow.webContents.send('main:http-stream-new-data', {
+            collectionUid,
+            itemUid: item.uid,
+            seq,
+            timestamp: Date.now(),
+            data: { dataBuffer: newData }
+          });
+
           // Transport chunks often do not align with event boundaries; buffer data
           // and emit only complete events delimited by blank lines.
           sseExtractor.append(sseDecoder.write(newData));
@@ -1441,17 +1453,6 @@ const registerNetworkIpc = (mainWindow) => {
         if (!cancelTokens[response.cancelTokenUid]) return;
 
         if (isEventStream) {
-          // SSE timeline entries are framed per event; send the exact raw bytes
-          // received on the wire once the stream is complete.
-          seq += 1;
-          mainWindow.webContents.send('main:http-stream-new-data', {
-            collectionUid,
-            itemUid: item.uid,
-            seq,
-            timestamp: Date.now(),
-            data: { dataBuffer: Buffer.concat(response.sseChunks || []) }
-          });
-
           sseExtractor.append(sseDecoder.end());
           const remaining = sseExtractor.flush();
           if (remaining.trim().length) {
