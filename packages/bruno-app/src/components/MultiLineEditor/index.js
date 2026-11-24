@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { debounce } from 'lodash';
-import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { MaskedEditor } from 'utils/common/masked-editor';
 import {
@@ -13,7 +14,8 @@ import {
 } from 'components/CodeEditor/state-persistence';
 import StyledWrapper from './StyledWrapper';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
@@ -39,6 +41,17 @@ const restoreAncestorScrolls = (snapshots) => {
 };
 
 class MultiLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -184,14 +197,15 @@ class MultiLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getVariableNamesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
     const autoCompleteOptions = {
       showHintsFor: ['variables'],
       getAllVariables: getAllVariablesHandler,
-      getAnywordAutocompleteHints
+      getAnywordAutocompleteHints,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
@@ -199,12 +213,9 @@ class MultiLineEditor extends Component {
       autoCompleteOptions
     );
 
-    setupLinkAware(this.editor, {
-      onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
-    this._linkAwareItemType = this.props.item?.type;
-    this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
+    // Only marks URLs and lets Cmd/Ctrl+Click open them externally; click-to-open-as-new-request
+    // is reserved for response previews.
+    setupLinkAware(this.editor, { onLinkClick: undefined });
 
     // Add mousetrap calss so Mousetrap captures shortcuts even when Codemirror is focused
     const cmInput = this.editor.getInputField();
@@ -216,6 +227,8 @@ class MultiLineEditor extends Component {
     this.cachedValue = String(this.props.value) || '';
     this.editor.on('change', this._onEdit);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
+    this.editor.on('mousedown', this._onMouseDown);
     this.addOverlay(variables);
     this._setupViewPersistence();
 
@@ -226,8 +239,16 @@ class MultiLineEditor extends Component {
     this._enableMaskedEditor(this.props.isSecret);
   }
 
+  _onMouseDown = (editor, event) => {
+    pinSelectionOnContextMenu({
+      editor,
+      event,
+      enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
+    });
+  };
+
   _onBlur = () => {
-    if (this.editor) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -264,38 +285,25 @@ class MultiLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getAllVariables(this.props.collection, this.props.item);
-    if (!isEqual(variables, this.variables)) {
-      if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-        this.editor.options.brunoVarInfo.variables = variables;
+    if (this.props.collection !== prevProps.collection || this.props.item !== prevProps.item) {
+      const variables = getAllVariables(this.props.collection, this.props.item);
+      if (!isEqual(variables, this.variables)) {
+        if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
+          this.editor.options.brunoVarInfo.variables = variables;
+        }
+        this.addOverlay(variables);
       }
-      this.addOverlay(variables);
     }
 
-    // Update collection and item when they change
     if (this.props.enableBrunoVarInfo !== false && this.editor.options.brunoVarInfo) {
-      if (!isEqual(this.props.collection, this.editor.options.brunoVarInfo.collection)) {
+      if (this.props.collection !== this.editor.options.brunoVarInfo.collection) {
         this.editor.options.brunoVarInfo.collection = this.props.collection;
       }
-      if (!isEqual(this.props.item, this.editor.options.brunoVarInfo.item)) {
+      if (this.props.item !== this.editor.options.brunoVarInfo.item) {
         this.editor.options.brunoVarInfo.item = this.props.item;
       }
     }
 
-    // Re-wire link handler when item/collection context changes.
-    const itemType = this.props.item?.type;
-    const collectionUid = this.props.collection?.uid;
-    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    if (itemType !== this._linkAwareItemType || collectionUid !== this._linkAwareCollectionUid || presetType !== this._linkAwarePresetType) {
-      this._linkAwareItemType = itemType;
-      this._linkAwareCollectionUid = collectionUid;
-      this._linkAwarePresetType = presetType;
-      this.editor._destroyLinkAware?.();
-      setupLinkAware(this.editor, {
-        onLinkClick: resolveLinkClickHandler(this.props.item, this.props.collection)
-      });
-      this.editor.refresh();
-    }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
@@ -333,7 +341,9 @@ class MultiLineEditor extends Component {
       this.editor.setOption('readOnly', this.props.readOnly || false);
     }
     if (this.props.mode !== prevProps.mode && this.editor) {
-      this.addOverlay(variables);
+      // `this.variables` is kept in sync by addOverlay(), so it is always the current
+      // variable set — no need to re-derive it just to re-apply the mode.
+      this.addOverlay(this.variables);
     }
     if (this.props.placeholder !== prevProps.placeholder && this.editor) {
       this.editor.setOption('placeholder', this.props.placeholder);
@@ -356,6 +366,9 @@ class MultiLineEditor extends Component {
       this._teardownViewPersistence();
       this.editor.off('change', this._onEdit);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('mousedown', this._onMouseDown);
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
+      this.editor.off('contextmenu', this._onContextMenu);
       this.editor.getWrapperElement().remove();
     }
   }
@@ -384,7 +397,12 @@ class MultiLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
+      <button
+        type="button"
+        className="mx-2"
+        data-testid="secret-reveal-toggle"
+        onClick={() => this.toggleVisibleSecret()}
+      >
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

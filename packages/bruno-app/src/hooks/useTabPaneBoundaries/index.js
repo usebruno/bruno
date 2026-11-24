@@ -1,4 +1,3 @@
-import find from 'lodash/find';
 import {
   updateRequestPaneTabHeight,
   updateRequestPaneTabWidth,
@@ -8,16 +7,16 @@ import {
   expandResponsePane
 } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch, useSelector } from 'react-redux';
+import { selectTabByUid } from 'src/selectors/tab';
 
 const MIN_TOP_PANE_HEIGHT = 380;
 
 export function useTabPaneBoundaries(activeTabUid) {
   const DEFAULT_PANE_WIDTH_DIVISOR = 2.2;
 
-  const tabs = useSelector((state) => state.tabs.tabs);
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const focusedTab = useSelector((state) => selectTabByUid(state, activeTabUid));
   const screenWidth = useSelector((state) => state.app.screenWidth);
-  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const isSidebarHidden = useSelector((state) => state.app.sidebarCollapsed);
   const left = focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / DEFAULT_PANE_WIDTH_DIVISOR;
   const top = focusedTab?.requestPaneHeight || MIN_TOP_PANE_HEIGHT;
@@ -56,7 +55,7 @@ export function useTabPaneBoundaries(activeTabUid) {
       dispatch(expandResponsePane({ uid: activeTabUid }));
     },
     reset() {
-      let usableAsideWidth = isSidebarHidden ? 0 : asideWidth;
+      const usableAsideWidth = isSidebarHidden ? 0 : asideWidth;
       dispatch(expandRequestPane({ uid: activeTabUid }));
       dispatch(expandResponsePane({ uid: activeTabUid }));
       dispatch(updateRequestPaneTabHeight({

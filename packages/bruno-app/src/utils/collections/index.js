@@ -3,14 +3,22 @@ import { uuid } from 'utils/common';
 import { sortByNameThenSequence } from 'utils/common/index';
 import path, { normalizePath } from 'utils/common/path';
 import { isWindowsOS } from 'utils/common/platform';
-import { isRequestTagsIncluded } from '@usebruno/common';
-import { VARIABLE_ADD_SCOPES } from 'utils/common/constants';
+import {
+  isRequestTagsIncluded,
+  getEffectiveTags,
+  getFolderTags,
+  getOwnTags,
+  getInheritedTagsFromTreePath,
+  getInheritedTagSourcesFromTreePath,
+  mockDataFunctions
+} from '@usebruno/common';
+import { VARIABLE_ADD_SCOPES, AUTOCOMPLETE_SCOPES } from 'utils/common/constants';
 import {
   doesRequestMatchSearchText,
   doesFolderHaveItemsMatchSearchText,
   doesCollectionHaveItemsMatchingSearchText
 } from 'utils/collections/search';
-import { resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
+import { nextCopyName, resolveEnvironmentInheritance, toVariablesMap } from '@usebruno/common/utils';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -18,20 +26,6 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   }
 
   return str.replaceAll('\t', ' '.repeat(numSpaces));
-};
-
-export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
-      i.depth = initialDepth;
-
-      if (i.items && i.items.length) {
-        depth(i.items, initialDepth + 1);
-      }
-    });
-  };
-
-  depth(items, 1);
 };
 
 const setCollapsedRecursively = (items, collapsed) => {
@@ -137,6 +131,16 @@ export const findParentItemInCollection = (collection, itemUid) => {
   });
 };
 
+/**
+ * Display name for a clone of `item`: the source name with any trailing copy token stripped, then
+ * the next free slot among its siblings. The filesystem name is still resolved by electron.
+ */
+export const getCloneDisplayName = (collection, item) => {
+  const parent = findParentItemInCollection(collection, item.uid) || collection;
+
+  return nextCopyName(item.name, map(parent.items, (i) => i.name));
+};
+
 export const recursivelyGetAllItemUids = (items = []) => {
   let flattenedItems = flattenItems(items);
 
@@ -146,6 +150,9 @@ export const recursivelyGetAllItemUids = (items = []) => {
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
+
+/** Active collection environment uid; `realActiveEnvironmentUid` wins when set. */
+export const getEffectiveActiveEnvironmentUid = (collection) => collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
 
 export const findEnvironmentInCollectionByName = (collection, name) => {
   return find(collection.environments, (e) => e.name === name);
@@ -226,6 +233,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         type: param.type,
         name: param.name,
         value: param.value,
+        contentType: param.contentType,
         description: param.description,
         enabled: param.enabled
       };
@@ -592,6 +600,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           di.root.meta = {};
           di.root.meta.name = meta?.name;
           di.root.meta.seq = meta?.seq;
+          if (meta?.tags?.length) {
+            di.root.meta.tags = meta.tags;
+          }
         }
         if (!Object.keys(di.root.request)?.length) {
           delete di.root.request;
@@ -862,10 +873,12 @@ export const transformCollectionRootToSave = (collection) => {
 
 export const transformFolderRootToSave = (folder) => {
   const _folder = folder.draft ? folder.draft : folder.root;
+  const tags = getFolderTags(folder);
   const folderRootToSave = {
     meta: {
       name: folder.name,
-      seq: folder.seq
+      seq: folder.seq,
+      ...(tags.length ? { tags } : {})
     },
     docs: _folder.docs,
     request: {
@@ -877,7 +890,7 @@ export const transformFolderRootToSave = (folder) => {
     }
   };
 
-  each(_folder.request.headers, (header) => {
+  each(_folder?.request?.headers, (header) => {
     folderRootToSave.request.headers.push({
       uid: header.uid,
       name: header.name,
@@ -942,6 +955,17 @@ export const getCollectionItemCounts = (items = []) => {
     folderCount: flattened.filter(isItemAFolder).length,
     requestCount: flattened.filter(isItemARequest).length
   };
+};
+
+/**
+ * Counts the files that failed to parse in a collection's or folder's item tree,
+ * recursively at every depth. Transient items are skipped since the sidebar doesn't show them.
+ *
+ * @param {Array} items - The collection's or folder's `items` tree.
+ * @returns {number}
+ */
+export const countInvalidItems = (items = []) => {
+  return flattenItems(items).filter((item) => item.error && !item.isTransient).length;
 };
 
 /**
@@ -1162,11 +1186,12 @@ export const hasRequestChanges = (item) => {
   const originalItem = cloneDeep(item);
   const draftItem = cloneDeep(item.draft);
 
-  // Remove examples from both items for comparison
   delete originalItem.examples;
   delete originalItem.draft;
+  delete originalItem.unresolvedVariables;
   delete draftItem.examples;
   delete draftItem.draft;
+  delete draftItem.unresolvedVariables;
 
   return !isEqual(originalItem, draftItem);
 };
@@ -1223,19 +1248,27 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const findActiveGlobalEnvironment = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid);
+};
+
 export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   const environment = resolveEnvironmentInheritance({
     environments: globalEnvironments,
-    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    targetEnvironment: findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid }),
     merge: true
   });
   return toVariablesMap(environment?.variables);
 };
 
+export const getGlobalEnvironmentName = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  return findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid })?.name;
+};
+
 export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
   const environment = resolveEnvironmentInheritance({
     environments: globalEnvironments,
-    targetEnvironment: globalEnvironments?.find((env) => env?.uid === activeGlobalEnvironmentUid),
+    targetEnvironment: findActiveGlobalEnvironment({ globalEnvironments, activeGlobalEnvironmentUid }),
     merge: true
   });
   if (environment && Array.isArray(environment.variables)) {
@@ -1312,8 +1345,11 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection, item) => {
-  if (!collection) return {};
+const getVariablesByScope = (collection, item) => {
+  if (!collection) {
+    return {};
+  }
+
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
@@ -1355,6 +1391,38 @@ export const getAllVariables = (collection, item) => {
   const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
 
   return {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    oauth2CredentialVariables,
+    runtimeVariables,
+    promptVariables,
+    mergedProcessEnvVariables,
+    pathParams,
+    maskedEnvVariables: uniqueMaskedVariables
+  };
+};
+
+export const getAllVariables = (collection, item) => {
+  if (!collection) return {};
+
+  const {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    oauth2CredentialVariables,
+    runtimeVariables,
+    promptVariables,
+    mergedProcessEnvVariables,
+    pathParams,
+    maskedEnvVariables
+  } = getVariablesByScope(collection, item);
+
+  return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
@@ -1366,7 +1434,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
-    maskedEnvVariables: uniqueMaskedVariables,
+    maskedEnvVariables,
     process: {
       env: {
         ...mergedProcessEnvVariables
@@ -1435,14 +1503,21 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-export const getTreePathFromCollectionToItem = (collection, _item) => {
-  let path = [];
-  let item = findItemInCollection(collection, _item?.uid);
-  while (item) {
-    path.unshift(item);
-    item = findParentItemInCollection(collection, item?.uid);
+const collectTreePath = (items, targetUid, path) => {
+  for (const item of items) {
+    path.push(item);
+    if (item.uid === targetUid) return true;
+    if (item.items && collectTreePath(item.items, targetUid, path)) return true;
+    path.pop();
   }
-  return path;
+  return false;
+};
+
+export const getTreePathFromCollectionToItem = (collection, _item) => {
+  if (!_item?.uid) return [];
+
+  const path = [];
+  return collectTreePath(collection?.items || [], _item.uid, path) ? path : [];
 };
 
 const mergeVars = (collection, requestTreePath = []) => {
@@ -1637,6 +1712,10 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
         const tags = includeDrafts && item.draft ? get(item, 'draft.tags', []) : get(item, 'tags', []);
         tags.forEach((tag) => allTags.add(tag));
       }
+      if (isItemAFolder(item)) {
+        const tags = includeDrafts ? getFolderTags(item) : get(item, 'root.meta.tags', []);
+        tags.forEach((tag) => allTags.add(tag));
+      }
       if (item.items) {
         getTags(item.items);
       }
@@ -1646,32 +1725,71 @@ export const getUniqueTagsFromItems = (items = [], { includeDrafts = true } = {}
   return Array.from(allTags).sort();
 };
 
-export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags }) => {
-  let requestItems = [];
+/** Tags an item inherits from the folders above it, each paired with the folder it came from. */
+export const getInheritedTagSourcesForItem = (collection, item) =>
+  getInheritedTagSourcesFromTreePath(getTreePathFromCollectionToItem(collection, item));
 
-  if (recursive) {
-    requestItems = flattenItems(items);
-  } else {
-    each(items, (item) => {
-      if (item.request) {
-        requestItems.push(item);
-      }
-    });
-  }
+export const getInheritedTagsForItem = (collection, item) =>
+  getInheritedTagsFromTreePath(getTreePathFromCollectionToItem(collection, item));
+
+/** The tag set an item is filtered and reported by: its own tags plus its parent folders'. */
+export const getEffectiveTagsForItem = (collection, item) =>
+  getEffectiveTags(getOwnTags(item), getInheritedTagsForItem(collection, item));
+
+/**
+ * Pairs every request with the tags it inherits from the folders it sits in.
+ * `inheritedTags` is the effective tags of the folder the run starts at.
+ */
+const collectRequestsWithInheritedTags = ({ recursive, items, inheritedTags }) => {
+  const collected = [];
+
+  each(items, (item) => {
+    if (!isItemAFolder(item)) {
+      collected.push({ item, inheritedTags });
+      return;
+    }
+    if (recursive) {
+      collected.push(
+        ...collectRequestsWithInheritedTags({
+          recursive,
+          items: item.items,
+          inheritedTags: getEffectiveTags(getFolderTags(item), inheritedTags)
+        })
+      );
+    }
+  });
+
+  return collected;
+};
+
+/**
+ * Effective tags for every request in the tree, keyed by uid, resolved in a single walk — for
+ * callers that need them for a whole list at once rather than one item at a time.
+ */
+export const getEffectiveTagsByItemUid = (items = [], inheritedTags = []) =>
+  Object.fromEntries(
+    collectRequestsWithInheritedTags({ recursive: true, items, inheritedTags }).map(({ item, inheritedTags: inherited }) => [
+      item.uid,
+      getEffectiveTags(getOwnTags(item), inherited)
+    ])
+  );
+
+export const getRequestItemsForCollectionRun = ({ recursive, items = [], tags, inheritedTags = [] }) => {
+  let requestItems = collectRequestsWithInheritedTags({ recursive, items, inheritedTags });
 
   const requestTypes = ['http-request', 'graphql-request'];
-  requestItems = requestItems.filter((request) => requestTypes.includes(request.type) && !request.isTransient);
+  requestItems = requestItems.filter(({ item }) => requestTypes.includes(item.type) && !item.isTransient);
 
   if (tags && tags.include && tags.exclude) {
     const includeTags = tags.include ? tags.include : [];
     const excludeTags = tags.exclude ? tags.exclude : [];
-    requestItems = requestItems.filter(({ tags: requestTags = [], draft }) => {
-      requestTags = draft?.tags || requestTags || [];
-      return isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    requestItems = requestItems.filter(({ item, inheritedTags: inherited }) => {
+      const effectiveTags = getEffectiveTags(getOwnTags(item), inherited);
+      return isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
     });
   }
 
-  return requestItems;
+  return requestItems.map(({ item }) => item);
 };
 
 export const getPropertyFromDraftOrRequest = (item, propertyKey, defaultValue = null) => {
@@ -1751,27 +1869,122 @@ export const resolveEnabledVariable = (variables, variableName) => {
   return matches[matches.length - 1];
 };
 
+const readItemRequestVars = (treeItem) => get(treeItem?.draft || treeItem?.root || treeItem, 'request.vars.req', []);
+
+const buildTreePathsByItemUid = (items, prefix, treePathsByItemUid) => {
+  for (const item of items || []) {
+    const pathToItem = [...prefix, item];
+    treePathsByItemUid.set(item.uid, pathToItem);
+    if (item.items?.length) {
+      buildTreePathsByItemUid(item.items, pathToItem, treePathsByItemUid);
+    }
+  }
+};
+
+/** Precomputed paths and merged env rows for repeated scope lookups during one collection scan. */
+export const createVariableScopeScanContext = (collection) => {
+  if (!collection) {
+    return null;
+  }
+
+  const treePathsByItemUid = new Map();
+  buildTreePathsByItemUid(collection.items, [], treePathsByItemUid);
+
+  const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
+
+  let environment = null;
+  let environmentVariables = null;
+  const activeEnvironmentUidForScope = getEffectiveActiveEnvironmentUid(collection);
+  if (activeEnvironmentUidForScope) {
+    environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
+    if (environment) {
+      environmentVariables = resolveEnvironmentInheritance({
+        environments: collection.environments,
+        targetEnvironment: environment,
+        merge: true
+      }).variables;
+    }
+  }
+
+  let globalEnvironment = null;
+  let globalVariables = null;
+  const { globalEnvironments, activeGlobalEnvironmentUid } = collection;
+  globalEnvironment = find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid);
+  if (globalEnvironment) {
+    globalVariables = resolveEnvironmentInheritance({
+      environments: globalEnvironments,
+      targetEnvironment: globalEnvironment,
+      merge: true
+    }).variables;
+  }
+
+  return {
+    treePathsByItemUid,
+    collectionRoot,
+    environment,
+    environmentVariables,
+    globalEnvironment,
+    globalVariables,
+    resolutionCache: new Map(),
+    inheritedAuthByItemUid: new Map()
+  };
+};
+
+const getRequestTreePathForScope = (collection, item, scanContext) => {
+  if (!item?.uid) {
+    return [];
+  }
+  if (scanContext?.treePathsByItemUid?.has(item.uid)) {
+    return scanContext.treePathsByItemUid.get(item.uid);
+  }
+  return getTreePathFromCollectionToItem(collection, item);
+};
+
+const variableScopeCacheKey = (variableName, item) => (
+  `${item?.uid ?? ''}|${variableName}`
+);
+
 // Get the scope and raw value of a variable by checking all scopes in priority order
-export const getVariableScope = (variableName, collection, item) => {
+export const getVariableScope = (variableName, collection, item, options = {}) => {
   if (!variableName || !collection) {
     return null;
   }
 
+  const { skipRequestScope = false, scanContext = null, ignoreVariableUid = null } = options;
+
+  const findVariable = (variables) => resolveEnabledVariable(
+    ignoreVariableUid ? (variables || []).filter((variable) => variable.uid !== ignoreVariableUid) : variables,
+    variableName
+  );
+
+  if (scanContext?.resolutionCache) {
+    const cacheKey = variableScopeCacheKey(variableName, item);
+    if (scanContext.resolutionCache.has(cacheKey)) {
+      return scanContext.resolutionCache.get(cacheKey);
+    }
+  }
+
+  const storeScopeResult = (result) => {
+    if (scanContext?.resolutionCache) {
+      scanContext.resolutionCache.set(variableScopeCacheKey(variableName, item), result);
+    }
+    return result;
+  };
+
   // 1. Check Request Variables (highest priority)
-  if (item) {
-    const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-    const requestVar = requestVars.find((v) => v.name === variableName && v.enabled);
+  if (item && item.type !== 'folder' && !skipRequestScope) {
+    const requestVar = findVariable(readItemRequestVars(item));
     if (requestVar) {
-      return {
+      return storeScopeResult({
         type: 'request',
         value: requestVar.value,
         data: { item, variable: requestVar }
-      };
+      });
     }
   }
 
   // 2. Check Folder Variables
-  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  const requestTreePath = getRequestTreePathForScope(collection, item, scanContext);
   for (let i = requestTreePath.length - 1; i >= 0; i--) {
     const pathItem = requestTreePath[i];
     if (!pathItem) {
@@ -1779,88 +1992,93 @@ export const getVariableScope = (variableName, collection, item) => {
     }
 
     if (pathItem.type === 'folder') {
-      // Check draft first, then fall back to root
-      const folderRoot = pathItem.draft || pathItem.root;
-      const folderVars = get(folderRoot, 'request.vars.req', []);
-      const folderVar = folderVars.find((v) => v.name === variableName && v.enabled);
+      const folderVar = findVariable(readItemRequestVars(pathItem));
       if (folderVar) {
-        return {
+        return storeScopeResult({
           type: 'folder',
           value: folderVar.value,
           data: { folder: pathItem, variable: folderVar }
-        };
+        });
       }
     }
   }
 
   // 3. Check Environment Variables
-  const activeEnvironmentUidForScope = collection.realActiveEnvironmentUid ?? collection.activeEnvironmentUid;
-  if (activeEnvironmentUidForScope) {
-    const environment = findEnvironmentInCollection(collection, activeEnvironmentUidForScope);
-    if (environment) {
-      const { variables } = resolveEnvironmentInheritance({
+  const environment = scanContext?.environment
+    ?? (() => {
+      const activeEnvironmentUidForScope = getEffectiveActiveEnvironmentUid(collection);
+      return activeEnvironmentUidForScope
+        ? findEnvironmentInCollection(collection, activeEnvironmentUidForScope)
+        : null;
+    })();
+  const environmentVariables = scanContext
+    ? scanContext.environmentVariables
+    : (environment ? resolveEnvironmentInheritance({
         environments: collection.environments,
         targetEnvironment: environment,
         merge: true
+      }).variables : null);
+
+  if (environment && environmentVariables) {
+    const envVar = resolveEnabledVariable(environmentVariables, variableName);
+    if (envVar) {
+      return storeScopeResult({
+        type: 'environment',
+        value: envVar.value,
+        data: { environment, variable: envVar },
+        inheritedFrom: envVar.inheritedFrom
       });
-      const envVar = resolveEnabledVariable(variables, variableName);
-      if (envVar) {
-        return {
-          type: 'environment',
-          value: envVar.value,
-          data: { environment, variable: envVar },
-          inheritedFrom: envVar.inheritedFrom
-        };
-      }
     }
   }
 
   // 4. Check Collection Variables
-  // Check draft first, then fall back to root
-  const collectionRoot = (collection.draft && collection.draft.root) || collection.root || {};
-  const collectionVars = get(collectionRoot, 'request.vars.req', []);
-  const collectionVar = collectionVars.find((v) => v.name === variableName && v.enabled);
+  const collectionRoot = scanContext?.collectionRoot
+    ?? ((collection.draft && collection.draft.root) || collection.root || {});
+  const collectionVar = findVariable(readItemRequestVars(collectionRoot));
   if (collectionVar) {
-    return {
+    return storeScopeResult({
       type: 'collection',
       value: collectionVar.value,
       data: { collection, variable: collectionVar }
-    };
+    });
   }
 
   // 5. Check Global Environment Variables
-  const { globalEnvironments, activeGlobalEnvironmentUid } = collection;
-  const globalEnvironment = find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid);
-  if (globalEnvironment) {
-    const { variables } = resolveEnvironmentInheritance({
-      environments: globalEnvironments,
-      targetEnvironment: globalEnvironment,
-      merge: true
-    });
-    const globalVar = resolveEnabledVariable(variables, variableName);
+  const globalEnvironment = scanContext?.globalEnvironment
+    ?? find(collection.globalEnvironments, (e) => e.uid === collection.activeGlobalEnvironmentUid);
+  const globalVariables = scanContext
+    ? scanContext.globalVariables
+    : (globalEnvironment ? resolveEnvironmentInheritance({
+        environments: collection.globalEnvironments,
+        targetEnvironment: globalEnvironment,
+        merge: true
+      }).variables : null);
+
+  if (globalEnvironment && globalVariables) {
+    const globalVar = resolveEnabledVariable(globalVariables, variableName);
     if (globalVar) {
-      return {
+      return storeScopeResult({
         type: 'global',
         value: globalVar.value,
         data: { variableName, value: globalVar.value, variable: globalVar },
         inheritedFrom: globalVar.inheritedFrom
-      };
+      });
     }
   }
 
   // 6. Check Runtime Variables (set during request execution via scripts)
   const { runtimeVariables = {} } = collection;
   if (variableName in runtimeVariables) {
-    return {
+    return storeScopeResult({
       type: 'runtime',
       value: runtimeVariables[variableName],
       data: { variableName, value: runtimeVariables[variableName], readonly: true }
-    };
+    });
   }
 
   // Process.env variables are not checked here
 
-  return null;
+  return storeScopeResult(null);
 };
 
 // Check if a variable is marked as secret
@@ -1875,6 +2093,55 @@ export const isVariableSecret = (scopeInfo) => {
   }
 
   return false;
+};
+
+/**
+ * Returns variable names and their scopes for autocomplete, without exposing values.
+ * includes `process.env.<KEY>` variables and dynamic functions like `$randomInt`.
+ *
+ * @param {Object} collection - The current collection
+ * @param {Object} [item] - Request or folder used to resolve local variables
+ * @returns {Array<{ name: string, scope: string }>}
+ */
+export const getVariableNamesWithScope = (collection, item) => {
+  const {
+    globalEnvironmentVariables,
+    collectionVariables,
+    envVariables,
+    folderVariables,
+    requestVariables,
+    runtimeVariables,
+    promptVariables,
+    oauth2CredentialVariables,
+    mergedProcessEnvVariables
+  } = getVariablesByScope(collection, item);
+
+  const scopeByName = {};
+
+  [
+    [AUTOCOMPLETE_SCOPES.GLOBAL, globalEnvironmentVariables],
+    [AUTOCOMPLETE_SCOPES.COLLECTION, collectionVariables],
+    [AUTOCOMPLETE_SCOPES.ENVIRONMENT, envVariables],
+    [AUTOCOMPLETE_SCOPES.FOLDER, folderVariables],
+    [AUTOCOMPLETE_SCOPES.REQUEST, requestVariables],
+    [AUTOCOMPLETE_SCOPES.OAUTH2, oauth2CredentialVariables],
+    [AUTOCOMPLETE_SCOPES.RUNTIME, runtimeVariables],
+    [AUTOCOMPLETE_SCOPES.RUNTIME, promptVariables]
+  ].forEach(([scope, vars]) => {
+    Object.keys(vars || {}).forEach((name) => {
+      scopeByName[name] = scope;
+    });
+  });
+
+  Object.keys(mergedProcessEnvVariables || {}).forEach((key) => {
+    scopeByName[`process.env.${key}`] = AUTOCOMPLETE_SCOPES.PROCESS_ENV;
+  });
+
+  Object.keys(mockDataFunctions).forEach((key) => {
+    scopeByName[`$${key}`] = AUTOCOMPLETE_SCOPES.DYNAMIC;
+  });
+
+  return Object.entries(scopeByName).map(([name, scope]) => ({ name, scope }));
 };
 
 const sidebarEntryCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
@@ -1965,6 +2232,11 @@ export const getVisibleSidebarUidsInOrder = ({ sidebarEntries = [], searchText =
     requestItems.forEach((request) => {
       if (hasSearchText && !doesRequestMatchSearchText(request, searchText)) return;
       uids.push(request.uid);
+
+      const examplesVisible = request.type === 'http-request' && (hasSearchText || !isCollectionItemCollapsed(request));
+      if (examplesVisible && request.examples?.length) {
+        request.examples.forEach((example) => uids.push(example.uid));
+      }
     });
   };
 
@@ -2011,7 +2283,28 @@ const getSelectionEntryType = (item) => {
   return 'file';
 };
 
+// Returns whether a folder or request (with examples) is collapsed. Folders default to expanded; requests default to collapsed.
+export const isCollectionItemCollapsed = (item) => (isItemARequest(item) ? item.collapsed ?? true : !!item.collapsed);
+
+// Indexes every example by uid in a single pass over all collections, since examples are nested
+// within requests and lack their own pathnames. Built lazily (once per getSelectionInfo call) so
+// callers whose selection contains no examples never pay for it.
+const buildExampleOwnerIndex = (collections) => {
+  const index = new Map();
+  for (const collection of collections) {
+    for (const item of flattenItems(collection.items)) {
+      if (!item.examples) continue;
+      for (const example of item.examples) {
+        index.set(example.uid, { collection, item, example });
+      }
+    }
+  }
+  return index;
+};
+
 export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
+  let exampleOwnerIndex = null;
+
   const resolved = selectedUids
     .map((uid) => {
       const collection = findCollectionByUid(collections, uid);
@@ -2021,23 +2314,51 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
 
       const owningCollection = findCollectionByItemUid(collections, uid);
       const item = owningCollection && findItemInCollection(owningCollection, uid);
-      if (!item) return null;
+      if (item) {
+        return {
+          uid,
+          type: getSelectionEntryType(item),
+          collectionUid: owningCollection.uid,
+          pathname: item.pathname,
+          item
+        };
+      }
 
-      return {
-        uid,
-        type: getSelectionEntryType(item),
-        collectionUid: owningCollection.uid,
-        pathname: item.pathname,
-        item
-      };
+      exampleOwnerIndex = exampleOwnerIndex || buildExampleOwnerIndex(collections);
+      const exampleOwner = exampleOwnerIndex.get(uid);
+      if (exampleOwner) {
+        return {
+          uid,
+          type: 'example',
+          collectionUid: exampleOwner.collection.uid,
+          pathname: null,
+          item: exampleOwner.item,
+          example: exampleOwner.example
+        };
+      }
+
+      return null;
     })
     .filter(Boolean);
 
   const selectedCollectionPathnames = resolved.filter((r) => r.type === 'collection').map((r) => r.pathname);
   const selectedFolderPathnames = resolved.filter((r) => r.type === 'folder').map((r) => r.pathname);
+  const selectedRequestPathnames = resolved.filter((r) => r.type === 'request').map((r) => r.pathname);
+
+  // Since examples lack pathnames, they are considered absorbed if their parent request is selected
+  // (either directly or via an ancestor folder/collection).
+  const isExampleAbsorbed = (entry) => {
+    const parentPathname = entry.item.pathname;
+    return (
+      selectedRequestPathnames.includes(parentPathname)
+      || selectedCollectionPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+      || selectedFolderPathnames.some((p) => isPathnameDescendantOf(parentPathname, p))
+    );
+  };
 
   const effectiveSelection = resolved.filter((entry) => {
     if (entry.type === 'collection') return true;
+    if (entry.type === 'example') return !isExampleAbsorbed(entry);
     if (selectedCollectionPathnames.some((p) => isPathnameDescendantOf(entry.pathname, p))) return false;
     return !selectedFolderPathnames.some(
       (p) => p !== entry.pathname && isPathnameDescendantOf(entry.pathname, p)
@@ -2049,7 +2370,8 @@ export const getSelectionInfo = ({ collections = [], selectedUids = [] }) => {
     hasCollection: effectiveSelection.some((e) => e.type === 'collection'),
     hasFolder: effectiveSelection.some((e) => e.type === 'folder'),
     hasRequest: effectiveSelection.some((e) => e.type === 'request'),
-    hasApp: effectiveSelection.some((e) => e.type === 'app')
+    hasApp: effectiveSelection.some((e) => e.type === 'app'),
+    hasExample: effectiveSelection.some((e) => e.type === 'example')
   };
 };
 
@@ -2243,6 +2565,55 @@ export const filterTransientItems = (items) => {
 export const isScratchCollection = (collection, workspaces) => {
   if (!collection || !workspaces) return false;
   return workspaces.some((w) => w.scratchCollectionUid === collection.uid);
+};
+
+export const getWorkspaceCollections = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
+  if (!activeWorkspace) {
+    return [];
+  }
+
+  const toPathKey = (pathname) => {
+    const key = normalizePath(pathname);
+    return isWindowsOS() ? key.toLowerCase() : key;
+  };
+
+  return collections.filter((collection) => {
+    if (isScratchCollection(collection, workspaces)) {
+      return false;
+    }
+
+    return activeWorkspace.collections?.some(
+      (workspaceCollection) => toPathKey(workspaceCollection.path) === toPathKey(collection.pathname)
+    );
+  });
+};
+
+export const isSelectionEntryCollapsed = (entry) =>
+  entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
+
+export const isSelectionEntryCollapsible = (entry) =>
+  entry.type === 'collection' || entry.type === 'folder' || (entry.type === 'request' && entry.item.examples?.length > 0);
+
+/**
+ * Derives bulk-actions menu state from Redux collections/workspaces and the current sidebar selection.
+ * Filters out scratch collections, then resolves selection via getSelectionInfo.
+ */
+export const getBulkActionsSelection = ({ collections = [], workspaces = [], selectedUids = [] }) => {
+  const visibleCollections = collections.filter((c) => !isScratchCollection(c, workspaces));
+  const selectionInfo = getSelectionInfo({ collections: visibleCollections, selectedUids });
+  const { effectiveSelection, hasCollection, hasFolder, hasRequest, hasApp, hasExample } = selectionInfo;
+
+  const collapsibleEntries = effectiveSelection.filter(isSelectionEntryCollapsible);
+  const canCollapse = collapsibleEntries.length > 0;
+
+  return {
+    ...selectionInfo,
+    isPureCollectionSelection: hasCollection && !hasFolder && !hasRequest && !hasApp && !hasExample,
+    canDelete: !hasCollection && (hasFolder || hasRequest || hasApp || hasExample),
+    collapsibleEntries,
+    canCollapse,
+    allCollapsed: canCollapse && collapsibleEntries.every(isSelectionEntryCollapsed)
+  };
 };
 
 const SCOPE_CONFIG = [

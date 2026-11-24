@@ -1,0 +1,19 @@
+info:
+  name: 02-only-comment
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // nothing to do before this request
+    - type: tests
+      code: |-
+        test("request was sent", function() {
+          expect(res.getStatus()).to.equal(200);
+        });

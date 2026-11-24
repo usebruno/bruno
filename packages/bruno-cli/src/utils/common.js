@@ -64,11 +64,14 @@ const stripRequestItems = (items = []) =>
     return request;
   });
 
+const isBinaryRequestBody = (data) => Buffer.isBuffer(data) || typeof data?.pipe === 'function';
+
 module.exports = {
   lpad,
   rpad,
   parseDataFromResponse,
   parseListOption,
   pluralizeWord,
-  stripRequestItems
+  stripRequestItems,
+  isBinaryRequestBody
 };

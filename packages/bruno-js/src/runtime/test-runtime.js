@@ -1,5 +1,6 @@
 const chai = require('chai');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
@@ -47,11 +48,13 @@ class TestRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      globalEnvironmentName: request?.globalEnvironmentName,
       oauth2CredentialVariables,
       collectionName,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

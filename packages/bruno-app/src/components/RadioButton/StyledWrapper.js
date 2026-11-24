@@ -24,7 +24,7 @@ const StyledWrapper = styled.div`
     margin: 0;
     
     &:checked {
-      border-color: ${(props) => props.theme.colors.text.yellow};
+      border-color: ${(props) => props.theme.primary.solid};
       background-color: transparent;
       
       &::after {
@@ -36,7 +36,7 @@ const StyledWrapper = styled.div`
         width: 0.5rem;
         height: 0.5rem;
         border-radius: 50%;
-        background-color: ${(props) => props.theme.colors.text.yellow};
+        background-color: ${(props) => props.theme.primary.solid};
       }
     }
     

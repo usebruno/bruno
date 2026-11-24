@@ -15,8 +15,10 @@ const getModeLabel = (mode) => {
   return mode.split('/').pop().split('+').pop();
 };
 
+const encoder = new TextEncoder();
+
 const StatusBar = ({ value, mode, longLineDetected, longLineMode, onToggle }) => {
-  const sizeText = formatSize(new TextEncoder().encode(value ?? '').length);
+  const sizeText = formatSize(encoder.encode(value ?? '').length);
   const modeLabel = longLineMode ? 'plain text' : getModeLabel(mode);
 
   return (

@@ -11,9 +11,6 @@ const Wrapper = styled.div`
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
   }
-  .inherit-mode-text {
-    color: ${(props) => props.theme.primary.text};
-  }
   .auth-mode-label {
     color: ${(props) => props.theme.colors.text.yellow};
   }

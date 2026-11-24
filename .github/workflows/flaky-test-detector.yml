@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'tests/**/*.spec.ts'
+      - 'e2e/tests/**/*.spec.ts'
 
 permissions:
   contents: read
@@ -62,6 +62,7 @@ jobs:
           npm run build:bruno-requests
           npm run build:schema-types
           npm run build:bruno-filestore
+          npm run build:bruno-io
 
       - name: Run Playwright tests
         run: xvfb-run npm run test:e2e

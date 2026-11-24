@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { IconX, IconTag } from '@tabler/icons';
+import kebabCase from 'lodash/kebabCase';
+import { IconX, IconTag, IconFolder, IconChevronRight, IconChevronDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import SingleLineEditor from 'components/SingleLineEditor/index';
+import ToolHint from 'components/ToolHint/index';
 import { useTheme } from 'providers/Theme/index';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
-const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat }) => {
+const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSave, handleValidation, collectionFormat, inheritedTags = [] }) => {
   const { displayedTheme } = useTheme();
   const isBruFormat = collectionFormat === 'bru';
   const tagNameRegex = isBruFormat ? /^[\p{L}\p{N}_-]+$/u : /^[\p{L}\p{N}_-](?:[\p{L}\p{N}_\s-]*[\p{L}\p{N}_-])?$/u;
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [showInheritedTags, setShowInheritedTags] = useState(false);
 
   const handleInputChange = (value) => {
     setError('');
@@ -31,6 +35,11 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
       setError(`Tag "${text}" already exists`);
       return;
     }
+    const inherited = inheritedTags.find(({ tag }) => tag === text);
+    if (inherited) {
+      setError(`Tag "${text}" is already inherited from folder "${inherited.folder.name}"`);
+      return;
+    }
     if (handleValidation) {
       const error = handleValidation(text);
       if (error) {
@@ -46,8 +55,9 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
     <StyledWrapper className="flex flex-wrap flex-col gap-2">
       <SingleLineEditor
         className="border border-gray-500/50 px-2"
+        enableBrunoVarInfo={false}
         value={text}
-        placeholder="e.g., smoke, regression"
+        placeholder="e.g. Production ready"
         autocomplete={tagsHintList}
         showHintsOnClick={true}
         showHintsFor={[]}
@@ -56,8 +66,9 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
         onRun={handleKeyDown}
         onSave={onSave}
         data-testid="tag-input"
+        variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
       />
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs text-red-500" data-testid="tag-error">{error}</span>}
       <ul className="flex flex-wrap gap-1">
         {tags && tags.length
           ? tags.map((_tag) => (
@@ -65,6 +76,7 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
                 <button
                   className="tag-item"
                   type="button"
+                  data-testid={`tag-${kebabCase(_tag)}`}
                 >
                   <IconTag size={12} className="tag-icon" aria-hidden="true" />
                   <span className="tag-text" title={_tag}>
@@ -78,6 +90,43 @@ const TagList = ({ tagsHintList = [], handleAddTag, tags, handleRemoveTag, onSav
             ))
           : null}
       </ul>
+      {inheritedTags.length > 0 && (
+        <div className="inherited-tags">
+          <button
+            type="button"
+            className="inherited-toggle"
+            onClick={() => setShowInheritedTags((shown) => !shown)}
+            aria-expanded={showInheritedTags}
+            data-testid="inherited-tags-toggle"
+          >
+            {showInheritedTags ? (
+              <IconChevronDown size={14} strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <IconChevronRight size={14} strokeWidth={2} aria-hidden="true" />
+            )}
+            <span>
+              {inheritedTags.length} Inherited from parent
+            </span>
+          </button>
+          {showInheritedTags && (
+            <ul className="flex flex-wrap gap-1" data-testid="inherited-tag-list">
+              {inheritedTags.map(({ tag, folder }, index) => (
+                <li key={`inherited-${tag}`}>
+                  <ToolHint
+                    text={`Inherited from folder "${folder.name}"`}
+                    toolhintId={`inherited-tag-${folder.uid}-${index}`}
+                    className="tag-item inherited"
+                    dataTestId="inherited-tag"
+                  >
+                    <IconFolder size={12} className="tag-icon" aria-hidden="true" />
+                    <span className="tag-text">{tag}</span>
+                  </ToolHint>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </StyledWrapper>
   );
 };

@@ -1,0 +1,14 @@
+info:
+  name: slow-ping
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        await bru.sleep(10000);

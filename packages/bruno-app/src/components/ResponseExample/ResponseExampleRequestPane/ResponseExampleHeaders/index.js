@@ -89,6 +89,7 @@ const ResponseExampleHeaders = ({ editMode, item, collection, exampleUid }) => {
           autocomplete={headerAutoCompleteList}
           onRun={() => {}}
           collection={collection}
+          item={item}
           placeholder={!value ? 'Key' : ''}
         />
       )

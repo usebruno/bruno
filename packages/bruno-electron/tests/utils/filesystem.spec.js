@@ -1,4 +1,10 @@
-const { withFileLock } = require('../../src/utils/filesystem');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const {
+  withFileLock,
+  removeGitMetadata
+} = require('../../src/utils/filesystem');
 
 // Manual-gate helper: returns a Promise + a `resolve` function. Tests use this
 // to deterministically interleave two async operations through withFileLock —
@@ -178,5 +184,66 @@ describe('withFileLock', () => {
     await Promise.all([write('A'), write('B')]);
 
     expect(onDisk).toBe('0+A+B');
+  });
+});
+
+describe('removeGitMetadata', () => {
+  let tempDir;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test('removes .git folders and files in any case at any depth and keeps everything else', async () => {
+    fs.mkdirSync(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, '.git', 'hooks', 'post-checkout'), '#!/bin/sh');
+    fs.mkdirSync(path.join(tempDir, 'users'));
+    fs.writeFileSync(path.join(tempDir, 'users', '.git'), 'gitdir: ../repo');
+    fs.mkdirSync(path.join(tempDir, 'orders', '.GIT'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, 'opencollection.yml'), '');
+    fs.writeFileSync(path.join(tempDir, '.gitignore'), '');
+
+    await removeGitMetadata(tempDir);
+
+    expect(fs.existsSync(path.join(tempDir, '.git'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'users', '.git'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'orders', '.GIT'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'opencollection.yml'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, '.gitignore'))).toBe(true);
+  });
+
+  test('removes a .git symlink without deleting the folder it points to', async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-outside-'));
+    try {
+      fs.writeFileSync(path.join(outside, 'config'), '[core]');
+      fs.symlinkSync(outside, path.join(tempDir, '.git'), 'junction');
+
+      await removeGitMetadata(tempDir);
+
+      expect(fs.existsSync(path.join(tempDir, '.git'))).toBe(false);
+      expect(fs.existsSync(path.join(outside, 'config'))).toBe(true);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  test('does not follow a symlink into a folder outside the tree', async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-git-metadata-outside-'));
+    try {
+      fs.mkdirSync(path.join(outside, '.git'));
+      fs.writeFileSync(path.join(outside, '.git', 'config'), '[core]');
+      fs.symlinkSync(outside, path.join(tempDir, 'linked-folder'), 'junction');
+
+      await removeGitMetadata(tempDir);
+
+      expect(fs.existsSync(path.join(tempDir, 'linked-folder'))).toBe(true);
+      expect(fs.existsSync(path.join(outside, '.git', 'config'))).toBe(true);
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
   });
 });

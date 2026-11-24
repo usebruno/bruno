@@ -1,0 +1,23 @@
+meta {
+  name: ping-with-scripts
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8081/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  test("pre-request script runs", function() {});
+}
+
+script:post-response {
+  test("post-response script runs", function() {});
+}
+
+tests {
+  test("tests run", function() {});
+}

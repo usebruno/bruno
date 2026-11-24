@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:24.22.3-alpine
 
 LABEL maintainer="Bruno <support@usebruno.com>"
 

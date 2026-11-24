@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTabWidth, clearOpenInEditMode } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { updateRequestPaneTabWidth, clearOpenInEditMode, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest, tryResponseExample } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
 import ResponseExampleRequestPane from './ResponseExampleRequestPane';
 import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -29,6 +30,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   // JSON examples (default content '{}') or on saved examples with a legitimately empty body.
   const [editMode, setEditMode] = useState(!!openInEditMode);
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
+  const [isTryPending, setIsTryPending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
 
@@ -129,8 +131,21 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
     setShowGenerateCodeModal(false);
   };
 
-  const handleTryExample = (example) => {
-    // TODO: Implement try example functionality
+  const handleTryExample = async () => {
+    // a preview example tab would otherwise be replaced by the new transient request tab
+    dispatch(makeTabPermanent({ uid: example.uid }));
+    setIsTryPending(true);
+    try {
+      await dispatch(tryResponseExample({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        exampleUid: example.uid
+      }));
+    } catch (err) {
+      toast.error(err?.message || 'Failed to try example');
+    } finally {
+      setIsTryPending(false);
+    }
   };
 
   // Update width when screen width or sidebar width changes
@@ -177,6 +192,7 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
           onCancel={handleCancel}
           onGenerateCode={handleGenerateCode}
           onTryExample={handleTryExample}
+          isTryPending={isTryPending}
         />
         <section ref={mainSectionRef} className={`main wrapper flex mt-4 ${isVerticalLayout ? 'flex-col' : ''} flex-grow pb-4 relative overflow-auto scrollbar-hover`}>
           <section className="request-pane" data-testid="request-pane">

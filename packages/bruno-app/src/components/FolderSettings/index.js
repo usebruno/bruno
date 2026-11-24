@@ -9,10 +9,12 @@ import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
 import Documentation from './Documentation';
 import Auth from './Auth';
+import Settings from './Settings';
 import StatusDot from 'components/StatusDot';
 import SettingsAiAssist from 'components/SettingsAiAssist';
 import DocsAction from 'components/Documentation/DocsAction';
 import { hasEffectiveAuth } from 'utils/auth';
+import { getFolderTags } from '@usebruno/common';
 
 const AI_TABS = ['script', 'test', 'docs'];
 
@@ -34,6 +36,8 @@ const FolderSettings = ({ collection, folder }) => {
   const requestVars = folderRoot?.request?.vars?.req || [];
   const responseVars = folderRoot?.request?.vars?.res || [];
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+
+  const tags = getFolderTags(folder);
 
   const folderAuthMode = folder?.draft?.request?.auth?.mode ?? folder?.root?.request?.auth?.mode;
   const hasAuth = useMemo(
@@ -70,6 +74,9 @@ const FolderSettings = ({ collection, folder }) => {
       }
       case 'docs': {
         return <Documentation collection={collection} folder={folder} />;
+      }
+      case 'settings': {
+        return <Settings collection={collection} folder={folder} />;
       }
     }
   };
@@ -108,6 +115,10 @@ const FolderSettings = ({ collection, folder }) => {
             <div className={getTabClassname('docs')} role="tab" data-testid="folder-settings-tab-docs" onClick={() => setTab('docs')}>
               Docs
             </div>
+            <div className={getTabClassname('settings')} role="tab" data-testid="folder-settings-tab-settings" onClick={() => setTab('settings')}>
+              Settings
+              {tags.length > 0 && <StatusDot />}
+            </div>
           </div>
           {AI_TABS.includes(tab) && (
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -116,7 +127,7 @@ const FolderSettings = ({ collection, folder }) => {
             </div>
           )}
         </div>
-        <section className="folder-settings-content flex mt-4 flex-1 min-h-0 overflow-auto">{getTabPanel(tab)}</section>
+        <section className="folder-settings-content flex mt-4 flex-1 min-h-0 overflow-auto" data-testid="folder-settings-content">{getTabPanel(tab)}</section>
       </div>
     </StyledWrapper>
   );

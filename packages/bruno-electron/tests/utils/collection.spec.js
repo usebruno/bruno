@@ -2,7 +2,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { runScriptInNodeVm } = require('@usebruno/js');
-const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts } = require('../../src/utils/collection');
+const { parseBruFileMeta, wrapAndJoinScripts, mergeScripts, getEffectiveTagsByUid } = require('../../src/utils/collection');
+const { executeQuickJsVmAsync } = require('@usebruno/js/src/sandbox/quickjs');
 
 describe('parseBruFileMeta', () => {
   test('parses valid meta block correctly', () => {
@@ -745,5 +746,217 @@ describe('mergeScripts and runScriptInNodeVm integration', () => {
     expect(testsBru.setVar).toHaveBeenCalledWith('folder_test_dir', folderPath);
     expect(testsBru.setVar).toHaveBeenCalledWith('req_test_dir', folderPath);
     expect(testsBru.setVar).toHaveBeenCalledWith('req_test_file', requestPath);
+  });
+});
+
+describe('getEffectiveTagsByUid', () => {
+  const request = (uid, tags) => ({
+    uid,
+    name: uid,
+    type: 'http-request',
+    ...(tags !== undefined ? { tags } : {})
+  });
+
+  const folder = (uid, tags, items = []) => ({
+    uid,
+    name: uid,
+    type: 'folder',
+    root: { meta: { name: uid, tags } },
+    items
+  });
+
+  test('returns an empty map for a collection with no items', () => {
+    expect(getEffectiveTagsByUid({ items: [] }).size).toBe(0);
+  });
+
+  test('keeps a request without tags at an empty list', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [request('req-1')] });
+
+    expect(tagsByUid.get('req-1')).toEqual([]);
+  });
+
+  test('maps a root-level request to its own tags', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [request('req-1', ['smoke', 'fast'])] });
+
+    expect(tagsByUid.get('req-1')).toEqual(['smoke', 'fast']);
+  });
+
+  test('cascades folder tags to requests inside the folder', () => {
+    const collection = {
+      items: [folder('folder-auth', ['auth'], [request('req-login', ['smoke'])])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['auth']);
+    expect(tagsByUid.get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('accumulates tags down a nested folder chain', () => {
+    const collection = {
+      items: [folder('folder-api', ['api'], [folder('folder-v2', ['v2'], [request('req-users', ['smoke'])])])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-api')).toEqual(['api']);
+    expect(tagsByUid.get('folder-v2')).toEqual(['v2', 'api']);
+    expect(tagsByUid.get('req-users')).toEqual(['smoke', 'v2', 'api']);
+  });
+
+  test('does not leak tags across sibling folders', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['auth'], [request('req-login')]),
+        folder('folder-billing', ['billing'], [request('req-invoice')]),
+        request('req-standalone', ['root'])
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('req-login')).toEqual(['auth']);
+    expect(tagsByUid.get('req-invoice')).toEqual(['billing']);
+    expect(tagsByUid.get('req-standalone')).toEqual(['root']);
+  });
+
+  test('de-duplicates a tag a request repeats from its folder', () => {
+    const collection = {
+      items: [folder('folder-auth', ['auth', 'smoke'], [request('req-login', ['smoke'])])]
+    };
+
+    expect(getEffectiveTagsByUid(collection).get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('prefers a folder draft over its saved tags', () => {
+    const collection = {
+      items: [
+        {
+          ...folder('folder-auth', ['saved'], [request('req-login')]),
+          draft: { meta: { tags: ['drafted'] } }
+        }
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['drafted']);
+    expect(tagsByUid.get('req-login')).toEqual(['drafted']);
+  });
+
+  test('prefers a request draft over its saved tags', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['auth'], [
+          {
+            ...request('req-login', ['saved']),
+            draft: { tags: ['drafted'] }
+          }
+        ])
+      ]
+    };
+
+    expect(getEffectiveTagsByUid(collection).get('req-login')).toEqual(['drafted', 'auth']);
+  });
+
+  test('normalizes malformed tags - trims, drops non-strings and de-duplicates', () => {
+    const collection = {
+      items: [
+        folder('folder-auth', ['  auth  ', 'auth', 42, null, ''], [
+          request('req-login', [' smoke', { name: 'nope' }, undefined])
+        ])
+      ]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual(['auth']);
+    expect(tagsByUid.get('req-login')).toEqual(['smoke', 'auth']);
+  });
+
+  test('treats non-array tags as no tags', () => {
+    const collection = {
+      items: [folder('folder-auth', 'auth', [request('req-login', 'smoke')])]
+    };
+
+    const tagsByUid = getEffectiveTagsByUid(collection);
+
+    expect(tagsByUid.get('folder-auth')).toEqual([]);
+    expect(tagsByUid.get('req-login')).toEqual([]);
+  });
+
+  test('maps an empty folder without adding child entries', () => {
+    const tagsByUid = getEffectiveTagsByUid({ items: [folder('folder-empty', ['empty'])] });
+
+    expect(tagsByUid.size).toBe(1);
+    expect(tagsByUid.get('folder-empty')).toEqual(['empty']);
+  });
+});
+
+describe('wrapAndJoinScripts line endings', () => {
+  test('normalises CRLF segments to LF so line counts stay correct', () => {
+    const result = wrapAndJoinScripts(['let a = 1;\r\nlet b = 2;', '', 'let c = 3;'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('let a = 1;\nlet b = 2;');
+    // Collection segment: opener + 2 body lines + closer = 4 lines, blank separator at 5
+    expect(result.metadata.requestStartLine).toBe(6);
+    expect(result.metadata.requestEndLine).toBe(8);
+  });
+
+  test('mixed endings across collection, folder and request segments all become LF', () => {
+    const result = wrapAndJoinScripts(['col();\r\n', 'folder();\n', '// note\r\nreq();'], 2);
+    expect(result.code).not.toContain('\r');
+    expect(result.code).toContain('// note\nreq();');
+  });
+});
+
+describe('mergeScripts: merged scripts execute in both sandboxes', () => {
+  const sandboxes = [
+    ['nodevm', (script, bru) => runScriptInNodeVm({ script, context: { bru, console, __bruSetScope: jest.fn() }, collectionPath: '/test/collection', scriptingConfig: {} })],
+    ['quickjs', (script, bru) => executeQuickJsVmAsync({ script, context: { bru }, collectionPath: '/test/collection' })]
+  ];
+
+  const crlfCollectionScript = [
+    'function extractDataPaths(scRaw) {',
+    '    const placeholderRegExp = /{{([^}]+)}}/g;',
+    '    const dataPaths = [];',
+    '    let match;',
+    '    while ((match = placeholderRegExp.exec(scRaw)) != null) {',
+    '        dataPaths.push(match[1]);',
+    '    }',
+    '    return dataPaths;',
+    '}'
+  ].join('\r\n');
+
+  test.each(sandboxes)('CRLF collection script + request script with a // comment still runs in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// Set the pet ID before sending the request\nbru.setVar("petId", 9091)' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    expect(request.script.req).not.toContain('\r');
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+    expect(bru.setVar).toHaveBeenCalledWith('petId', 9091);
+  });
+
+  test.each(sandboxes)('CRLF collection script + request script that is only a // comment does not break the combined script in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: crlfCollectionScript });
+    const request = makeRequest({ preReq: '// just a comment' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await expect(runScript(request.script.req, bru)).resolves.not.toThrow();
+  });
+
+  test.each(sandboxes)('a // comment at the end of a CR-only collection script does not swallow the closer in %s', async (_, runScript) => {
+    const collection = makeCollection({ preReq: 'bru.setVar("a", 1);\r// trailing comment' });
+    const request = makeRequest({ preReq: 'bru.setVar("b", 2);' });
+    mergeScripts(collection, request, [request], 'sandwich');
+
+    const bru = { setVar: jest.fn() };
+    await runScript(request.script.req, bru);
+
+    expect(bru.setVar).toHaveBeenCalledWith('a', 1);
+    expect(bru.setVar).toHaveBeenCalledWith('b', 2);
   });
 });

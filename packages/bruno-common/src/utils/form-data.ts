@@ -45,6 +45,18 @@ export const isFormData = (obj: unknown): boolean => {
 };
 
 /**
+ * Extracts the media type from a Content-Type header value, without parameters and lowercased.
+ * @param contentType - The Content-Type header value (e.g., "Application/JSON; charset=UTF-8")
+ * @returns The media type (e.g., "application/json"), or '' if contentType is not a string
+ */
+export const getMediaType = (contentType: unknown): string => {
+  if (typeof contentType !== 'string') {
+    return '';
+  }
+  return contentType.split(';')[0].trim().toLowerCase();
+};
+
+/**
  * Extracts boundary parameter from a Content-Type header value.
  * @param contentType - The Content-Type header value (e.g., "multipart/mixed; boundary=my-boundary")
  * @returns The boundary value if found, or null if not present

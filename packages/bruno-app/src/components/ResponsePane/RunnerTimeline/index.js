@@ -38,6 +38,10 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
     return [main, ...oauth, ...scripted].sort((a, b) => b.timestamp - a.timestamp);
   }, [item?.oauth2DebugEntries, item?.scriptedRequestEntries, request, response]);
 
+  const mainItem = useMemo(() => {
+    return { ...item, requestSent: request, response };
+  }, [item, request, response]);
+
   return (
     <StyledWrapper className="pb-4 w-full">
       {entries.map((entry, idx) => (
@@ -46,7 +50,7 @@ const RunnerTimeline = ({ request = {}, response = {}, item, collection }) => {
           timestamp={entry.timestamp}
           request={entry.request}
           response={entry.response}
-          item={item}
+          item={entry.kind === 'main' ? mainItem : item}
           collection={collection}
           isOauth2={entry.kind === 'oauth2'}
           source={entry.kind === 'main' ? 'main' : (entry.kind === 'scripted' ? entry.source : undefined)}

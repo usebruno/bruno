@@ -1,0 +1,11 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{collectionPath}}"],
+  "preferences": {
+    "request": {
+      "oauth2": {
+        "useSystemBrowser": true
+      }
+    }
+  }
+}

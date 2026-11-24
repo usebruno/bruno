@@ -6,16 +6,16 @@ import { renameEnvironment, saveEnvironmentExtends, updateEnvironmentColor } fro
 import { validateName, validateNameError } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import CopyEnvironment from 'components/Environments/EnvironmentSettings/CopyEnvironment';
-import DeleteEnvironment from 'components/Environments/EnvironmentSettings/DeleteEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 import InheritsFrom from 'components/Environments/Common/InheritsFrom';
-import MissingInheritedEnvironmentWarning from 'components/Environments/Common/MissingInheritedEnvironmentWarning';
+import EnvironmentInheritanceWarning from 'components/Environments/Common/EnvironmentInheritanceWarning';
 import ColorPicker from 'components/ColorPicker';
 import ActionIcon from 'ui/ActionIcon';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
 import { updateTabState } from 'providers/ReduxStore/slices/tabs';
 import useEnvironmentTabs from 'hooks/useEnvironmentTabs';
 import StyledWrapper from './StyledWrapper';
+import DeleteCollectionEnvironments from '../../DeleteCollectionEnvironments';
 
 const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuery, setSearchQuery, isSearchExpanded, setIsSearchExpanded, debouncedSearchQuery, searchInputRef }) => {
   const dispatch = useDispatch();
@@ -195,7 +195,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
   return (
     <StyledWrapper>
       {openDeleteModal && (
-        <DeleteEnvironment onClose={() => setOpenDeleteModal(false)} environment={environment} collection={collection} />
+        <DeleteCollectionEnvironments collectionUid={collection.uid} environments={[environment]} activeEnvironmentUid={collection?.activeEnvironmentUid} onClose={() => setOpenDeleteModal(false)} />
       )}
       {openCopyModal && (
         <CopyEnvironment onClose={() => setOpenCopyModal(false)} environment={environment} collection={collection} />
@@ -268,7 +268,7 @@ const EnvironmentDetails = ({ environment, setIsModified, collection, searchQuer
         </div>
       </div>
 
-      <MissingInheritedEnvironmentWarning environment={environment} environments={environments} />
+      <EnvironmentInheritanceWarning environment={environment} environments={environments} />
 
       <div className="tabs-container">
         <ResponsiveTabs

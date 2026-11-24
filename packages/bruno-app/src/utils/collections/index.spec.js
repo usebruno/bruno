@@ -3,18 +3,27 @@ import {
   mergeHeaders,
   transformRequestToSaveToFilesystem,
   getCollectionItemCounts,
+  countInvalidItems,
   getVariableScope,
   isVariableSecret,
   getAvailableAddToScopes,
   getGlobalEnvironmentVariablesMasked,
+  getGlobalEnvironmentName,
   getEnvironmentVariablesMasked,
   resolveEnabledVariable,
   getEnvironmentVariables,
   getVisibleSidebarUidsInOrder,
   getSelectionInfo,
+  getBulkActionsSelection,
   getUniqueTagsFromItems,
-  getCollectionVersion
+  getCollectionVersion,
+  isCollectionItemCollapsed,
+  getVariableNamesWithScope,
+  getWorkspaceCollections,
+  getTreePathFromCollectionToItem,
+  getCloneDisplayName
 } from './index';
+import * as platformUtils from 'utils/common/platform';
 
 describe('mergeHeaders', () => {
   it('should include headers from collection, folder and request (with correct precedence)', () => {
@@ -99,6 +108,45 @@ describe('transformRequestToSaveToFilesystem', () => {
 
     expect(transformed.request.params[0].annotations).toEqual([{ name: 'param-note', value: 'keep me' }]);
     expect(transformed.request.headers[0].annotations).toEqual([{ name: 'header-note', value: 'keep me' }]);
+  });
+});
+
+describe('countInvalidItems', () => {
+  const parseError = { message: 'Line 11, col 1:\nExpected "\\n"' };
+
+  it('counts files with a parse error at every depth', () => {
+    const items = [
+      {
+        type: 'folder',
+        name: 'Outer',
+        items: [
+          { type: 'http-request', name: 'Broken', error: parseError },
+          {
+            type: 'folder',
+            name: 'Inner',
+            items: [{ type: 'http-request', name: 'AlsoBroken', error: parseError }]
+          }
+        ]
+      },
+      { type: 'http-request', name: 'RootBroken', error: parseError },
+      { type: 'http-request', name: 'Fine', request: {} }
+    ];
+
+    expect(countInvalidItems(items)).toBe(3);
+  });
+
+  it('ignores transient items and files that are only partially loaded', () => {
+    const items = [
+      { type: 'http-request', name: 'Transient', isTransient: true, error: parseError },
+      { type: 'http-request', name: 'TooLarge', partial: true, loading: false }
+    ];
+
+    expect(countInvalidItems(items)).toBe(0);
+  });
+
+  it('returns 0 for an empty or missing tree', () => {
+    expect(countInvalidItems([])).toBe(0);
+    expect(countInvalidItems()).toBe(0);
   });
 });
 
@@ -202,6 +250,42 @@ describe('getVariableScope — global environment secrets', () => {
 
     expect(scopeInfo.data.variable).toEqual(variable);
     expect(isVariableSecret(scopeInfo)).toBe(false);
+  });
+});
+
+describe('getVariableScope — ignoreVariableUid', () => {
+  const request = {
+    uid: 'request-1',
+    type: 'http-request',
+    request: { vars: { req: [{ uid: 'request-token', name: 'token', value: 'request', enabled: true }], res: [] } }
+  };
+  const collection = {
+    items: [request],
+    root: { request: { vars: { req: [{ uid: 'collection-token', name: 'token', value: 'collection', enabled: true }], res: [] } } }
+  };
+
+  it('skips the ignored row and returns the next scope that has the name', () => {
+    const scopeInfo = getVariableScope('token', collection, request, { ignoreVariableUid: 'request-token' });
+
+    expect(scopeInfo.type).toBe('collection');
+    expect(scopeInfo.value).toBe('collection');
+  });
+});
+
+describe('getVariableScope — folder item', () => {
+  const folder = {
+    uid: 'folder-1',
+    type: 'folder',
+    root: { request: { vars: { req: [{ uid: 'folder-var', name: 'folderVar', value: 'folder', enabled: true }], res: [] } } },
+    items: []
+  };
+  const collection = { items: [folder], root: {} };
+
+  it('returns folder scope for a variable defined on the same folder', () => {
+    const scopeInfo = getVariableScope('folderVar', collection, folder);
+
+    expect(scopeInfo.type).toBe('folder');
+    expect(scopeInfo.data.folder).toBe(folder);
   });
 });
 
@@ -474,6 +558,29 @@ describe('getGlobalEnvironmentVariablesMasked', () => {
   });
 });
 
+describe('getGlobalEnvironmentName', () => {
+  const globalEnvironments = [
+    { uid: 'genv-1', name: 'Production', variables: [] },
+    { uid: 'genv-2', name: 'Staging', variables: [] }
+  ];
+
+  it('returns the name of the active global environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-2' })).toBe('Staging');
+  });
+
+  it('returns undefined when no global environment is active', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: null })).toBeUndefined();
+  });
+
+  it('returns undefined when the active uid matches no environment', () => {
+    expect(getGlobalEnvironmentName({ globalEnvironments, activeGlobalEnvironmentUid: 'genv-9' })).toBeUndefined();
+  });
+
+  it('returns undefined when there are no global environments', () => {
+    expect(getGlobalEnvironmentName({ activeGlobalEnvironmentUid: 'genv-1' })).toBeUndefined();
+  });
+});
+
 describe('getEnvironmentVariablesMasked', () => {
   const buildCollection = (variables) => ({
     activeEnvironmentUid: 'env-1',
@@ -623,6 +730,53 @@ describe('getVisibleSidebarUidsInOrder', () => {
     expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'alpha' }))
       .toEqual(['colA', 'folderA', 'reqA1']);
   });
+
+  const buildRequestWithExample = (overrides = {}) => ({
+    uid: 'reqRoot',
+    type: 'http-request',
+    request: {},
+    name: 'Root',
+    seq: 2,
+    pathname: '/colA/Root.bru',
+    examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }],
+    ...overrides
+  });
+
+  it('includes a request\'s examples once its examples are expanded', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample({ collapsed: false })] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot', 'ex1']);
+  });
+
+  it('excludes a request\'s examples while its examples are collapsed (the default)', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: '' }))
+      .toEqual(['colA', 'folderA', 'reqA1', 'reqRoot']);
+  });
+
+  it('includes examples while searching even though examples are otherwise collapsed', () => {
+    const sidebarEntries = [
+      {
+        kind: 'loaded',
+        collection: buildCollectionA({ collection: { items: [buildFolderA(), buildRequestWithExample()] } })
+      }
+    ];
+
+    expect(getVisibleSidebarUidsInOrder({ sidebarEntries, searchText: 'root' }))
+      .toEqual(['colA', 'reqRoot', 'ex1']);
+  });
 });
 
 describe('getSelectionInfo', () => {
@@ -654,6 +808,141 @@ describe('getSelectionInfo', () => {
 
     expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
     expect(info).toMatchObject({ hasCollection: true, hasFolder: false, hasRequest: false });
+  });
+
+  describe('examples', () => {
+    const collectionsWithExample = [
+      buildCollectionA({
+        collection: {
+          items: [
+            buildFolderA({
+              items: [
+                { uid: 'reqA1', type: 'http-request', request: {}, name: 'Alpha', seq: 1, pathname: '/colA/folderA/Alpha.bru', examples: [{ uid: 'exNested', itemUid: 'reqA1', name: 'Nested Example', type: 'http-request' }] }
+              ]
+            }),
+            {
+              uid: 'reqRoot',
+              type: 'http-request',
+              request: {},
+              name: 'Root',
+              seq: 2,
+              pathname: '/colA/Root.bru',
+              examples: [{ uid: 'ex1', itemUid: 'reqRoot', name: 'Example 1', type: 'http-request' }]
+            }
+          ]
+        }
+      }),
+      buildCollectionB()
+    ];
+
+    it('resolves a selected example to its parent request, with no pathname of its own', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['ex1', 'reqB1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['ex1', 'reqB1']);
+      expect(info).toMatchObject({ hasExample: true, hasRequest: true });
+
+      const exampleEntry = info.effectiveSelection.find((e) => e.uid === 'ex1');
+      expect(exampleEntry).toMatchObject({ type: 'example', collectionUid: 'colA', pathname: null });
+      expect(exampleEntry.item.uid).toBe('reqRoot');
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside an unrelated collection', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colB', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['colB', 'ex1']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: true });
+    });
+
+    it('blocks (stays in the effective selection) when selected alongside a different, unrelated request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid).sort()).toEqual(['exNested', 'reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: true });
+    });
+
+    it('applies parent-wins when selected together with its own parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['reqRoot', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['reqRoot']);
+      expect(info).toMatchObject({ hasRequest: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor folder of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['folderA', 'exNested'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['folderA']);
+      expect(info).toMatchObject({ hasFolder: true, hasExample: false });
+    });
+
+    it('applies parent-wins when selected together with an ancestor collection of its parent request', () => {
+      const info = getSelectionInfo({ collections: collectionsWithExample, selectedUids: ['colA', 'ex1'] });
+
+      expect(info.effectiveSelection.map((e) => e.uid)).toEqual(['colA']);
+      expect(info).toMatchObject({ hasCollection: true, hasExample: false });
+    });
+  });
+});
+
+describe('getBulkActionsSelection', () => {
+  it('derives pure-collection menu flags and collapsible entries', () => {
+    const result = getBulkActionsSelection({
+      collections: [buildCollectionA(), buildCollectionB()],
+      workspaces: [],
+      selectedUids: ['colA', 'colB']
+    });
+
+    expect(result).toMatchObject({
+      isPureCollectionSelection: true,
+      canDelete: false,
+      canCollapse: true,
+      allCollapsed: false
+    });
+    expect(result.collapsibleEntries.map((e) => e.uid).sort()).toEqual(['colA', 'colB']);
+  });
+
+  it('allows delete for app/folder/request selections and excludes scratch collections from resolution', () => {
+    const scratch = { uid: 'scratch', pathname: '/scratch', collapsed: false, items: [] };
+    const result = getBulkActionsSelection({
+      collections: [
+        buildCollectionA({
+          collection: {
+            items: [{ uid: 'app1', type: 'app', pathname: '/colA/app1' }]
+          }
+        }),
+        scratch
+      ],
+      workspaces: [{ scratchCollectionUid: 'scratch' }],
+      selectedUids: ['app1', 'scratch']
+    });
+
+    expect(result.effectiveSelection.map((e) => e.uid)).toEqual(['app1']);
+    expect(result).toMatchObject({
+      isPureCollectionSelection: false,
+      canDelete: true,
+      canCollapse: false
+    });
+  });
+});
+
+describe('isCollectionItemCollapsed', () => {
+  it('treats a folder as expanded by default (item.collapsed unset)', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder' })).toBe(false);
+  });
+
+  it('treats a folder as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'folder', collapsed: true })).toBe(true);
+  });
+
+  it('treats a request as collapsed by default (item.collapsed unset), unlike a folder', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {} })).toBe(true);
+  });
+
+  it('treats a request as expanded once item.collapsed is explicitly false', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: false })).toBe(false);
+  });
+
+  it('treats a request as collapsed once item.collapsed is explicitly true', () => {
+    expect(isCollectionItemCollapsed({ type: 'http-request', request: {}, collapsed: true })).toBe(true);
   });
 });
 
@@ -745,5 +1034,243 @@ describe('getEnvironmentVariables', () => {
   it('returns no variables without a collection or an active environment', () => {
     expect(getEnvironmentVariables(null)).toEqual({});
     expect(variablesFor(null)).toEqual({});
+  });
+});
+
+describe('getVariableNamesWithScope', () => {
+  const buildCollection = () => ({
+    uid: 'col-1',
+    root: {
+      request: { vars: { req: [{ uid: 'cv1', name: 'collectionVar', value: 'collection-value', enabled: true }] } }
+    },
+    activeEnvironmentUid: 'env-1',
+    environments: [
+      { uid: 'env-1', name: 'Dev', variables: [{ uid: 'ev1', name: 'envVar', value: 'env-value', enabled: true, secret: false }] }
+    ],
+    globalEnvironmentVariables: { globalVar: 'global-value' },
+    activeGlobalEnvironmentUid: 'genv-1',
+    globalEnvironments: [
+      { uid: 'genv-1', name: 'Workspace', variables: [{ uid: 'gv1', name: 'globalVar', value: 'global-value', enabled: true, secret: false }] }
+    ],
+    runtimeVariables: { runtimeVar: 'runtime-value' },
+    promptVariables: { '?promptVar': 'prompt-value' },
+    processEnvVariables: { API_KEY: 'secret-key' },
+    oauth2Credentials: [
+      { credentialsId: 'cred1', credentials: { access_token: 'token-value' } }
+    ]
+  });
+
+  it('tags every variable across global/collection/environment/runtime with its scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName.globalVar).toBe('global');
+    expect(byName.collectionVar).toBe('collection');
+    expect(byName.envVar).toBe('environment');
+    expect(byName.runtimeVar).toBe('runtime');
+  });
+
+  it('includes prompt variables, tagged with the runtime scope', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const byName = Object.fromEntries(all.map((v) => [v.name, v.scope]));
+
+    expect(byName['?promptVar']).toBe('runtime');
+  });
+
+  it('includes oauth2 credential variables tagged with scope=oauth2', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: '$oauth2.cred1.access_token', scope: 'oauth2' });
+  });
+
+  it('includes process.env variables prefixed as process.env.<name>', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+
+    expect(all).toContainEqual({ name: 'process.env.API_KEY', scope: 'process.env' });
+  });
+
+  it('includes every built-in dynamic/mock variable, each with no resolved value needed', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const dynamicEntries = all.filter((v) => v.scope === 'dynamic');
+
+    expect(dynamicEntries.length).toBeGreaterThan(0);
+    expect(dynamicEntries.every((v) => v.name.startsWith('$'))).toBe(true);
+  });
+
+  it('excludes the internal bookkeeping keys getAllVariables() adds (pathParams, maskedEnvVariables, process)', () => {
+    const all = getVariableNamesWithScope(buildCollection(), null);
+    const names = all.map((v) => v.name);
+
+    expect(names).not.toContain('pathParams');
+    expect(names).not.toContain('maskedEnvVariables');
+    expect(names).not.toContain('process');
+  });
+
+  it('returns only the built-in dynamic variables when there is no collection', () => {
+    const all = getVariableNamesWithScope(null, null);
+
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((v) => v.scope === 'dynamic')).toBe(true);
+  });
+});
+
+describe('getWorkspaceCollections', () => {
+  const collectionOne = { uid: 'c1', name: 'One', pathname: '/home/dev/collections/one' };
+  const collectionTwo = { uid: 'c2', name: 'Two', pathname: '/home/dev/collections/two' };
+  const scratch = { uid: 'scratch-uid', name: 'Scratch', pathname: '/home/dev/scratch' };
+  const otherWorkspaceCollection = { uid: 'c3', name: 'Three', pathname: '/home/dev/other/three' };
+
+  const activeWorkspace = {
+    uid: 'w1',
+    scratchCollectionUid: 'scratch-uid',
+    collections: [
+      { path: '/home/dev/collections/one' },
+      { path: '/home/dev/collections/two/' },
+      { path: '/home/dev/scratch' }
+    ]
+  };
+  const otherWorkspace = {
+    uid: 'w2',
+    collections: [{ path: '/home/dev/other/three' }]
+  };
+  const workspaces = [activeWorkspace, otherWorkspace];
+  const collections = [collectionOne, collectionTwo, scratch, otherWorkspaceCollection];
+
+  it('returns only the collections listed by the active workspace, excluding scratch', () => {
+    const result = getWorkspaceCollections({ collections, workspaces, activeWorkspace });
+
+    expect(result).toEqual([collectionOne, collectionTwo]);
+  });
+
+  it('matches paths regardless of separators and trailing slashes', () => {
+    const windowsWorkspace = {
+      uid: 'w3',
+      collections: [{ path: 'C:\\Users\\dev\\collections\\one\\' }]
+    };
+    const windowsCollection = { uid: 'c4', name: 'One', pathname: 'C:/Users/dev/collections/one' };
+
+    const result = getWorkspaceCollections({
+      collections: [windowsCollection],
+      workspaces: [windowsWorkspace],
+      activeWorkspace: windowsWorkspace
+    });
+
+    expect(result).toEqual([windowsCollection]);
+  });
+
+  it('returns an empty list with no active workspace, or a workspace listing none', () => {
+    const emptyWorkspace = { uid: 'w4', collections: [] };
+
+    expect(getWorkspaceCollections({ collections, workspaces, activeWorkspace: null })).toEqual([]);
+    expect(getWorkspaceCollections({ collections, workspaces: [emptyWorkspace], activeWorkspace: emptyWorkspace })).toEqual([]);
+  });
+
+  describe('path case', () => {
+    const mixedCaseWorkspace = { uid: 'w5', collections: [{ path: 'C:\\Users\\Dev\\Collections\\One' }] };
+    const lowerCaseCollection = { uid: 'c5', name: 'One', pathname: 'c:/users/dev/collections/one' };
+    const listFor = () => getWorkspaceCollections({
+      collections: [lowerCaseCollection],
+      workspaces: [mixedCaseWorkspace],
+      activeWorkspace: mixedCaseWorkspace
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('matches paths that differ only in case on Windows, like the sidebar does', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(true);
+
+      expect(listFor()).toEqual([lowerCaseCollection]);
+    });
+
+    it('keeps paths that differ in case apart on case-sensitive platforms', () => {
+      jest.spyOn(platformUtils, 'isWindowsOS').mockReturnValue(false);
+
+      expect(listFor()).toEqual([]);
+    });
+  });
+});
+
+describe('getTreePathFromCollectionToItem', () => {
+  const collection = {
+    uid: 'col',
+    items: [
+      { uid: 'root-req', type: 'http-request' },
+      {
+        uid: 'folder-a',
+        type: 'folder',
+        items: [
+          { uid: 'nested-req', type: 'http-request' },
+          { uid: 'folder-b', type: 'folder', items: [{ uid: 'deep-req', type: 'http-request' }] }
+        ]
+      }
+    ]
+  };
+
+  it('returns the root-first ancestor chain ending with the item', () => {
+    const path = getTreePathFromCollectionToItem(collection, { uid: 'deep-req' });
+    expect(path.map((node) => node.uid)).toEqual(['folder-a', 'folder-b', 'deep-req']);
+  });
+
+  it('returns a single entry for a root-level item', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'root-req' }).map((n) => n.uid)).toEqual(['root-req']);
+  });
+
+  it('returns live item objects from the collection, not the argument', () => {
+    const [folderA] = getTreePathFromCollectionToItem(collection, { uid: 'nested-req' });
+    expect(folderA).toBe(collection.items[1]);
+  });
+
+  it('returns an empty path for an unknown item, a missing uid, or an empty collection', () => {
+    expect(getTreePathFromCollectionToItem(collection, { uid: 'nope' })).toEqual([]);
+    expect(getTreePathFromCollectionToItem(collection, {})).toEqual([]);
+    expect(getTreePathFromCollectionToItem({ uid: 'empty' }, { uid: 'deep-req' })).toEqual([]);
+  });
+});
+
+describe('getCloneDisplayName', () => {
+  const collection = {
+    uid: 'c1',
+    items: [
+      { uid: 'req-1', name: 'login', type: 'http-request' },
+      { uid: 'req-2', name: 'login copy', type: 'http-request' },
+      {
+        uid: 'folder-1',
+        name: 'Users',
+        type: 'folder',
+        items: [
+          { uid: 'nested-1', name: 'profile', type: 'http-request' },
+          { uid: 'nested-2', name: 'profile copy', type: 'http-request' }
+        ]
+      }
+    ]
+  };
+
+  it('takes the next free slot among root-level siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[0])).toBe('login copy 2');
+  });
+
+  it('gives a clone of a copy the same base name as a clone of the original', () => {
+    expect(getCloneDisplayName(collection, collection.items[1])).toBe('login copy 2');
+  });
+
+  it('scopes the counter to the item\'s own folder', () => {
+    const nested = collection.items[2].items[0];
+    expect(getCloneDisplayName(collection, nested)).toBe('profile copy 2');
+  });
+
+  it('counts folders and requests alike as siblings', () => {
+    expect(getCloneDisplayName(collection, collection.items[2])).toBe('Users copy');
+  });
+
+  it('ignores copies of the same name outside the item\'s folder', () => {
+    const collectionWithRootCopy = {
+      ...collection,
+      items: [...collection.items, { uid: 'req-3', name: 'profile copy 2', type: 'http-request' }]
+    };
+    const nested = collectionWithRootCopy.items[2].items[0];
+
+    expect(getCloneDisplayName(collectionWithRootCopy, nested)).toBe('profile copy 2');
   });
 });

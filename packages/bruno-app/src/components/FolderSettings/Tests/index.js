@@ -39,11 +39,12 @@ const Tests = ({ collection, folder }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
+      <div className="text-xs mb-4 text-muted">These tests will run any time a request in this folder is sent.</div>
       <div className="relative h-full">
         <CodeEditor
           ref={testsEditorRef}
           collection={collection}
+          testId="folder-tests-editor"
           docKey="folder-tests"
           value={tests || ''}
           theme={displayedTheme}

@@ -1,0 +1,21 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Sample Swagger 2 API",
+    "version": "1.0.0"
+  },
+  "host": "jsonplaceholder.typicode.com",
+  "schemes": ["https"],
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "List users",
+        "responses": {
+          "200": {
+            "description": "List of users"
+          }
+        }
+      }
+    }
+  }
+}

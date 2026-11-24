@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -9,14 +8,12 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
+const BearerAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   // Use the request prop directly like OAuth2ClientCredentials does
   const bearerToken = get(request, 'auth.bearer.token', '');
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(bearerToken);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -40,7 +37,7 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
   return (
     <StyledWrapper className="w-full">
       <label className="block mb-1">Token</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <div className="single-line-editor-wrapper flex items-center" data-testid="auth-bearer-token">
         <SingleLineEditor
           value={bearerToken}
           theme={storedTheme}
@@ -50,10 +47,10 @@ const BearerAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={readOnly}
           isCompact
-          disableLinkAwareClick={true}
         />
-        {showWarning && <SensitiveFieldWarning fieldName="bearer-token" warningMessage={warningMessage} />}
+        <SensitiveFieldWarning fieldName="bearer-token" secretName="token" value={bearerToken} collection={collection} item={item} fieldKey="token" onReplaceValue={handleTokenChange} />
       </div>
     </StyledWrapper>
   );

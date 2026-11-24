@@ -68,3 +68,48 @@ describe('parseFolder — seq', () => {
     expect(meta!.seq).toBe(3);
   });
 });
+
+describe('parseFolder — tags', () => {
+  it('leaves tags undefined when folder.yml has no tags field', () => {
+    const { meta } = parseFolder(`info:\n  name: my-folder\n`);
+
+    expect(meta!.tags).toBeUndefined();
+  });
+
+  it('parses tags, trimming and de-duplicating while preserving order', () => {
+    const yml = `info:
+  name: my-folder
+  tags:
+    - smoke
+    - "  regression  "
+    - smoke
+`;
+
+    const { meta } = parseFolder(yml);
+
+    expect(meta!.tags).toEqual(['smoke', 'regression']);
+  });
+
+  it('omits tags when every entry is empty or whitespace-only', () => {
+    const yml = `info:\n  name: my-folder\n  tags:\n    - ""\n    - "   "\n`;
+
+    expect(parseFolder(yml).meta!.tags).toBeUndefined();
+  });
+
+  it('omits non-string entries and keeps the rest', () => {
+    const yml = `info:\n  name: my-folder\n  tags:\n    - smoke\n    - 42\n    - true\n    - regression\n`;
+
+    expect(parseFolder(yml).meta!.tags).toEqual(['smoke', 'regression']);
+  });
+
+  it('omits tags when the value is not a list', () => {
+    expect(parseFolder(`info:\n  name: my-folder\n  tags: smoke\n`).meta!.tags).toBeUndefined();
+    expect(parseFolder(`info:\n  name: my-folder\n  tags:\n    smoke: true\n`).meta!.tags).toBeUndefined();
+  });
+
+  it('keeps tags alongside seq without disturbing it', () => {
+    const { meta } = parseFolder(`info:\n  name: my-folder\n  seq: 3\n  tags:\n    - smoke\n`);
+
+    expect(meta).toEqual(expect.objectContaining({ name: 'my-folder', seq: 3, tags: ['smoke'] }));
+  });
+});

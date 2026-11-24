@@ -28,8 +28,11 @@ const { parseFileMeta, hydrateRequestWithUuid } = require('../utils/collection')
 const { parseLargeRequestWithRedaction } = require('../utils/parse');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const dotEnvWatcher = require('./dotenv-watcher');
+const { checkpoint } = require('../utils/benchmark');
 
 const MAX_FILE_SIZE = 2.5 * 1024 * 1024;
+const WSL_POLLING_INTERVAL_MS = 2000;
+const DEFAULT_POLLING_INTERVAL_MS = 100;
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -703,6 +706,7 @@ const unlinkDir = async (win, pathname, collectionUid, collectionPath) => {
 const onWatcherSetupComplete = (win, watchPath, collectionUid, watcher, workspacePathname = null) => {
   // Mark discovery as complete
   watcher.completeCollectionDiscovery(win, collectionUid);
+  checkpoint('watcher-initial-scan-complete', { collectionPathname: watchPath, workspacePathname });
 
   const collectionSnapshotState = snapshotManager.getCollection(watchPath, workspacePathname);
 
@@ -818,6 +822,10 @@ class CollectionWatcher {
 
     this.startCollectionDiscovery(win, collectionUid);
 
+    if (brunoConfig) {
+      setBrunoConfig(collectionUid, brunoConfig);
+    }
+
     // Always ignore node_modules and .git, regardless of user config
     // This prevents infinite loops with symlinked directories (e.g., npm workspaces)
     const defaultIgnores = ['node_modules', '.git'];
@@ -825,6 +833,7 @@ class CollectionWatcher {
     const watcher = chokidar.watch(watchPath, {
       ignoreInitial,
       usePolling: isWSLPath(watchPath) || forcePolling ? true : false,
+      interval: isWSLPath(watchPath) ? WSL_POLLING_INTERVAL_MS : DEFAULT_POLLING_INTERVAL_MS,
       ignored: (filepath) => {
         const normalizedPath = normalizeAndResolvePath(filepath);
         const relativePath = path.relative(watchPath, normalizedPath);

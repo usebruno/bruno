@@ -3,6 +3,8 @@ const { generateText, streamText, stepCountIs } = require('ai');
 const { z } = require('zod');
 const { getPreferences } = require('../../store/preferences');
 const { aiKeyStore } = require('../../store/ai-keys');
+const { getProviderKey, hasProviderKey } = require('./credentials');
+const { COPILOT_PROVIDER_ID, getCopilotState, registerCopilotIpc } = require('./copilot');
 const {
   PROVIDERS,
   listProviders,
@@ -11,9 +13,9 @@ const {
   getAvailableModels,
   clearSdkCache,
   isKnownProviderId,
-  isBuiltInModelId,
   isOpenAiCompatibleProviderId,
   isReasoningModel,
+  resolveMaxOutputTokens,
   validateApiKeyForProvider,
   providerLabel
 } = require('./providers');
@@ -48,19 +50,18 @@ const isEnabled = () => Boolean(getAiPrefs().enabled);
 
 const buildStatus = () => {
   const aiPreferences = getAiPrefs();
-  const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
 
   const providers = {};
   for (const provider of listProviders(aiPreferences)) {
     const configured = provider.isCustom
       ? Boolean(provider.baseURL)
-      : hasApiKey(provider.id);
+      : hasProviderKey(provider.id);
 
     providers[provider.id] = {
       ...provider,
       enabled: Boolean(aiPreferences?.providers?.[provider.id]?.enabled),
       configured,
-      hasApiKey: hasApiKey(provider.id)
+      hasApiKey: hasProviderKey(provider.id)
     };
   }
 
@@ -68,7 +69,8 @@ const buildStatus = () => {
     enabled: Boolean(aiPreferences.enabled),
     providers,
     models: listModels(aiPreferences),
-    availableModels: getAvailableModels({ aiPreferences, hasApiKey })
+    availableModels: getAvailableModels({ aiPreferences, hasApiKey: hasProviderKey }),
+    copilot: getCopilotState()
   };
 };
 
@@ -78,14 +80,13 @@ const resolveModel = (modelId) => {
   }
   return getModel(modelId, {
     aiPreferences: getAiPrefs(),
-    getApiKey: (providerId) => aiKeyStore.getKey(providerId)
+    getApiKey: getProviderKey
   });
 };
 
 const pickDefaultModelId = () => {
   const aiPreferences = getAiPrefs();
-  const hasApiKey = (providerId) => aiKeyStore.hasKey(providerId);
-  const available = getAvailableModels({ aiPreferences, hasApiKey });
+  const available = getAvailableModels({ aiPreferences, hasApiKey: hasProviderKey });
   if (available.length === 0) return null;
   const preferred = aiPreferences.defaultModel;
   if (preferred && available.some((m) => m.id === preferred)) return preferred;
@@ -95,6 +96,13 @@ const pickDefaultModelId = () => {
 const assertKnownProvider = (providerId) => {
   if (!isKnownProviderId(providerId, getAiPrefs())) {
     throw new Error(`Unknown AI provider: ${providerId}`);
+  }
+};
+
+const assertApiKeyProvider = (providerId) => {
+  assertKnownProvider(providerId);
+  if (providerId === COPILOT_PROVIDER_ID) {
+    throw new Error('GitHub Copilot uses GitHub sign-in instead of an API key.');
   }
 };
 
@@ -108,7 +116,7 @@ const registerAiIpc = (mainWindow) => {
   ipcMain.handle('renderer:get-ai-status', async () => buildStatus());
 
   ipcMain.handle('renderer:set-ai-api-key', async (_event, { providerId, apiKey }) => {
-    assertKnownProvider(providerId);
+    assertApiKeyProvider(providerId);
     const trimmed = typeof apiKey === 'string' ? apiKey.trim() : '';
     if (!trimmed) {
       if (isOpenAiCompatibleProviderId(providerId)) {
@@ -126,7 +134,7 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:clear-ai-api-key', async (_event, { providerId }) => {
-    assertKnownProvider(providerId);
+    assertApiKeyProvider(providerId);
     aiKeyStore.clearKey(providerId);
     clearSdkCache();
     const status = buildStatus();
@@ -135,7 +143,7 @@ const registerAiIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:get-ai-api-key', async (_event, { providerId }) => {
-    assertKnownProvider(providerId);
+    assertApiKeyProvider(providerId);
     return aiKeyStore.getKey(providerId) || '';
   });
 
@@ -289,9 +297,10 @@ const registerAiIpc = (mainWindow) => {
         // Custom OpenAI-compatible models may be small local models that
         // reject a max_tokens above their context window, let the server
         // apply its own default for those instead of forcing a big cap.
-        maxOutputTokens: isBuiltInModelId(modelId)
-          ? (SCRIPT_MAX_OUTPUT_TOKENS[scriptType] || DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS)
-          : undefined,
+        maxOutputTokens: resolveMaxOutputTokens(
+          modelId,
+          SCRIPT_MAX_OUTPUT_TOKENS[scriptType] || DEFAULT_SCRIPT_MAX_OUTPUT_TOKENS
+        ),
         abortSignal: controller?.signal
       });
 
@@ -409,6 +418,13 @@ const registerAiIpc = (mainWindow) => {
       controller.abort();
       activeStreams.delete(streamId);
     }
+  });
+
+  registerCopilotIpc({
+    buildStatus,
+    broadcastStatus,
+    clearSdkCache,
+    isAiEnabled: isEnabled
   });
 
   registerChatIpc({

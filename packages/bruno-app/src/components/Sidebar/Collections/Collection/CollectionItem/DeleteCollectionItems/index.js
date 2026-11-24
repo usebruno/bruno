@@ -2,8 +2,8 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
-import { deleteItem, closeTabs } from 'providers/ReduxStore/slices/collections/actions';
-import { clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
+import { deleteItem, closeTabs, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { clearSidebarSelection, deleteResponseExample } from 'providers/ReduxStore/slices/collections';
 import { recursivelyGetAllItemUids, isItemAFolder, isItemARequest } from 'utils/collections/index';
 import { pluralizeWord } from 'utils/common';
 
@@ -17,20 +17,23 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
   let folderCount = 0;
   let requestCount = 0;
   let appCount = 0;
+  let exampleCount = 0;
 
-  for (const { item } of entries) {
-    if (isItemAFolder(item)) folderCount++;
-    else if (isItemARequest(item)) requestCount++;
-    else if (item.type === 'app') appCount++;
+  for (const entry of entries) {
+    if (entry.type === 'example') exampleCount++;
+    else if (isItemAFolder(entry.item)) folderCount++;
+    else if (isItemARequest(entry.item)) requestCount++;
+    else if (entry.item.type === 'app') appCount++;
   }
 
   const folderDescription = folderCount > 0 ? `${folderCount} ${pluralizeWord('folder', folderCount)}` : null;
   const requestDescription = requestCount > 0 ? `${requestCount} ${pluralizeWord('request', requestCount)}` : null;
   const appDescription = appCount > 0 ? `${appCount} ${pluralizeWord('app', appCount)}` : null;
+  const exampleDescription = exampleCount > 0 ? `${exampleCount} ${pluralizeWord('example', exampleCount)}` : null;
 
-  const types = [folderDescription, requestDescription, appDescription].filter(Boolean);
+  const types = [folderDescription, requestDescription, appDescription, exampleDescription].filter(Boolean);
   const description = entries.length === 1 ? (
-    <span className="font-medium">{entries[0].item.name}</span>
+    <span className="font-medium">{entries[0].type === 'example' ? entries[0].example.name : entries[0].item.name}</span>
   ) : (
     types.length > 2
       ? `${types.slice(0, -1).join(', ')} and ${types[types.length - 1]}`
@@ -44,6 +47,8 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
       return `Delete ${pluralizeWord('Folder', folderCount)}`;
     } else if (appCount > 0) {
       return `Delete ${pluralizeWord('App', appCount)}`;
+    } else if (exampleCount > 0) {
+      return `Delete ${pluralizeWord('Example', exampleCount)}`;
     }
     return `Delete ${pluralizeWord('Request', requestCount)}`;
   };
@@ -51,8 +56,17 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
   const title = getTitle();
 
   const onConfirm = async () => {
+    const parentItemsToSave = new Map(); // itemUid -> collectionUid
+
     for (const entry of entries) {
       try {
+        if (entry.type === 'example') {
+          dispatch(deleteResponseExample({ itemUid: entry.item.uid, collectionUid: entry.collectionUid, exampleUid: entry.uid }));
+          dispatch(closeTabs({ tabUids: [entry.uid] }));
+          parentItemsToSave.set(entry.item.uid, entry.collectionUid);
+          continue;
+        }
+
         await dispatch(deleteItem(entry.uid, entry.collectionUid));
         const tabUids = isItemAFolder(entry.item)
           ? [...recursivelyGetAllItemUids(entry.item.items), entry.uid]
@@ -61,6 +75,14 @@ const DeleteCollectionItems = ({ entries, onClose }) => {
       } catch (error) {
         console.error(`Error deleting item ${entry.uid}`, error);
         toast.error(error?.message || `Error deleting ${entry.item?.name || 'item'}`);
+      }
+    }
+
+    for (const [itemUid, collectionUid] of parentItemsToSave) {
+      try {
+        await dispatch(saveRequest(itemUid, collectionUid, true));
+      } catch (error) {
+        console.error(`Error saving request ${itemUid} after deleting examples`, error);
       }
     }
 

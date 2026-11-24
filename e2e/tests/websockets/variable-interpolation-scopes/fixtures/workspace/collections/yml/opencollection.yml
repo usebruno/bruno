@@ -1,0 +1,15 @@
+opencollection: '1.0.0'
+
+info:
+  name: ws-var-scopes-yml
+
+request:
+  variables:
+    - name: companyName
+      value: TestCorp
+    - name: collectionName
+      value: TestCollection
+    - name: department
+      value: Engineering
+
+bundled: false

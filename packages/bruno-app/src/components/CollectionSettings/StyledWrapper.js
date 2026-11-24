@@ -35,6 +35,16 @@ const StyledWrapper = styled.div`
       }
     }
   }
+    
+  .settings-tab-bar.with-divider {
+    padding-inline: 16px;
+    border-bottom: 1px solid ${(props) => props.theme.border.border0};
+
+    div.tabs div.tab {
+      margin-bottom: -1px;
+    }
+  }
+
   table {
     thead,
     td {

@@ -3,15 +3,28 @@ import isEqual from 'lodash/isEqual';
 import React, { Component } from 'react';
 import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { setupLinkAware } from 'utils/codemirror/linkAware';
-import { resolveLinkClickHandler } from 'utils/codemirror/linkClickHandler';
-import { getAllVariables, getRequestTypeFromCollectionPresets } from 'utils/collections';
+import { getAllVariables, getVariableNamesWithScope } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 import { MaskedEditor } from 'utils/common/masked-editor';
+import { SetAsVariableContext } from 'providers/SetAsVariable/context';
+import { isSelectionPinned, pinSelectionOnContextMenu, releasePinnedSelection } from 'utils/codemirror/selection';
 import StyledWrapper from './StyledWrapper';
 
 const CodeMirror = require('codemirror');
 
 class SingleLineEditor extends Component {
+  static contextType = SetAsVariableContext;
+
+  _onContextMenu = (editor, event) => {
+    if (this.props.enableBrunoVarInfo === false || this.state.maskInput) return;
+
+    this.context.openFromCodeMirror(event, editor, {
+      collection: this.props.collection,
+      item: this.props.item
+    });
+  };
+
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -76,7 +89,7 @@ class SingleLineEditor extends Component {
       }
     });
 
-    const getAllVariablesHandler = () => getAllVariables(this.props.collection, this.props.item);
+    const getAllVariablesHandler = () => getVariableNamesWithScope(this.props.collection, this.props.item);
     const getAnywordAutocompleteHints = () => this.props.autocomplete || [];
 
     // Setup AutoComplete Helper
@@ -84,7 +97,8 @@ class SingleLineEditor extends Component {
       getAllVariables: getAllVariablesHandler,
       getAnywordAutocompleteHints,
       showHintsFor: this.props.showHintsFor || ['variables'],
-      showHintsOnClick: this.props.showHintsOnClick
+      showHintsOnClick: this.props.showHintsOnClick,
+      variableAutocomplete: this.props.variableAutocomplete ?? AUTOCOMPLETE_TRIGGER.SINGLE_BRACE
     };
 
     this.brunoAutoCompleteCleanup = setupAutoComplete(
@@ -94,24 +108,17 @@ class SingleLineEditor extends Component {
 
     /*
      * Must run before setValue() below, or it misses the 'change' event setValue() fires
-     * and never marks the link. disableLinkAwareClick opts a field out of the "open as new
-     * request" click (e.g. the URL bar) - it still marks URLs and Cmd/Ctrl+Click still opens
-     * them externally, matching Bruno's pre-existing URL bar behaviour.
+     * and never marks the link. Editable fields only mark URLs and let Cmd/Ctrl+Click open
+     * them externally - click-to-open-as-new-request is reserved for response previews.
      */
-    setupLinkAware(this.editor, {
-      onLinkClick: this.props.disableLinkAwareClick
-        ? undefined
-        : resolveLinkClickHandler(this.props.item, this.props.collection)
-    });
-    this._linkAwareItemType = this.props.item?.type;
-    this._linkAwareCollectionUid = this.props.collection?.uid;
-    this._linkAwarePresetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    this._linkAwareDisabled = this.props.disableLinkAwareClick;
+    setupLinkAware(this.editor, { onLinkClick: undefined });
 
     this.editor.setValue(String(this.props.value ?? ''));
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
+    this.editor.on('contextmenu', this._onContextMenu);
+    this.editor.on('mousedown', this._onMouseDown);
     this.addOverlay(variables);
     this._enableMaskedEditor(this.props.isSecret);
     this.setState({ maskInput: this.props.isSecret });
@@ -144,8 +151,16 @@ class SingleLineEditor extends Component {
     }
   };
 
+  _onMouseDown = (editor, event) => {
+    pinSelectionOnContextMenu({
+      editor,
+      event,
+      enabled: this.props.enableBrunoVarInfo !== false && !this.state.maskInput
+    });
+  };
+
   _onBlur = () => {
-    if (this.editor) {
+    if (this.editor && !isSelectionPinned(this.editor)) {
       this.editor.setCursor(this.editor.getCursor());
     }
   };
@@ -190,28 +205,6 @@ class SingleLineEditor extends Component {
       }
     }
 
-    // Re-wire link handler when item/collection context changes.
-    const itemType = this.props.item?.type;
-    const collectionUid = this.props.collection?.uid;
-    const presetType = getRequestTypeFromCollectionPresets(this.props.collection);
-    if (
-      itemType !== this._linkAwareItemType
-      || collectionUid !== this._linkAwareCollectionUid
-      || presetType !== this._linkAwarePresetType
-      || this.props.disableLinkAwareClick !== this._linkAwareDisabled
-    ) {
-      this._linkAwareItemType = itemType;
-      this._linkAwareCollectionUid = collectionUid;
-      this._linkAwarePresetType = presetType;
-      this._linkAwareDisabled = this.props.disableLinkAwareClick;
-      this.editor._destroyLinkAware?.();
-      setupLinkAware(this.editor, {
-        onLinkClick: this.props.disableLinkAwareClick
-          ? undefined
-          : resolveLinkClickHandler(this.props.item, this.props.collection)
-      });
-      this.editor.refresh();
-    }
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
@@ -256,6 +249,9 @@ class SingleLineEditor extends Component {
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);
+      this.editor.off('mousedown', this._onMouseDown);
+      if (isSelectionPinned(this.editor)) releasePinnedSelection();
+      this.editor.off('contextmenu', this._onContextMenu);
       this._clearNewlineMarkers();
       this.editor.getWrapperElement().remove();
       this.editor = null;
@@ -345,7 +341,12 @@ class SingleLineEditor extends Component {
    */
   secretEye = (isSecret) => {
     return isSecret === true ? (
-      <button type="button" className="mx-2" data-testid="secret-reveal-toggle" onClick={() => this.toggleVisibleSecret()}>
+      <button
+        type="button"
+        className="mx-2"
+        data-testid="secret-reveal-toggle"
+        onClick={() => this.toggleVisibleSecret()}
+      >
         {this.state.maskInput === true ? (
           <IconEyeOff size={18} strokeWidth={2} />
         ) : (

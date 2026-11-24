@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -8,13 +7,11 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
-const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
+const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const digestAuth = get(request, 'auth.digest', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
@@ -53,7 +50,7 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block mb-1">Username</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3" data-testid="auth-digest-username">
         <SingleLineEditor
           value={digestAuth.username || ''}
           theme={storedTheme}
@@ -62,13 +59,13 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           onRun={handleRun}
           collection={collection}
           item={item}
+          readOnly={readOnly}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
       <label className="block mb-1">Password</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <div className="single-line-editor-wrapper flex items-center" data-testid="auth-digest-password">
         <SingleLineEditor
           value={digestAuth.password || ''}
           theme={storedTheme}
@@ -78,10 +75,10 @@ const DigestAuth = ({ item, collection, updateAuth, request, save }) => {
           collection={collection}
           item={item}
           isSecret={true}
+          readOnly={readOnly}
           isCompact
-          disableLinkAwareClick={true}
         />
-        {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
+        <SensitiveFieldWarning fieldName="digest-password" secretName="password" value={digestAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

@@ -1,0 +1,16 @@
+meta {
+  name: cookie-header-mixed-case
+  type: http
+  seq: 57
+}
+
+get {
+  url: http://localhost:8081/api/echo/anything/api
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: cookie1=value1
+  COOKIE: cookie2=value2
+}

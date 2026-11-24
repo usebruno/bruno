@@ -2,22 +2,22 @@ import { DatabaseSync } from 'node:sqlite';
 import type { StatementDef, StatementType } from '../../src/shared/types';
 
 const defs: StatementDef[] = [
-  { name: 'insertItem', type: 'exec', sql: 'INSERT INTO items(name) VALUES (:name)', tables: ['items'] },
-  { name: 'insertWithId', type: 'exec', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)', tables: ['items'] },
-  { name: 'getItem', type: 'one', sql: 'SELECT * FROM items WHERE id = :id', tables: ['items'] },
-  { name: 'allItems', type: 'many', sql: 'SELECT * FROM items', tables: ['items'] },
-  { name: 'invalid', type: 'invalid_type' as StatementType, sql: 'SELECT * FROM items', tables: ['items'] },
-  { name: 'unpreparable', type: 'one', sql: 'SELECT * FROM missing_table', tables: ['missing_table'] }
+  { name: 'insertItem', type: 'exec', sql: 'INSERT INTO items(name) VALUES (:name)' },
+  { name: 'insertWithId', type: 'exec', sql: 'INSERT INTO items(id, name) VALUES (:id, :name)' },
+  { name: 'getItem', type: 'one', sql: 'SELECT * FROM items WHERE id = :id' },
+  { name: 'allItems', type: 'many', sql: 'SELECT * FROM items' },
+  { name: 'invalid', type: 'invalid_type' as StatementType, sql: 'SELECT * FROM items' },
+  { name: 'unpreparable', type: 'one', sql: 'SELECT * FROM missing_table' }
 ];
 
 jest.doMock('../../src/generated/node/statements', () => ({ statements: defs }));
 
 const { Statements } = require('../../src/node/statements');
 
-const newStatements = (onMutation?: (event: unknown) => void) => {
+const newStatements = () => {
   const db = new DatabaseSync(':memory:');
   db.exec('CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT)');
-  return new Statements(db, onMutation);
+  return new Statements(db);
 };
 
 let error: jest.SpyInstance;
@@ -30,62 +30,44 @@ afterEach(() => {
   error.mockRestore();
 });
 
-describe('Statements.execute mutation signalling', () => {
-  it('notifies with the statement name and tables after a successful write', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+describe('Statements.execute', () => {
+  it('returns the run result for a write', () => {
+    const statements = newStatements();
 
-    const result = statements.execute('insertItem', { name: 'alpha' });
-
-    expect(result).toMatchObject({ changes: 1 });
-    expect(onMutation).toHaveBeenCalledTimes(1);
-    expect(onMutation).toHaveBeenCalledWith({ name: 'insertItem', tables: ['items'] });
+    expect(statements.execute('insertItem', { name: 'alpha' })).toMatchObject({ changes: 1 });
   });
 
-  it('does not notify for a "one" read', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+  it('returns a single row for a "one" read', () => {
+    const statements = newStatements();
     statements.execute('insertItem', { name: 'alpha' });
-    onMutation.mockClear();
 
     expect(statements.execute('getItem', { id: 1 })).toMatchObject({ name: 'alpha' });
-    expect(onMutation).not.toHaveBeenCalled();
   });
 
-  it('does not notify for a "many" read', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+  it('returns every row for a "many" read', () => {
+    const statements = newStatements();
     statements.execute('insertItem', { name: 'alpha' });
-    onMutation.mockClear();
 
     expect(statements.execute('allItems', {})).toHaveLength(1);
-    expect(onMutation).not.toHaveBeenCalled();
   });
 
-  it('does not notify when the write throws', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+  it('throws when the write fails', () => {
+    const statements = newStatements();
     statements.execute('insertWithId', { id: 1, name: 'alpha' });
-    onMutation.mockClear();
 
     expect(() => statements.execute('insertWithId', { id: 1, name: 'dup' })).toThrow();
-    expect(onMutation).not.toHaveBeenCalled();
   });
 
-  it('throws for an unknown statement without notifying', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+  it('throws for an unknown statement', () => {
+    const statements = newStatements();
 
     expect(() => statements.execute('nope', {})).toThrow('Unknown statement: "nope"');
-    expect(onMutation).not.toHaveBeenCalled();
   });
 
   // This is a very stretched test. The generator would already catch any types which are not valid
-  it('throws for an unknown definition type without notifying', () => {
-    const onMutation = jest.fn();
-    const statements = newStatements(onMutation);
+  it('throws for an unknown definition type', () => {
+    const statements = newStatements();
     expect(() => statements.execute('invalid', {})).toThrow('unknown definition type: invalid_type');
-    expect(onMutation).not.toHaveBeenCalled();
   });
 });
 

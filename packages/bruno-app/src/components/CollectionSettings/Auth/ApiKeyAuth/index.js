@@ -5,6 +5,7 @@ import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useTheme } from 'providers/Theme';
 import SingleLineEditor from 'components/SingleLineEditor';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionSettings } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -22,7 +23,7 @@ const ApiKeyAuth = ({ collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
+      <div ref={ref} data-testid="auth-placement-label" className="flex items-center justify-end auth-type-label select-none">
         {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
@@ -66,25 +67,25 @@ const ApiKeyAuth = ({ collection }) => {
           onChange={(val) => handleAuthChange('key', val)}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
       <label className="block mb-1">Value</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
         <SingleLineEditor
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleAuthChange('value', val)}
           collection={collection}
+          isSecret={true}
           isCompact
-          disableLinkAwareClick={true}
         />
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} onReplaceValue={(val) => handleAuthChange('value', val)} />
       </div>
 
       <label className="block mb-1">Add To</label>
-      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
+      <div data-testid="auth-placement-selector" className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"

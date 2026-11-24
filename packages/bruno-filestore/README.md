@@ -47,4 +47,4 @@ The package provides the following functions:
 - `stringifyFolder(folderObj, options = { format: 'bru' })`: Convert folder object to file content
 - `parseEnvironment(content, options = { format: 'bru' })`: Parse environment file content
 - `stringifyEnvironment(envObj, options = { format: 'bru' })`: Convert environment object to file content
-- `parseDotEnv(content)`: Parse .env file content 
+- `parseDotEnv(content)`: Parse .env file content

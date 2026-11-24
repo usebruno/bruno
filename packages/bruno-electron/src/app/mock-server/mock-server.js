@@ -5,7 +5,7 @@ const https = require('https');
 const net = require('net');
 const { BrowserWindow } = require('electron');
 const { v4: uuidv4 } = require('uuid');
-const { preferencesUtil } = require('../../store/preferences');
+const { isMockServerEnabled } = require('./is-enabled');
 const { buildRouteMapFromMockResponses, countRouteResponses } = require('./mock-response-routes');
 const { buildRequestContext, evaluateResponseCandidates } = require('./mock-rule-matcher');
 const DEFAULT_GATEWAY_PORT = 4000;
@@ -14,6 +14,7 @@ const MAX_LOG_ENTRIES = 500;
 const LOG_FLUSH_MS = 300;
 const MAX_AVAILABLE_ROUTES = 50;
 const LOCALHOST_IPV4 = '127.0.0.1';
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
 
 const collections = new Map();
 const pendingLogBroadcasts = new Map();
@@ -239,6 +240,14 @@ const queueLogBroadcast = (mockServerUid, entry) => {
   scheduleLogFlush();
 };
 
+const decodeSegment = (segment) => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+};
+
 const findParameterizedMatch = (routeMap, method, reqPath) => {
   const reqSegments = reqPath.split('/');
 
@@ -253,9 +262,16 @@ const findParameterizedMatch = (routeMap, method, reqPath) => {
       seg.startsWith(':') || seg === reqSegments[i]
     );
 
-    if (matches) return examples;
+    if (matches) {
+      const params = {};
+      routeSegments.forEach((seg, i) => {
+        if (seg.startsWith(':')) {
+          params[seg.slice(1)] = decodeSegment(reqSegments[i]);
+        }
+      });
+      return { examples, params };
+    }
   }
-
   return null;
 };
 
@@ -290,6 +306,23 @@ const logRequest = (collection, mockServerUid, data) => {
   queueLogBroadcast(mockServerUid, entry);
 };
 
+const isCorsPreflight = (headers) => Boolean(headers.origin)
+  && Boolean(headers['access-control-request-method']);
+
+const respondToOptions = (collection, mockServerUid, { req, reqPath, startTime, matchTrace = null }, res) => {
+  logRequest(collection, mockServerUid, {
+    method: 'OPTIONS',
+    path: reqPath,
+    matched: true,
+    matchedMockResponseName: isCorsPreflight(req.headers) ? 'CORS preflight' : 'Automatic OPTIONS response',
+    matchTrace,
+    statusCode: 204,
+    duration: Date.now() - startTime
+  });
+
+  res.status(204).set('Content-Length', '0').end();
+};
+
 const handleRequest = (mockServerUid, req, res) => {
   const collection = collections.get(mockServerUid);
   if (!collection) {
@@ -303,11 +336,19 @@ const handleRequest = (mockServerUid, req, res) => {
   const routeKey = `${method} ${reqPath}`;
 
   let examples = collection.routeMap.get(routeKey);
+  let pathParams = {};
   if (!examples) {
-    examples = findParameterizedMatch(collection.routeMap, method, reqPath);
+    const parameterized = findParameterizedMatch(collection.routeMap, method, reqPath);
+    examples = parameterized?.examples;
+    pathParams = parameterized?.params || {};
   }
 
   if (!examples || examples.length === 0) {
+    if (method === 'OPTIONS') {
+      respondToOptions(collection, mockServerUid, { req, reqPath, startTime }, res);
+      return;
+    }
+
     logRequest(collection, mockServerUid, {
       method: req.method,
       path: reqPath,
@@ -333,11 +374,21 @@ const handleRequest = (mockServerUid, req, res) => {
     return;
   }
 
-  const requestContext = buildRequestContext(req);
+  const requestContext = buildRequestContext(req, pathParams);
   const { selected, trace } = evaluateResponseCandidates(examples, requestContext);
   const matchTrace = { ...trace, routeKey };
 
   if (!selected) {
+    if (method === 'OPTIONS') {
+      respondToOptions(collection, mockServerUid, {
+        req,
+        reqPath,
+        startTime,
+        matchTrace: { ...matchTrace, failureReason: null }
+      }, res);
+      return;
+    }
+
     logRequest(collection, mockServerUid, {
       method: req.method,
       path: reqPath,
@@ -445,11 +496,11 @@ const handleRequest = (mockServerUid, req, res) => {
 };
 
 const applyMockMiddleware = (app) => {
-  app.use(cors({
+  app.use(cors((req, callback) => callback(null, {
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Mock-Example', 'X-Mock-Response-Code']
-  }));
+    methods: req.headers['access-control-request-method'] || DEFAULT_CORS_METHODS,
+    preflightContinue: true
+  })));
   app.use(express.json({ limit: '10mb' }));
   app.use(express.text({ type: '*/*', limit: '10mb' }));
 };
@@ -527,6 +578,8 @@ const closeHttpServer = (httpServer) => new Promise((resolve) => {
   httpServer.on('close', () => clearTimeout(forceCloseTimeout));
 });
 
+const MOCK_SERVER_DISABLED_ERROR = 'Mock server might be disabled as a feature';
+
 const start = async ({
   mockServerUid,
   serverName,
@@ -539,8 +592,8 @@ const start = async ({
   port = DEFAULT_GATEWAY_PORT,
   globalDelay = 0
 }) => {
-  if (!preferencesUtil.isBetaFeatureEnabled('mock-server')) {
-    throw new Error('Mock server is a beta feature. Enable it in Preferences > Beta.');
+  if (!isMockServerEnabled()) {
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
   }
 
   if (!mockServerUid) {
@@ -566,6 +619,10 @@ const start = async ({
   app.all('*', (req, res) => handleRequest(mockServerUid, req, res));
 
   const httpServer = await listenOnPort(app, resolvedPort);
+  if (!isMockServerEnabled()) {
+    await closeHttpServer(httpServer);
+    throw new Error(MOCK_SERVER_DISABLED_ERROR);
+  }
   isolatedServers.set(mockServerUid, { httpServer, port: resolvedPort });
 
   const baseUrl = `http://localhost:${resolvedPort}`;
@@ -709,6 +766,7 @@ const reloadRoutesFromStore = async (mockServerUid, location = {}) => {
 
 module.exports = {
   setMainWindow,
+  isMockServerEnabled,
   start,
   stop,
   stopAll,
@@ -720,5 +778,6 @@ module.exports = {
   checkPortAvailable,
   getRunningMockServerUids,
   reloadRoutesFromStore,
-  tryMockRequest
+  tryMockRequest,
+  findParameterizedMatch
 };

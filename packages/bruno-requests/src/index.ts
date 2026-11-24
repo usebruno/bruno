@@ -18,6 +18,7 @@ export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';
 export { initializeShellEnv, fetchShellEnv } from './utils/shell-env';
 export { getOrCreateHttpsAgent, getOrCreateHttpAgent, clearAgentCache, getAgentCacheSize } from './utils/agent-cache';
+export { configureHybridTlsDefaults } from './utils/hybrid-key-exchange';
 export { getPacResolver, clearPacCache } from './utils/pac-resolver';
 export type { PacWrapper, GetPacResolverParams } from './utils/pac-resolver';
 
@@ -28,5 +29,10 @@ export {
   getSystemProxy,
   getSentHeaders,
   applySentHeadersToRequest,
-  applyOmitConnectionToAxiosConfig
+  applyOmitConnectionToAxiosConfig,
+  readCurrentTime,
+  measureTimeSince,
+  startHop,
+  completeHop,
+  measureResponseTime
 } from './network';

@@ -1,4 +1,4 @@
-import isRequestTagsIncluded from '../tags';
+import isRequestTagsIncluded, { getEffectiveTags, getSavedFolderTags } from '../tags';
 
 export interface TaggedItem {
   type?: string;
@@ -60,7 +60,8 @@ const isRequestItem = (item: TaggedItem): boolean =>
 export const filterRequestItemsByTags = <T extends TaggedItem>(
   items: T[],
   includeTags: string[] = [],
-  excludeTags: string[] = []
+  excludeTags: string[] = [],
+  inheritedTags: string[] = []
 ): T[] => {
   if (includeTags.length === 0 && excludeTags.length === 0) {
     return items;
@@ -69,12 +70,17 @@ export const filterRequestItemsByTags = <T extends TaggedItem>(
   const filtered: T[] = [];
   for (const item of items) {
     if (isFolder(item)) {
-      const keptChildren = filterRequestItemsByTags((item.items ?? []) as T[], includeTags, excludeTags);
+      const keptChildren = filterRequestItemsByTags(
+        (item.items ?? []) as T[],
+        includeTags,
+        excludeTags,
+        getEffectiveTags(getSavedFolderTags(item), inheritedTags)
+      );
       if (keptChildren.length > 0) {
         filtered.push({ ...item, items: keptChildren });
       }
     } else if (isRequestItem(item)) {
-      if (isRequestTagsIncluded(item.tags ?? [], includeTags, excludeTags)) {
+      if (isRequestTagsIncluded(getEffectiveTags(item.tags, inheritedTags), includeTags, excludeTags)) {
         filtered.push(item);
       }
     } else {
@@ -142,7 +148,7 @@ export const buildApiDocsHtml = (
 ): string => {
   const baseUrl = options.rendererBaseUrl ?? DEFAULT_RENDERER_BASE_URL;
   const gitLine = options.gitCollectionUrl
-    ? `\n            gitCollectionUrl: ${hardenScriptSequences(JSON.stringify(stripGitCredentials(options.gitCollectionUrl)))},`
+    ? `\n            repositoryUrl: ${hardenScriptSequences(JSON.stringify(stripGitCredentials(options.gitCollectionUrl)))},`
     : '';
 
   return `<!DOCTYPE html>
@@ -153,18 +159,17 @@ export const buildApiDocsHtml = (
     <title>${escapeHtmlText(collectionName)} - API Documentation</title>
     <style>
         body { margin: 0; padding: 0; }
-        #opencollection-container { width: 100vw; height: 100vh; }
+        #bruno-api-docs { width: 100vw; height: 100vh; }
     </style>
     <link rel="stylesheet" href="${baseUrl}/api-docs/api-docs.css">
     <script src="${baseUrl}/api-docs/api-docs.js"></script>
 </head>
 <body>
-    <div id="opencollection-container"></div>
+    <div id="bruno-api-docs"></div>
     <script>
         const collectionData = ${embeddedCollectionData};
-        new window.OpenCollection({
-            target: document.getElementById('opencollection-container'),
-            opencollection: collectionData,${gitLine}
+        Bruno.apiDocs(document.getElementById('bruno-api-docs'), {
+            content: collectionData,${gitLine}
             theme: 'light'
         });
     </script>

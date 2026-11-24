@@ -1,4 +1,5 @@
 const { describe, it, expect, beforeAll, afterAll, afterEach } = require('@jest/globals');
+const fs = require('fs');
 const path = require('path');
 const {
   echoRequest,
@@ -12,7 +13,7 @@ const {
 const WORKSPACE_FIXTURE_DIR = path.resolve(
   __dirname,
   '..', '..', '..', '..',
-  'tests', 'environments', 'environment-inheritance', 'fixtures', 'workspace'
+  'e2e', 'tests', 'environments', 'environment-inheritance', 'fixtures', 'workspace'
 );
 const COLLECTIONS_FIXTURE_DIR = path.join(WORKSPACE_FIXTURE_DIR, 'collections');
 
@@ -67,6 +68,41 @@ describe('CLI run - environment inheritance (extends)', () => {
       '--env-var', `host=${baseUrl}`,
       ...envVarArgs('--env-var', COLLECTION_SECRETS)
     ]);
+  }, RUN_TIMEOUT);
+
+  // `base` ends the chain the run walks, so giving it a parent of its own leaves every row `dev`
+  // resolves untouched — the run still passes, and only the reference it cannot follow is new.
+  const extendBaseEnvironment = (collectionDir, parentName) => {
+    const filePath = environmentPath(collectionDir, 'base', 'yml');
+    fs.writeFileSync(filePath, `extends: ${parentName}\n${fs.readFileSync(filePath, 'utf8')}`);
+  };
+
+  const runDevEnvironment = (collectionDir) =>
+    runCollection(collectionDir, [
+      'run', 'echo.yml',
+      '--env', 'dev',
+      '--env-var', `host=${baseUrl}`,
+      ...envVarArgs('--env-var', COLLECTION_SECRETS)
+    ]);
+
+  it('warns about a chain ending on a name no environment file carries', async () => {
+    const collectionDir = seedCollection('yml');
+    extendBaseEnvironment(collectionDir, 'no-such-environment');
+
+    const { stderr } = await runDevEnvironment(collectionDir);
+
+    expect(stderr).toContain('Referenced parent environment not found');
+    expect(stderr).toContain('no-such-environment');
+  }, RUN_TIMEOUT);
+
+  it('warns about a chain that closes a loop', async () => {
+    const collectionDir = seedCollection('yml');
+    extendBaseEnvironment(collectionDir, 'dev');
+
+    const { stderr } = await runDevEnvironment(collectionDir);
+
+    expect(stderr).toContain('Circular environment inheritance');
+    expect(stderr).toContain('dev → base → dev');
   }, RUN_TIMEOUT);
 
   // --env-file loads the file as it reads, even when the path it is given is one of the collection's

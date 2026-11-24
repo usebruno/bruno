@@ -1,9 +1,0 @@
-{
-  "version": "1",
-  "name": "codemirror-linkaware",
-  "type": "collection",
-  "presets": {
-    "requestType": "http",
-    "requestUrl": ""
-  }
-}

@@ -28,6 +28,7 @@
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
 | [ქართული](./readme_ka.md)
+| [हिन्दी](./readme_hi.md)
 
 Bruno este un client API nou și inovativ, care vizează să revoluționeze status quo-ul reprezentat de Postman și alte instrumente similare.
 

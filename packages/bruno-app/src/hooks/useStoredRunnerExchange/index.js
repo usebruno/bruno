@@ -1,22 +1,27 @@
-import { useMemo } from 'react';
-import { useSqliteQuery } from '@usebruno/sqlite/web';
-import { safeParseJSON } from 'utils/common';
+import { useEffect, useState } from 'react';
 
 const useStoredRunnerExchange = (item) => {
   const requestUid = item?.requestUid;
-  // A row is written in two steps (request, then response) and is final once the item settles.
-  // Reading earlier would refetch on every runner write, because any mutation to runner_responses
-  // invalidates every active query against that table.
   const hasSettled = item?.status === 'completed' || item?.status === 'error';
+  const [stored, setStored] = useState(null);
 
-  const { data } = useSqliteQuery('get_runner_response', { request_uid: requestUid }, {
-    enabled: Boolean(requestUid) && hasSettled
-  });
+  useEffect(() => {
+    if (!requestUid || !hasSettled) return;
+    let active = true;
+    window.ipcRenderer
+      .invoke('datastore:runner_responses:get_runner_response', { request_uid: requestUid })
+      .then((exchange) => active && setStored({ requestUid, exchange }))
+      .catch((error) => console.error('Failed to read the stored runner payload', error));
+    return () => {
+      active = false;
+    };
+  }, [requestUid, hasSettled]);
 
-  return useMemo(() => ({
-    requestSent: data?.request ? safeParseJSON(data.request) : item?.requestSent ?? null,
-    responseReceived: data?.response ? safeParseJSON(data.response) : item?.responseReceived ?? null
-  }), [data?.request, data?.response, item?.requestSent, item?.responseReceived]);
+  const exchange = stored && stored.requestUid === requestUid ? stored.exchange : null;
+  return {
+    requestSent: exchange?.requestSent ?? item?.requestSent,
+    responseReceived: exchange?.responseReceived ?? item?.responseReceived
+  };
 };
 
 export default useStoredRunnerExchange;

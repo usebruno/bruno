@@ -159,6 +159,58 @@ describe('serializeSnapshot workspace tab restoration', () => {
   });
 });
 
+describe('serializeSnapshot API spec tabs', () => {
+  const PETSTORE_PATH = '/tmp/workspace/petstore.yaml';
+  const ORDERS_PATH = '/tmp/workspace/orders.yaml';
+
+  const makeStateWithApiSpecTabs = () => {
+    const scratchCollectionUid = 'scratch-1';
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = scratchCollectionUid;
+    state.tabs.tabs = [
+      { uid: `${scratchCollectionUid}-overview`, collectionUid: scratchCollectionUid, type: 'workspaceOverview' },
+      { uid: 'api-spec::' + PETSTORE_PATH, collectionUid: scratchCollectionUid, type: 'api-spec', apiSpecPathname: PETSTORE_PATH },
+      { uid: 'api-spec::' + ORDERS_PATH, collectionUid: scratchCollectionUid, type: 'api-spec', apiSpecPathname: ORDERS_PATH }
+    ];
+    return state;
+  };
+
+  it('remembers every open spec tab, so they all come back after a restart', async () => {
+    const state = makeStateWithApiSpecTabs();
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.workspaces[0].apiSpecTabs).toEqual([PETSTORE_PATH, ORDERS_PATH]);
+  });
+
+  it('remembers which spec tab was active', async () => {
+    const state = makeStateWithApiSpecTabs();
+    state.tabs.activeTabUid = 'api-spec::' + ORDERS_PATH;
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.workspaces[0].activeApiSpecTabPathname).toBe(ORDERS_PATH);
+  });
+
+  it('records no active spec tab when the user is looking at something else', async () => {
+    const state = makeStateWithApiSpecTabs();
+    state.tabs.activeTabUid = 'scratch-1-overview';
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.workspaces[0].activeApiSpecTabPathname).toBeNull();
+  });
+
+  it('records no spec tabs for a workspace that has none open', async () => {
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = 'scratch-1';
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.workspaces[0].apiSpecTabs).toEqual([]);
+  });
+});
+
 describe('serializeSnapshot collection environment preservation', () => {
   it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
     const snapshot = await serializeSnapshot(makeState(), {
