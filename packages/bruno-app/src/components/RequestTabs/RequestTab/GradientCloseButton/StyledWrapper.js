@@ -35,7 +35,8 @@ const StyledWrapper = styled.div.attrs((props) => ({
   }
 
   li:hover &:not(.no-close),
-  &.has-changes {
+  &.has-changes,
+  &.has-indicator {
     opacity: 1;
     pointer-events: auto;
   }
@@ -87,7 +88,8 @@ const StyledWrapper = styled.div.attrs((props) => ({
     justify-content: center;
   }
 
-  &.has-changes:not(li:hover &) {
+  &.has-changes:not(li:hover &),
+  &.has-indicator:not(li:hover &) {
     .draft-icon-wrapper {
       display: flex;
       align-items: center;

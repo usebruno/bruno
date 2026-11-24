@@ -24,7 +24,10 @@ const initialState = {
   tabs: [],
   activeTabUid: null,
   recentlyClosedTabs: [], // LIFO stack of closed tabs, grouped by collection
-  sidebarRevealRequest: null
+  sidebarRevealRequest: null,
+  // itemUid -> true for a response that arrived while no tab of the request was active.
+  // Keyed by item, not tab, so it outlives a tab closed while the request ran. In memory only, never snapshotted.
+  unseenResponses: {}
 };
 
 const findMockServerTab = (tabs, mockServerUid) => find(tabs, (tab) => (
@@ -671,6 +674,19 @@ export const tabsSlice = createSlice({
       const { tabUids } = action.payload;
       state.recentlyClosedTabs = state.recentlyClosedTabs.filter((tab) => !tabUids.includes(tab.uid));
     }
+  },
+  // A response that arrives while its request's tab is not active stays unseen until the tab is active.
+  // The action type is a string: importing `responseReceived` would make the two slices import each other.
+  // Entries of deleted items are never pruned: harmless, since the badge also needs `item.response`.
+  extraReducers: (builder) => {
+    builder
+      .addCase('collections/responseReceived', (state, { payload: { itemUid } }) => {
+        if (itemUid !== state.activeTabUid) state.unseenResponses[itemUid] = true;
+      })
+      .addMatcher(() => true, (state) => {
+        // Runs on every action, so also on hand-built tab states (spec fixtures) that omit the map.
+        delete state.unseenResponses?.[state.activeTabUid];
+      });
   }
 });
 

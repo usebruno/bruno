@@ -27,7 +27,10 @@ export const buildRequestTabsLocators = (page: Page) => ({
   closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
   draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
-  tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon')
+  tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+  // Shown in the close icon's spot while the request runs / after it finished in the background.
+  tabRunningIndicator: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-running-indicator'),
+  tabUnseenResponseBadge: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('unseen-response-badge')
 });
 
 const buildLocators = (page: Page) => ({
