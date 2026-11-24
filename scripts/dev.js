@@ -28,10 +28,11 @@ const electronDir = path.join(rootDir, 'packages/bruno-electron');
 
 let electronProcess = null;
 let detectedPort = null;
-let outputBuffer = '';
+const outputBuffers = { stdout: '', stderr: '' };
 
-// Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/")
-const portRegex = /Local:\s+http:\/\/localhost:(\d+)/;
+// Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/").
+// The trailing slash ensures a port split across chunks is only read once complete.
+const portRegex = /Local:\s+http:\/\/localhost:(\d+)\//;
 
 // rsbuild colours its output even when piped on Windows (picocolors always enables
 // colour on win32), which puts escape codes between "Local:" and the URL.
@@ -47,31 +48,36 @@ const webProcess = spawn('npm', ['run', 'dev'], {
 });
 
 // rsbuild may print its startup banner on either stream, so both are scanned
-function detectPort(output) {
+function detectPort(stream, output) {
   if (detectedPort) {
     return;
   }
 
-  // Keep a short tail so a line split across chunks still matches
-  outputBuffer = (outputBuffer + stripAnsi(output)).slice(-1000);
-  const match = outputBuffer.match(portRegex);
+  // Raw chunks are joined before stripping so an escape code or banner line split
+  // across chunks is matched as a whole. Each stream keeps its own buffer so the
+  // two never interleave mid-line.
+  const buffer = outputBuffers[stream] + output;
+  const match = stripAnsi(buffer).match(portRegex);
   if (match) {
     detectedPort = match[1];
     log.success(`Detected dev server on port ${colors.bright}${detectedPort}${colors.reset}`);
     startElectron(detectedPort);
+    return;
   }
+
+  outputBuffers[stream] = buffer.slice(-1000);
 }
 
 webProcess.stdout.on('data', (data) => {
   const output = data.toString();
   process.stdout.write(output);
-  detectPort(output);
+  detectPort('stdout', output);
 });
 
 webProcess.stderr.on('data', (data) => {
   const output = data.toString();
   process.stderr.write(output);
-  detectPort(output);
+  detectPort('stderr', output);
 });
 
 webProcess.on('close', (code) => {
