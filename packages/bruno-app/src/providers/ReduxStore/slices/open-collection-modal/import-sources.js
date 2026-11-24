@@ -14,18 +14,18 @@ const UNSUPPORTED_FORMAT = 'Unsupported collection format';
 const ZIP_FILE = /\.zip$/i;
 export const HTTP_URL = /^https?:\/\//i;
 
+const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false;
+
 const IMPORT_FORMATS = [
   ['openapi', isOpenApiSpec],
   ['wsdl', isWSDLCollection],
   ['postman', isPostmanCollection],
   ['insomnia', isInsomniaCollection],
-  ['opencollection', isOpenCollection],
+  ['opencollection', isOpenCollectionExport],
   ['bruno', isBrunoCollection]
 ];
 
 const detectImportFormat = (data) => IMPORT_FORMATS.find(([, matches]) => matches(data))?.[0];
-
-const getFilePath = (file) => window.ipcRenderer.getFilePath(file);
 
 const readBrunoZip = async (zipFilePath, fileName) => {
   if (!(await callIpc('renderer:is-bruno-collection-zip', zipFilePath))) {
@@ -55,7 +55,7 @@ const readFileForBulkImport = async (file) => {
     const data = parseFileText(text, file);
     const type = detectImportFormat(data);
     return type
-      ? { file, data, type, filePath: getFilePath(file), rawContent: type === 'openapi' && !isSwagger2Spec(data) ? text : undefined }
+      ? { file, data, type, filePath: window.ipcRenderer.getFilePath(file), rawContent: type === 'openapi' && !isSwagger2Spec(data) ? text : undefined }
       : null;
   } catch (error) {
     console.warn(`Failed to process file ${file.name}:`, error);
@@ -82,13 +82,13 @@ export const readImportFiles = async (files) => {
     throw new Error('Multiple ZIP files selected. Please select only one ZIP file at a time for import.');
   }
   if (zipFiles.length === 1) {
-    return readBrunoZip(getFilePath(zipFiles[0]), zipFiles[0].name);
+    return readBrunoZip(window.ipcRenderer.getFilePath(zipFiles[0]), zipFiles[0].name);
   }
   if (files.length > 1) {
     return readSeveralFiles(files);
   }
   const [file] = files;
-  return parseImportFile(await file.text(), file, getFilePath(file));
+  return parseImportFile(await file.text(), file, window.ipcRenderer.getFilePath(file));
 };
 
 export const readImportableFile = async ({ path, name }) => {
@@ -96,7 +96,7 @@ export const readImportableFile = async ({ path, name }) => {
     return readBrunoZip(path, name);
   }
   const text = await callIpc('renderer:collection-search:read-importable-file', { path });
-  return parseImportFile(text, { name }, path);
+  return parseImportFile(text, { name, type: /\.json$/i.test(name) ? 'application/json' : '' }, path);
 };
 
 const readImportUrl = async (url) => {
@@ -109,7 +109,7 @@ const readImportUrl = async (url) => {
   } catch (error) {
     throw new Error('URL import failed. Please check the URL and try again.');
   }
-  const type = typeof fetched.data === 'object' && detectImportFormat(fetched.data);
+  const type = fetched.data !== null && typeof fetched.data === 'object' && detectImportFormat(fetched.data);
   if (!type) {
     throw new Error(UNSUPPORTED_FORMAT);
   }

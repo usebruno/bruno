@@ -28,13 +28,13 @@ const StyledWrapper = styled.div`
 
   .early-access-title {
     margin: 0 0 0.25rem;
-    font-size: 0.9375rem;
+    font-size: ${(props) => props.theme.font.size.md};
     font-weight: 600;
   }
 
   .early-access-subtitle {
     margin-bottom: 1.125rem;
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
   }
 
@@ -45,7 +45,7 @@ const StyledWrapper = styled.div`
     padding: 0;
     border: 0.0625rem solid ${(props) => props.theme.border.border1};
     border-radius: ${(props) => props.theme.border.radius.md};
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.125rem;
     color: ${(props) => props.theme.colors.text.muted};
     list-style: none;

@@ -60,6 +60,23 @@ describe('import sources', () => {
       await expect(readImportFiles([file('notes.json', { hello: 'world' })])).rejects.toThrow('Unsupported collection format');
     });
 
+    it('recognises an OpenCollection export marked as bundled', async () => {
+      const exported = { ...openCollection, bundled: true };
+
+      await expect(readImportFiles([file('orders.yml', exported)])).resolves.toEqual({ rawData: exported, type: 'opencollection' });
+    });
+
+    it('treats a collection\'s own opencollection.yml like its bruno.json, as a file it cannot import', async () => {
+      await expect(readImportFiles([file('opencollection.yml', { ...openCollection, bundled: false })])).rejects.toThrow('Unsupported collection format');
+      await expect(readImportFiles([file('bruno.json', { version: '1', name: 'Orders', type: 'collection' })])).rejects.toThrow('Unsupported collection format');
+    });
+
+    it('skips a collection\'s own opencollection.yml when several files are picked', async () => {
+      const result = await readImportFiles([file('orders.json', postman), file('opencollection.yml', { ...openCollection, bundled: false })]);
+
+      expect(result).toMatchObject({ type: 'multiple', skippedFileNames: ['opencollection.yml'] });
+    });
+
     it('says when a file holds nothing usable', async () => {
       await expect(readImportFiles([file('empty.json', 'null')])).rejects.toThrow('Failed to parse file content');
     });
@@ -152,6 +169,12 @@ describe('import sources', () => {
       await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
+    it('says when a fetched document is empty', async () => {
+      fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: null, specType: 'unknown', rawContent: '~' });
+
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
+    });
+
     it('recognises a fetched OpenCollection document', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openCollection, specType: 'unknown', rawContent: 'raw' });
 
@@ -200,6 +223,12 @@ describe('import sources', () => {
         rawContent: text
       });
       expect(callIpc).toHaveBeenCalledWith('renderer:collection-search:read-importable-file', { path: '/work/openapi.json' });
+    });
+
+    it('reads a file with an upper case .JSON extension as JSON', async () => {
+      callIpc.mockResolvedValue('{"openapi":"3.0.0","info":{"title":"A","title":"B","version":"1"},"paths":{}}');
+
+      await expect(readImportableFile({ path: '/work/OPENAPI.JSON', name: 'OPENAPI.JSON' })).resolves.toMatchObject({ type: 'openapi' });
     });
 
     it('hands a ZIP over by its path', async () => {

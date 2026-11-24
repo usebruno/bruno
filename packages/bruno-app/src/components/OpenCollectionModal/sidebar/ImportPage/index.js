@@ -34,18 +34,21 @@ const ImportPage = () => {
 
   const trimmedText = text.trim();
   const hint = trimmedText ? describeImportText(trimmedText) : null;
-
-  const keepLineBreaksOnPaste = (event) => {
-    const pasted = event.clipboardData.getData('text');
-    if (pasted.includes('\n')) {
-      event.preventDefault();
-      setText(pasted);
-    }
-  };
+  const isLoadDisabled = !trimmedText || hint.isWarning;
 
   const loadText = (event) => {
     event.preventDefault();
     importFrom(loadImportText(trimmedText));
+  };
+
+  const loadOnEnter = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+    event.preventDefault();
+    if (!isLoadDisabled && !isLoading) {
+      importFrom(loadImportText(trimmedText));
+    }
   };
 
   const loadPickedFiles = (event) => {
@@ -58,22 +61,24 @@ const ImportPage = () => {
       <form className="import-url-row" onSubmit={loadText}>
         <div className="import-url-field">
           <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
-          <input
-            type="text"
+          <textarea
+            rows={1}
+            wrap="off"
             placeholder="Paste a file URL, e.g. https://example.com/openapi.yaml"
             aria-label="Paste a file URL"
             value={text}
             onChange={(event) => setText(event.target.value)}
-            onPaste={keepLineBreaksOnPaste}
+            onKeyDown={loadOnEnter}
             readOnly={isLoading}
             data-testid="import-page-text"
           />
         </div>
         <Button
+          className="import-url-load"
           type="submit"
           size="sm"
           color="secondary"
-          disabled={!trimmedText || hint.isWarning}
+          disabled={isLoadDisabled}
           loading={isLoading}
           data-testid="import-page-load"
         >

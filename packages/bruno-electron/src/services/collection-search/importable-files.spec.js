@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const AdmZip = require('adm-zip');
 const { findImportableFiles, readImportableFileText } = require('./importable-files');
 
 describe('findImportableFiles', () => {
@@ -19,11 +20,17 @@ describe('findImportableFiles', () => {
     return path.join(tempDir, name);
   };
 
+  const writeZip = (name, entryNames) => {
+    const zip = new AdmZip();
+    entryNames.forEach((entryName) => zip.addFile(entryName, Buffer.from('{}')));
+    zip.writeZip(path.join(tempDir, name));
+  };
+
   const formatsByName = async () =>
     Object.fromEntries((await findImportableFiles(tempDir)).map((file) => [file.name, file.format]));
 
-  it('recognises Postman, Insomnia and OpenAPI exports and zip archives', async () => {
-    writeFile('backup.zip');
+  it('recognises Postman, Insomnia and OpenAPI exports and Bruno collection zips', async () => {
+    writeZip('backup.zip', ['bruno.json', 'ping.bru']);
     writeFile('Orders.postman_collection.json', '{}');
     writeFile('postman.json', '{ "info": { "_postman_id": "1" } }');
     writeFile('openapi.json', '{ "openapi": "3.0.0" }');
@@ -44,6 +51,21 @@ describe('findImportableFiles', () => {
       'swagger.yml': 'openapi',
       'insomnia.yaml': 'insomnia'
     });
+  });
+
+  it('recognises a collection zip whose files sit in one top folder', async () => {
+    writeZip('orders.zip', ['orders/opencollection.yml', 'orders/ping.yml']);
+
+    expect(await formatsByName()).toEqual({ 'orders.zip': 'zip' });
+  });
+
+  it('ignores a zip that is not a Bruno collection', async () => {
+    writeZip('photos.zip', ['beach.jpg']);
+    writeZip('nested.zip', ['backups/orders/bruno.json']);
+    writeFile('broken.zip', 'not a zip');
+    writeFile('openapi.yaml', 'openapi: 3.1.0\n');
+
+    expect(await formatsByName()).toEqual({ 'openapi.yaml': 'openapi' });
   });
 
   it('ignores other files and folders', async () => {

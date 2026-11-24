@@ -14,16 +14,23 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
 
-    > div > button {
-      height: 2rem;
-    }
+  .import-url-load button {
+    height: 2rem;
   }
 
   .import-url-field {
     ${iconInputStyles}
     flex: 1;
     min-width: 0;
+
+    textarea {
+      display: block;
+      resize: none;
+      overflow: hidden;
+      line-height: 1.875rem;
+    }
   }
 
   .import-message {
@@ -33,7 +40,7 @@ const StyledWrapper = styled.div`
     padding: 0.5625rem 0.75rem;
     border-radius: ${(props) => props.theme.border.radius.base};
     background: ${(props) => props.theme.status.info.background};
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     line-height: 1.5;
     overflow-wrap: anywhere;
 

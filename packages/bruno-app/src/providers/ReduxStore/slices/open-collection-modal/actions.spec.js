@@ -5,7 +5,7 @@ import { browseDirectories, mountCollection, openMultipleCollections } from 'pro
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import openCollectionModalReducer, { showOpenCollectionModal } from './index';
+import openCollectionModalReducer from './index';
 import { readImportableFile, readImportFiles, readImportText } from './import-sources';
 import {
   cancelCollectionSearch,
@@ -63,12 +63,7 @@ const otherOpenCollectionInRedux = {
   brunoConfig: { name: 'Open Too' }
 };
 
-const closedModal = {
-  isOpen: false,
-  page: null,
-  openingId: null,
-  chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
-};
+const closedModal = openCollectionModalReducer(undefined, { type: 'init' });
 
 const listResult = {
   id: 'search-0',

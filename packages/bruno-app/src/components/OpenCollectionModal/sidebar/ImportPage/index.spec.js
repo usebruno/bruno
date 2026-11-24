@@ -101,15 +101,40 @@ describe('ImportPage', () => {
     expect(textField()).toHaveAttribute('readonly');
   });
 
-  it('keeps the line breaks of pasted YAML', async () => {
+  it('keeps the line breaks of pasted YAML when it is edited afterwards', async () => {
     readImportText.mockResolvedValue(importData);
     renderPage();
     const yaml = 'openapi: 3.0.0\ninfo:\n  title: Orders';
+    const editedYaml = `${yaml}\n  version: 1.0.0`;
 
-    fireEvent.paste(textField(), { clipboardData: { getData: () => yaml } });
+    type(yaml);
+    type(editedYaml);
     fireEvent.click(loadButton());
 
-    await waitFor(() => expect(readImportText).toHaveBeenCalledWith(yaml));
+    expect(textField()).toHaveValue(editedYaml);
+    await waitFor(() => expect(readImportText).toHaveBeenCalledWith(editedYaml));
+  });
+
+  it('loads with Enter and leaves Shift+Enter to start a new line', async () => {
+    readImportText.mockResolvedValue(importData);
+    renderPage();
+    type('https://example.com/openapi.yaml');
+
+    fireEvent.keyDown(textField(), { key: 'Enter', shiftKey: true });
+    expect(readImportText).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(textField(), { key: 'Enter' });
+    await waitFor(() => expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
+  });
+
+  it('does nothing on Enter while Load is off', () => {
+    renderPage();
+
+    fireEvent.keyDown(textField(), { key: 'Enter' });
+    type('https://example.com/orders.zip');
+    fireEvent.keyDown(textField(), { key: 'Enter' });
+
+    expect(readImportText).not.toHaveBeenCalled();
   });
 
   it('highlights the drop zone only while files are over it', () => {

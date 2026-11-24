@@ -11,7 +11,8 @@ const iconInputStyles = css`
     pointer-events: none;
   }
 
-  input {
+  input,
+  textarea {
     width: 100%;
     height: 2rem;
     padding: 0 1.875rem 0 2rem;
