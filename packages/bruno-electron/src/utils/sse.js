@@ -32,8 +32,9 @@ const createSseEventExtractor = () => {
       const events = [];
       let boundaryEnd;
       do {
-        let eventEnd = -1;
         boundaryEnd = -1;
+
+        let eventEnd = -1;
         let waitingForLf = false;
 
         while (boundaryEnd < 0 && !waitingForLf && scanIndex < buffer.length) {
