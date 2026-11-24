@@ -75,8 +75,11 @@ describe('OverviewSection', () => {
     expect(detailValue(getByText, 'Auth Placement')).toBe('Request');
   });
 
-  it('explains the default naming and auth placement with the same tooltips as saved ones', () => {
-    const { getByText } = renderOverview({});
+  it.each([
+    ['are missing', {}],
+    ['are not values the sync knows', { requestNameSource: 'title', authPlacement: 'folder' }]
+  ])('explains the default naming and auth placement with the same tooltips as saved ones when they %s', (_description, syncConfig) => {
+    const { getByText } = renderOverview(syncConfig);
     const authPlacementValue = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
 
     fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);

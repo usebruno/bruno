@@ -1939,14 +1939,6 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         throw new Error('sourceUrl is required to update openapi sync config');
       }
 
-      if ('authPlacement' in sanitizedConfig && !AUTH_PLACEMENTS.includes(sanitizedConfig.authPlacement)) {
-        throw new Error(`authPlacement must be one of: ${AUTH_PLACEMENTS.join(', ')}`);
-      }
-
-      if ('requestNameSource' in sanitizedConfig && !REQUEST_NAME_SOURCES.includes(sanitizedConfig.requestNameSource)) {
-        throw new Error(`requestNameSource must be one of: ${REQUEST_NAME_SOURCES.join(', ')}`);
-      }
-
       // Validate sourceUrl — reject protocol-based non-http(s) URLs (e.g. ftp://, file://)
       if (sanitizedConfig.sourceUrl.includes('://') && !isValidHttpUrl(sanitizedConfig.sourceUrl)) {
         throw new Error('Invalid URL: only http and https URLs are allowed');
@@ -1954,6 +1946,14 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Resolve to absolute for consistent internal handling (saveBrunoConfig converts back to relative)
       sanitizedConfig.sourceUrl = resolveSourceUrl(collectionPath, sanitizedConfig.sourceUrl);
+
+      if ('authPlacement' in sanitizedConfig && !AUTH_PLACEMENTS.includes(sanitizedConfig.authPlacement)) {
+        throw new Error(`authPlacement must be one of: ${AUTH_PLACEMENTS.join(', ')}`);
+      }
+
+      if ('requestNameSource' in sanitizedConfig && !REQUEST_NAME_SOURCES.includes(sanitizedConfig.requestNameSource)) {
+        throw new Error(`requestNameSource must be one of: ${REQUEST_NAME_SOURCES.join(', ')}`);
+      }
 
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];

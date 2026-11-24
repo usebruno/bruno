@@ -99,6 +99,14 @@ describe.each(['bru', 'yml'])('renderer:update-openapi-sync-config (%s collectio
     })]);
   });
 
+  it('saves other settings when the saved naming and auth placement are not values the sync knows', async () => {
+    writeCollection(collectionPath, format, [{ sourceUrl: SOURCE_URL, authPlacement: 'Collection', requestNameSource: 'title' }]);
+
+    await updateSyncConfig(collectionPath, { sourceUrl: SOURCE_URL, autoCheck: false, autoCheckInterval: 10 });
+
+    expect(readSyncConfig(collectionPath, format)).toEqual([expect.objectContaining({ autoCheck: false, autoCheckInterval: 10 })]);
+  });
+
   it.each([
     ['an auth placement', { authPlacement: 'folder' }, 'authPlacement must be one of: request, collection'],
     ['a request naming', { requestNameSource: 'title' }, 'requestNameSource must be one of: summary, operationId, description, path']

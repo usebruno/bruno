@@ -11,7 +11,7 @@ import {
   pickWorkspaceSpec,
   waitForWorkspaceMenuFocus
 } from '../../pages/openapi-sync';
-import { waitForReadyPage } from '../../utils';
+import { readBrunoJsonSyncConfig, readOpenApiSyncConfig, waitForReadyPage } from '../../utils';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
@@ -92,14 +92,8 @@ const seedWorkspace = async (createTmpDir: (tag?: string) => Promise<string>, op
   return { userDataPath, workspacePath, collectionPath, outsideSpecPath };
 };
 
-const readSyncConfig = (collectionPath: string, format: 'bru' | 'yml' = 'bru') => {
-  if (format === 'yml') {
-    const collection = jsyaml.load(fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8')) as any;
-    return collection?.extensions?.bruno?.openapi?.[0];
-  }
-  const brunoJson = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
-  return brunoJson.openapi?.[0];
-};
+const readSyncConfig = (collectionPath: string, format: 'bru' | 'yml' = 'bru') =>
+  (format === 'yml' ? readOpenApiSyncConfig : readBrunoJsonSyncConfig)(collectionPath)?.[0];
 
 const readSourceUrl = (collectionPath: string, format: 'bru' | 'yml' = 'bru') => readSyncConfig(collectionPath, format)?.sourceUrl;
 
