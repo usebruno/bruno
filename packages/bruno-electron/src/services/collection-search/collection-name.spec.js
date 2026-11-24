@@ -61,8 +61,15 @@ describe('readCollectionConfig', () => {
     expect(await nameOf(folderPath)).toBe('Untitled Collection');
   });
 
-  it('lists a config bigger than it reads without judging it, named after its folder', async () => {
+  it('reads the name from an opencollection.yml with long docs', async () => {
     const docs = 'Notes: '.repeat(20000);
+    const folderPath = collectionWith({ 'opencollection.yml': `info:\n  name: Orders\ndocs:\n  content: "${docs}"\n` });
+
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'Orders', isBroken: false });
+  });
+
+  it('lists a config bigger than it reads without judging it, named after its folder', async () => {
+    const docs = 'Notes: '.repeat(160000);
     const folderPath = collectionWith({ 'opencollection.yml': `info:\n  name: Orders\ndocs:\n  content: "${docs}"\n` });
 
     expect(await readCollectionConfig(folderPath)).toEqual({ name: 'my-collection', isBroken: false });

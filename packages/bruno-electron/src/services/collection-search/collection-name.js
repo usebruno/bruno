@@ -3,9 +3,11 @@ const path = require('node:path');
 const { parseCollection } = require('@usebruno/filestore');
 const { validateSchema } = require('../../app/collections');
 
+const MAX_CONFIG_BYTES = 1024 * 1024;
+
 const CONFIG_FILES = [
-  { name: 'opencollection.yml', maxBytes: 64 * 1024, parse: (text) => parseCollection(text, { format: 'yml' }).brunoConfig },
-  { name: 'bruno.json', maxBytes: 1024 * 1024, parse: JSON.parse }
+  { name: 'opencollection.yml', parse: (text) => parseCollection(text, { format: 'yml' }).brunoConfig },
+  { name: 'bruno.json', parse: JSON.parse }
 ];
 
 const findConfigFile = async (collectionPath) => {
@@ -22,11 +24,11 @@ const findConfigFile = async (collectionPath) => {
 const readCollectionConfig = async (collectionPath) => {
   const folderName = path.basename(collectionPath);
   try {
-    const { filePath, stats, maxBytes, parse } = await findConfigFile(collectionPath);
+    const { filePath, stats, parse } = await findConfigFile(collectionPath);
     if (!stats.isFile()) {
       return { name: folderName, isBroken: true };
     }
-    if (stats.size > maxBytes) {
+    if (stats.size > MAX_CONFIG_BYTES) {
       return { name: folderName, isBroken: false };
     }
     const config = parse(await fs.readFile(filePath, 'utf8'));
