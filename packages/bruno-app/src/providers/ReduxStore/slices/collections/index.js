@@ -3975,7 +3975,7 @@ export const collectionsSlice = createSlice({
         if (data.dataBuffer) {
           item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
         }
-        item.response.size = data.data?.length + (item.response.size || 0);
+        item.response.size = (data.data?.length || 0) + (item.response.size || 0);
       }
     },
     addRequestTag: (state, action) => {
