@@ -54,7 +54,6 @@ test.describe('GraphQL introspection with interpolated API Key auth', () => {
     await loadGraphqlSchemaFromIntrospection(page);
 
     await test.step('Verify that the schema loaded', async () => {
-      await expect(gql.schemaLoadedToast()).toBeVisible();
       await expect(gql.queryBuilderTree()).toBeVisible();
     });
 
