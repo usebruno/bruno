@@ -78,9 +78,8 @@ const createSseEventExtractor = () => {
           buffer = buffer.slice(boundaryEnd);
           scanIndex = 0;
           prevLineEndAt = -1;
-        } else {
-          extracting = false;
         }
+        extracting = boundaryFound;
       }
       return events;
     }
