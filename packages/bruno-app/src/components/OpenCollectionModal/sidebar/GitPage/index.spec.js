@@ -85,6 +85,16 @@ describe('GitPage', () => {
     expect(screen.getByTestId('open-collection-git-panel-git-url')).toBeVisible();
   });
 
+  it('lets the page and the tab panel fill the modal height so the panel can shrink', async () => {
+    mockTabs.current = [{ id: 'git-url', label: 'From Git repo URL', component: GitUrlTab }];
+    renderPage();
+    await act(async () => {});
+
+    const panel = screen.getByTestId('open-collection-git-panel-git-url');
+    expect(panel.parentElement).toHaveClass('flex', 'flex-col', 'flex-1', 'min-h-0');
+    expect(panel).toHaveClass('flex', 'flex-col', 'flex-1', 'min-h-0');
+  });
+
   it('shows a tab bar and switches tabs when there are two tabs', async () => {
     mockTabs.current = twoTabs();
     renderPage();

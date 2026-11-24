@@ -4,12 +4,18 @@ import path from 'path';
 import url from 'url';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage, setWindowContentSize } from '../../../utils';
+import { serveGitRepository } from '../../../servers';
 import {
   buildGitPageLocators,
   openGitPage,
   openBranchList,
   getBranchListPlacement,
   isGitPagePanelScrollable,
+  isInlineBodyScrollable,
+  isCollectionListScrollable,
+  isBranchListScrollable,
+  getCollectionListAndFooterEdges,
+  getCollectionListAndSkippedWarningEdges,
   countCollectionRowsInView
 } from '../../../pages/open-collection/git-page';
 import { hasGitInstalled, runGit } from '../../collection/git/helpers';
@@ -17,7 +23,8 @@ import { hasGitInstalled, runGit } from '../../collection/git/helpers';
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const COLLECTION_COUNT = 30;
 const SHORT_WINDOW = { width: 1000, height: 600 };
-const OLD_MODAL_VISIBLE_ROWS = 10;
+const OLD_MODAL_VISIBLE_ROWS = 8;
+const BRANCH_COUNT = 40;
 const REMOTE_REPOSITORY_URL = 'https://github.com/usebruno/github-rest-api-collection';
 const REMOTE_DEFAULT_BRANCH = 'main';
 
@@ -94,7 +101,14 @@ test.describe('Git page', () => {
       await test.step('The list shows fewer rows and scrolls inside, not the page', async () => {
         await expect.poll(() => countCollectionRowsInView(page)).toBeGreaterThanOrEqual(1);
         await expect.poll(() => countCollectionRowsInView(page)).toBeLessThan(OLD_MODAL_VISIBLE_ROWS);
+        await expect.poll(() => isCollectionListScrollable(page)).toBe(true);
+        await expect.poll(() => isInlineBodyScrollable(page)).toBe(false);
         await expect.poll(() => isGitPagePanelScrollable(page)).toBe(false);
+      });
+
+      await test.step('The list ends above the footer', async () => {
+        const { listBottom, footerTop } = await getCollectionListAndFooterEdges(page);
+        expect(listBottom).toBeLessThanOrEqual(footerTop);
       });
     } finally {
       await closeElectronApp(app);
@@ -114,7 +128,13 @@ test.describe('Git page', () => {
       await gitPage.urlInput().fill(url.pathToFileURL(repoPath).href);
       await gitPage.confirmButton().click();
 
-      await expect(gitPage.skippedWarning()).toBeVisible();
+      await expect(gitPage.collectionRow('valid')).toBeVisible();
+      await expect(gitPage.collectionRows()).toHaveCount(1);
+      await expect(gitPage.skippedWarning()).toContainText('1 collections were skipped because their config could not be read.');
+
+      const { listBottom, warningTop } = await getCollectionListAndSkippedWarningEdges(page);
+      expect(warningTop).toBeGreaterThanOrEqual(listBottom);
+
       await gitPage.skippedDetailsButton().click();
       await expect(gitPage.skippedPath('broken')).toBeVisible();
     } finally {
@@ -138,6 +158,35 @@ test.describe('Git page', () => {
     }
   });
 
+  test('opens the branch list below its trigger in a short window', async ({ launchElectronApp, createTmpDir }) => {
+    const repoPath = path.join(await createTmpDir('many-branches-repo'), 'many-branches');
+    await createRepository(repoPath, [validCollection('only')]);
+    for (let index = 1; index <= BRANCH_COUNT; index++) {
+      runGit(repoPath, ['branch', `feature-${String(index).padStart(2, '0')}`]);
+    }
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
+    const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      await setWindowContentSize(app, page, SHORT_WINDOW);
+      await openGitPage(page);
+      await gitPage.urlInput().fill(server.url);
+      await expect(gitPage.branchSelect()).toContainText('main');
+
+      await openBranchList(page);
+      const { triggerBottom, listTop, listBottom, viewportHeight } = await getBranchListPlacement(page);
+
+      expect(listTop).toBeGreaterThanOrEqual(triggerBottom);
+      expect(listBottom).toBeLessThanOrEqual(viewportHeight);
+      await expect.poll(() => isBranchListScrollable(page)).toBe(true);
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
   test.describe('branch list', () => {
     test.skip(() => !remoteIsReachable(), `Could not reach ${REMOTE_REPOSITORY_URL}.`);
 
@@ -152,27 +201,6 @@ test.describe('Git page', () => {
         await gitPage.urlInput().fill(REMOTE_REPOSITORY_URL);
 
         await expect(gitPage.branchSelect()).toContainText(REMOTE_DEFAULT_BRANCH);
-      } finally {
-        await closeElectronApp(app);
-      }
-    });
-
-    test('opens the branch list below its trigger in a short window', async ({ launchElectronApp, createTmpDir }) => {
-      const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
-
-      try {
-        const page = await waitForReadyPage(app);
-        const gitPage = buildGitPageLocators(page);
-        await setWindowContentSize(app, page, SHORT_WINDOW);
-        await openGitPage(page);
-        await gitPage.urlInput().fill(REMOTE_REPOSITORY_URL);
-        await expect(gitPage.branchSelect()).toContainText(REMOTE_DEFAULT_BRANCH);
-
-        await openBranchList(page);
-        const { triggerBottom, listTop, listBottom, viewportHeight } = await getBranchListPlacement(page);
-
-        expect(listTop).toBeGreaterThanOrEqual(triggerBottom);
-        expect(listBottom).toBeLessThanOrEqual(viewportHeight);
       } finally {
         await closeElectronApp(app);
       }

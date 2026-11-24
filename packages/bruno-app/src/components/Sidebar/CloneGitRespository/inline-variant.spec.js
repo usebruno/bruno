@@ -68,6 +68,20 @@ describe('CloneGitRepository variants', () => {
     expect(screen.getByText('https://github.com/acme/locked.git')).toBeInTheDocument();
   });
 
+  it('lets the clone form fill the inline layout body', () => {
+    renderFlow({ variant: 'inline' });
+
+    const content = screen.getByTestId('clone-git-repository-content');
+    expect(content.parentElement).toBe(screen.getByTestId('clone-git-inline-body'));
+    expect(content).toHaveClass('flex', 'flex-col', 'flex-1', 'min-h-0');
+  });
+
+  it('does not stretch the clone form in the modal', () => {
+    renderFlow();
+
+    expect(screen.getByTestId('clone-git-repository-content')).not.toHaveClass('flex-1');
+  });
+
   it('shows the Clone button in the inline footer', () => {
     renderFlow({ variant: 'inline' });
     expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Clone');

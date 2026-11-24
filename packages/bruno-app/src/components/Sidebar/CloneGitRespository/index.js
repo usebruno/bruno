@@ -328,7 +328,7 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
   return (
     <Outer {...outerProps}>
       <Layout {...layoutProps}>
-        <StyledWrapper className={isInline ? 'flex flex-col flex-1 min-h-0' : undefined}>
+        <StyledWrapper className={isInline ? 'flex flex-col flex-1 min-h-0' : undefined} data-testid="clone-git-repository-content">
           {view === 'form' && (
             <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
               <div>
@@ -445,7 +445,7 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
                 </div>
               )}
               {isScanCompleted() && (
-                <div className={classnames('w-full min-w-0 flex flex-col gap-3', { 'flex-1 min-h-0': isInline })}>
+                <div className={classnames('w-full min-w-0 flex flex-col gap-3', { 'flex-1 min-h-0': isInline })} data-testid="clone-git-scan-result">
                   {collectionPaths.length === 0 && (
                     <div className="scan-warning flex items-start gap-2">
                       <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />

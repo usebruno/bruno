@@ -15,7 +15,7 @@ const InlineLayout = ({
   children
 }) => (
   <StyledWrapper className="flex flex-col flex-1 min-h-0 w-full" data-testid="clone-git-inline-layout">
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto py-4">{children}</div>
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto py-4" data-testid="clone-git-inline-body">{children}</div>
     {!hideFooter && (
       <div className="shrink-0 flex justify-between items-center py-4" data-testid="clone-git-inline-footer">
         <div>{footerLeft}</div>

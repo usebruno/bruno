@@ -365,6 +365,25 @@ describe('CloneGitRepository branch loading', () => {
     expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Open');
   });
 
+  it('hides the inline footer while the clone runs and shows it again after the scan', async () => {
+    const clone = deferred();
+    cloneGitRepository.mockImplementation(() => () => clone.promise);
+    collectionSearchResult.collections = [{ name: 'Orders API', path: '/home/user/collections/api/orders' }];
+    renderFlow({ initialUrl: API_URL });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+    expect(screen.getByText('Cloning repository')).toBeInTheDocument();
+    expect(screen.queryByTestId('clone-git-inline-footer')).toBeNull();
+
+    await act(async () => {
+      clone.resolve();
+    });
+    expect(screen.getByTestId('clone-git-inline-footer')).toBeInTheDocument();
+    expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Open');
+  });
+
   describe('collections list height', () => {
     const cloneAndScan = async (confirm) => {
       cloneGitRepository.mockImplementation(() => () => Promise.resolve());
@@ -389,6 +408,25 @@ describe('CloneGitRepository branch loading', () => {
       const list = await cloneAndScan(() => screen.getByRole('button', { name: 'Clone' }));
 
       expect(list.maxHeight).toBe('60px');
+    });
+
+    it('lets the inline content and the scan result fill the page height', async () => {
+      renderFlow({ initialUrl: API_URL });
+
+      await cloneAndScan(() => screen.getByTestId('clone-git-inline-confirm'));
+
+      expect(screen.getByTestId('clone-git-repository-content')).toHaveClass('flex', 'flex-col', 'flex-1', 'min-h-0');
+      expect(screen.getByTestId('clone-git-scan-result')).toHaveClass('flex', 'flex-col', 'flex-1', 'min-h-0');
+    });
+
+    it('does not stretch the content or the scan result in the modal variant', async () => {
+      renderFlow({ variant: 'modal', initialUrl: API_URL });
+
+      await cloneAndScan(() => screen.getByRole('button', { name: 'Clone' }));
+
+      expect(screen.getByTestId('clone-git-repository-content')).not.toHaveClass('flex-1');
+      expect(screen.getByTestId('clone-git-scan-result')).not.toHaveClass('flex-1');
+      expect(screen.getByTestId('clone-git-scan-result')).not.toHaveClass('min-h-0');
     });
   });
 
@@ -438,6 +476,19 @@ describe('CloneGitRepository branch loading', () => {
       expect(screen.queryByTestId('selection-list')).toBeNull();
     });
 
+    it('shows how many collections are selected in the inline footer', async () => {
+      renderFlow({ initialUrl: API_URL });
+      await cloneAndScan();
+
+      const footer = screen.getByTestId('clone-git-inline-footer');
+      expect(footer).toContainElement(screen.getByTestId('clone-git-selected-count'));
+      expect(screen.getByTestId('clone-git-selected-count')).toHaveTextContent('0 of 2 selected');
+
+      fireEvent.click(screen.getByText('Billing API'));
+
+      expect(screen.getByTestId('clone-git-selected-count')).toHaveTextContent('1 of 2 selected');
+    });
+
     it('offers only Close when the inline variant finds no collections', async () => {
       renderFlow({ initialUrl: API_URL });
       await cloneAndScan({ collections: [] });
@@ -481,6 +532,8 @@ describe('CloneGitRepository branch loading', () => {
   });
 
   describe('branch list placement', () => {
+    const DEFAULT_BRANCH_LIST_MAX_HEIGHT = 250;
+
     const openBranchList = async () => {
       await advance(500);
       fireEvent.click(screen.getByTestId('clone-git-repository-branch-select'));
@@ -507,6 +560,23 @@ describe('CloneGitRepository branch loading', () => {
       const listbox = await openBranchList();
 
       expect(screen.getByTestId('clone-git-repository-branch-select').closest('.branch-select')).toContainElement(listbox);
+    });
+
+    it('caps the branch list to the window space below its trigger in the inline variant', async () => {
+      renderFlow({ initialUrl: API_URL });
+
+      const listbox = await openBranchList();
+
+      expect(listbox.style.maxHeight).not.toBe(`${DEFAULT_BRANCH_LIST_MAX_HEIGHT}px`);
+      expect(listbox.style.maxHeight).toMatch(/^\d+px$/);
+    });
+
+    it('keeps the default branch list height in the modal variant', async () => {
+      renderFlow({ variant: 'modal', initialUrl: API_URL });
+
+      const listbox = await openBranchList();
+
+      expect(listbox.style.maxHeight).toBe(`${DEFAULT_BRANCH_LIST_MAX_HEIGHT}px`);
     });
   });
 });
