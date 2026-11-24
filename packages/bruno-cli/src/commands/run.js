@@ -821,6 +821,11 @@ const handler = async function (argv) {
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
+          if (UNSUPPORTED_REQUEST_TYPES.includes(requestItem.type)) {
+            resolve();
+            return;
+          }
+
           const res = await runSingleRequest(
             requestItem,
             collectionPath,
@@ -850,7 +855,7 @@ const handler = async function (argv) {
     while (currentRequestIndex < requestItems.length) {
       if (!isFirstRequest && isValidDelay && !runAbortSignal.aborted) {
         console.log(chalk.yellow(`Waiting for ${delay}ms or ${(delay / 1000).toFixed(3)}s before next request.`));
-        await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => {});
+        await setTimeout(delay, undefined, { signal: runAbortSignal }).catch(() => { });
       }
 
       if (!isFirstRequest && Number.isNaN(delay)) {

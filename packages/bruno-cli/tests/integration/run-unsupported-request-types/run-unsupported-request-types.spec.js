@@ -14,6 +14,8 @@ const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not suppor
 //
 //   http-request.yml          -> GET  {{host}}/http
 //   graphql-request.yml       -> POST {{host}}/graphql
+//   run-request-caller.yml    -> GET  {{host}}/run-request-caller, then bru.runRequest on both
+//                                realtime requests
 //   realtime/
 //     grpc-request.yml        -> ignored by the runner
 //     ws-request.yml          -> ignored by the runner
@@ -57,8 +59,19 @@ describe('CLI run — gRPC and WebSocket requests are ignored', () => {
   it('runs the whole collection with all types of requests', async () => {
     const output = await run();
 
-    expect(requestedUrls.sort()).toEqual(['/graphql', '/http']);
+    expect(requestedUrls.sort()).toEqual(['/graphql', '/http', '/run-request-caller']);
     expect(output).toContain(`Ignored 2 requests. ${UNSUPPORTED_REQUESTS_MESSAGE}`);
+  }, RUN_TIMEOUT);
+
+  it('skips a gRPC or WebSocket request called through bru.runRequest without logging it', async () => {
+    const output = await run('run-request-caller.yml');
+
+    expect(requestedUrls).toEqual(['/run-request-caller']);
+    expect(output).toContain('Requests      │ 1 (1 Passed)');
+    expect(output).toContain('Tests         │     1/1');
+    expect(output).not.toContain('grpc-request');
+    expect(output).not.toContain('ws-request');
+    expect(output).not.toContain(UNSUPPORTED_REQUESTS_MESSAGE);
   }, RUN_TIMEOUT);
 
   it('says "1 request" when a single request is ignored', async () => {
