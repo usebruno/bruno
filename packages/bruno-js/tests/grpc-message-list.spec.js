@@ -4,7 +4,7 @@ describe('GrpcMessageList', () => {
   const defaultMessages = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
   function createList({ messages = [...defaultMessages] } = {}) {
-    return { list: new GrpcMessageList(() => messages), messages };
+    return { list: new GrpcMessageList(messages), messages };
   }
 
   describe('read methods', () => {
@@ -15,22 +15,35 @@ describe('GrpcMessageList', () => {
       expect(list.get(99)).toBeUndefined();
     });
 
-    test('reads re-run against the backing array on every call', () => {
+    test('snapshots the messages it is constructed with, so later pushes are not picked up', () => {
       const { list, messages } = createList();
       expect(list.count()).toBe(3);
 
       messages.push({ id: 4 });
 
-      expect(list.count()).toBe(4);
-      expect(list.all()).toHaveLength(4);
+      expect(list.count()).toBe(3);
+      expect(list.all()).toHaveLength(3);
     });
 
-    test('all() hands back a copy, so the backing array cannot be edited through it', () => {
-      const { list, messages } = createList();
+    test('all() hands back a copy, so the snapshot cannot be edited through it', () => {
+      const { list } = createList();
 
       list.all().push({ id: 99 });
 
-      expect(messages).toEqual(defaultMessages);
+      expect(list.count()).toBe(3);
+    });
+
+    test('the snapshot is a deep clone, so editing a message cannot reach the backing array', () => {
+      const { list, messages } = createList({ messages: [{ id: 1, data: { greeting: 'hi' } }] });
+
+      list.get().data.greeting = 'tampered';
+
+      expect(messages[0].data.greeting).toBe('hi');
+    });
+
+    test('an absent backing array reads as an empty list', () => {
+      expect(new GrpcMessageList().count()).toBe(0);
+      expect(new GrpcMessageList(undefined).all()).toEqual([]);
     });
 
     test('toJSON() returns the messages, so JSON.stringify yields them', () => {

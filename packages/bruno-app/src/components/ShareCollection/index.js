@@ -10,6 +10,7 @@ import { transformCollectionToSaveToExportAsFile } from 'utils/collections/index
 import { useSelector } from 'react-redux';
 import { findCollectionByUid, areItemsLoading } from 'utils/collections/index';
 import toast from 'react-hot-toast';
+import { formatIpcError } from 'utils/common/error';
 
 const EXPORT_FORMATS = {
   ZIP: 'zip',
@@ -54,13 +55,22 @@ const ShareCollection = ({ onClose, collectionUid }) => {
         toast.success('Collection exported successfully');
       }
     } catch (error) {
-      toast.error('Failed to export collection: ' + error.message);
+      toast.error('Failed to export collection: ' + formatIpcError(error));
     }
   };
 
-  const handleExportYaml = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportOpenCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+  const handleExportYaml = async () => {
+    try {
+      const { ipcRenderer } = window;
+      const content = exportOpenCollection(transformCollectionToSaveToExportAsFile(cloneDeep(collection)));
+      const result = await ipcRenderer.invoke('renderer:export-collection-yaml', collection.name, content);
+      if (result.success) {
+        toast.success('Collection exported successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to export collection: ' + formatIpcError(error));
+      throw error;
+    }
   };
 
   const handlePostmanModalClose = () => {
@@ -83,7 +93,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           await handleExportZip();
           break;
         case EXPORT_FORMATS.YAML:
-          handleExportYaml();
+          await handleExportYaml();
           break;
       }
       onClose();
@@ -108,7 +118,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
 
   return (
     <>
-      <Modal size="lg" title="Share Collection" handleCancel={onClose} hideFooter>
+      <Modal size="lg" title="Share Collection" handleCancel={onClose} hideFooter dataTestId="share-collection-modal">
         <StyledWrapper className="flex flex-col">
           <p className="text-sm mb-4">
             Bruno uses{' '}
@@ -130,6 +140,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`format-card ${selectedFormat === EXPORT_FORMATS.ZIP ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.ZIP)}
+              data-testid="export-format-zip"
             >
               <div className="card-header">
                 <span className="card-title">Bruno Collection (ZIP)</span>
@@ -157,6 +168,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
             <div
               className={`format-card ${selectedFormat === EXPORT_FORMATS.YAML ? 'selected' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => !isDisabled && setSelectedFormat(EXPORT_FORMATS.YAML)}
+              data-testid="export-format-yaml"
             >
               <div className="card-header">
                 <span className="card-title">Single File (YAML)</span>
@@ -194,7 +206,11 @@ const ShareCollection = ({ onClose, collectionUid }) => {
           </div>
 
           {selectedFormat === EXPORT_FORMATS.POSTMAN && hasNonExportableRequestTypes.has && (
-            <div className="flex items-center mt-4 p-3 rounded" style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)' }}>
+            <div
+              className="flex items-center mt-4 p-3 rounded"
+              style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)' }}
+              data-testid="share-collection-non-exportable-note"
+            >
               <IconAlertTriangle size={16} className="mr-2 flex-shrink-0" style={{ color: '#f59e0b' }} />
               <span className="text-sm" style={{ color: '#f59e0b' }}>
                 Note: {hasNonExportableRequestTypes.types.join(', ')} requests in this collection will not be exported
@@ -207,6 +223,7 @@ const ShareCollection = ({ onClose, collectionUid }) => {
               onClick={handleProceed}
               disabled={isDisabled}
               loading={isExporting}
+              data-testid="share-collection-proceed"
             >
               {isExporting ? 'Exporting...' : 'Proceed'}
             </Button>

@@ -7,6 +7,7 @@ import ResponseBookmark from '../ResponseBookmark';
 import ResponseClear from '../ResponseClear';
 import ResponseLayoutToggle, { useResponseLayoutToggle } from '../ResponseLayoutToggle';
 import ResponseCopy from '../ResponseCopy/index';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import StyledWrapper from './StyledWrapper';
 
 const StyledMenuIcon = styled.button`
@@ -39,6 +40,7 @@ MenuIcon.displayName = 'MenuIcon';
 
 const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, selectedTab, data, dataBuffer }) => {
   const { orientation } = useResponseLayoutToggle();
+  const getKeybindingDisplayText = useKeybindingDisplayText();
 
   // Refs to access child component imperative handles (click, isDisabled)
   const bookmarkButtonRef = useRef(null);
@@ -82,6 +84,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     {
       id: 'change-layout',
       label: 'Change layout',
+      shortcut: getKeybindingDisplayText('changeLayout'),
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
       get disabled() {
         return layoutToggleButtonRef.current?.isDisabled ?? false;
@@ -130,6 +133,7 @@ const ResponsePaneActions = ({ item, collection, responseSize, selectedFormat, s
     {
       id: 'change-layout',
       label: 'Change layout',
+      shortcut: getKeybindingDisplayText('changeLayout'),
       leftSection: orientation === 'vertical' ? IconLayoutColumns : IconLayoutRows,
       get disabled() {
         return layoutToggleButtonRef.current?.isDisabled ?? false;

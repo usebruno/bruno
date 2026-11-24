@@ -12,13 +12,14 @@ import DocsEditor from 'components/Documentation/DocsEditor';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { isEditing, setEditing } = useDocsEditingState();
+  const { isEditing, setEditing, isMarkdownMode, setMarkdownMode } = useDocsEditingState();
   const savedDocs = get(collection, 'root.docs', '');
   const docs = collection.draft?.root ? get(collection, 'draft.root.docs', '') : savedDocs;
 
   // Scroll tracking (both the rich-text preview/edit view and markdown mode's
   // CodeEditor) lives in DocsEditor itself; this just owns the persisted value.
   const [scroll, setScroll] = usePersistedState({ key: `collection-docs-scroll-${collection.uid}`, default: 0 });
+  const [markdownScroll, setMarkdownScroll] = usePersistedState({ key: `collection-docs-markdown-scroll-${collection.uid}`, default: 0 });
 
   const toggleViewMode = () => {
     setEditing(!isEditing);
@@ -74,12 +75,16 @@ const Docs = ({ collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           isEditing={isEditing}
+          isMarkdownMode={isMarkdownMode}
+          onMarkdownModeChange={setMarkdownMode}
           collection={collection}
           collectionPath={collection.pathname}
           emptyPreviewContent={documentationPlaceholder}
           onRequestEdit={toggleViewMode}
           initialScroll={scroll}
           onScroll={setScroll}
+          markdownInitialScroll={markdownScroll}
+          onMarkdownScroll={setMarkdownScroll}
         />
       </div>
     </StyledWrapper>

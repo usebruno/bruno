@@ -56,7 +56,7 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    padding-top: 1.5rem;
+    padding-top: 1rem;
   }
 
   .adv-label {
@@ -67,9 +67,7 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 600;
     line-height: 1.25rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: ${(props) => props.theme.colors.text.subtext2};
+    color: ${(props) => props.theme.text};
 
     &.mb-0 {
       margin-bottom: 0;
@@ -80,45 +78,29 @@ const StyledWrapper = styled.div`
     opacity: 0.75;
   }
 
-  .seg-row {
+  .adv-radio-group {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
     margin-left: 1.125rem;
   }
 
-  .segmented {
+  .adv-radio {
     display: inline-flex;
-    border: 1px solid ${(props) => props.theme.background.surface2};
-    border-radius: ${(props) => props.theme.border.radius.base};
-    overflow: hidden;
-
-    .seg {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      padding: 0.375rem;
-      background-color: ${(props) => props.theme.background.base};
-      border: none;
-      cursor: pointer;
-      font-size: ${(props) => props.theme.font.size.sm};
-      font-weight: 400;
-      color: ${(props) => props.theme.colors.text.subtext1};
-
-      & + .seg {
-        border-left: 1px solid ${(props) => props.theme.background.surface2};
-      }
-
-      &.active {
-        background-color: ${(props) => props.theme.background.surface1};
-        color: ${(props) => props.theme.text};
-        font-weight: 500;
-      }
-
-    }
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .seg-hint {
+  .adv-radio-label {
+    margin: 0;
+    cursor: pointer;
+    font-size: ${(props) => props.theme.font.size.sm};
+    line-height: 1.25rem;
+    color: ${(props) => props.theme.text};
+  }
+
+  .adv-radio-hint {
     display: inline-flex;
     align-items: center;
     cursor: help;

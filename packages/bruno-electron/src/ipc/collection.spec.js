@@ -1,7 +1,9 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
+const crypto = require('node:crypto');
+const jsyaml = require('js-yaml');
 
 jest.mock('electron', () => {
   const handlers = {};
@@ -56,7 +58,9 @@ jest.mock('../app/collection-watcher', () => {
 
 jest.mock('@usebruno/filestore', () => ({
   parseRequest: jest.fn(() => ({})),
-  stringifyRequest: jest.fn(() => 'mock-content-stringified')
+  stringifyRequest: jest.fn(() => 'mock-content-stringified'),
+  stringifyRequestViaWorker: jest.fn(async () => 'mock-request-stringified'),
+  stringifyCollection: jest.fn(async () => 'mock-collection-stringified')
 }));
 
 const fsPromises = require('node:fs').promises;
@@ -66,20 +70,29 @@ jest.spyOn(fsPromises, 'readFile').mockImplementation(async () => 'mock-content'
 // Load collection.js to register IPC handlers
 const registerCollectionsIpc = require('./collection');
 
-const { copyPathTo } = require('../utils/filesystem');
+const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
 
 describe('IPC collection handlers', () => {
+  let mainWindow;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    registerCollectionsIpc({}, {});
+    mainWindow = { webContents: { send: jest.fn() } };
+    registerCollectionsIpc(mainWindow, {});
   });
 
   describe('renderer:move-item', () => {
+    beforeEach(() => {
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      fs.existsSync.mockRestore();
+    });
+
     it('calls moveRequestUid before copyPathTo to prevent observed uid mismatches', async () => {
       const moveItemHandler = ipcMain._getHandler('renderer:move-item');
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       let callOrder = [];
       moveRequestUid.mockImplementation(() => callOrder.push('moveRequestUid'));
@@ -95,10 +108,16 @@ describe('IPC collection handlers', () => {
   });
 
   describe('renderer:move-item-cross-format', () => {
+    beforeEach(() => {
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      fs.existsSync.mockRestore();
+    });
+
     it('calls moveRequestUid before writing the target file', async () => {
       const moveItemCrossFormatHandler = ipcMain._getHandler('renderer:move-item-cross-format');
-
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       let callOrder = [];
       moveRequestUid.mockImplementation(() => callOrder.push('moveRequestUid'));
@@ -112,6 +131,157 @@ describe('IPC collection handlers', () => {
       });
 
       expect(callOrder).toEqual(['moveRequestUid', 'writeFile']);
+    });
+  });
+
+  describe('renderer:import-collection', () => {
+    let collectionLocation;
+    let userDataPath;
+    let importCollectionHandler;
+
+    beforeEach(() => {
+      collectionLocation = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-import-'));
+      userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-user-data-'));
+      app.getPath.mockReturnValue(userDataPath);
+      importCollectionHandler = ipcMain._getHandler('renderer:import-collection');
+    });
+
+    afterEach(() => {
+      app.getPath.mockReturnValue(os.tmpdir());
+      fs.rmSync(collectionLocation, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+      fs.rmSync(userDataPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    });
+
+    const ordersSpec = 'openapi: 3.0.0\ninfo:\n  title: Orders API\n';
+    const usersSpec = 'openapi: 3.0.0\ninfo:\n  title: Users API\n';
+    const specHashOf = (spec) => crypto.createHash('md5').update(JSON.stringify(jsyaml.load(spec))).digest('hex');
+
+    const openApiCollection = (uid, name) => ({
+      uid,
+      name,
+      items: [],
+      environments: [],
+      brunoConfig: { name, type: 'collection', openapi: [{ sourceUrl: path.join(collectionLocation, `${uid}.yaml`), groupBy: 'tags' }] }
+    });
+
+    const readSyncConfig = (collectionName) => {
+      return JSON.parse(fs.readFileSync(path.join(collectionLocation, collectionName, 'bruno.json'), 'utf8')).openapi;
+    };
+
+    const readStoredSpecs = () => {
+      const specsDir = path.join(userDataPath, 'specs');
+      const metadata = JSON.parse(fs.readFileSync(path.join(specsDir, 'metadata.json'), 'utf8'));
+      return Object.fromEntries(Object.entries(metadata).map(([collectionPath, entries]) => [
+        collectionPath,
+        entries.map(({ filename, sourceUrl }) => ({ sourceUrl, content: fs.readFileSync(path.join(specsDir, filename), 'utf8') }))
+      ]));
+    };
+
+    it('saves each synced collection with its own spec', async () => {
+      await importCollectionHandler({}, [
+        openApiCollection('orders', 'Orders API'),
+        openApiCollection('users', 'Users API'),
+        { uid: 'postman', name: 'Postman Collection', items: [], environments: [] }
+      ], collectionLocation, {
+        format: 'bru',
+        rawOpenAPISpecs: { orders: ordersSpec, users: usersSpec, postman: 'openapi: 3.0.0\n' }
+      });
+
+      expect(readStoredSpecs()).toEqual({
+        [path.join(collectionLocation, 'Orders API')]: [{ sourceUrl: path.join(collectionLocation, 'orders.yaml'), content: ordersSpec }],
+        [path.join(collectionLocation, 'Users API')]: [{ sourceUrl: path.join(collectionLocation, 'users.yaml'), content: usersSpec }]
+      });
+      expect(readSyncConfig('Orders API')).toEqual([
+        { sourceUrl: '../orders.yaml', groupBy: 'tags', lastSyncDate: expect.any(String), specHash: specHashOf(ordersSpec) }
+      ]);
+      expect(readSyncConfig('Users API')).toEqual([
+        { sourceUrl: '../users.yaml', groupBy: 'tags', lastSyncDate: expect.any(String), specHash: specHashOf(usersSpec) }
+      ]);
+      expect(readSyncConfig('Postman Collection')).toBeUndefined();
+    });
+
+    it('saves a spec passed as an object as JSON', async () => {
+      const specContent = JSON.stringify({ openapi: '3.0.0' }, null, 2);
+
+      await importCollectionHandler({}, openApiCollection('orders', 'Orders API'), collectionLocation, {
+        format: 'bru',
+        rawOpenAPISpecs: { orders: { openapi: '3.0.0' } }
+      });
+
+      expect(readStoredSpecs()).toEqual({
+        [path.join(collectionLocation, 'Orders API')]: [{ sourceUrl: path.join(collectionLocation, 'orders.yaml'), content: specContent }]
+      });
+      expect(readSyncConfig('Orders API')).toEqual([
+        { sourceUrl: '../orders.yaml', groupBy: 'tags', lastSyncDate: expect.any(String), specHash: specHashOf(specContent) }
+      ]);
+    });
+
+    it('opens the collection with the sync config it saved, including specHash and lastSyncDate', async () => {
+      await importCollectionHandler({}, openApiCollection('orders', 'Orders API'), collectionLocation, {
+        format: 'bru',
+        rawOpenAPISpecs: { orders: ordersSpec }
+      });
+
+      const [, , , brunoConfig] = mainWindow.webContents.send.mock.calls.find(([channel]) => channel === 'main:collection-opened');
+      const sentConfig = brunoConfig.openapi.map((entry) => ({ ...entry, sourceUrl: posixifyPath(entry.sourceUrl) }));
+      expect(sentConfig).toEqual(readSyncConfig('Orders API'));
+    });
+
+    describe('request files', () => {
+      const requestItem = (name, method, filename) => ({
+        uid: `${method} ${name}`,
+        type: 'http-request',
+        name,
+        ...(filename && { filename }),
+        request: { method, url: `https://api.example.com${name}` }
+      });
+
+      const importItems = (items, format) => importCollectionHandler({}, { uid: 'requests', name: 'Requests', items, environments: [] }, collectionLocation, { format });
+
+      const requestFilesIn = (...folders) => fs.readdirSync(path.join(collectionLocation, 'Requests', ...folders))
+        .filter((file) => /\.(bru|yml)$/.test(file) && !['opencollection.yml', 'collection.bru'].includes(file))
+        .sort();
+
+      it.each(['bru', 'yml'])('writes each request\'s file name in %s, also when its path ends in a slash or holds .bru', async (format) => {
+        await importItems([
+          requestItem('/', 'GET', 'GET /.bru'),
+          requestItem('/users/', 'GET', 'GET /users/.bru'),
+          requestItem('/export.bru', 'GET', 'GET /export.bru.bru'),
+          requestItem('/pets', 'GET', 'GET /pets.bru')
+        ], format);
+
+        expect(requestFilesIn()).toEqual([`GET -.${format}`, `GET -export.bru.${format}`, `GET -pets.${format}`, `GET -users-.${format}`]);
+      });
+
+      it.each(['bru', 'yml'])('adds the format extension to a file name that has none, in %s', async (format) => {
+        await importItems([requestItem('/users', 'GET', 'get-users')], format);
+
+        expect(requestFilesIn()).toEqual([`get-users.${format}`]);
+      });
+
+      it.each(['bru', 'yml'])('writes requests that share a name to the files the converter gave them, in %s', async (format) => {
+        await importItems([
+          requestItem('List pets', 'GET'),
+          requestItem('List pets', 'POST', 'List pets (POST).bru')
+        ], format);
+
+        expect(requestFilesIn()).toEqual([`List pets (POST).${format}`, `List pets.${format}`]);
+      });
+
+      it('keeps requests that share a name in one folder in their own files', async () => {
+        await importItems([{
+          uid: 'pet',
+          type: 'folder',
+          name: 'pet',
+          items: [
+            requestItem('/pet/{petId}', 'GET'),
+            requestItem('/pet/{petId}', 'POST'),
+            requestItem('/Pet/{petId}', 'DELETE')
+          ]
+        }], 'yml');
+
+        expect(requestFilesIn('pet')).toEqual(['Pet-{petId} (2).yml', 'pet-{petId} (1).yml', 'pet-{petId}.yml']);
+      });
     });
   });
 });

@@ -1,4 +1,3 @@
-const decomment = require('decomment');
 const { get } = require('lodash');
 const { safeParseJSON } = require('../../utils/common');
 const { GrpcScriptRuntime, formatErrorWithContextV2 } = require('@usebruno/js');
@@ -216,6 +215,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
     }
   };
 
+  // TODO: the four hook runners below repeat one run/catch/apply/emit skeleton; fold it into a helper.
   const runBeforeCallStart = async ({ request, collection, envVars, runtimeVariables, processEnvVars, scriptingConfig }) => {
     const hookScript = get(request, 'script.beforeCallStart');
     if (!hookScript?.trim().length) return;
@@ -228,7 +228,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
     try {
       scriptResult = await scriptRuntime.runGrpcRequestScript({
-        script: decomment(hookScript, { space: true }),
+        script: hookScript,
         request,
         envVariables: envVars,
         runtimeVariables,
@@ -290,7 +290,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
     try {
       scriptResult = await scriptRuntime.runGrpcResponseScript({
-        script: decomment(request.script.afterCallEnd, { space: true }),
+        script: request.script.afterCallEnd,
         request,
         response: buildCallResult(session),
         envVariables: session.envVars,
@@ -349,7 +349,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
       try {
         scriptResult = await scriptRuntime.runGrpcBeforeMessageSendScript({
-          script: decomment(hookScript, { space: true }),
+          script: hookScript,
           request,
           message: { data, timestamp: Date.now() },
           envVariables: session.envVars,
@@ -407,7 +407,7 @@ const createGrpcScriptOrchestration = ({ sendEvent }) => {
 
       try {
         scriptResult = await scriptRuntime.runGrpcAfterMessageReceiveScript({
-          script: decomment(request.script.afterMessageReceive, { space: true }),
+          script: request.script.afterMessageReceive,
           request,
           response,
           message,

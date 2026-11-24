@@ -17,7 +17,7 @@ const icons = {
 // `additional-context-roots/fixtures` ships a `shared-scripts/node_modules/signature-utils`
 // package that exercises walk-up resolution from an additional context root.
 const PRESERVED_NODE_MODULES_PREFIXES = [
-  path.join('tests', 'scripting', 'additional-context-roots', 'fixtures')
+  path.join('e2e', 'tests', 'scripting', 'additional-context-roots', 'fixtures')
 ];
 
 const execCommand = (command, description) => {
@@ -108,6 +108,7 @@ async function setup() {
     execCommand('npm run build:bruno-requests', 'Building bruno-requests');
     execCommand('npm run build:schema-types', 'Building schema-types');
     execCommand('npm run build:bruno-filestore', 'Building bruno-filestore');
+    execCommand('npm run build:bruno-io', 'Building bruno-io');
     execCommand('npm run build:bruno-sqlite', 'Building bruno-sqlite');
 
     // Bundle JS sandbox libraries

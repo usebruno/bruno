@@ -1,0 +1,6 @@
+{
+  "name": 123,
+  "variables": [
+    { "name": "host", "value": "https://numeric.example.com", "enabled": true, "secret": false }
+  ]
+}

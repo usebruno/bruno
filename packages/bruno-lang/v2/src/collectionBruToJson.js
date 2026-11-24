@@ -65,13 +65,18 @@ const grammar = ohm.grammar(`Bru {
   quoted_key_char = ~(quote_char | esc_quote_char | nl) any
   quoted_key = disable_char? quote_char (esc_quote_char | quoted_key_char)* quote_char
   key = keychar*
-  value = multilinetextblock | singlelinevalue
+  value = list | multilinetextblock | singlelinevalue
   singlelinevalue = valuechar*
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
   textline = textchar*
   textchar = ~nl any
+
+  // List
+  list = st* "[" nl+ listitems? st* nl+ st* "]"
+  listitems = listitem (nl+ listitem)*
+  listitem = st+ (alnum | "_" | "-")+ st*
 
   meta = "meta" dictionary
 
@@ -218,7 +223,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, annotations, _2, key, _3, _4, _5, value, _6) {
     let res = {};
-    res[key.ast] = value.ast ? value.ast.trim() : '';
+    if (Array.isArray(value.ast)) {
+      res[key.ast] = value.ast;
+    } else {
+      res[key.ast] = value.ast ? value.ast.trim() : '';
+    }
     const annotationList = annotations.ast;
     if (annotationList && annotationList.length > 0) {
       res[ANNOTATIONS_KEY] = annotationList;
@@ -261,6 +270,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   singlelinevalue(chars) {
     return chars.sourceString?.trim() || '';
+  },
+  list(_1, _2, _3, listitems, _4, _5, _6, _7) {
+    return listitems.ast.flat();
+  },
+  listitems(listitem, _1, rest) {
+    return [listitem.ast, ...rest.ast];
+  },
+  listitem(_1, textchar, _2) {
+    return textchar.sourceString;
   },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');

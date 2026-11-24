@@ -9,7 +9,12 @@ import {
 } from './index';
 
 const req = (name: string, tags?: string[]) => ({ name, type: 'http-request', tags });
-const folder = (name: string, items: any[]) => ({ name, type: 'folder', items });
+const folder = (name: string, items: any[], tags?: string[]) => ({
+  name,
+  type: 'folder',
+  items,
+  root: { meta: { tags } }
+});
 
 describe('filterRequestItemsByTags', () => {
   it('returns the items unchanged when no tags are given', () => {
@@ -43,6 +48,61 @@ describe('filterRequestItemsByTags', () => {
     const result = filterRequestItemsByTags([{ name: 'Archive', type: 'folder' }, req('a', ['prod'])], ['prod'], []);
     expect(result.map((i) => i.name)).toEqual(['a']);
   });
+
+  it('cascades a folder tag onto its untagged requests', () => {
+    const items = [folder('tagged', [req('a')], ['prod']), folder('untagged', [req('b')])];
+    const result = filterRequestItemsByTags(items, ['prod'], []);
+    expect(result.map((i) => i.name)).toEqual(['tagged']);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('accumulates tags down nested folders so a deep request inherits every ancestor tag', () => {
+    const items = [folder('outer', [folder('inner', [req('a')], ['v2'])], ['prod'])];
+    expect(filterRequestItemsByTags(items, ['prod'], [])).toHaveLength(1);
+    expect(filterRequestItemsByTags(items, ['v2'], [])).toHaveLength(1);
+    expect(filterRequestItemsByTags(items, ['other'], [])).toHaveLength(0);
+  });
+
+  it('drops a request whose inherited folder tag is excluded, even when its own tag is included', () => {
+    const items = [folder('wip', [req('a', ['prod'])], ['wip']), req('b', ['prod'])];
+    const result = filterRequestItemsByTags(items, ['prod'], ['wip']);
+    expect(result.map((i) => i.name)).toEqual(['b']);
+  });
+
+  it('keeps a request whose own tag is included even when its folder carries a different tag', () => {
+    const items = [folder('f', [req('a', ['prod']), req('b')], ['smoke'])];
+    const result = filterRequestItemsByTags(items, ['prod'], []);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('prunes a tagged folder whose requests are all excluded by their own tags', () => {
+    const items = [folder('f', [req('a', ['wip'])], ['prod'])];
+    expect(filterRequestItemsByTags(items, ['prod'], ['wip'])).toEqual([]);
+  });
+
+  it('applies tags inherited from above the given items, for a run scoped to a subfolder', () => {
+    const items = [req('a'), req('b', ['wip']), req('c', ['smoke'])];
+    const result = filterRequestItemsByTags(items, ['prod'], ['wip'], ['prod']);
+    expect(result.map((i) => i.name)).toEqual(['a', 'c']);
+  });
+
+  it('carries inherited tags through a folder that carries none of its own', () => {
+    const items = [folder('plain', [req('a')])];
+    const result = filterRequestItemsByTags(items, ['prod'], [], ['prod']);
+    expect((result[0].items as any[]).map((i) => i.name)).toEqual(['a']);
+  });
+
+  it('ignores unsaved folder tags - docs describe the collection on disk', () => {
+    const withDraft = { ...folder('f', [req('a')], ['wip']), draft: { meta: { tags: ['prod'] } } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
+  });
+
+  it('ignores unsaved request tags', () => {
+    const withDraft = { ...req('a', ['wip']), draft: { tags: ['prod'] } };
+    expect(filterRequestItemsByTags([withDraft], ['prod'], [])).toEqual([]);
+    expect(filterRequestItemsByTags([withDraft], ['wip'], [])).toHaveLength(1);
+  });
 });
 
 describe('selectEnvironmentsByName', () => {
@@ -62,16 +122,18 @@ describe('selectEnvironmentsByName', () => {
 });
 
 describe('buildApiDocsHtml', () => {
-  it('omits gitCollectionUrl when not provided and embeds the collection data', () => {
+  it('omits repositoryUrl when not provided and embeds the collection data', () => {
     const html = buildApiDocsHtml('My API', '"data"');
-    expect(html).not.toContain('gitCollectionUrl');
+    expect(html).not.toContain('repositoryUrl');
     expect(html).toContain('const collectionData = "data";');
+    expect(html).toContain('Bruno.apiDocs(document.getElementById(\'bruno-api-docs\'), {');
+    expect(html).not.toContain('window.OpenCollection');
     expect(html).toContain('https://cdn.usebruno.com/api-docs/api-docs.js');
   });
 
-  it('embeds gitCollectionUrl when provided', () => {
+  it('embeds repositoryUrl when provided', () => {
     const html = buildApiDocsHtml('My API', '"data"', { gitCollectionUrl: 'https://git/x.git' });
-    expect(html).toContain('gitCollectionUrl: "https://git/x.git"');
+    expect(html).toContain('repositoryUrl: "https://git/x.git"');
   });
 
   it('escapes the collection name in the document title', () => {
@@ -185,10 +247,10 @@ describe('generateApiDocsHtml', () => {
 
   it('embeds the git link only when provided', () => {
     const deps = makeDeps();
-    expect(generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any)).not.toContain('gitCollectionUrl');
+    expect(generateApiDocsHtml({ name: 'C', items: [] }, {}, deps as any)).not.toContain('repositoryUrl');
     expect(
       generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: 'https://g/x.git' }, deps as any)
-    ).toContain('gitCollectionUrl: "https://g/x.git"');
+    ).toContain('repositoryUrl: "https://g/x.git"');
   });
 
   it('strips credentials from the embedded git link so a token cannot leak into the docs', () => {
@@ -196,7 +258,7 @@ describe('generateApiDocsHtml', () => {
     const tokenized = 'https://ghp_0123456789abcdefghijklmnopqrstuvwxyz@github.com/org/repo.git';
     const html = generateApiDocsHtml({ name: 'C', items: [] }, { gitCollectionUrl: tokenized }, deps as any);
     expect(html).not.toContain('ghp_0123456789abcdefghijklmnopqrstuvwxyz');
-    expect(html).toContain('gitCollectionUrl: "https://github.com/org/repo.git"');
+    expect(html).toContain('repositoryUrl: "https://github.com/org/repo.git"');
   });
 
   it('hardens a closing script tag in the embedded git link', () => {

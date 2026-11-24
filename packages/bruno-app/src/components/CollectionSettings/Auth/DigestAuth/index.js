@@ -1,6 +1,5 @@
 import React from 'react';
 import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
-import { useDetectSensitiveField } from 'hooks/useDetectSensitiveField';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -14,8 +13,6 @@ const DigestAuth = ({ collection }) => {
   const { storedTheme } = useTheme();
 
   const digestAuth = collection.draft?.root ? get(collection, 'draft.root.request.auth.digest', {}) : get(collection, 'root.request.auth.digest', {});
-  const { isSensitive } = useDetectSensitiveField(collection);
-  const { showWarning, warningMessage } = isSensitive(digestAuth?.password);
 
   const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
 
@@ -56,7 +53,6 @@ const DigestAuth = ({ collection }) => {
           onChange={(val) => handleUsernameChange(val)}
           collection={collection}
           isCompact
-          disableLinkAwareClick={true}
         />
       </div>
 
@@ -70,9 +66,8 @@ const DigestAuth = ({ collection }) => {
           collection={collection}
           isSecret={true}
           isCompact
-          disableLinkAwareClick={true}
         />
-        {showWarning && <SensitiveFieldWarning fieldName="digest-password" warningMessage={warningMessage} />}
+        <SensitiveFieldWarning fieldName="digest-password" secretName="password" value={digestAuth?.password} collection={collection} onReplaceValue={handlePasswordChange} />
       </div>
     </StyledWrapper>
   );

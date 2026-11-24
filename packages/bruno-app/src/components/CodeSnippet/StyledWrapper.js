@@ -7,9 +7,15 @@ const StyledWrapper = styled.div`
     font-size: ${(props) => props.theme.font.size.xs};
     line-height: 1.4;
     overflow-x: auto;
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr);
     border-radius: ${(props) => props.theme.border.radius.base};
     background-color: ${(props) => props.theme.background.elevated};
-    border: 1px solid ${(props) => props.theme.border.border2};
+    border: 1px solid ${(props) => props.theme.border.subtle};
+
+    &::-webkit-scrollbar {
+      height: 5px;
+    }
   }
 
   .code-line {

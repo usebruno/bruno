@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Bru = require('../bru');
+const { getUnresolvedVariableCollector } = require('../unresolved-variables');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
 const { cleanJson } = require('../utils');
@@ -46,10 +47,12 @@ class VarsRuntime {
       folderVariables,
       requestVariables,
       globalEnvironmentVariables,
+      globalEnvironmentName: request?.globalEnvironmentName,
       oauth2CredentialVariables,
       promptVariables,
       certsAndProxyConfig,
-      requestUrl: request?.url
+      requestUrl: request?.url,
+      onUnresolved: getUnresolvedVariableCollector(request)
     });
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);

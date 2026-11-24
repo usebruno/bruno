@@ -65,16 +65,21 @@ const prepareMockObj = (
   return processed;
 };
 
+type InterpolateOptions = {
+  escapeJSONStrings?: boolean;
+  onUnresolved?: (name: string) => void;
+};
+
 const interpolate = (
   str: string,
   obj: Record<string, any>,
-  options: { escapeJSONStrings?: boolean } = { escapeJSONStrings: false }
+  options: InterpolateOptions = { escapeJSONStrings: false }
 ): string => {
   if (!str || typeof str !== 'string') {
     return str;
   }
 
-  const { escapeJSONStrings } = options;
+  const { escapeJSONStrings, onUnresolved } = options;
 
   const preparedStr = prepareMock(str, escapeJSONStrings ?? false);
 
@@ -83,12 +88,13 @@ const interpolate = (
   }
   // process the object with the mock data functions
   const preparedObj = prepareMockObj(obj, escapeJSONStrings ?? false);
-  return replace(preparedStr, preparedObj);
+  return replace(preparedStr, preparedObj, onUnresolved);
 };
 
 const replace = (
   str: string,
   obj: Record<string, any>,
+  onUnresolved?: (name: string) => void,
   visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
@@ -110,7 +116,7 @@ const replace = (
 
       if (patternRegex.test(replacement) && !visited.has(match)) {
         visited.add(match);
-        const result = replace(replacement, obj, visited, results);
+        const result = replace(replacement, obj, onUnresolved, visited, results);
         results.set(match, result);
 
         matchFound = true;
@@ -118,6 +124,9 @@ const replace = (
       }
 
       visited.add(match);
+      if (replacement === undefined) {
+        onUnresolved?.(placeholder);
+      }
       const result = replacement !== undefined ? replacement : match;
       results.set(match, result);
 

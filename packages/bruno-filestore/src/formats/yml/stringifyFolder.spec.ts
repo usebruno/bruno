@@ -68,3 +68,39 @@ describe('stringifyFolder — seq', () => {
     expect(meta!.seq).toBe(3);
   });
 });
+
+describe('stringifyFolder — tags', () => {
+  it('writes normalized tags and round-trips them through parseFolder', () => {
+    const folderRoot = { meta: { name: 'tagged-folder', seq: 2, tags: ['  smoke  ', 'smoke', 'regression'] }, docs: null } as any;
+
+    const yml = stringifyFolder(folderRoot);
+    const { meta } = parseFolder(yml);
+
+    expect(meta).toEqual(expect.objectContaining({ name: 'tagged-folder', seq: 2, tags: ['smoke', 'regression'] }));
+  });
+
+  it('omits tags when the folder has none', () => {
+    const yml = stringifyFolder({ meta: { name: 'untagged-folder' }, docs: null } as any);
+
+    expect(yml).not.toMatch(/tags:/);
+    expect(parseFolder(yml).meta!.tags).toBeUndefined();
+  });
+
+  it('omits tags when the list is empty or normalizes away entirely', () => {
+    expect(stringifyFolder({ meta: { name: 'f', tags: [] }, docs: null } as any)).not.toMatch(/tags:/);
+    expect(stringifyFolder({ meta: { name: 'f', tags: ['', '  '] }, docs: null } as any)).not.toMatch(/tags:/);
+  });
+
+  it('omits tags when the value is not an array', () => {
+    expect(stringifyFolder({ meta: { name: 'f', tags: 'smoke' }, docs: null } as any)).not.toMatch(/tags:/);
+    expect(stringifyFolder({ meta: { name: 'f', tags: null }, docs: null } as any)).not.toMatch(/tags:/);
+  });
+
+  it('writes tags for a folder that has no seq', () => {
+    const yml = stringifyFolder({ meta: { name: 'f', tags: ['smoke'] }, docs: null } as any);
+    const { meta } = parseFolder(yml);
+
+    expect(yml).not.toMatch(/seq:/);
+    expect(meta!.tags).toEqual(['smoke']);
+  });
+});

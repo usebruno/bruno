@@ -1,0 +1,7 @@
+info:
+  name: request 1
+  type: http
+
+http:
+  method: GET
+  url: https://example.com/request-1

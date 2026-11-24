@@ -55,7 +55,7 @@ const defaultPreferences = {
   },
   beta: {
     'openapi-sync': false,
-    'mock-server': false
+    'mock-server': true
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -65,6 +65,9 @@ const defaultPreferences = {
   general: {
     defaultLocation: '',
     defaultWorkspacePath: ''
+  },
+  openCollection: {
+    autoOpenFolderPicker: true
   },
   autoSave: {
     enabled: false,
@@ -84,8 +87,9 @@ const defaultPreferences = {
   ai: {
     enabled: false,
     providers: {
-      openai: { enabled: false },
-      anthropic: { enabled: false }
+      'openai': { enabled: false },
+      'anthropic': { enabled: false },
+      'github-copilot': { enabled: false }
     },
     models: {},
     defaultModel: '',
@@ -187,6 +191,9 @@ const preferencesSchema = Yup.object().shape({
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
     defaultWorkspacePath: Yup.string().max(1024).nullable()
+  }),
+  openCollection: Yup.object({
+    autoOpenFolderPicker: Yup.boolean()
   }),
   autoSave: Yup.object({
     enabled: Yup.boolean(),
@@ -357,6 +364,14 @@ class PreferencesStore {
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
+    }
+
+    const hasExistingPreferences = Object.keys(preferences).length > 0;
+    const mockServerDefaultApplied = get(preferences, '_migrations.mockServerBetaOnByDefault', false);
+    if (hasExistingPreferences && !mockServerDefaultApplied) {
+      preferences.beta = { ...preferences.beta, 'mock-server': true };
+      preferences._migrations = { ...preferences._migrations, mockServerBetaOnByDefault: true };
+      this.store.set('preferences', preferences);
     }
 
     // Migrate from defaultCollectionLocation to defaultLocation

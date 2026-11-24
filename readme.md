@@ -30,10 +30,11 @@
 | [ქართული](docs/readme/readme_ka.md)
 | [Nederlands](docs/readme/readme_nl.md)
 | [فارسی](docs/readme/readme_fa.md)
+| [हिन्दी](docs/readme/readme_hi.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
-Bruno stores your collections directly in a folder on your filesystem. We use a plain text markup language, Bru, to save information about API requests.
+Bruno stores your collections directly in a folder on your filesystem. We use [OpenCollection YAML](https://www.opencollection.com/) to save information about API requests.
 
 You can use Git or any version control of your choice to collaborate over your API collections.
 
@@ -127,7 +128,7 @@ Navigate to the directory containing your collection and run it:
 bru run
 
 # Run a single request
-bru run request.bru
+bru run request.yml
 
 # Run a folder against a specific environment
 bru run folder --env Local

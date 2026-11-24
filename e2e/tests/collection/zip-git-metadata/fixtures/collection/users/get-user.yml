@@ -1,0 +1,7 @@
+info:
+  name: Get User
+  type: http
+
+http:
+  method: GET
+  url: https://example.com/users/1

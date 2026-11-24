@@ -31,9 +31,13 @@ const saveRawBody = (req, res, buf) => {
   req.rawBody = buf.toString();
 };
 
-app.use(bodyParser.json({ verify: saveRawBody }));
-app.use(bodyParser.urlencoded({ extended: true, verify: saveRawBody }));
-app.use(bodyParser.text({ verify: saveRawBody }));
+/*
+ * body-parser defaults to a 100kb limit on these three parsers, which is too small for
+ * tests that echo back multi-megabyte bodies.
+ */
+app.use(bodyParser.json({ limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb', verify: saveRawBody }));
+app.use(bodyParser.text({ limit: '10mb', verify: saveRawBody }));
 app.use(xmlParser());
 // Only parse raw body for content types not already handled by other parsers
 app.use(express.raw({

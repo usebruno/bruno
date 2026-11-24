@@ -11,6 +11,8 @@ import get from 'lodash/get';
 // adding a beta feature its keys are then referenced as BETA_FEATURE_IDS.MY_FEATURE in the BETA_FEATURES array.
 import { IconArrowRight, IconExternalLink } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
+import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose';
+import useMockServerBetaToggle from './useMockServerBetaToggle';
 
 import { BETA_FEATURES as BETA_FEATURE_IDS } from 'utils/beta-features';
 import { getDocsUrlWithVersion } from 'utils/url';
@@ -28,6 +30,8 @@ import { getDocsUrlWithVersion } from 'utils/url';
  *   - label       (required) short name shown next to the checkbox.
  *   - description (required) one-line explanation shown under the label.
  *   - docsUrl     (optional) URL to the documentation for the feature.
+ *   - defaultEnabled (optional) value used when the preference has never been saved. Must match the
+ *                 default in the electron preferences store, otherwise the toggle lies about the state.
  *   - action      (optional) object with { label, tab } to render a button that navigates to a specific preferences tab. The label is the button text, and the tab is the tab key (e.g. 'ai', 'cache').
  *
  * To add a beta feature:
@@ -43,7 +47,7 @@ const BETA_FEATURES = [
     id: BETA_FEATURE_IDS.AI_ASSISTANT,
     label: 'AI Assistant',
     description:
-      'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key.',
+      'Generate scripts, tests, and documentation directly from the request tab. Includes contextual chat, scripting autocomplete, and support for OpenAI, Anthropic, and OpenAI-compatible providers using your own API key, or GitHub Copilot with your GitHub account.',
     action: { label: 'Go to AI settings', tab: 'ai' },
     docsUrl: 'https://link.usebruno.com/docs/ai'
   },
@@ -66,6 +70,7 @@ const BETA_FEATURES = [
     label: 'Mock Server',
     description: 'Run a local mock server using response examples defined in your collection. Serve mock API responses for frontend development without a real backend.',
     toggle: true,
+    defaultEnabled: true,
     docsUrl: 'https://link.usebruno.com/docs/mock-server'
   },
   {
@@ -93,7 +98,7 @@ const Beta = ({ close }) => {
   const generateInitialValues = () => {
     const initialValues = {};
     BETA_FEATURES.forEach((feature) => {
-      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, false);
+      initialValues[feature.id] = get(preferences, `beta.${feature.id}`, feature.defaultEnabled ?? false);
     });
     return initialValues;
   };
@@ -115,7 +120,14 @@ const Beta = ({ close }) => {
     }
   });
 
+  const {
+    toggle: toggleMockServer,
+    handleSaved: handleMockServerSaved,
+    confirmDisableProps
+  } = useMockServerBetaToggle((enabled) => formik.setFieldValue(BETA_FEATURE_IDS.MOCK_SERVER, enabled));
+
   const handleSave = useCallback((newBetaPreferences) => {
+    const wasMockServerEnabled = preferences?.beta?.[BETA_FEATURE_IDS.MOCK_SERVER];
     dispatch(
       savePreferences({
         ...preferences,
@@ -125,8 +137,12 @@ const Beta = ({ close }) => {
         }
       })
     )
-      .catch((err) => console.log(err) && toast.error('Failed to update beta preferences'));
-  }, [dispatch, preferences]);
+      .then(() => handleMockServerSaved(wasMockServerEnabled, newBetaPreferences[BETA_FEATURE_IDS.MOCK_SERVER]))
+      .catch((err) => {
+        console.log(err);
+        toast.error('Failed to update beta preferences');
+      });
+  }, [dispatch, preferences, handleMockServerSaved]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -155,12 +171,22 @@ const Beta = ({ close }) => {
 
   const hasAnyBetaFeatures = BETA_FEATURES.length > 0;
 
+  const handleToggle = (featureId) => {
+    const enabled = !formik.values[featureId];
+    if (featureId === BETA_FEATURE_IDS.MOCK_SERVER) {
+      toggleMockServer(enabled);
+      return;
+    }
+    formik.setFieldValue(featureId, enabled);
+  };
+
   const goToTab = useCallback((tab) => {
     dispatch(updateActivePreferencesTab({ tab }));
   }, [dispatch]);
 
   return (
     <StyledWrapper>
+      {confirmDisableProps ? <ConfirmRequestClose {...confirmDisableProps} /> : null}
       <div className="section-header">Beta Features</div>
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-6">
@@ -184,7 +210,7 @@ const Beta = ({ close }) => {
                     <ToggleSwitch
                       size="xs"
                       isOn={formik.values[feature.id]}
-                      handleToggle={() => formik.setFieldValue(feature.id, !formik.values[feature.id])}
+                      handleToggle={() => handleToggle(feature.id)}
                       data-testid="mock-server-beta-toggle"
                     />
                   </div>

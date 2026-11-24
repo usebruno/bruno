@@ -42,6 +42,7 @@ const Wrapper = styled.div`
     margin: 3vh 10vw;
     margin-top: 50px;
     border: 1px solid ${(props) => props.theme.border.border0};
+    -webkit-app-region: no-drag;
 
     &.modal-sm {
       min-width: 300px;

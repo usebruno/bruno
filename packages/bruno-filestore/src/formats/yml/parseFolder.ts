@@ -6,6 +6,7 @@ import { toBrunoHttpHeaders } from './common/headers';
 import { toBrunoVariables } from './common/variables';
 import { toBrunoPostResponseVariables } from './common/actions';
 import { toBrunoScripts } from './common/scripts';
+import { normalizeTags } from '@usebruno/common';
 import { ensureString } from '../../utils';
 
 const parseFolder = (ymlString: string): FolderRoot => {
@@ -14,6 +15,7 @@ const parseFolder = (ymlString: string): FolderRoot => {
 
     const info = ocFolder.info;
     const seq = info?.seq;
+    const tags = normalizeTags(info?.tags);
 
     const folderRoot: FolderRoot = {
       meta: {
@@ -21,7 +23,8 @@ const parseFolder = (ymlString: string): FolderRoot => {
         // Only set seq when the source has a numeric value. Missing seq must stay absent:
         // defaulting to 1 makes every seq-less folder look "ordered at position 1" to
         // sortByNameThenSequence, pinning them all to slot 1 instead of alphabetical sort.
-        ...(typeof seq === 'number' && Number.isFinite(seq) ? { seq } : {})
+        ...(typeof seq === 'number' && Number.isFinite(seq) ? { seq } : {}),
+        ...(tags.length ? { tags } : {})
       },
       request: {
         headers: [],

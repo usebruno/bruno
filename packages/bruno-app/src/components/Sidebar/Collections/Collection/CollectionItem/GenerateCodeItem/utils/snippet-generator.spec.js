@@ -529,6 +529,252 @@ describe('generateSnippet – header inclusion in output', () => {
   });
 });
 
+describe('generateSnippet – cookie header casing', () => {
+  it('renames a `cookie` header to `Cookie` so curl no longer renders it twice', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--header \'Cookie: cookie1=value1\'');
+    expect(result).not.toContain('--cookie');
+  });
+
+  it('leaves a header already named `Cookie` rendering once, unaffected by the merge', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'Cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--header \'Cookie: cookie1=value1\'');
+    expect(result).not.toContain('--cookie');
+  });
+
+  // Kept as a plain header, so HTTPSnippet never URI-encodes the value.
+  it('does not corrupt a cookie value containing characters encodeURIComponent would escape', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'session=abc+def/ghi==', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('session=abc+def/ghi==');
+    expect(result).not.toContain('%2B');
+    expect(result).not.toContain('%2F');
+    expect(result).not.toContain('%3D');
+  });
+
+  // Combines a `Cookie` and `cookie` header pair into one merged header.
+  it('merges a `cookie` header into an existing `Cookie` header instead of overwriting it', async () => {
+    const language = { target: 'shell', client: 'curl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [
+          { name: 'Cookie', value: 'a=1', enabled: true },
+          { name: 'cookie', value: 'b=2', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('--header \'Cookie: a=1; b=2\'');
+    expect(result).not.toContain('--cookie');
+    expect(result).toContain('a=1');
+    expect(result).toContain('b=2');
+  });
+
+  it('renames a `cookie` header to `Cookie` so libcurl does not emit CURLOPT_COOKIE twice', async () => {
+    const language = { target: 'c', client: 'libcurl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('"Cookie: cookie1=value1"');
+    expect(result).not.toContain('CURLOPT_COOKIE');
+  });
+
+  // Combines a `Cookie` and `cookie` header pair into one merged header.
+  it('merges a `cookie` header into an existing `Cookie` header for libcurl instead of overwriting it', async () => {
+    const language = { target: 'c', client: 'libcurl' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [
+          { name: 'Cookie', value: 'a=1', enabled: true },
+          { name: 'cookie', value: 'b=2', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('"Cookie: a=1; b=2"');
+    expect(result).not.toContain('CURLOPT_COOKIE');
+    expect(result).toContain('a=1');
+    expect(result).toContain('b=2');
+  });
+
+  // Leaves the header name untouched for a non-curl target.
+  it('does not rename a lowercase `cookie` header for non-curl targets', async () => {
+    const language = { target: 'csharp', client: 'httpclient' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [{ name: 'cookie', value: 'cookie1=value1', enabled: true }],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('UseCookies = false,');
+    expect(result).toContain('cookie1=value1');
+  });
+
+  // Folding still applies to non-curl targets; only the rename-to-`Cookie` is curl-specific.
+  it('folds multiple case-varied `cookie` headers into one for non-curl targets too', async () => {
+    const language = { target: 'csharp', client: 'httpclient' };
+
+    const collection = {
+      root: { request: { headers: [], auth: { mode: 'none' } } }
+    };
+
+    const item = {
+      uid: 'r1',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [
+          { name: 'cookie', value: 'a=1', enabled: true },
+          { name: 'COOKIE', value: 'b=2', enabled: true }
+        ],
+        auth: { mode: 'none' }
+      }
+    };
+
+    const originalHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+
+    const result = await generateSnippet({ language, item, collection, shouldInterpolate: false });
+
+    require('httpsnippet').HTTPSnippet = originalHTTPSnippet;
+
+    expect(result).toContain('{ "cookie", "a=1; b=2" }');
+    expect(result).not.toContain('COOKIE');
+  });
+});
+
 describe('generateSnippet with edge-case bodies', () => {
   const language = { target: 'shell', client: 'curl' };
   const baseCollection = { root: { request: { auth: { mode: 'none' }, headers: [] } } };
@@ -1718,5 +1964,95 @@ describe('generateSnippet – URL templates survive real httpsnippet targets', (
       expect(result).toContain('/services/T00/B00/SECRET/data');
       expect(result).not.toContain('{{webhookUrl}}');
     });
+  });
+});
+
+describe('generateSnippet – URL with a query but no path (real httpsnippet targets)', () => {
+  const { availableTargets } = jest.requireActual('httpsnippet');
+
+  const baseCollection = {
+    root: { request: { auth: { mode: 'none' }, headers: [] } },
+    globalEnvironmentVariables: {},
+    runtimeVariables: {},
+    processEnvVariables: {}
+  };
+
+  const makeItem = (url, settings) => ({
+    uid: 'path-less-url-req',
+    request: { method: 'GET', url, headers: [], body: { mode: 'none' }, auth: { mode: 'none' } },
+    settings
+  });
+
+  const generate = (language, url, settings) =>
+    generateSnippet({ language, item: makeItem(url, settings), collection: baseCollection, shouldInterpolate: false });
+
+  let mockedHTTPSnippet;
+
+  beforeAll(() => {
+    mockedHTTPSnippet = require('httpsnippet').HTTPSnippet;
+    require('httpsnippet').HTTPSnippet = jest.requireActual('httpsnippet').HTTPSnippet;
+  });
+
+  afterAll(() => {
+    require('httpsnippet').HTTPSnippet = mockedHTTPSnippet;
+  });
+
+  const url = 'http://example.com?x=1&y=2';
+
+  // These targets print only the request target (path + query), which must start with `/`.
+  const requestTargetCases = [
+    ['http/http1.1', { target: 'http', client: 'http1.1' }, 'GET /?x=1&y=2 HTTP/1.1'],
+    ['node/native', { target: 'node', client: 'native' }, 'path: \'/?x=1&y=2\''],
+    ['python/python3', { target: 'python', client: 'python3' }, 'conn.request("GET", "/?x=1&y=2")']
+  ];
+
+  describe.each([false, true])('encodeUrl: %s', (encodeUrl) => {
+    it.each(requestTargetCases)('keeps the leading slash of the request target for %s', async (_label, language, expected) => {
+      const result = await generate(language, url, { encodeUrl });
+      expect(result).toContain(expected);
+    });
+  });
+
+  it('still shows the URL as typed where the snippet prints the full URL', async () => {
+    const result = await generate({ target: 'shell', client: 'curl' }, url, { encodeUrl: false });
+    expect(result).toContain('http://example.com?x=1&y=2');
+  });
+
+  describe('query with characters that URL encoding changes', () => {
+    const rawUrl = 'http://example.com?filter[name]=x';
+    const rawCases = [
+      ['http/http1.1', { target: 'http', client: 'http1.1' }, 'GET /?filter[name]=x HTTP/1.1'],
+      ['node/native', { target: 'node', client: 'native' }, 'path: \'/?filter[name]=x\''],
+      ['python/python3', { target: 'python', client: 'python3' }, 'conn.request("GET", "/?filter[name]=x")']
+    ];
+
+    it.each(rawCases)('shows the query as typed after the leading slash for %s when URL encoding is off', async (_label, language, expected) => {
+      const result = await generate(language, rawUrl, { encodeUrl: false });
+      expect(result).toContain(expected);
+    });
+
+    it('shows the encoded query when URL encoding is on', async () => {
+      const result = await generate({ target: 'http', client: 'http1.1' }, rawUrl, { encodeUrl: true });
+      expect(result).toContain('GET /?filter%5Bname%5D=x HTTP/1.1');
+    });
+  });
+
+  // `http://host?x=1` and `http://host/?x=1` are the same request, so every target must print the same snippet,
+  // apart from the full URL, which is shown as typed.
+  describe.each([false, true])('a path-less URL matches the same URL with an explicit "/" (encodeUrl: %s)', (encodeUrl) => {
+    const languages = availableTargets().flatMap((target) =>
+      target.clients.map((client) => [`${target.key}/${client.key}`, { target: target.key, client: client.key }])
+    );
+
+    it.each(languages)('%s', async (_label, language) => {
+      const pathLess = await generate(language, 'http://example.com?filter[name]=x&y=2', { encodeUrl });
+      const withSlash = await generate(language, 'http://example.com/?filter[name]=x&y=2', { encodeUrl });
+      expect(pathLess).toBe(withSlash.split('example.com/?').join('example.com?'));
+    });
+  });
+
+  it('does not change a URL that has a path', async () => {
+    const result = await generate({ target: 'http', client: 'http1.1' }, 'http://example.com/api?x=1&y=2', { encodeUrl: false });
+    expect(result).toContain('GET /api?x=1&y=2 HTTP/1.1');
   });
 });

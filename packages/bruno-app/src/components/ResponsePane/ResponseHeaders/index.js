@@ -33,8 +33,8 @@ const ResponseHeaders = ({ headers, item, sortOrder = 'default' }) => {
               ? headersArray.map((header, index) => {
                   return (
                     <tr key={index}>
-                      <td className="key">{header[0]}</td>
-                      <td className="value">{header[1]}</td>
+                      <td className="key" data-testid="response-header-key">{header[0]}</td>
+                      <td className="value" data-testid="response-header-value">{header[1]}</td>
                     </tr>
                   );
                 })

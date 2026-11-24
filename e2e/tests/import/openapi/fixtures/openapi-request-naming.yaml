@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: Request Naming API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /pets/{petId}:
+    get:
+      summary: Find pet by ID
+      operationId: getPetById
+      description: Returns a single pet. Requires an API key.
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /pets:
+    get:
+      operationId: listPets
+      description: |
+        Lists every pet in the store.
+        Results are paginated.
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: |
+        **Adds** a pet to the store. The pet gets an ID and is available for adoption right away,
+        unless the store has reached its capacity, in which case it is queued.
+      responses:
+        '201':
+          description: Created
+  /health:
+    get:
+      responses:
+        '200':
+          description: OK

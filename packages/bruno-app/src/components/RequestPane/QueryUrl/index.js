@@ -10,7 +10,9 @@ import {
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestAuthMode,
-  updateAuth
+  updateAuth,
+  setFormUrlEncodedParams,
+  setMultipartFormParams
 } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { getRequestFromCurlCommand } from 'utils/curl';
@@ -152,16 +154,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             collectionUid: collection.uid,
             query: request.body.graphql.query
           }));
-          let variables = request.body.graphql.variables;
-          try {
-            variables = JSON.parse(variables);
-          } catch (error) {
-            // Keep variables as-is if JSON parsing fails
-          }
           dispatch(updateRequestGraphqlVariables({
             itemUid: item.uid,
             collectionUid: collection.uid,
-            variables: variables
+            variables: request.body.graphql.variables
           }));
         }
 
@@ -296,13 +292,21 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             );
           }
         } else if (bodyMode === 'formUrlEncoded' && request.body.formUrlEncoded) {
-          // For formUrlEncoded, we need to set each param individually
-          // This is a limitation - we'd need to clear existing params first
-          // For now, we'll set the body mode and the user can manually adjust
-          // TODO: Implement proper formUrlEncoded param setting
+          dispatch(
+            setFormUrlEncodedParams({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              params: request.body.formUrlEncoded
+            })
+          );
         } else if (bodyMode === 'multipartForm' && request.body.multipartForm) {
-          // For multipartForm, similar limitation
-          // TODO: Implement proper multipartForm param setting
+          dispatch(
+            setMultipartFormParams({
+              itemUid: item.uid,
+              collectionUid: collection.uid,
+              params: request.body.multipartForm
+            })
+          );
         }
       }
 
@@ -414,7 +418,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             highlightPathParams={true}
             item={item}
             showNewlineArrow={true}
-            disableLinkAwareClick={true}
           />
           <div className="flex items-center h-full mx-2 gap-3" id="request-actions">
             <ToolHint text="Generate Code" toolhintId="http-generate-code" place="top" positionStrategy="fixed">

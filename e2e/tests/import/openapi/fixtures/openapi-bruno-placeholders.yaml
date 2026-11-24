@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  title: Bruno Placeholders API
+  version: 1.0.0
+servers:
+  - url: https://{process.env.HOST}/v1
+    description: Prod
+    variables:
+      process.env.HOST:
+        default: '{{process.env.HOST}}'
+paths:
+  /data:
+    get:
+      summary: Tenant data
+      servers:
+        - url: https://{tenantSecret}.api.test
+          variables:
+            tenantSecret:
+              default: '{{tenantSecret}}'
+      responses:
+        '200':
+          description: OK

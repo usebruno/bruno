@@ -1,5 +1,5 @@
 import { useImperativeHandle } from 'react';
-import { findSearchMatches, createCacheKey } from './searchUtils';
+import { findSearchMatches, createCacheKey, findMatchIndexAtOrAfter } from './searchUtils';
 
 /**
  * Wires up the imperative API exposed via `ref` on <CodeMirrorSearch />.
@@ -36,12 +36,7 @@ export function useSearchBarHandle({
       setSearchText(text);
       if (cursorPos && editor && text) {
         const matches = findSearchMatches(editor, text, regex, caseSensitive, wholeWord);
-        const startsAtOrAfterCursor = (match) =>
-          match.from.line > cursorPos.line
-          || (match.from.line === cursorPos.line && match.from.ch >= cursorPos.ch);
-
-        const matchAtCursorIdx = matches.findIndex(startsAtOrAfterCursor);
-        const targetIdx = matchAtCursorIdx >= 0 ? matchAtCursorIdx : 0;
+        const targetIdx = findMatchIndexAtOrAfter(matches, cursorPos);
         // Pre-populate cache so doSearch hits it regardless of path
         searchMatches.current = matches;
         searchCacheKey.current = createCacheKey(docVersion.current, text, regex, caseSensitive, wholeWord);
@@ -68,11 +63,7 @@ export function useSearchBarHandle({
         const matches = (expectedKey === searchCacheKey.current && searchMatches.current.length)
           ? searchMatches.current
           : findSearchMatches(editor, searchText, regex, caseSensitive, wholeWord);
-        const startsAtOrAfterCursor = (match) =>
-          match.from.line > cursorPos.line
-          || (match.from.line === cursorPos.line && match.from.ch >= cursorPos.ch);
-        const targetIdx = matches.findIndex(startsAtOrAfterCursor);
-        const resolvedIdx = targetIdx >= 0 ? targetIdx : 0;
+        const resolvedIdx = findMatchIndexAtOrAfter(matches, cursorPos);
         searchMatches.current = matches;
         searchCacheKey.current = expectedKey;
         setMatchCount(matches.length);

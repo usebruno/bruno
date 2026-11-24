@@ -1,0 +1,10 @@
+{
+  "maximized": false,
+  "lastOpenedCollections": ["{{projectRoot}}/e2e/tests/request/collections/custom-search"],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

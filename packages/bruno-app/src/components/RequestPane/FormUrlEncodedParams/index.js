@@ -14,6 +14,7 @@ import { createDescriptionColumn } from 'components/EditableTable/descriptionCol
 import StyledWrapper from './StyledWrapper';
 import { usePersistedState } from 'hooks/usePersistedState';
 import { useTrackScroll } from 'hooks/useTrackScroll';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -83,6 +84,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
           collection={collection}
           item={item}
           placeholder={!value ? 'Value' : ''}
+          variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
         />
       )
     },

@@ -10,19 +10,19 @@ import { sortByNameThenSequence } from 'utils/common/index';
 import path from 'utils/common/path';
 import { cloneDeep, get } from 'lodash';
 import Button from 'ui/Button/index';
-import { isRequestTagsIncluded } from '@usebruno/common';
+import { isRequestTagsIncluded, getEffectiveTags, getOwnTags, getFolderTags } from '@usebruno/common';
 
 const isRequestDisabled = (item, tags) => {
   // WS and gRPC are not supported by the collection runner
   if (item.type === 'ws-request' || item.type === 'grpc-request') return true;
 
   // Check tag filtering
-  const requestTags = item.draft?.tags || item.tags || [];
   const includeTags = tags?.include || [];
   const excludeTags = tags?.exclude || [];
 
   if (includeTags.length > 0 || excludeTags.length > 0) {
-    return !isRequestTagsIncluded(requestTags, includeTags, excludeTags);
+    const effectiveTags = getEffectiveTags(getOwnTags(item), item.inheritedTags);
+    return !isRequestTagsIncluded(effectiveTags, includeTags, excludeTags);
   }
 
   return false;
@@ -148,12 +148,12 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
 
   return (
     <div ref={ref} className={itemClasses} data-testid="runner-request-item">
-      <div className="drag-handle">
+      <div className="drag-handle" data-testid="runner-request-drag-handle">
         <IconGripVertical size={16} strokeWidth={1.5} />
       </div>
 
       <div className="checkbox-container" onClick={() => !isDisabled && onSelect(item)}>
-        <div className="checkbox">
+        <div className="checkbox" data-testid="runner-request-checkbox">
           {isSelected && !isDisabled && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
@@ -162,10 +162,10 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
         {methodInfo.methodText}
       </div>
 
-      <div className="request-name">
-        <span>{item.name}</span>
+      <div className="request-name" data-testid="runner-request-name">
+        <span data-testid="runner-request-item-name">{item.name}</span>
         {item.folderPath && (
-          <span className="folder-path">{item.folderPath}</span>
+          <span className="folder-path" data-testid="runner-request-folder-path">{item.folderPath}</span>
         )}
       </div>
     </div>
@@ -185,7 +185,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
   const flattenRequests = useCallback((collection) => {
     const result = [];
 
-    const processItems = (items) => {
+    const processItems = (items, inheritedTags) => {
       if (!items?.length) return;
 
       const folderItems = sortByNameThenSequence(items.filter((item) => isItemAFolder(item) && !item.isTransient));
@@ -195,7 +195,7 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
 
       folderItems.forEach((folder) => {
         if (folder.items?.length) {
-          processItems(folder.items);
+          processItems(folder.items, getEffectiveTags(getFolderTags(folder), inheritedTags));
         }
       });
 
@@ -205,12 +205,13 @@ const RunConfigurationPanel = ({ collection, selectedItems, setSelectedItems, ta
 
         result.push({
           ...item,
+          inheritedTags,
           folderPath: folderPath.replace(/\\/g, '/')
         });
       });
     };
 
-    processItems(collection.items);
+    processItems(collection.items, []);
     return result;
   }, []);
 

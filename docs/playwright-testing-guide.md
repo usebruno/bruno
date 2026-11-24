@@ -45,7 +45,7 @@ npm run test:codegen
 2. Playwright Inspector opens in a separate window
 3. You interact with the Bruno UI
 4. Actions are recorded and converted to test code
-5. The generated test file is saved in `tests/`
+5. The generated test file is saved in `e2e/tests/`
 
 ### Codegen Workflow
 
@@ -96,18 +96,37 @@ test('Test with temporary data', async ({ page, createTmpDir }) => {
 
 ### Directory Structure
 
+All E2E code lives under `e2e/`. The Playwright configs (`playwright.config.ts`, `playwright.benchmark.config.ts`, `playwright.merge.config.ts`) stay at the repo root.
+
+Specs import shared code by relative path, from each folder's `index.ts`: `playwright` (the custom `test` and `expect`), `pages`, `utils` (which also re-exports `utils/data`), `constants` and `servers`. Import from the folder itself, not from a file inside it (`'../../pages'`, not `'../../pages/request/body'`). The one exception is a page object added after the move to `e2e/`: those aren't exported from `pages/index.ts`, so specs import them from their file (`'../../pages/notifications'`). The number of `../` depends on how deep the spec sits; the examples in this guide assume a spec at `e2e/tests/<feature>/`.
+
+Inside `e2e/pages/`, page objects import the specific file they need, never `index.ts` or `locators.ts`: both import every page object, so importing either creates a circular import. Lint enforces this rule.
+
 ```
-tests/
-├── common/                             # Basic functionality tests
-│   ├── home-screen.spec.ts
-│   └── create-new-collection.spec.ts
-├── feature-a/                          # Specific feature tests
-├── utils/                              # Test utilities and helpers
-│   ├── page/
-│   │   ├── locators.ts                # common locators and merged sub feature locators
-│   │   ├── actions.ts                 # common actions
-│   │   ├── feature-a.ts               # Feature A specific locator builder and actions
-│   │   └── feature-b.ts               # Feature B specific locator builder and actions
+e2e/
+├── playwright/            # index.ts: test + expect with fixtures; codegen.ts; electron.ts
+├── pages/                 # page objects: locators and actions in one file per UI section
+│   ├── index.ts           # barrel: exports the existing page objects (new ones are imported from their file)
+│   ├── locators.ts        # buildCommonLocators: every page object's locator builder in one object
+│   ├── api-spec.ts, mock-server.ts, runner.ts   # standalone areas: one file each
+│   ├── request/           # pane.ts, body.ts, headers.ts, auth.ts …
+│   ├── response/          # pane.ts, example.ts, timeline.ts
+│   ├── collection/        # manage.ts, import.ts, export.ts, settings.ts …
+│   ├── app-shell/         # tabs.ts, preferences.ts, title-bar.ts, toast.ts …
+│   ├── environment/, folder/, sidebar/, variable/, workspace/
+│   └── shared-ui/         # widgets used across sections: modal, dropdown, table, code editor …
+├── utils/                 # infrastructure helpers: cli, wait, snapshot, stubs, app
+│   └── data/              # test data generators (collection builders)
+├── constants/             # shared constants (auth, tls, variables …)
+├── servers/               # per-test servers (http …)
+└── tests/                 # specs and their sample data, grouped by feature
+    ├── common/
+    │   ├── home-screen.spec.ts
+    │   └── create-new-collection.spec.ts
+    └── feature-a/
+        ├── some-behaviour.spec.ts
+        ├── fixtures/      # sample data: collection/, collections/, workspace/ loaded by the Playwright fixtures
+        └── init-user-data/  # preferences.json seed for the app
 ```
 
 ### Naming Conventions
@@ -171,11 +190,18 @@ test('Test with multiple fixtures', async ({ page, createTmpDir, electronApp }) 
 npm run test:e2e
 
 # Run specific test file
-npx playwright test tests/common/home-screen.spec.ts
+npx playwright test e2e/tests/common/home-screen.spec.ts
 
 # Run tests in a specific folder
-npx playwright test tests/folder-a/
+npx playwright test e2e/tests/folder-a/
 ```
+
+### Projects That Need External Services
+
+Most projects run self-contained. Two need a service started by hand first; each suite's readme has the steps:
+
+- `oauth2` (`npm run test:e2e:auth:oauth2`) — a local Keycloak instance, see [`tests/auth/oauth2/README.md`](../tests/auth/oauth2/README.md)
+- `ssl` (`npm run test:e2e:ssl`) — generated certificates and a local HTTPS server, see [`tests/ssl/custom-ca-certs/server/readme.md`](../tests/ssl/custom-ca-certs/server/readme.md)
 
 ### Advanced Options
 
@@ -186,8 +212,8 @@ npx playwright test --ui
 # Run in headed mode (see browser)
 npx playwright test --headed
 
-# Run with specific browser
-npx playwright test --project="Bruno Electron App"
+# Run a single project (default, auth, ssl, system-pac, mock-server)
+npx playwright test --project=ssl
 
 # Run with debugging
 npx playwright test --debug
@@ -200,17 +226,19 @@ npx playwright test --trace on
 
 ### 1. Centralize Locators and Actions in Page Modules
 
-**Never inline raw `page.locator(...)` / `page.getByTestId(...)` selectors in a spec.** Locators and the interactions that use them live in **page modules** under `tests/utils/page/*`, and specs consume them through the shared builders and exported actions. This keeps selectors single-sourced, so a UI change is fixed in one place instead of across every spec.
+**Never inline raw `page.locator(...)` / `page.getByTestId(...)` selectors in a spec.** Locators and the interactions that use them live in **page modules** under `e2e/pages/`, and specs consume them through the shared builders and exported actions. This keeps selectors single-sourced, so a UI change is fixed in one place instead of across every spec.
 
-**A page module owns one section.** Each file under `tests/utils/page/*` covers a single UI section/domain and exports *both* a locator builder and the actions for that section, co-located. [`mounting.ts`](../tests/utils/page/mounting.ts) is the reference shape — `buildCollectionTreeLocators(page)` lives alongside its actions (`waitForCollectionMount`, `openCollectionFromPath`, `getCollectionTreeStructure`, …) in one file.
+**A page module owns one section.** Each file under `e2e/pages/` covers a single UI section/domain and exports *both* a locator builder and the actions for that section, co-located. [`collection/mount.ts`](../e2e/pages/collection/mount.ts) is the reference shape — `buildCollectionTreeLocators(page)` lives alongside its actions (`waitForCollectionMount`, `openCollectionFromPath`, `getCollectionTreeStructure`, …) in one file.
 
-**New section → new file → link into common.** Create a new page module for a new section rather than growing the inline object in `locators.ts`, then map its locator builder into `buildCommonLocators` so specs get it for free. This is **required** for every new page module.
+**New section → new file → import it directly.** Create a new page module for a new section (or a new file in the matching folder, e.g. `e2e/pages/request/`; a standalone area can be a single file at the top of `e2e/pages/`, and becomes a folder once it has related files). Don't add it to `e2e/pages/index.ts` or to `buildCommonLocators` in `e2e/pages/locators.ts`: specs import its locator builder and actions straight from the file. The page objects already exported from `index.ts` stay there.
+
+**Inside `e2e/pages/`, never import `index.ts` or `locators.ts`.** A page module builds the locators it needs from the specific builders (for example `buildModalLocators(page)` from `shared-ui/modal`), so page modules never import each other in a loop.
 
 A spec builds locators once and destructures the groups it needs — no per-section imports at the call site:
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../utils/page';
+import { buildCommonLocators, createCollection, createRequest, closeAllCollections } from '../../pages';
 
 test('should rename a request via the sidebar', async ({ page, createTmpDir }) => {
   const { sidebar, actions, dropdown } = buildCommonLocators(page);
@@ -230,8 +258,8 @@ test('should rename a request via the sidebar', async ({ page, createTmpDir }) =
 Defining a new page module (locator builder **and** its actions in one file):
 
 ```typescript
-// tests/utils/page/notifications.ts — one file owns the "notifications" section
-import { test, Page } from '../../../playwright';
+// e2e/pages/notifications.ts — one file owns the "notifications" section
+import { test, Page } from '../playwright';
 
 export const buildNotificationLocators = (page: Page) => ({
   toast: (text: string) => page.getByTestId('notification-toast').filter({ hasText: text }),
@@ -247,30 +275,25 @@ export const dismissNotification = async (page: Page, text: string) => {
 };
 ```
 
-Then link the builder into `buildCommonLocators` so every spec can reach it:
+A spec imports the new module from its file, next to the barrel import for existing page objects:
 
 ```typescript
-// tests/utils/page/locators.ts
-import { buildNotificationLocators } from './notifications';
-
-export const buildCommonLocators = (page: Page) => ({
-  runner: () => page.getByTestId('run-button'),
-  sidebar: { /* … */ },
-  notifications: buildNotificationLocators(page),   // now buildCommonLocators(page).notifications
-  // …
-});
+// e2e/tests/notifications/dismiss.spec.ts
+import { test, expect } from '../../playwright';
+import { createCollection } from '../../pages';
+import { buildNotificationLocators, dismissNotification } from '../../pages/notifications';
 ```
 
 **Scope of enforcement:**
 
 - **Strict for new tests** — any new spec must go through this pattern; no direct selectors, no duplicated inline queries.
 - **Lenient for existing tests** — small tweaks to an existing spec need not refactor its existing selectors. But if you rewrite or substantially modify a large portion of a spec, extract its selectors and interactions into a page module as part of the change.
-- **Don't retro-link existing modules right now** — some already-extracted modules (e.g. [`mounting.ts`](../tests/utils/page/mounting.ts)) aren't wired into `buildCommonLocators` yet; leave them until their specs are next reworked. The rules above apply going forward, not as a migration mandate.
-- **Long-term goal** — every section is a page module and every module is reachable from `buildCommonLocators`, so locators and actions stay consistent and single-sourced.
+- **Don't retro-link existing modules right now** — some page modules (e.g. [`collection/mount.ts`](../e2e/pages/collection/mount.ts)) aren't wired into `buildCommonLocators` yet; leave them until their specs are next reworked. The rules above apply going forward, not as a migration mandate.
+- **Long-term goal** — every section is a page module, so locators and actions stay consistent and single-sourced.
 
 ### 2. Use Semantic Selectors
 
-Applies to the selectors written *inside* a page module (`locators.ts` or a section file), not the spec.
+Applies to the selectors written *inside* a page module (a file in `e2e/pages/`), not the spec.
 
 **Preferred:**
 
@@ -289,10 +312,10 @@ page.locator('#collection-name');
 
 ### 3. Keep `defaultPreferences` in Sync with App Preferences
 
-E2E launches seed a fresh userData dir from the `defaultPreferences` mock in [`playwright/index.ts`](../playwright/index.ts) (merged into any `init-user-data/preferences.json`). **Whenever you add or change a key in the app's `preferences.json` schema/defaults, add a matching default to that mock** — otherwise tests run against unset preferences and diverge from real app behaviour.
+E2E launches seed a fresh userData dir from the `defaultPreferences` mock in [`e2e/playwright/index.ts`](../e2e/playwright/index.ts) (merged into any `init-user-data/preferences.json` next to the spec). **Whenever you add or change a key in the app's `preferences.json` schema/defaults, add a matching default to that mock** — otherwise tests run against unset preferences and diverge from real app behaviour.
 
 ```typescript
-// playwright/index.ts
+// e2e/playwright/index.ts
 const defaultPreferences = {
   preferences: {
     onboarding: {
@@ -311,7 +334,7 @@ Each test should be independent and not rely on other tests — its own temp dir
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, closeAllCollections } from '../utils/page';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
 
 test('should create a collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -330,7 +353,7 @@ Always verify the expected outcome through locators from a page module:
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '../utils/page';
+import { buildCommonLocators, createCollection, createRequest, saveRequest, closeAllCollections } from '../../pages';
 
 test('should save a request', async ({ page, createTmpDir }) => {
   const { tabs } = buildCommonLocators(page);
@@ -353,15 +376,17 @@ test('should save a request', async ({ page, createTmpDir }) => {
 
 ### 6. Keep Assertions in Specs, Not Actions
 
-`expect(...)` belongs in the spec, that's where the test's intent and its pass/fail criteria must be visible. Action helpers in `tests/utils/page/*` perform interactions and synchronize state; they must **not** assert the test's expectations. An action that asserts hides pass/fail logic behind a reusable helper and forces every caller to accept that one expectation.
+`expect(...)` belongs in the spec, that's where the test's intent and its pass/fail criteria must be visible. Action helpers in `e2e/pages/` perform interactions and synchronize state; they must **not** assert the test's expectations. An action that asserts hides pass/fail logic behind a reusable helper and forces every caller to accept that one expectation.
 
 **Actions synchronize with `waitFor`; specs verify with `expect`.** When an action needs the UI to reach a state before its next step (a modal to open, a spinner to clear), wait with Playwright's wait utilities like `locator.waitFor({ state })`, `page.waitForLoadState()` etc., not `expect`. `waitFor` synchronizes so the next action is reliable; `expect` decides whether the test passes and stays in the spec.
 
 ```typescript
-// tests/utils/page/collection.ts — the action WAITS, it does not assert
+// e2e/pages/sidebar/item-actions.ts — the action WAITS, it does not assert
 export const openRenameModal = async (page: Page, requestName: string) => {
   await test.step(`Open rename modal for "${requestName}"`, async () => {
-    const { sidebar, actions, dropdown } = buildCommonLocators(page);
+    const sidebar = buildSidebarLocators(page);
+    const actions = buildItemActionLocators(page);
+    const dropdown = buildDropdownLocators(page);
     await sidebar.request(requestName).hover();
     await actions.collectionItemActions(requestName).click();
     await dropdown.item('Rename').click();
@@ -389,7 +414,7 @@ Prefer auto-retrying assertions and action helpers that encapsulate the wait; ne
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, sendRequestAndWaitForResponse } from '../utils/page';
+import { buildCommonLocators, sendRequestAndWaitForResponse } from '../../pages';
 
 test('should wait for async operations', async ({ page }) => {
   const { response } = buildCommonLocators(page);
@@ -410,7 +435,7 @@ test('should wait for async operations', async ({ page }) => {
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, openCollection } from '../utils/page';
+import { buildCommonLocators, openCollection } from '../../pages';
 
 test('should work with test data', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -427,13 +452,13 @@ test('should work with test data', async ({ page, createTmpDir }) => {
 
 ## Examples
 
-All examples use `buildCommonLocators` for locators and the exported action helpers from `tests/utils/page` — see [Best Practices §1](#1-centralize-locators-and-actions-in-page-modules).
+All examples use `buildCommonLocators` for locators and the exported action helpers from `e2e/pages` — see [Best Practices §1](#1-centralize-locators-and-actions-in-page-modules).
 
 ### Example 1: Basic Collection Creation
 
 ```typescript
 import { test, expect } from '../../playwright';
-import { buildCommonLocators, createCollection, closeAllCollections } from '../utils/page';
+import { buildCommonLocators, createCollection, closeAllCollections } from '../../pages';
 
 test('should create a new collection', async ({ page, createTmpDir }) => {
   const { sidebar } = buildCommonLocators(page);
@@ -456,7 +481,7 @@ import {
   createRequest,
   sendRequestAndWaitForResponse,
   closeAllCollections
-} from '../utils/page';
+} from '../../pages';
 
 test('should create and execute an HTTP request', async ({ page, createTmpDir }) => {
   const { response } = buildCommonLocators(page);
@@ -486,7 +511,7 @@ import {
   createEnvironment,
   addEnvironmentVariable,
   closeAllCollections
-} from '../utils/page';
+} from '../../pages';
 
 test('should create and use environment variables', async ({ page, createTmpDir }) => {
   const { environment } = buildCommonLocators(page);
@@ -557,7 +582,7 @@ test('should create and use environment variables', async ({ page, createTmpDir 
 npx playwright test --debug
 
 # Run specific test in debug mode
-npx playwright test --debug tests/common/home-screen.spec.ts
+npx playwright test --debug e2e/tests/common/home-screen.spec.ts
 ```
 
 ### Trace Analysis
@@ -572,36 +597,21 @@ npx playwright show-trace test-results/trace-*.zip
 
 ## Configuration
 
-The Playwright configuration is in `playwright.config.ts`:
+The Playwright configs stay at the repo root:
 
-```typescript
-export default defineConfig({
-  testDir: './tests',
-  fullyParallel: tue,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: undefined,
+- `playwright.config.ts` defines five projects, routed by folder under `e2e/tests/`:
 
-  projects: [
-    {
-      name: 'Bruno Electron App'
-    }
-  ],
+  | Project | Runs |
+  |---|---|
+  | `default` | everything except the folders below |
+  | `auth` | `e2e/tests/auth/` |
+  | `ssl` | `e2e/tests/ssl/` |
+  | `system-pac` | `e2e/tests/proxy/system-pac/` |
+  | `mock-server` | `e2e/tests/mock-server/` |
 
-  webServer: [
-    {
-      command: 'npm run dev:web',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI
-    },
-    {
-      command: 'npm start --workspace=packages/bruno-tests',
-      url: 'http://localhost:8081/ping',
-      reuseExistingServer: !process.env.CI
-    }
-  ]
-});
-```
+  It also starts the web dev server and the test API server (`packages/bruno-tests`, port 8081) before the run.
+- `playwright.benchmark.config.ts` runs the `*.bench.ts` files in `e2e/tests/benchmarks/`.
+- `playwright.merge.config.ts` merges sharded CI reports.
 
 ## Additional Resources
 

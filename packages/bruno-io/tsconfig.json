@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["node", "jest"],
+    "lib": ["ES2020"],
+    "typeRoots": ["../../node_modules/@types", "./node_modules/@types", "./src/types"],
+    "baseUrl": "../..",
+    "paths": {
+      "@usebruno/schema-types": ["packages/bruno-schema-types/dist/index.d.ts"],
+      "@usebruno/schema-types/*": ["packages/bruno-schema-types/dist/*"],
+      "@usebruno/common": ["packages/bruno-common/dist/index.d.ts"],
+      "@usebruno/common/utils": ["packages/bruno-common/dist/utils/index.d.ts"],
+      "@usebruno/common/*": ["packages/bruno-common/dist/*"],
+      "@usebruno/filestore": ["packages/bruno-filestore/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

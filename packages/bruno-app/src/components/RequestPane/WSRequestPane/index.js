@@ -19,11 +19,11 @@ import toast from 'react-hot-toast';
 import WsBody from '../WsBody/index';
 import StyledWrapper from './StyledWrapper';
 import WSAuth from './WSAuth';
-import WSAuthMode from './WSAuth/WSAuthMode';
 import WSSettingsPane from '../WSSettingsPane/index';
 import TabBarAiAssist from '../TabBarAiAssist';
 import { hasEffectiveAuth } from 'utils/auth';
-import { AUTH_MODES_WS } from 'utils/common/constants';
+import { AUTH_MODES_WS, REQUEST_BODY_EDITOR_CLASS } from 'utils/common/constants';
+import useKeybinding from 'hooks/useKeybinding';
 
 const WSRequestPane = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
@@ -104,6 +104,12 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
     }
   }, [body, dispatch, item.uid, collection.uid]);
 
+  useKeybinding('prettify', (e) => {
+    if (!e.target.closest(`.${REQUEST_BODY_EDITOR_CLASS}`)) return;
+    onPrettifyAll();
+    return false;
+  });
+
   const headers = getPropertyFromDraftOrRequest(item, 'request.headers');
   const docs = getPropertyFromDraftOrRequest(item, 'request.docs');
   const itemAuthMode = item.draft?.request?.auth?.mode ?? item.request?.auth?.mode ?? item.root?.request?.auth?.mode;
@@ -179,13 +185,6 @@ const WSRequestPane = ({ item, collection, handleRun }) => {
 
   let rightContent = null;
   switch (requestPaneTab) {
-    case 'auth':
-      rightContent = (
-        <div ref={rightContentRef} className="flex flex-grow justify-start items-center">
-          <WSAuthMode item={item} collection={collection} />
-        </div>
-      );
-      break;
     case 'docs':
       rightContent = (
         <div ref={rightContentRef} className="flex items-center gap-2">

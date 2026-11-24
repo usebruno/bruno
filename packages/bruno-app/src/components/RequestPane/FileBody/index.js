@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor/index';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import MultiLineEditor from 'components/MultiLineEditor';
+import { AUTOCOMPLETE_TRIGGER } from 'utils/common/constants';
 
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -112,7 +113,7 @@ const FileBody = ({ item, collection }) => {
                         displayMode="labelAndIcon"
                       />
                     </td>
-                    <td>
+                    <td data-testid="column-content-type">
                       <SingleLineEditor
                         className="flex items-center justify-center"
                         onSave={onSave}
@@ -131,6 +132,7 @@ const FileBody = ({ item, collection }) => {
                           )}
                         onRun={handleRun}
                         collection={collection}
+                        variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                       />
                     </td>
                     <td>
@@ -165,6 +167,7 @@ const FileBody = ({ item, collection }) => {
                         collection={collection}
                         item={item}
                         placeholder={!param.filePath && !param.description ? 'Description' : ''}
+                        variableAutocomplete={AUTOCOMPLETE_TRIGGER.DOUBLE_BRACE}
                       />
                     </td>
                     <td>

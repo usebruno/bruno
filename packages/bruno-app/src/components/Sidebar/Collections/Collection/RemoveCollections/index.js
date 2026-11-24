@@ -72,8 +72,8 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
 
   // Otherwise, show the standard remove confirmation modal
   return (
-    <StyledWrapper>
-      <Portal>
+    <Portal>
+      <StyledWrapper>
         <Modal
           size="sm"
           title={`Remove ${pluralizeWord('Collection', collections.length)}`}
@@ -91,7 +91,7 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
           <div className="collections-list-container">
             {collections.map((c) => (
               <div key={c.uid} className="collection-info-card">
-                <div className="collection-name">{c.name}</div>
+                <div className="collection-name" data-testid="remove-collection-name">{c.name}</div>
                 <div className="collection-path">{c.pathname}</div>
               </div>
             ))}
@@ -100,8 +100,8 @@ const RemoveCollections = ({ onClose, collectionUid, collectionUids }) => {
             {isMultiple ? 'They' : 'It'} will still be available in the filesystem at the above location and can be re-opened later.
           </p>
         </Modal>
-      </Portal>
-    </StyledWrapper>
+      </StyledWrapper>
+    </Portal>
   );
 };
 

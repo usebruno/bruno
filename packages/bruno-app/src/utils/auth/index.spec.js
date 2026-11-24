@@ -84,6 +84,14 @@ describe('auth-utils.resolveInheritedAuth', () => {
     expect(resolved.auth.mode).toBe('basic');
     expect(resolved.auth.basic.username).toBe('override');
   });
+
+  it('returns an empty merged request when auth is missing after a parse failure', () => {
+    const collection = buildCollection();
+    const item = { uid: 'broken', type: 'http-request', request: {}, partial: true };
+
+    expect(() => resolveInheritedAuth(item, collection)).not.toThrow();
+    expect(resolveInheritedAuth(item, collection)).toEqual({ });
+  });
 });
 
 describe('auth-utils.getEffectiveAuthSource', () => {
@@ -111,6 +119,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Folder',
+      uid: 'f1',
       auth: { mode: 'basic', basic: { username: 'user', password: 'pass' } }
     });
   });
@@ -125,6 +134,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -158,6 +168,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Parent',
+      uid: 'parent',
       auth: { mode: 'basic', basic: { username: 'p', password: 'p' } }
     });
   });
@@ -172,6 +183,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Folder',
+      uid: 'f1',
       auth: { mode: 'basic', basic: { username: 'user', password: 'pass' } }
     });
   });
@@ -205,6 +217,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'folder',
       name: 'Parent',
+      uid: 'parent',
       auth: { mode: 'basic', basic: { username: 'p', password: 'p' } }
     });
   });
@@ -230,6 +243,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -257,6 +271,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
@@ -289,6 +304,7 @@ describe('auth-utils.getEffectiveAuthSource', () => {
     expect(source).toEqual({
       type: 'collection',
       name: 'Collection',
+      uid: 'c1',
       auth: { mode: 'bearer', bearer: { token: 'COLLECTION_LEVEL_TOKEN' } }
     });
   });
