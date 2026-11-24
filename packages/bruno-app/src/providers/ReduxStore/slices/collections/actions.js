@@ -3732,8 +3732,10 @@ export const findCollectionsInClonedRepository = (dir) => async () => {
     pruneByName: false
   });
   return {
-    items: result.collections.map(({ path: pathname, name }) => ({ pathname, name })),
-    skippedItems: result.brokenCollectionPaths
+    items: result.collections
+      .map(({ path: pathname, name }) => ({ pathname, name }))
+      .sort((a, b) => a.pathname.localeCompare(b.pathname)),
+    skippedItems: [...result.brokenCollectionPaths].sort((a, b) => a.localeCompare(b))
   };
 };
 

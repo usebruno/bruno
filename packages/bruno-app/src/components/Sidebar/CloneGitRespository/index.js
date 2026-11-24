@@ -22,7 +22,7 @@ import StyledWrapper from './StyledWrapper';
 import SelectionList from 'components/SelectionList';
 import Button from 'ui/Button';
 import Select from 'ui/Select';
-import { getRepoNameFromUrl, isGitRepositoryUrl } from 'utils/git';
+import { getRepoNameFromUrl, hasUrlCredentials, isGitRepositoryUrl } from 'utils/git';
 import useDebounce from 'hooks/useDebounce';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
 import SkippedPathsWarning from 'components/SkippedPathsWarning';
@@ -30,16 +30,6 @@ import toast from 'react-hot-toast';
 import get from 'lodash/get';
 
 const EMPTY_BRANCH_LISTING = { branches: [], defaultBranch: '', loading: false, failed: false };
-
-// git logs the URL on failure, so a token in it (as user or password) must not reach the automatic listing
-const hasUrlCredentials = (url) => {
-  try {
-    const { protocol, username, password } = new URL(url);
-    return Boolean(password) || (Boolean(username) && protocol.startsWith('http'));
-  } catch {
-    return false;
-  }
-};
 
 const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange = () => {}, collectionRepositoryUrl = null, initialUrl = '', variant = 'modal' }) => {
   const [collectionPaths, setCollectionPaths] = useState([]);
@@ -201,7 +191,8 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
   }, [defaultLocation]);
 
   const debouncedRepositoryUrl = useDebounce(formik.values.repositoryUrl, 500);
-  const canListBranches = (url) => Boolean(collectionRepositoryUrl || isGitRepositoryUrl(url)) && !hasUrlCredentials(url);
+  // git logs the URL on failure, so a typed token must not reach the automatic listing
+  const canListBranches = (url) => Boolean(collectionRepositoryUrl) || (isGitRepositoryUrl(url) && !hasUrlCredentials(url));
 
   // while the typed URL is still debouncing, the last listing belongs to another repository
   const activeBranchListing = formik.values.repositoryUrl !== debouncedRepositoryUrl

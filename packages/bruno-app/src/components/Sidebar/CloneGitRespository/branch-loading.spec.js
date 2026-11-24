@@ -128,6 +128,17 @@ describe('CloneGitRepository branch loading', () => {
     expect(screen.getByTestId('clone-git-repository-branch-select')).toHaveTextContent('Repository default');
   });
 
+  it('still lists branches for a locked repository URL that carries credentials', async () => {
+    const LOCKED_URL = 'https://ghp_token@github.com/acme/api.git';
+    branchResponses[LOCKED_URL] = Promise.resolve({ branches: ['main', 'develop'], defaultBranch: 'develop' });
+    renderFlow({ collectionRepositoryUrl: LOCKED_URL });
+
+    await advance(0);
+
+    expect(branchListCalls()).toEqual([['renderer:list-remote-branches-for-url', { url: LOCKED_URL }]]);
+    expect(screen.getByTestId('clone-git-repository-branch-select')).toHaveTextContent('develop');
+  });
+
   it('keeps a typed URL when the default location changes after mount', async () => {
     const store = createStore();
     renderFlow({}, store);

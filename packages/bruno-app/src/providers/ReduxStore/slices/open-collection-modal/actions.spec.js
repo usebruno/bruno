@@ -19,6 +19,7 @@ import {
   openDroppedItems,
   pickCollectionFolders,
   saveAutoOpenFolderPicker,
+  setPageBusy,
   switchToCollection
 } from './actions';
 
@@ -407,6 +408,31 @@ describe('open collection modal actions', () => {
       expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents' });
     });
 
+    it.each([
+      ['opens a picked collection', pickedCollection],
+      ['lists the collections inside a folder', folderResult(
+        [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
+        [{ path: '/work/api', name: 'API' }]
+      )]
+    ])('drops a search that would have %s once a clone makes the page busy', async (_label, result) => {
+      const search = deferred();
+      searchReturns(search.promise);
+      openingReturns(Promise.resolve({ opened: ['/work/api'], failed: [], invalid: [] }));
+      const { store } = createStore({ modal: openOn('choose-folder') });
+
+      const searching = store.dispatch(findCollectionsInFolders(['/work']));
+      const { searchId } = modalState(store).chooseFolder;
+      store.dispatch(openCollectionModal('git'));
+      store.dispatch(setPageBusy(true));
+      search.resolve(result);
+      await searching;
+
+      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
+      expect(openMultipleCollections).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'git', pageBusy: true });
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', searchId: null, result: null });
+    });
+
     it('shows the collections found inside a folder', async () => {
       searchReturns(Promise.resolve(folderResult(
         [{ path: '/work', status: 'folder', collectionPaths: ['/work/api', '/work/open'], importableFiles: [] }],
@@ -570,6 +596,38 @@ describe('open collection modal actions', () => {
 
       expect(readImportableFile).toHaveBeenCalledWith(file);
       expect(modalState(store).page).toBe('import');
+    });
+
+    it('ignores a file named in a note while a clone keeps the page busy', async () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+      const file = { path: '/work/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+
+      await expect(store.dispatch(loadImportableFile(file))).resolves.toBeNull();
+
+      expect(readImportableFile).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'git' });
+    });
+  });
+
+  describe('setPageBusy', () => {
+    it('leaves a running folder search alone when the page becomes free', () => {
+      searchReturns(new Promise(() => {}));
+      const { store } = createStore({ modal: { ...openOn('choose-folder'), pageBusy: true } });
+      store.dispatch(findCollectionsInFolders(['/work']));
+
+      store.dispatch(setPageBusy(false));
+
+      expect(callIpc).not.toHaveBeenCalledWith(CANCEL_SEARCH, expect.anything());
+      expect(modalState(store)).toMatchObject({ pageBusy: false, chooseFolder: { status: 'searching' } });
+    });
+
+    it('marks the page busy without cancelling when no search runs', () => {
+      const { store } = createStore({ modal: openOn('git') });
+
+      store.dispatch(setPageBusy(true));
+
+      expect(callIpc).not.toHaveBeenCalled();
+      expect(modalState(store).pageBusy).toBe(true);
     });
   });
 

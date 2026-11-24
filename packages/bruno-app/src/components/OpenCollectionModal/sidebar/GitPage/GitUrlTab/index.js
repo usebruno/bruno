@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
-import { pageBusyChanged } from 'providers/ReduxStore/slices/open-collection-modal';
-import { openCollectionsFromModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { openCollectionsFromModal, setPageBusy } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 
 const GitUrlTab = ({ params, closeModal }) => {
   const dispatch = useDispatch();
@@ -20,7 +19,7 @@ const GitUrlTab = ({ params, closeModal }) => {
     if (!busy && !mountedRef.current) {
       return;
     }
-    dispatch(pageBusyChanged(busy));
+    dispatch(setPageBusy(busy));
   };
 
   return (

@@ -153,6 +153,29 @@ describe('collection actions', () => {
       });
     });
 
+    it('returns the collections and skipped paths sorted by path, whatever order the search found them in', async () => {
+      window.ipcRenderer.invoke.mockResolvedValue({
+        folders: [],
+        collections: [
+          { path: '/repos/api/services/users', name: 'Users' },
+          { path: '/repos/api/billing', name: 'Billing' },
+          { path: '/repos/api/services/orders', name: 'Orders' }
+        ],
+        brokenCollectionPaths: ['/repos/api/z-broken', '/repos/api/a-broken'],
+        unreadableFolderCount: 0,
+        stoppedEarly: false
+      });
+
+      const result = await findCollectionsInClonedRepository('/repos/api')();
+
+      expect(result.items.map(({ pathname }) => pathname)).toEqual([
+        '/repos/api/billing',
+        '/repos/api/services/orders',
+        '/repos/api/services/users'
+      ]);
+      expect(result.skippedItems).toEqual(['/repos/api/a-broken', '/repos/api/z-broken']);
+    });
+
     it('fails when the search fails', async () => {
       window.ipcRenderer.invoke.mockRejectedValue(new Error('disk failure'));
 

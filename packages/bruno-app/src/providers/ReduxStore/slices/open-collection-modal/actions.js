@@ -19,7 +19,8 @@ import {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  pageBusyChanged
 } from './index';
 import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
@@ -188,7 +189,17 @@ export const loadImportFiles = (files) => async (dispatch) => {
 
 export const loadImportUrl = (url) => loadImportData(() => readImportUrl(url));
 
-export const loadImportableFile = (file) => (dispatch) => {
+export const setPageBusy = (busy) => (dispatch, getState) => {
+  if (busy && getState().openCollectionModal.chooseFolder.searchId) {
+    dispatch(cancelCollectionSearch());
+  }
+  dispatch(pageBusyChanged(busy));
+};
+
+export const loadImportableFile = (file) => (dispatch, getState) => {
+  if (getState().openCollectionModal.pageBusy) {
+    return Promise.resolve(null);
+  }
   dispatch(showOpenCollectionPage(IMPORT_PAGE));
   return dispatch(loadImportData(() => readImportableFile(file)));
 };

@@ -1,4 +1,28 @@
-import { containsGitHubToken, getSafeGitRemoteUrls, isGitRepositoryUrl } from './index';
+import { containsGitHubToken, getSafeGitRemoteUrls, hasUrlCredentials, isGitRepositoryUrl } from './index';
+
+describe('hasUrlCredentials', () => {
+  it.each([
+    ['https://ghp_token@github.com/acme/api.git', true],
+    ['https://user:pass@github.com/acme/api.git', true],
+    ['http://user@example.com/acme/api.git', true],
+    ['  https://ghp_token@github.com/acme/api.git  ', true],
+    ['git+https://ghp_token@github.com/acme/api.git', true],
+    ['git://ghp_token@github.com/acme/api.git', true],
+    ['https://ghp_token@github.com:abc/acme/api.git', true],
+    ['https://ghp_token@github.com\\acme\\api.git', true],
+    ['ssh://git:ghp_token@github.com/acme/api.git', true],
+    ['user:pass@github.com:acme/api.git', true],
+    ['https://github.com/acme/api.git', false],
+    ['https://github.com/acme/api.git?ref=a@b', false],
+    ['ssh://git@github.com/acme/api.git', false],
+    ['git@github.com:acme/api.git', false],
+    ['github.com/acme/api', false],
+    ['', false],
+    [null, false]
+  ])('%p -> %p', (url, expected) => {
+    expect(hasUrlCredentials(url)).toBe(expected);
+  });
+});
 
 describe('containsGitHubToken', () => {
   test('should return true for a URL containing a GitHub token', () => {

@@ -45,6 +45,28 @@ export const getSafeGitRemoteUrls = (remotes = []) => {
   return safeRemoteUrls || [];
 };
 
+const URL_WITH_SCHEME = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
+const SCP_LIKE_URL = /^([^@/\s]+)@[^:/\s]+:/;
+
+// A user over ssh (git@host) is an account name; anywhere else, or with a password, it is a credential
+export const hasUrlCredentials = (url) => {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  const trimmedUrl = url.trim();
+  const schemeMatch = URL_WITH_SCHEME.exec(trimmedUrl);
+  if (schemeMatch) {
+    const [, scheme, authority] = schemeMatch;
+    const atIndex = authority.lastIndexOf('@');
+    if (atIndex === -1) {
+      return false;
+    }
+    return authority.slice(0, atIndex).includes(':') || !scheme.toLowerCase().includes('ssh');
+  }
+  const scpMatch = SCP_LIKE_URL.exec(trimmedUrl);
+  return Boolean(scpMatch && scpMatch[1].includes(':'));
+};
+
 export const isGitRepositoryUrl = (url) => {
   try {
     if (!url || typeof url !== 'string') {
