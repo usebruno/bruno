@@ -1,9 +1,9 @@
 const { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } = require('@jest/globals');
 const path = require('path');
-const http = require('http');
-const { runCollection } = require('../helpers/environments');
+const { startLocalServer } = require('../helpers/local-server');
+const { createFixtureSeeder } = require('../helpers/tmp-dir');
+const { runCollection } = require('../helpers/run-cli');
 const { stripAnsi } = require('../helpers/strip-ansi');
-const { copyFixtureToTmpDir, removeTmpDir } = require('../helpers/tmp-dir');
 
 // A CLI run spawns a fresh node process, which outruns jest's 5s default on a loaded CI box.
 const RUN_TIMEOUT = 60000;
@@ -21,37 +21,36 @@ const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not suppor
 describe('CLI run — gRPC and WebSocket requests are ignored', () => {
   const fixtureDir = path.join(__dirname, 'fixtures', 'collection');
 
+  const { seedFixture, removeSeededFixtures } = createFixtureSeeder();
+
   let server;
-  let baseUrl;
   let workDir;
   // Every URL the server received, so a test can tell which requests were really sent.
   let requestedUrls;
 
   beforeAll(async () => {
-    server = http.createServer((req, res) => {
+    server = await startLocalServer((req, res) => {
       requestedUrls.push(req.url);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     });
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    baseUrl = `http://127.0.0.1:${server.address().port}`;
   });
 
   afterAll(async () => {
-    await new Promise((resolve) => server.close(resolve));
+    await server.close();
   });
 
   beforeEach(() => {
     requestedUrls = [];
-    workDir = copyFixtureToTmpDir(fixtureDir, 'unsupported-request-types');
+    workDir = seedFixture(fixtureDir, 'unsupported-request-types');
   });
 
   afterEach(() => {
-    removeTmpDir(workDir);
+    removeSeededFixtures();
   });
 
   const run = async (...args) => {
-    const { stdout } = await runCollection(workDir, ['run', ...args, '--env-var', `host=${baseUrl}`]);
+    const { stdout } = await runCollection(workDir, ['run', ...args, '--env-var', `host=${server.baseUrl}`]);
     return stripAnsi(stdout);
   };
 
