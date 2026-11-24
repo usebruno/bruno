@@ -7,7 +7,8 @@ import StyledWrapper from './StyledWrapper';
 const TARGET_OPTIONS = [
   { value: 'header', label: 'Header' },
   { value: 'query', label: 'Query' },
-  { value: 'body', label: 'Body' }
+  { value: 'body', label: 'Body' },
+  { value: 'path', label: 'Path' }
 ];
 
 const toAssertionOperator = (value) => {
@@ -35,7 +36,8 @@ const DEFAULT_CONDITION = {
 const KEY_PLACEHOLDERS = {
   body: '$.user.type',
   query: 'page',
-  header: 'x-api-key'
+  header: 'x-api-key',
+  path: 'id'
 };
 
 const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {

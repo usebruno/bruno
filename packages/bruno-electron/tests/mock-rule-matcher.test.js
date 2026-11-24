@@ -360,4 +360,31 @@ describe('mock-rule-matcher', () => {
     expect(built.query.page).toBe('2');
     expect(built.body.ok).toBe(true);
   });
+
+  it('adds path params to the request context', () => {
+    expect(buildRequestContext({ headers: {} }).path).toEqual({});
+    expect(buildRequestContext({ headers: {} }, { id: '1' }).path).toEqual({ id: '1' });
+  });
+
+  it('evaluates path conditions against route params', () => {
+    const ctx = buildRequestContext({ headers: {}, query: {}, body: {} }, { id: '42', flag: 'true' });
+
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'eq', value: '42' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'eq', value: '7' }, ctx)).toBe(false);
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'isNumber' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'flag', operator: 'isTruthy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'ID', operator: 'isUndefined' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'missing', operator: 'eq', value: '42' }, ctx)).toBe(false);
+  });
+
+  it('selects the response whose path rule matches', () => {
+    const candidates = [
+      { responseUid: 'one', rules: { operator: 'AND', conditions: [{ target: 'path', key: 'id', operator: 'eq', value: '1' }] } },
+      { responseUid: 'fallback', rules: { operator: 'AND', conditions: [] } }
+    ];
+    const contextFor = (id) => buildRequestContext({ headers: {}, query: {}, body: {} }, { id });
+
+    expect(selectMatchingResponse(candidates, contextFor('1')).responseUid).toBe('one');
+    expect(selectMatchingResponse(candidates, contextFor('2')).responseUid).toBe('fallback');
+  });
 });

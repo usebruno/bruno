@@ -240,6 +240,14 @@ const queueLogBroadcast = (mockServerUid, entry) => {
   scheduleLogFlush();
 };
 
+const decodeSegment = (segment) => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+};
+
 const findParameterizedMatch = (routeMap, method, reqPath) => {
   const reqSegments = reqPath.split('/');
 
@@ -254,9 +262,16 @@ const findParameterizedMatch = (routeMap, method, reqPath) => {
       seg.startsWith(':') || seg === reqSegments[i]
     );
 
-    if (matches) return examples;
+    if (matches) {
+      const params = {};
+      routeSegments.forEach((seg, i) => {
+        if (seg.startsWith(':')) {
+          params[seg.slice(1)] = decodeSegment(reqSegments[i]);
+        }
+      });
+      return { examples, params };
+    }
   }
-
   return null;
 };
 
@@ -321,8 +336,11 @@ const handleRequest = (mockServerUid, req, res) => {
   const routeKey = `${method} ${reqPath}`;
 
   let examples = collection.routeMap.get(routeKey);
+  let pathParams = {};
   if (!examples) {
-    examples = findParameterizedMatch(collection.routeMap, method, reqPath);
+    const parameterized = findParameterizedMatch(collection.routeMap, method, reqPath);
+    examples = parameterized?.examples;
+    pathParams = parameterized?.params || {};
   }
 
   if (!examples || examples.length === 0) {
@@ -356,7 +374,7 @@ const handleRequest = (mockServerUid, req, res) => {
     return;
   }
 
-  const requestContext = buildRequestContext(req);
+  const requestContext = buildRequestContext(req, pathParams);
   const { selected, trace } = evaluateResponseCandidates(examples, requestContext);
   const matchTrace = { ...trace, routeKey };
 
@@ -760,5 +778,6 @@ module.exports = {
   checkPortAvailable,
   getRunningMockServerUids,
   reloadRoutesFromStore,
-  tryMockRequest
+  tryMockRequest,
+  findParameterizedMatch
 };

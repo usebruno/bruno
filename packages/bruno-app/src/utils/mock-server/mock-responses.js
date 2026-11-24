@@ -269,6 +269,14 @@ const demoBodyValue = (condition) => {
 
 const includeInDemo = (condition) => condition.operator !== 'isUndefined';
 
+const fillPathParams = (url, pathCondition) => url.split('/').map((segment) => {
+  if (!segment.startsWith(':')) {
+    return segment;
+  }
+  const condition = pathCondition.find((item) => item.key === segment.slice(1));
+  return condition ? encodeURIComponent(demoValueForCondition(condition)) : segment;
+}).join('/');
+
 export const buildDemoRequestFromRules = (request, rules) => {
   const conditions = (rules?.conditions || []).filter((condition) => condition?.key);
 
@@ -281,6 +289,7 @@ export const buildDemoRequestFromRules = (request, rules) => {
     .map((condition) => ({ name: condition.key, value: demoValueForCondition(condition), type: 'query', enabled: true }));
 
   const bodyConditions = conditions.filter((condition) => condition.target === 'body' && includeInDemo(condition));
+  const pathConditions = conditions.filter((condition) => condition.target === 'path' && includeInDemo(condition));
   let body = null;
   if (bodyConditions.length) {
     const bodyObject = {};
@@ -292,10 +301,11 @@ export const buildDemoRequestFromRules = (request, rules) => {
   }
 
   return {
-    url: extractMockRoutePath(request?.url || '/'),
+    url: fillPathParams(extractMockRoutePath(request?.url || '/'), pathConditions),
     method: (request?.method || 'GET').toUpperCase(),
     headers,
     params,
+    pathParams: pathConditions.map((condition) => ({ name: condition.key, value: demoValueForCondition(condition) })),
     body
   };
 };

@@ -49,6 +49,10 @@ const getActualValue = (condition, context) => {
     return getJsonPathValue(context.body, key);
   }
 
+  if (target === 'path') {
+    return context.path?.[key];
+  }
+
   return undefined;
 };
 
@@ -235,7 +239,7 @@ const redactActualValue = (key, actual) => {
   return isSensitiveName(key) ? REDACTED_VALUE : actual;
 };
 
-const STRING_TARGETS = ['header', 'query'];
+const STRING_TARGETS = ['header', 'query', 'path'];
 const TYPE_OPERATORS = new Set(['isNumber', 'isBoolean', 'isTruthy', 'isFalsy', 'isJson', 'isArray', 'isNull']);
 
 const typedActual = (condition, actual) => {
@@ -327,7 +331,7 @@ const evaluateRulesDetail = (rules, context) => {
   };
 };
 
-const buildRequestContext = (req) => {
+const buildRequestContext = (req, pathParams = {}) => {
   const headers = {};
   for (const [name, value] of Object.entries(req.headers || {})) {
     headers[name.toLowerCase()] = Array.isArray(value) ? value.join(', ') : String(value);
@@ -336,7 +340,8 @@ const buildRequestContext = (req) => {
   return {
     headers,
     query: req.query || {},
-    body: req.body
+    body: req.body,
+    path: pathParams
   };
 };
 

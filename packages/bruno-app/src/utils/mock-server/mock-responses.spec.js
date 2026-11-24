@@ -357,7 +357,37 @@ describe('buildDemoRequestFromRules', () => {
       method: 'GET',
       headers: [],
       params: [],
+      pathParams: [],
       body: null
     });
+  });
+
+  it('fills path params from path rules', () => {
+    const demo = buildDemoRequestFromRules({ url: '/todos/:id/items/:itemId', method: 'get' }, {
+      operator: 'AND',
+      conditions: [
+        { target: 'path', key: 'id', operator: 'eq', value: '1' },
+        { target: 'path', key: 'itemId', operator: 'eq', value: 'a b' }
+      ]
+    });
+
+    expect(demo.url).toBe('/todos/1/items/a%20b');
+    expect(demo.pathParams).toEqual([
+      { name: 'id', value: '1' },
+      { name: 'itemId', value: 'a b' }
+    ]);
+  });
+
+  it('keeps the template segment for path params without a usable rule', () => {
+    const demo = buildDemoRequestFromRules({ url: '/todos/:id/items/:itemId', method: 'get' }, {
+      operator: 'AND',
+      conditions: [
+        { target: 'path', key: 'id', operator: 'isUndefined' },
+        { target: 'path', key: 'other', operator: 'eq', value: '9' }
+      ]
+    });
+
+    expect(demo.url).toBe('/todos/:id/items/:itemId');
+    expect(demo.pathParams).toEqual([{ name: 'other', value: '9' }]);
   });
 });
