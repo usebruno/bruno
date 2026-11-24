@@ -8,7 +8,7 @@ const { copyFixtureToTmpDir, removeTmpDir } = require('../helpers/tmp-dir');
 // A CLI run spawns a fresh node process, which outruns jest's 5s default on a loaded CI box.
 const RUN_TIMEOUT = 60000;
 
-const UNSUPPORTED_REQUESTS_MESSAGE = 'GRPC and Websocket requests are not supported in CLI';
+const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not supported in CLI';
 
 // The fixture collection holds one request of each type:
 //
