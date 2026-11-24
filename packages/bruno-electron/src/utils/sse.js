@@ -30,8 +30,8 @@ const createSseEventExtractor = () => {
       }
 
       const events = [];
-      let boundaryEnd;
-      do {
+      let boundaryEnd = 1;
+      while (boundaryEnd > 0) {
         boundaryEnd = -1;
 
         let eventEnd = -1;
@@ -39,7 +39,7 @@ const createSseEventExtractor = () => {
 
         while (boundaryEnd < 0 && !waitingForLf && scanIndex < buffer.length) {
           const ch = buffer[scanIndex];
-          const isLastChar = scanIndex + 1 === buffer.length;
+          const isLastChar = (scanIndex + 1) === buffer.length;
           let termLen = 0;
 
           if (ch === '\n') {
@@ -75,7 +75,7 @@ const createSseEventExtractor = () => {
           scanIndex = 0;
           prevLineEndAt = -1;
         }
-      } while (boundaryEnd > 0);
+      }
 
       return events;
     }
