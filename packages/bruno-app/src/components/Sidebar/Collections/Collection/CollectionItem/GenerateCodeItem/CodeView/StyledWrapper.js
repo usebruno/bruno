@@ -51,9 +51,10 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.muted};
     cursor: pointer;
     padding: 4px;
+    /* Hidden with opacity (not visibility/display) so it stays in the tab order for keyboard users. */
     opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, visibility 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    pointer-events: none;
+    transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 
     &:hover {
       color: ${(props) => props.theme.text};
@@ -65,12 +66,12 @@ const StyledWrapper = styled.div`
     }
   }
 
-  /* Only reveal the copy button while the code block is hovered (or a keyboard user focuses into it),
+  /* Only reveal the copy button while the code block is hovered (or the button / editor has keyboard focus),
      so it never permanently covers the snippet. */
   &:hover .copy-to-clipboard,
   &:focus-within .copy-to-clipboard {
     opacity: 1;
-    visibility: visible;
+    pointer-events: auto;
   }
 `;
 
