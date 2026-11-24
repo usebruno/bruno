@@ -10,7 +10,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
 import openCollectionModalReducer, { hideOpenCollectionModal, pageBusyChanged } from 'providers/ReduxStore/slices/open-collection-modal';
-import { cloneGitRepository, openMultipleCollections, scanForBrunoFiles } from 'providers/ReduxStore/slices/collections/actions';
+import { cloneGitRepository, findCollectionsInClonedRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import GitUrlTab from './GitUrlTab';
 import GitPage from './index';
 
@@ -26,8 +26,8 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectory: jest.fn(),
   cloneGitRepository: jest.fn(),
   fetchBranchesForRepositoryUrl: jest.fn(() => () => Promise.resolve({ branches: [], defaultBranch: '' })),
-  openMultipleCollections: jest.fn(),
-  scanForBrunoFiles: jest.fn()
+  findCollectionsInClonedRepository: jest.fn(),
+  openMultipleCollections: jest.fn()
 }));
 
 const SOURCE_URL = 'https://gitlab.com/acme/api.git';
@@ -206,7 +206,7 @@ describe('GitPage', () => {
     cloneGitRepository.mockImplementation(() => () => new Promise((resolve) => {
       finishClone = resolve;
     }));
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
+    findCollectionsInClonedRepository.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
     const store = renderPage();
     const pageBusy = () => store.getState().openCollectionModal.pageBusy;
 
@@ -227,7 +227,7 @@ describe('GitPage', () => {
     cloneGitRepository.mockImplementation(() => () => new Promise((resolve) => {
       finishers.push(resolve);
     }));
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
+    findCollectionsInClonedRepository.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
     const store = createModalStore();
     const pageBusy = () => store.getState().openCollectionModal.pageBusy;
     const startClone = async () => {
@@ -277,7 +277,7 @@ describe('GitPage', () => {
   it('opens the selected collections after the clone and closes the modal once', async () => {
     const collection = { name: 'Orders API', pathname: '/home/user/collections/api/orders' };
     cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [collection], skippedItems: [] }));
+    findCollectionsInClonedRepository.mockImplementation(() => () => Promise.resolve({ items: [collection], skippedItems: [] }));
     openMultipleCollections.mockImplementation((paths) => () => Promise.resolve({ opened: paths, failed: [], invalid: [] }));
     const store = renderPage();
 

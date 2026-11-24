@@ -3725,6 +3725,18 @@ export const scanForBrunoFiles = (dir) => (dispatch, getState) => {
   });
 };
 
+export const findCollectionsInClonedRepository = (dir) => async () => {
+  const result = await callIpc('renderer:collection-search:find-in-folders', {
+    requestId: uuid(),
+    paths: [dir],
+    pruneByName: false
+  });
+  return {
+    items: result.collections.map(({ path: pathname, name }) => ({ pathname, name })),
+    skippedItems: result.brokenCollectionPaths
+  };
+};
+
 export const revealItemInSidebar = ({ collectionUid, itemUid, expandTarget = false }) => (dispatch, getState) => {
   const collection = findCollectionByUid(getState().collections.collections, collectionUid);
   if (!collection) {

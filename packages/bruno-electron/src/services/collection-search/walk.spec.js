@@ -103,6 +103,21 @@ describe('CollectionWalker', () => {
     expect(foundPaths(walker)).toEqual([kept]);
   });
 
+  it('searches hidden and build folders but still skips .git and node_modules when name pruning is off', async () => {
+    makeCollection('bruno.json', '.git', 'hooks', 'collection');
+    makeCollection('bruno.json', 'node_modules', 'package', 'collection');
+    const kept = [
+      makeCollection('bruno.json', '.hidden', 'collection'),
+      makeCollection('bruno.json', 'build', 'collection'),
+      makeCollection('bruno.json', 'dist', 'collection'),
+      makeCollection('bruno.json', 'Tool.app', 'collection')
+    ];
+
+    const walker = await walk(tempDir, { pruneByName: false });
+
+    expect(foundPaths(walker)).toEqual(kept.sort());
+  });
+
   it('searches folders that are only named like Linux system folders', async () => {
     const collections = ['dev', 'proc', 'sys'].map((name) => makeCollection('bruno.json', name, 'payments'));
 

@@ -1,4 +1,10 @@
-import { newHttpRequest, revealItemInSidebar, revealTabInSidebar, tryResponseExample } from './actions';
+import {
+  findCollectionsInClonedRepository,
+  newHttpRequest,
+  revealItemInSidebar,
+  revealTabInSidebar,
+  tryResponseExample
+} from './actions';
 
 const mockUuid = jest.fn();
 
@@ -123,6 +129,36 @@ describe('collection actions', () => {
   });
 
   const makeGetState = (collection) => () => ({ collections: { collections: [collection] } });
+
+  describe('findCollectionsInClonedRepository', () => {
+    it('searches the cloned folder without name pruning and returns the collections and the broken collection paths', async () => {
+      window.ipcRenderer.invoke.mockResolvedValue({
+        folders: [],
+        collections: [{ path: '/repos/api/payments', name: 'Payments' }],
+        brokenCollectionPaths: ['/repos/api/broken'],
+        unreadableFolderCount: 0,
+        stoppedEarly: false
+      });
+
+      const result = await findCollectionsInClonedRepository('/repos/api')();
+
+      expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:collection-search:find-in-folders', {
+        requestId: 'request-uid',
+        paths: ['/repos/api'],
+        pruneByName: false
+      });
+      expect(result).toEqual({
+        items: [{ pathname: '/repos/api/payments', name: 'Payments' }],
+        skippedItems: ['/repos/api/broken']
+      });
+    });
+
+    it('fails when the search fails', async () => {
+      window.ipcRenderer.invoke.mockRejectedValue(new Error('disk failure'));
+
+      await expect(findCollectionsInClonedRepository('/repos/api')()).rejects.toThrow('disk failure');
+    });
+  });
 
   describe('revealItemInSidebar', () => {
     it('expands the collapsed collection and every ancestor folder, leaving the target alone', () => {

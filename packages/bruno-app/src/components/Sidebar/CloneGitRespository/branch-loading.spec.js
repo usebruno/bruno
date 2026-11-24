@@ -9,7 +9,8 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
-import { cloneGitRepository, openMultipleCollections, scanForBrunoFiles } from 'providers/ReduxStore/slices/collections/actions';
+import path from 'utils/common/path';
+import { cloneGitRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import CloneGitRepository from './index';
 
 const mockListBranches = (url) => window.ipcRenderer.invoke('renderer:list-remote-branches-for-url', { url });
@@ -18,9 +19,12 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectory: jest.fn(),
   cloneGitRepository: jest.fn(),
   fetchBranchesForRepositoryUrl: (url) => () => mockListBranches(url),
-  openMultipleCollections: jest.fn(),
-  scanForBrunoFiles: jest.fn()
+  findCollectionsInClonedRepository: jest.requireActual('providers/ReduxStore/slices/collections/actions')
+    .findCollectionsInClonedRepository,
+  openMultipleCollections: jest.fn()
 }));
+
+const COLLECTION_SEARCH_CHANNEL = 'renderer:collection-search:find-in-folders';
 
 const API_URL = 'https://github.com/acme/api.git';
 const OTHER_URL = 'https://github.com/acme/web.git';
@@ -74,6 +78,7 @@ const branchListCalls = () =>
 
 describe('CloneGitRepository branch loading', () => {
   let branchResponses;
+  let collectionSearchResult;
 
   beforeAll(() => {
     window.HTMLElement.prototype.scrollIntoView = jest.fn();
@@ -83,8 +88,12 @@ describe('CloneGitRepository branch loading', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     branchResponses = {};
+    collectionSearchResult = { folders: [], collections: [], brokenCollectionPaths: [], unreadableFolderCount: 0, stoppedEarly: false };
     window.ipcRenderer = {
-      invoke: jest.fn((channel, { url }) => branchResponses[url] || Promise.resolve({ branches: [], defaultBranch: '' }))
+      invoke: jest.fn((channel, { url }) =>
+        channel === COLLECTION_SEARCH_CHANNEL
+          ? Promise.resolve(collectionSearchResult)
+          : branchResponses[url] || Promise.resolve({ branches: [], defaultBranch: '' }))
     };
   });
 
@@ -137,7 +146,6 @@ describe('CloneGitRepository branch loading', () => {
     const SSH_URL = 'git@github.com:acme/api.git';
     branchResponses[SSH_URL] = Promise.resolve({ branches: ['main', 'develop'], defaultBranch: 'main' });
     cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
     renderFlow();
 
     typeUrl(SSH_URL);
@@ -292,7 +300,6 @@ describe('CloneGitRepository branch loading', () => {
   it('clones with the picked branch', async () => {
     branchResponses[API_URL] = Promise.resolve({ branches: ['main', 'develop'], defaultBranch: 'main' });
     cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
     renderFlow();
 
     typeUrl(API_URL);
@@ -312,7 +319,6 @@ describe('CloneGitRepository branch loading', () => {
   it('clones with the repository default when Clone is pressed before the new branch list loads', async () => {
     branchResponses[API_URL] = Promise.resolve({ branches: ['main', 'develop'], defaultBranch: 'main' });
     cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
     renderFlow();
 
     typeUrl(API_URL);
@@ -328,21 +334,21 @@ describe('CloneGitRepository branch loading', () => {
 
   it('lists the collections found after clone', async () => {
     cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-    scanForBrunoFiles.mockImplementation(() => () =>
-      Promise.resolve({
-        items: [
-          { name: 'Orders API', pathname: '/home/user/collections/api/orders' },
-          { name: 'Billing API', pathname: '/home/user/collections/api/billing' }
-        ],
-        skippedItems: []
-      })
-    );
+    collectionSearchResult.collections = [
+      { name: 'Orders API', path: '/home/user/collections/api/orders' },
+      { name: 'Billing API', path: '/home/user/collections/api/billing' }
+    ];
     renderFlow({ initialUrl: API_URL });
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
     });
 
+    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(COLLECTION_SEARCH_CHANNEL, {
+      requestId: expect.any(String),
+      paths: [path.join('/home/user/collections', 'api')],
+      pruneByName: false
+    });
     expect(screen.getByText('Orders API')).toBeInTheDocument();
     expect(screen.getByText('Billing API')).toBeInTheDocument();
     expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Open');
@@ -351,12 +357,7 @@ describe('CloneGitRepository branch loading', () => {
   describe('collections list height', () => {
     const cloneAndScan = async (confirm) => {
       cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-      scanForBrunoFiles.mockImplementation(() => () =>
-        Promise.resolve({
-          items: [{ name: 'Orders API', pathname: '/home/user/collections/api/orders' }],
-          skippedItems: []
-        })
-      );
+      collectionSearchResult.collections = [{ name: 'Orders API', path: '/home/user/collections/api/orders' }];
       await act(async () => {
         fireEvent.click(confirm());
       });
@@ -381,13 +382,14 @@ describe('CloneGitRepository branch loading', () => {
   });
 
   describe('after the scan', () => {
-    const ORDERS = { name: 'Orders API', pathname: '/home/user/collections/api/orders' };
-    const BILLING = { name: 'Billing API', pathname: '/home/user/collections/api/billing' };
+    const ORDERS = { name: 'Orders API', path: '/home/user/collections/api/orders' };
+    const BILLING = { name: 'Billing API', path: '/home/user/collections/api/billing' };
     const BROKEN_PATH = '/home/user/collections/api/broken';
 
-    const cloneAndScan = async ({ items = [ORDERS, BILLING], skippedItems = [], confirm = 'clone-git-inline-confirm' } = {}) => {
+    const cloneAndScan = async ({ collections = [ORDERS, BILLING], skippedPaths = [], confirm = 'clone-git-inline-confirm' } = {}) => {
       cloneGitRepository.mockImplementation(() => () => Promise.resolve());
-      scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items, skippedItems }));
+      collectionSearchResult.collections = collections;
+      collectionSearchResult.brokenCollectionPaths = skippedPaths;
       await act(async () => {
         fireEvent.click(typeof confirm === 'string' ? screen.getByTestId(confirm) : confirm());
       });
@@ -395,7 +397,7 @@ describe('CloneGitRepository branch loading', () => {
 
     it('lists the skipped paths under View Details', async () => {
       renderFlow({ initialUrl: API_URL });
-      await cloneAndScan({ items: [ORDERS], skippedItems: [BROKEN_PATH] });
+      await cloneAndScan({ collections: [ORDERS], skippedPaths: [BROKEN_PATH] });
 
       expect(screen.getByText('1 collections were skipped because their config could not be read.')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'View Details' }));
@@ -406,7 +408,7 @@ describe('CloneGitRepository branch loading', () => {
 
     it('shows only the skipped paths and the no-collections message when every collection was skipped', async () => {
       renderFlow({ initialUrl: API_URL });
-      await cloneAndScan({ items: [], skippedItems: [BROKEN_PATH] });
+      await cloneAndScan({ collections: [], skippedPaths: [BROKEN_PATH] });
 
       fireEvent.click(screen.getByRole('button', { name: 'View Details' }));
 
@@ -417,7 +419,7 @@ describe('CloneGitRepository branch loading', () => {
 
     it('offers only Close when the inline variant finds no collections', async () => {
       renderFlow({ initialUrl: API_URL });
-      await cloneAndScan({ items: [] });
+      await cloneAndScan({ collections: [] });
 
       expect(screen.getByText('No Bruno collections were found in this repository.')).toBeInTheDocument();
       expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Close');
@@ -435,7 +437,7 @@ describe('CloneGitRepository branch loading', () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
 
       expect(onOpenCollections).toHaveBeenCalledTimes(1);
-      expect(onOpenCollections).toHaveBeenCalledWith([BILLING.pathname]);
+      expect(onOpenCollections).toHaveBeenCalledWith([BILLING.path]);
       expect(openMultipleCollections).not.toHaveBeenCalled();
       expect(onClose).not.toHaveBeenCalled();
       expect(onFinish).not.toHaveBeenCalled();
@@ -451,7 +453,7 @@ describe('CloneGitRepository branch loading', () => {
       fireEvent.click(screen.getByText('Orders API'));
       fireEvent.click(screen.getByRole('button', { name: 'Open' }));
 
-      expect(openMultipleCollections).toHaveBeenCalledWith([ORDERS.pathname]);
+      expect(openMultipleCollections).toHaveBeenCalledWith([ORDERS.path]);
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onFinish).toHaveBeenCalledTimes(1);
     });

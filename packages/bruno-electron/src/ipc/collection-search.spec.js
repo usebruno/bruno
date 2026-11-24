@@ -71,6 +71,28 @@ describe('collection search IPC', () => {
     });
   });
 
+  it('passes the name pruning option on', async () => {
+    findCollectionsInFolders.mockResolvedValue({ folders: [] });
+
+    await findInFolders({ requestId: 'search-6', paths: [pickedFolder], pruneByName: false }, sender);
+
+    expect(findCollectionsInFolders).toHaveBeenCalledWith([pickedFolder], {
+      signal: expect.any(AbortSignal),
+      excludedFolders: ['/app-data/tmp/transient'],
+      pruneByName: false
+    });
+  });
+
+  it.each([
+    ['a name pruning option that is not true or false', { pruneByName: 'no' }],
+    ['a name pruning option that is null', { pruneByName: null }]
+  ])('rejects a request with %s', async (_label, options) => {
+    await expect(findInFolders({ requestId: 'search-7', paths: [pickedFolder], ...options }, sender)).rejects.toThrow(
+      'A folder search option must be true or false'
+    );
+    expect(findCollectionsInFolders).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['no request', undefined],
     ['no request id', { paths: [pickedFolder] }],

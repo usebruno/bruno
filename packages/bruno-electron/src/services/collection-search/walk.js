@@ -11,6 +11,7 @@ const PRUNED_FOLDER_NAMES = new Set([
   'node_modules', 'bower_components', 'venv', '__pycache__', 'dist', 'build', 'target', 'out',
   'Library', 'AppData', '$Recycle.Bin', 'System Volume Information', 'Applications', 'CMakeFiles'
 ]);
+const ALWAYS_SKIPPED_FOLDER_NAMES = new Set(['.git', 'node_modules']);
 const LINUX_ROOT_SYSTEM_FOLDERS = new Set(['proc', 'sys', 'dev']);
 const PRUNED_FOLDER_SUFFIXES = ['.app', '.framework', '.xcodeproj'];
 
@@ -41,11 +42,12 @@ const isCollectionFolder = async (folderPath) => {
 };
 
 class CollectionWalker {
-  constructor({ signal, maxFolders, excludedKeys = [], skippedMountPoints = new Set() }) {
+  constructor({ signal, maxFolders, excludedKeys = [], skippedMountPoints = new Set(), pruneByName = true }) {
     this.signal = signal;
     this.maxFolders = maxFolders;
     this.excludedKeys = excludedKeys;
     this.skippedMountKeys = new Set([...skippedMountPoints].map(toPathKey));
+    this.pruneByName = pruneByName;
     this.visitedKeys = new Set();
     this.collections = [];
     this.folderCount = 0;
@@ -114,7 +116,7 @@ class CollectionWalker {
     const subfolders = [];
     const skippedFolders = [];
     children.forEach((child, index) => {
-      if (isFolder[index] && !isPrunedFolderName(child.entry.name, realPath)) {
+      if (isFolder[index] && !this.isSkippedFolderName(child.entry.name, realPath)) {
         subfolders.push({ folderPath: child.folderPath, realPath: child.realPath });
       } else if (isFolder[index] || child.entry.isSymbolicLink()) {
         skippedFolders.push(child);
@@ -138,6 +140,10 @@ class CollectionWalker {
     this.collections.push(isLink
       ? { path: collectionRealPath, key, linkKey: toPathKey(realPath) }
       : { path: folderPath, key });
+  }
+
+  isSkippedFolderName(name, parentRealPath) {
+    return this.pruneByName ? isPrunedFolderName(name, parentRealPath) : ALWAYS_SKIPPED_FOLDER_NAMES.has(name);
   }
 
   isExcluded(key) {

@@ -7,8 +7,8 @@ import {
   browseDirectory,
   cloneGitRepository,
   fetchBranchesForRepositoryUrl,
-  openMultipleCollections,
-  scanForBrunoFiles
+  findCollectionsInClonedRepository,
+  openMultipleCollections
 } from 'providers/ReduxStore/slices/collections/actions';
 import { removeGitOperationProgress } from 'providers/ReduxStore/slices/app';
 import Modal from 'components/Modal';
@@ -181,7 +181,7 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
         dispatch(removeGitOperationProgress(processUid));
 
         scanInProgress();
-        const scanResult = await dispatch(scanForBrunoFiles(targetPath));
+        const scanResult = await dispatch(findCollectionsInClonedRepository(targetPath));
 
         scanFinished();
         setCollectionPaths(scanResult?.items || []);

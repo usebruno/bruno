@@ -15,8 +15,8 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectory: jest.fn(),
   cloneGitRepository: jest.fn(),
   fetchBranchesForRepositoryUrl: jest.fn(() => () => Promise.resolve({ branches: [], defaultBranch: '' })),
-  openMultipleCollections: jest.fn(),
-  scanForBrunoFiles: jest.fn()
+  findCollectionsInClonedRepository: jest.fn(),
+  openMultipleCollections: jest.fn()
 }));
 
 const createStore = () =>
