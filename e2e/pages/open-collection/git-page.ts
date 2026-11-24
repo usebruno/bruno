@@ -53,13 +53,18 @@ export const isGitPagePanelScrollable = (page: Page): Promise<boolean> =>
     .panel()
     .evaluate((element) => element.scrollHeight > element.clientHeight);
 
-export const countCollectionRowsInView = (page: Page): Promise<number> =>
-  buildGitPageLocators(page)
-    .collectionRows()
-    .evaluateAll((rows) => {
-      const viewportHeight = window.innerHeight;
-      return rows.filter((row) => {
-        const rect = row.getBoundingClientRect();
-        return rect.top >= 0 && rect.bottom <= viewportHeight;
-      }).length;
-    });
+export const countCollectionRowsInView = async (page: Page): Promise<number> => {
+  const locators = buildGitPageLocators(page);
+  const listBox = await locators.collectionList().boundingBox();
+  if (!listBox) {
+    return 0;
+  }
+  return locators.collectionRows().evaluateAll((rows, list) => {
+    const top = Math.max(0, list.y);
+    const bottom = Math.min(window.innerHeight, list.y + list.height);
+    return rows.filter((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.top >= top && rect.bottom <= bottom;
+    }).length;
+  }, listBox);
+};

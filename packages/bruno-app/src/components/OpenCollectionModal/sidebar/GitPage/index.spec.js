@@ -9,7 +9,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
-import openCollectionModalReducer, { hideOpenCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal';
+import openCollectionModalReducer, { hideOpenCollectionModal, pageBusyChanged } from 'providers/ReduxStore/slices/open-collection-modal';
 import { cloneGitRepository, openMultipleCollections, scanForBrunoFiles } from 'providers/ReduxStore/slices/collections/actions';
 import GitUrlTab from './GitUrlTab';
 import GitPage from './index';
@@ -38,8 +38,8 @@ const OpensGitUrlTab = ({ openTab }) => (
   </button>
 );
 
-const renderPage = (modal = {}) => {
-  const store = configureStore({
+const createModalStore = (modal = {}) =>
+  configureStore({
     reducer: {
       app: () => ({ gitVersion: '2.40.0', gitOperationProgress: {}, preferences: { general: { defaultLocation: '/home/user/collections' } } }),
       workspaces: () => ({ workspaces: [], activeWorkspaceUid: null }),
@@ -50,6 +50,8 @@ const renderPage = (modal = {}) => {
       openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: 'git', ...modal }
     }
   });
+
+const renderPageWithStore = (store) =>
   render(
     <Provider store={store}>
       <ThemeProvider theme={themes.light}>
@@ -57,6 +59,10 @@ const renderPage = (modal = {}) => {
       </ThemeProvider>
     </Provider>
   );
+
+const renderPage = (modal = {}) => {
+  const store = createModalStore(modal);
+  renderPageWithStore(store);
   return store;
 };
 
@@ -212,6 +218,44 @@ describe('GitPage', () => {
 
     await act(async () => {
       finishClone();
+    });
+    expect(pageBusy()).toBe(false);
+  });
+
+  it('keeps the page busy for a second clone when a clone from a closed Git page ends', async () => {
+    const finishers = [];
+    cloneGitRepository.mockImplementation(() => () => new Promise((resolve) => {
+      finishers.push(resolve);
+    }));
+    scanForBrunoFiles.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
+    const store = createModalStore();
+    const pageBusy = () => store.getState().openCollectionModal.pageBusy;
+    const startClone = async () => {
+      fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: SOURCE_URL } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+      });
+    };
+
+    const first = renderPageWithStore(store);
+    await startClone();
+    expect(pageBusy()).toBe(true);
+
+    first.unmount();
+    act(() => {
+      store.dispatch(pageBusyChanged(false));
+    });
+    renderPageWithStore(store);
+    await startClone();
+    expect(pageBusy()).toBe(true);
+
+    await act(async () => {
+      finishers[0]();
+    });
+    expect(pageBusy()).toBe(true);
+
+    await act(async () => {
+      finishers[1]();
     });
     expect(pageBusy()).toBe(false);
   });
