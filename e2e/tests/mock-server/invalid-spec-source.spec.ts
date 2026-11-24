@@ -5,11 +5,9 @@ import { waitForReadyPage } from '../../utils';
 import { buildMockServerLocators, openCreateMockServerModal } from '../../pages';
 import { buildApiSpecPanelLocators, openApiSpecFromDialog } from '../../pages/api-spec';
 
-// The Mock Servers sidebar section is behind a beta flag.
 const PREFERENCES = JSON.stringify({
   preferences: {
-    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true },
-    beta: { 'mock-server': true }
+    onboarding: { hasLaunchedBefore: true, hasSeenWelcomeModal: true }
   }
 });
 
