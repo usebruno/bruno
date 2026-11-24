@@ -45,7 +45,8 @@ import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import CollectionItemInfo from '../CollectionItemInfo/index';
 import CollectionItemIcon from '../CollectionItemIcon';
-import InvalidFilesBadge from '../../InvalidFilesBadge';
+// Temporarily disabled: invalid file counts
+// import InvalidFilesBadge from '../../InvalidFilesBadge';
 import ExampleIcon from 'components/Icons/ExampleIcon';
 import {
   getTabUidForItem as getTabUidForItemSelector,
@@ -58,8 +59,8 @@ import {
   getInitialExampleName,
   findParentItemInCollection,
   getSortedDraggedItems,
-  isCollectionItemCollapsed,
-  countInvalidItems
+  isCollectionItemCollapsed
+  // Temporarily disabled: invalid file counts: countInvalidItems
 } from 'utils/collections/index';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 import CreateExampleModal from 'components/ResponseExample/CreateExampleModal';
@@ -132,7 +133,8 @@ const CollectionItemRow = ({
   const hasSearchText = searchText && searchText?.trim()?.length;
   const itemIsCollapsed = hasSearchText ? false : isCollectionItemCollapsed(item);
   const isFolder = isItemAFolder(item);
-  const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
+  // Temporarily disabled: invalid file counts
+  // const invalidItemCount = useMemo(() => (isFolder ? countInvalidItems(item.items) : 0), [isFolder, item.items]);
 
   const isCloneable = isFolder || isItemARequest(item) || item.type === 'app';
 
@@ -812,7 +814,9 @@ const CollectionItemRow = ({
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>
+              {/* Temporarily disabled: invalid file counts
               <InvalidFilesBadge count={invalidItemCount} collectionUid={collectionUid} rowUid={item.uid} />
+              */}
             </div>
           </div>
           {!isDragging && !isMultiSelected && (
