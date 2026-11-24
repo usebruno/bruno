@@ -36,6 +36,9 @@ const mapInBatches = async (items, mapItem, signal) => {
   return results;
 };
 
+const isFoundInside = (folderKey, collection) =>
+  isSameOrInside(folderKey, collection.key) || Boolean(collection.linkKey && isSameOrInside(folderKey, collection.linkKey));
+
 const getFolderStatus = (ownCollection) => {
   if (!ownCollection) {
     return 'folder';
@@ -50,7 +53,7 @@ const summarizeFolder = async (folder, collections, isOnlyFolder) => {
   const ownCollections = collections.filter((collection) => collection.key === folder.key);
   const found = ownCollections.length > 0
     ? ownCollections
-    : collections.filter((collection) => isSameOrInside(folder.key, collection.key));
+    : collections.filter((collection) => isFoundInside(folder.key, collection));
   return {
     path: folder.path,
     status: getFolderStatus(ownCollections[0]),

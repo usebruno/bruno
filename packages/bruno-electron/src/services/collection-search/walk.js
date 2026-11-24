@@ -34,6 +34,12 @@ const isPrunedFolderName = (name, parentRealPath) =>
 const hasCollectionConfig = (entries) =>
   entries.some((entry) => COLLECTION_CONFIG_FILES.includes(entry.name) && (entry.isFile() || entry.isSymbolicLink()));
 
+const isCollectionFolder = async (folderPath) => {
+  const configFiles = await Promise.all(COLLECTION_CONFIG_FILES.map((file) =>
+    fs.stat(path.join(folderPath, file)).then((stats) => stats.isFile(), () => false)));
+  return configFiles.includes(true);
+};
+
 class CollectionWalker {
   constructor({ signal, maxFolders, excludedKeys = [], skippedMountPoints = new Set() }) {
     this.signal = signal;
@@ -74,7 +80,7 @@ class CollectionWalker {
 
   async visit({ folderPath, realPath }, isRoot = false) {
     const key = toPathKey(realPath);
-    if (this.visitedKeys.has(key) || this.excludedKeys.some((excludedKey) => isSameOrInside(excludedKey, key))) {
+    if (this.visitedKeys.has(key) || this.isExcluded(key)) {
       return [];
     }
     if (!isRoot && this.folderCount >= this.maxFolders) {
@@ -101,12 +107,45 @@ class CollectionWalker {
       return [];
     }
 
-    const candidates = entries.filter((entry) =>
-      !isPrunedFolderName(entry.name, realPath) && !this.skippedMountKeys.has(toPathKey(path.join(realPath, entry.name))));
-    const isFolder = await Promise.all(candidates.map((entry) => isRealFolder(entry, path.join(folderPath, entry.name))));
-    return candidates
-      .filter((_entry, index) => isFolder[index])
-      .map((entry) => ({ folderPath: path.join(folderPath, entry.name), realPath: path.join(realPath, entry.name) }));
+    const children = entries
+      .map((entry) => ({ entry, folderPath: path.join(folderPath, entry.name), realPath: path.join(realPath, entry.name) }))
+      .filter((child) => !this.skippedMountKeys.has(toPathKey(child.realPath)));
+    const isFolder = await Promise.all(children.map((child) => isRealFolder(child.entry, child.folderPath)));
+    const subfolders = [];
+    const skippedFolders = [];
+    children.forEach((child, index) => {
+      if (isFolder[index] && !isPrunedFolderName(child.entry.name, realPath)) {
+        subfolders.push({ folderPath: child.folderPath, realPath: child.realPath });
+      } else if (isFolder[index] || child.entry.isSymbolicLink()) {
+        skippedFolders.push(child);
+      }
+    });
+    await Promise.all(skippedFolders.map((child) => this.addIfCollection(child)));
+    return subfolders;
+  }
+
+  async addIfCollection({ entry, folderPath, realPath }) {
+    const isLink = entry.isSymbolicLink();
+    const collectionRealPath = isLink ? await getRealPath(folderPath).catch(() => null) : realPath;
+    if (!collectionRealPath) {
+      return;
+    }
+    const key = toPathKey(collectionRealPath);
+    if (this.isExcluded(key) || (isLink && this.isOnSkippedMount(key)) || !(await isCollectionFolder(folderPath)) || this.visitedKeys.has(key)) {
+      return;
+    }
+    this.visitedKeys.add(key);
+    this.collections.push(isLink
+      ? { path: collectionRealPath, key, linkKey: toPathKey(realPath) }
+      : { path: folderPath, key });
+  }
+
+  isExcluded(key) {
+    return this.excludedKeys.some((excludedKey) => isSameOrInside(excludedKey, key));
+  }
+
+  isOnSkippedMount(key) {
+    return [...this.skippedMountKeys].some((mountKey) => isSameOrInside(mountKey, key));
   }
 
   async getOpenablePath(folderPath, realPath) {

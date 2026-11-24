@@ -140,16 +140,48 @@ describe('CollectionWalker', () => {
     expect(foundPaths(walker)).toEqual([collection]);
   });
 
-  it('does not follow folder links', async () => {
-    makeCollection('bruno.json', 'elsewhere', 'linked');
+  it('lists a skipped folder that is a collection itself, without searching inside it', async () => {
+    const hidden = makeCollection('opencollection.yml', '.bruno');
+    const build = makeCollection('bruno.json', 'build');
+    makeCollection('bruno.json', 'node_modules', 'package');
+    makeCollection('bruno.json', '.hidden', 'collection');
+
+    const walker = await walk(tempDir);
+
+    expect(foundPaths(walker)).toEqual([hidden, build].sort());
+  });
+
+  it('does not search inside folder links, but lists a link that is a collection itself', async () => {
+    const linked = makeCollection('bruno.json', 'elsewhere', 'linked');
     const picked = makeFolder('picked');
     fs.symlinkSync(path.join(tempDir, 'elsewhere'), path.join(picked, 'to-elsewhere'), folderLinkType);
-    fs.symlinkSync(path.join(tempDir, 'elsewhere', 'linked'), path.join(picked, 'collection-link'), folderLinkType);
+    fs.symlinkSync(linked, path.join(picked, 'collection-link'), folderLinkType);
 
     const walker = await walk(picked);
 
-    expect(foundPaths(walker)).toEqual([]);
+    expect(foundPaths(walker)).toEqual([linked]);
     expect(walker.unreadableFolderCount).toBe(0);
+  });
+
+  it('lists a collection once when a link in the picked folder also points to it', async () => {
+    const picked = makeFolder('picked');
+    const collection = makeCollection('bruno.json', 'picked', 'api');
+    fs.symlinkSync(collection, path.join(picked, 'api-link'), folderLinkType);
+
+    const walker = await walk(picked);
+
+    expect(foundPaths(walker)).toEqual([collection]);
+  });
+
+  it('does not list a linked collection inside an excluded folder', async () => {
+    const excluded = makeFolder('excluded');
+    const collection = makeCollection('bruno.json', 'excluded', 'api');
+    const picked = makeFolder('picked');
+    fs.symlinkSync(collection, path.join(picked, 'api-link'), folderLinkType);
+
+    const walker = await walk(picked, { excludedKeys: [toPathKey(excluded)] });
+
+    expect(foundPaths(walker)).toEqual([]);
   });
 
   it('reports a picked folder that is itself a link by its real path', async () => {

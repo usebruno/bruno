@@ -97,15 +97,27 @@ describe('findCollectionsInFolders', () => {
     expect(result.collections).toEqual([{ path: kept, name: 'Kept' }]);
   });
 
-  it('does not follow links out of the picked folder', async () => {
+  it('lists a collection that a link in the picked folder points to, and counts it for that folder', async () => {
     const outside = makeBruCollection('Payments', 'code', 'payments');
     const picked = makeFolder('api-collections');
     fs.symlinkSync(outside, path.join(picked, 'payments'), folderLinkType);
 
     const result = await findCollectionsInFolders([picked]);
 
-    expect(result.folders).toEqual([folderSummary(picked, 'folder')]);
-    expect(result.collections).toEqual([]);
+    expect(result.folders).toEqual([folderSummary(picked, 'folder', [outside])]);
+    expect(result.collections).toEqual([{ path: outside, name: 'Payments' }]);
+  });
+
+  it('counts a linked collection for both the folder with the link and the folder that holds it', async () => {
+    const holder = makeFolder('holder');
+    const collection = makeBruCollection('Payments', 'holder', 'payments');
+    const linker = makeFolder('linker');
+    fs.symlinkSync(collection, path.join(linker, 'payments'), folderLinkType);
+
+    const result = await findCollectionsInFolders([linker, holder]);
+
+    expect(result.folders).toEqual([folderSummary(linker, 'folder', [collection]), folderSummary(holder, 'folder', [collection])]);
+    expect(result.collections).toEqual([{ path: collection, name: 'Payments' }]);
   });
 
   it('skips mounted network and removable drives inside the picked folder', async () => {
