@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../IconButtonStyles';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -26,10 +25,8 @@ const StyledWrapper = styled.div`
   }
 
   .note-dismiss {
-    width: 1.375rem;
-    height: 1.375rem;
+    flex: none;
     margin: -0.0625rem -0.375rem -0.125rem 0;
-    ${iconButtonStyles}
   }
 `;
 

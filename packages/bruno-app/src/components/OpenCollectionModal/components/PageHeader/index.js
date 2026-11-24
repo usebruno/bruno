@@ -1,4 +1,5 @@
 import { IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 
 const PageHeader = ({ title, description, onClose }) => (
@@ -7,15 +8,15 @@ const PageHeader = ({ title, description, onClose }) => (
       <h3 data-testid="open-collection-page-title">{title}</h3>
       <span className="page-header-description">{description}</span>
     </div>
-    <button
+    <ActionIcon
       type="button"
-      className="close-button"
+      size="lg"
       aria-label="Close"
       onClick={onClose}
       data-testid="open-collection-close"
     >
       <IconX size={16} strokeWidth={1.75} />
-    </button>
+    </ActionIcon>
   </StyledWrapper>
 );
 

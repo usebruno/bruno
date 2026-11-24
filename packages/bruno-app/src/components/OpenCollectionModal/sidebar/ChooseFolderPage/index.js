@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { IconFolder } from '@tabler/icons';
+import Checkbox from 'ui/Checkbox';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
@@ -63,15 +64,14 @@ const ChooseFolderPage = () => {
                 choose folders
               </button>
             </DropZone>
-            <label className="choose-folder-auto-open">
-              <input
-                type="checkbox"
-                checked={autoOpenFolderPicker}
-                onChange={(event) => dispatch(saveAutoOpenFolderPicker(event.target.checked))}
-                data-testid="choose-folder-auto-open-picker"
-              />
-              Open the folder picker when this tab opens
-            </label>
+            <Checkbox
+              className="choose-folder-auto-open"
+              size="lg"
+              checked={autoOpenFolderPicker}
+              onChange={(event) => dispatch(saveAutoOpenFolderPicker(event.target.checked))}
+              label="Open the folder picker when this tab opens"
+              data-testid="choose-folder-auto-open-picker"
+            />
           </div>
         )}
       </div>

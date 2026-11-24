@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../IconButtonStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;
@@ -47,9 +46,6 @@ const StyledWrapper = styled.div`
     position: absolute;
     top: 0.25rem;
     right: 0.25rem;
-    width: 1.375rem;
-    height: 1.375rem;
-    ${iconButtonStyles}
   }
 
   .collection-picker-summary {
