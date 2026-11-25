@@ -108,6 +108,7 @@ const OpenAPISyncHeader = ({
             color="secondary"
             size="sm"
             onClick={onViewSpec}
+            disabled={!isSourceApproved}
           >
             View spec
           </Button>
