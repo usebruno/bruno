@@ -216,7 +216,7 @@ describe('MyComputerPage', () => {
     expect(emptyState).toHaveTextContent('Have a .yml, .zip or a Postman export? Import it');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Open a collection folder…' }));
+      fireEvent.click(screen.getByTestId('my-computer-open-folder-hint'));
     });
     expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);

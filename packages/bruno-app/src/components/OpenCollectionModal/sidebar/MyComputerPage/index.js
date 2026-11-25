@@ -17,6 +17,7 @@ import {
   selectSearchWholeComputer
 } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import { OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
+import ChooseFolderHint from '../../components/ChooseFolderHint';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse, formatRelativeTime } from '../../utils/relative-time';
@@ -59,6 +60,7 @@ const MyComputerPage = () => {
   const openFolderButton = (
     <Button color="primary" fullWidth onClick={chooseFolders} data-testid="my-computer-open-folder">
       Open a collection folder…
+      <ChooseFolderHint id="my-computer-open-folder-hint" />
     </Button>
   );
 

@@ -11,6 +11,7 @@ import {
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { selectOpenCollections } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
+import ChooseFolderHint from '../../components/ChooseFolderHint';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse } from '../../utils/relative-time';
@@ -31,6 +32,7 @@ const RecentsPage = () => {
   const openFolderButton = (
     <Button color="primary" onClick={chooseFolders} data-testid="recents-open-folder">
       Open a collection folder…
+      <ChooseFolderHint id="recents-open-folder-hint" />
     </Button>
   );
 

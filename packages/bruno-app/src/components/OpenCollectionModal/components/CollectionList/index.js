@@ -7,7 +7,7 @@ import Button from 'ui/Button';
 import Checkbox from 'ui/Checkbox';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
-import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
+import ChooseFolderHint from '../ChooseFolderHint';
 import NoMatch from '../NoMatch';
 import CollectionListRow from './CollectionListRow';
 import { tildify } from '../../utils/collection-location';
@@ -28,8 +28,6 @@ const Scroller = ({ tabIndex, context, ...props }) => <div {...props} />;
 const ListEmpty = ({ context }) => context.empty;
 
 const ListFooter = ({ context }) => context.footer;
-
-const CHOOSE_FOLDER_TITLE = 'Choose a collection folder to open it in place';
 
 const NO_PATH_KEYS = new Set();
 
@@ -65,8 +63,6 @@ const CollectionList = ({
   const virtuoso = useRef(null);
   const rowsElement = useRef(null);
   const rangeAnchorKey = useRef(null);
-  const chooseFolderShortcut = useKeybindingDisplayText()('openCollection');
-  const chooseFolderTitle = chooseFolderShortcut ? `${CHOOSE_FOLDER_TITLE} (${chooseFolderShortcut})` : CHOOSE_FOLDER_TITLE;
 
   const isOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
   const isHidden = useCallback((collection) => hiddenPathKeys.has(toPathKey(collection.path)), [hiddenPathKeys]);
@@ -199,11 +195,11 @@ const CollectionList = ({
               color="secondary"
               className="collection-list-choose-folder"
               icon={<IconFolder size={14} strokeWidth={1.75} />}
-              title={chooseFolderTitle}
               onClick={onChooseFolder}
               data-testid={`${testIdPrefix}-choose-folder`}
             >
               Choose folder…
+              <ChooseFolderHint id={`${testIdPrefix}-choose-folder-hint`} />
             </Button>
           </>
         )}
@@ -227,11 +223,11 @@ const CollectionList = ({
                     variant="outline"
                     color="secondary"
                     icon={<IconFolder size={15} strokeWidth={1.75} />}
-                    title={chooseFolderTitle}
                     onClick={onChooseFolder}
                     data-testid={`${testIdPrefix}-no-match-choose-folder`}
                   >
                     Choose folder…
+                    <ChooseFolderHint id={`${testIdPrefix}-no-match-choose-folder-hint`} />
                   </Button>
                 )}
                 data-testid={`${testIdPrefix}-no-match`}

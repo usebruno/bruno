@@ -227,6 +227,7 @@ describe('RecentsPage', () => {
     expect(emptyState).toHaveTextContent('No collections opened yet');
     expect(emptyState).toHaveTextContent('Open a Bruno collection folder to work on it in place. Collections you open show up here next time.');
     expect(emptyState).toHaveTextContent('Have a .yml, .zip or a Postman export? Import it');
+    expect(screen.getByTestId('recents-open-folder-hint')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open a collection folder…' }));
