@@ -4,13 +4,14 @@ import { buildCommonLocators, closeAllCollections, dismissModalIfOpen, mockBrows
 import {
   buildOpenCollectionModalLocators,
   closeOpenCollectionModal,
+  pressOpenCollectionShortcut,
   showOpenCollectionModal
 } from '../../../pages/open-collection-modal/shell';
 import {
   buildChooseFolderLocators,
   chooseFolders,
-  chooseOtherFolders,
-  openListedCollection
+  openListedCollection,
+  selectListedCollections
 } from '../../../pages/open-collection-modal/choose-folder';
 
 const chooseFolderShortcut = process.platform === 'darwin' ? '⇧ ⌘ O' : 'Ctrl+Shift+O';
@@ -115,20 +116,20 @@ test.describe('Choose folder', () => {
       await expect(openCollectionModal.noteActionButton()).toHaveText('Add to search locations');
     });
 
-    await test.step('Verify the list shows each collection with its place in the folder', async () => {
-      await expect(chooseFolder.summary()).toHaveText(/^2 collections in .*parent$/);
+    await test.step('Verify the list shows each collection with the folder it sits in', async () => {
+      await expect(chooseFolder.searchInput()).toHaveAttribute('placeholder', 'Search 2 collections');
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
       await expect(chooseFolder.rowPath('Parent Alpha')).toHaveAttribute('title', path.join(parentFolder, 'alpha'));
       await expect(chooseFolder.rowPath('Parent Beta')).toHaveAttribute('title', path.join(parentFolder, 'nested', 'deep', 'beta'));
-      await expect(chooseFolder.rowMeta('Parent Alpha')).toHaveText('alpha');
-      await expect(chooseFolder.rowMeta('Parent Beta')).toHaveText('nested/deep/beta');
+      await expect(chooseFolder.rowMeta('Parent Alpha')).toHaveText('');
+      await expect(chooseFolder.rowMeta('Parent Beta')).toHaveText('');
     });
 
-    await test.step('Verify nothing is ticked yet', async () => {
+    await test.step('Verify nothing is ticked yet and there is no footer', async () => {
       await expect(chooseFolder.rowCheckbox('Parent Alpha')).not.toBeChecked();
       await expect(chooseFolder.rowCheckbox('Parent Beta')).not.toBeChecked();
-      await expect(chooseFolder.openSelectedButton()).toHaveText('Open');
-      await expect(chooseFolder.openSelectedButton()).toBeDisabled();
+      await expect(chooseFolder.selectAll()).not.toBeChecked();
+      await expect(chooseFolder.openSelectedButton()).toHaveCount(0);
     });
   });
 
@@ -139,13 +140,11 @@ test.describe('Choose folder', () => {
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'parent')]);
 
-    await test.step('Tick Parent Alpha', async () => {
-      await chooseFolder.rowCheckbox('Parent Alpha').check();
-    });
+    await selectListedCollections(page, ['Parent Alpha']);
 
-    await test.step('Verify the open button counts one collection', async () => {
+    await test.step('Verify the footer offers to open one collection', async () => {
       await expect(chooseFolder.openSelectedButton()).toHaveText('Open 1 collection');
-      await expect(chooseFolder.clearSelection()).toBeVisible();
+      await expect(chooseFolder.cancelButton()).toBeVisible();
     });
 
     await test.step('Open the ticked collection', async () => {
@@ -160,32 +159,36 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('ticks every listed collection with Select all and unticks them with Clear', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('ticks every listed collection with Select all and unticks them with it again', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const chooseFolder = buildChooseFolderLocators(page);
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'parent')]);
 
-    await test.step('Click Select all', async () => {
-      await chooseFolder.selectAll().click();
+    await selectListedCollections(page, ['Parent Alpha']);
+
+    await test.step('Verify Select all is partly ticked', async () => {
+      await expect(chooseFolder.selectAll()).not.toBeChecked();
+      await expect(chooseFolder.selectAll()).toHaveJSProperty('indeterminate', true);
+    });
+
+    await test.step('Tick Select all', async () => {
+      await chooseFolder.selectAll().check();
     });
 
     await test.step('Verify both collections are ticked', async () => {
       await expect(chooseFolder.rowCheckbox('Parent Alpha')).toBeChecked();
       await expect(chooseFolder.rowCheckbox('Parent Beta')).toBeChecked();
       await expect(chooseFolder.openSelectedButton()).toHaveText('Open 2 collections');
-      await expect(chooseFolder.selectAll()).toHaveText('Clear selection');
     });
 
-    await test.step('Click Clear', async () => {
-      await chooseFolder.clearSelection().click();
+    await test.step('Untick Select all', async () => {
+      await chooseFolder.selectAll().uncheck();
     });
 
-    await test.step('Verify nothing is ticked', async () => {
+    await test.step('Verify nothing is ticked and the footer is gone', async () => {
       await expect(chooseFolder.rowCheckbox('Parent Alpha')).not.toBeChecked();
       await expect(chooseFolder.rowCheckbox('Parent Beta')).not.toBeChecked();
-      await expect(chooseFolder.openSelectedButton()).toBeDisabled();
-      await expect(chooseFolder.selectAll()).toHaveText('Select all');
-      await expect(chooseFolder.clearSelection()).toHaveCount(0);
+      await expect(chooseFolder.openSelectedButton()).toHaveCount(0);
     });
   });
 
@@ -223,7 +226,7 @@ test.describe('Choose folder', () => {
     });
 
     await test.step('Verify no collection matches', async () => {
-      await expect(chooseFolder.noMatch()).toHaveText('No collection matches “gamma”.');
+      await expect(chooseFolder.noMatch()).toHaveText('No collection matches “gamma”');
       await expect(chooseFolder.rows()).toHaveCount(0);
     });
 
@@ -237,7 +240,7 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('lists an already open collection last, without a way to open it again', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('hides an already open collection behind Show and offers to switch to it', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const chooseFolder = buildChooseFolderLocators(page);
     const parentFolder = path.join(collectionFixturePath!, 'parent');
 
@@ -245,16 +248,28 @@ test.describe('Choose folder', () => {
 
     await chooseFolders(page, electronApp, [parentFolder]);
 
-    await test.step('Verify Parent Alpha is listed last as already open', async () => {
-      await expect(chooseFolder.rowNames()).toHaveText(['Parent Beta', 'Parent Alpha']);
-      await expect(chooseFolder.rowMeta('Parent Alpha')).toHaveText('Already open');
-      await expect(chooseFolder.rowCheckbox('Parent Alpha')).toBeDisabled();
-      await expect(chooseFolder.rowOpenButton('Parent Alpha')).toHaveCount(0);
+    await test.step('Verify Parent Alpha is hidden behind Show', async () => {
+      await expect(chooseFolder.rowNames()).toHaveText(['Parent Beta']);
+      await expect(chooseFolder.openLine()).toHaveText('1 collection already open in this workspace isn’t shown. Show');
     });
 
-    await test.step('Verify Select all is hidden with only one collection left to open', async () => {
-      await expect(chooseFolder.rowCheckbox('Parent Beta')).toBeEnabled();
-      await expect(chooseFolder.selectAll()).toHaveCount(0);
+    await test.step('Click Show', async () => {
+      await chooseFolder.openToggle().click();
+    });
+
+    await test.step('Verify Parent Alpha is listed in path order with Switch and no checkbox', async () => {
+      await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
+      await expect(chooseFolder.rowSwitchButton('Parent Alpha')).toHaveText('Switch');
+      await expect(chooseFolder.rowCheckbox('Parent Alpha')).toHaveCount(0);
+    });
+
+    await test.step('Tick Select all', async () => {
+      await chooseFolder.selectAll().check();
+    });
+
+    await test.step('Verify only the collection that can be opened is ticked', async () => {
+      await expect(chooseFolder.rowCheckbox('Parent Beta')).toBeChecked();
+      await expect(chooseFolder.openSelectedButton()).toHaveText('Open 1 collection');
     });
   });
 
@@ -327,7 +342,7 @@ test.describe('Choose folder', () => {
     });
 
     await test.step('Verify only the picked collection folder is ticked', async () => {
-      await expect(chooseFolder.rowNames()).toHaveText(['Single Collection', 'Parent Alpha', 'Parent Beta']);
+      await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta', 'Single Collection']);
       await expect(chooseFolder.rowCheckbox('Single Collection')).toBeChecked();
       await expect(chooseFolder.rowCheckbox('Parent Alpha')).not.toBeChecked();
       await expect(chooseFolder.rowCheckbox('Parent Beta')).not.toBeChecked();
@@ -379,7 +394,7 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('replaces the list with the folders picked from Choose other folders', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('replaces the list with the folders picked from the Choose folder shortcut', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
     const chooseFolder = buildChooseFolderLocators(page);
     const parentFolder = path.join(collectionFixturePath!, 'parent');
@@ -388,15 +403,17 @@ test.describe('Choose folder', () => {
 
     await test.step('Verify the parent folder is listed', async () => {
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
-      await expect(chooseFolder.chooseOtherLink()).toHaveText('Choose other folders…');
     });
 
-    await chooseOtherFolders(page, electronApp, [path.join(parentFolder, 'nested')]);
+    await test.step('Make the folder picker pick the nested folder', async () => {
+      await mockBrowseFiles(electronApp, [path.join(parentFolder, 'nested')]);
+    });
+
+    await pressOpenCollectionShortcut(page, 'choose-folder');
 
     await test.step('Verify the new pick replaces the list', async () => {
       await expect(openCollectionModal.note()).toContainText('nested isn’t a collection itself, but it has 1 collection inside. Pick the ones to open.');
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Beta']);
-      await expect(chooseFolder.rowMeta('Parent Beta')).toHaveText('deep/beta');
     });
   });
 
@@ -406,10 +423,11 @@ test.describe('Choose folder', () => {
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'parent')]);
 
-    await test.step('Verify the parent folder is listed and tick Parent Alpha', async () => {
+    await test.step('Verify the parent folder is listed', async () => {
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
-      await chooseFolder.rowCheckbox('Parent Alpha').check();
     });
+
+    await selectListedCollections(page, ['Parent Alpha']);
 
     await test.step('Go to Import and back to Choose folder', async () => {
       await showOpenCollectionModal(page, 'import');
@@ -430,8 +448,9 @@ test.describe('Choose folder', () => {
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'parent')]);
 
-    await test.step('Tick Parent Alpha and click Cancel', async () => {
-      await chooseFolder.rowCheckbox('Parent Alpha').check();
+    await selectListedCollections(page, ['Parent Alpha']);
+
+    await test.step('Click Cancel', async () => {
       await chooseFolder.cancelButton().click();
     });
 

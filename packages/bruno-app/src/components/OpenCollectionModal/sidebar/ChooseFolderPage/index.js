@@ -5,15 +5,19 @@ import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
   openCollectionsFromModal,
-  pickCollectionFolders
+  pickCollectionFolders,
+  switchToCollection
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
 import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import BusyOverlay from '../../components/BusyOverlay';
-import CollectionPicker from '../../components/CollectionPicker';
+import CollectionList from '../../components/CollectionList';
 import DropZone from '../../components/DropZone';
 import { focusWhenFocusIsLost } from '../../utils/focus';
 import StyledWrapper from './StyledWrapper';
+
+const byPath = (a, b) => a.path.localeCompare(b.path);
 
 const ChooseFolderPage = () => {
   const dispatch = useDispatch();
@@ -21,6 +25,7 @@ const ChooseFolderPage = () => {
   const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
   const chooseFolderShortcut = useKeybindingDisplayText()('openCollection');
+  const foundCollections = useMemo(() => (result?.type === 'list' ? [...result.collections].sort(byPath) : []), [result]);
 
   const pickFolders = () => dispatch(pickCollectionFolders());
   const isSearching = status === 'searching';
@@ -29,16 +34,19 @@ const ChooseFolderPage = () => {
     <StyledWrapper>
       <div className="choose-folder-content" inert={isSearching}>
         {result?.type === 'list' ? (
-          <CollectionPicker
+          <CollectionList
             key={result.id}
-            collections={result.collections}
-            folders={result.folders}
-            initialSelection={result.preselect}
+            collections={foundCollections}
             openPathKeys={openPathKeys}
+            hiddenPathKeys={openPathKeys}
+            initialSelectedPaths={result.preselect}
+            searchPlaceholder={`Search ${countOf(foundCollections.length, 'collection')}`}
+            autoFocusSearch={false}
+            showSelectAll
             testIdPrefix="choose-folder"
             onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
+            onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}
             onCancel={() => dispatch(closeOpenCollectionModal())}
-            onChooseOtherFolders={pickFolders}
           />
         ) : (
           <div className="choose-folder-start">

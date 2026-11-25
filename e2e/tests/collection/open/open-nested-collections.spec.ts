@@ -4,7 +4,7 @@ import { buildCommonLocators, closeAllCollections } from '../../../pages';
 import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
 import { buildChooseFolderLocators, chooseFolders } from '../../../pages/open-collection-modal/choose-folder';
 
-/** A collection the picker should discover: its name, and the location it reports relative to the picked folder. */
+/** A collection the picker should discover: its name, and its folder relative to the picked folder. */
 type DiscoveredCollection = { name: string; location: string };
 
 const openEveryCollectionUnder = async (
@@ -22,7 +22,7 @@ const openEveryCollectionUnder = async (
   await test.step('The modal lists every discovered collection at its nested location', async () => {
     await expect(chooseFolder.rows()).toHaveCount(expected.length);
     for (const { name, location } of expected) {
-      await expect(chooseFolder.rowMeta(name)).toHaveText(location);
+      await expect(chooseFolder.rowPath(name)).toHaveAttribute('title', path.join(root, location));
     }
   });
 

@@ -2,15 +2,13 @@ import * as path from 'path';
 import { test, Page, ElectronApplication } from '../../playwright';
 import { mockBrowseFiles } from '../request/body';
 import { buildCollectionListLocators } from './collection-list';
-import { buildOpenCollectionModalLocators, showOpenCollectionModal } from './shell';
+import { showOpenCollectionModal } from './shell';
 
 export const buildChooseFolderLocators = (page: Page) => ({
   ...buildCollectionListLocators(page, 'choose-folder'),
   dropZone: () => page.getByTestId('choose-folder-drop-zone'),
   chooseLink: () => page.getByTestId('choose-folder-choose-link'),
-  shortcut: () => page.getByTestId('choose-folder-shortcut'),
-  chooseOtherLink: () => page.getByTestId('choose-folder-choose-other'),
-  summary: () => buildOpenCollectionModalLocators(page).pageView('choose-folder').getByRole('strong')
+  shortcut: () => page.getByTestId('choose-folder-shortcut')
 });
 
 export const chooseFolders = async (page: Page, electronApp: ElectronApplication, folderPaths: string[]) => {
@@ -21,10 +19,12 @@ export const chooseFolders = async (page: Page, electronApp: ElectronApplication
   });
 };
 
-export const chooseOtherFolders = async (page: Page, electronApp: ElectronApplication, folderPaths: string[]) => {
-  await test.step(`Choose other folders "${folderPaths.map((folderPath) => path.basename(folderPath)).join('", "')}"`, async () => {
-    await mockBrowseFiles(electronApp, folderPaths);
-    await buildChooseFolderLocators(page).chooseOtherLink().click();
+export const selectListedCollections = async (page: Page, names: string[]) => {
+  await test.step(`Select "${names.join('", "')}" in the Choose folder list`, async () => {
+    const chooseFolder = buildChooseFolderLocators(page);
+    for (const name of names) {
+      await chooseFolder.row(name).click();
+    }
   });
 };
 

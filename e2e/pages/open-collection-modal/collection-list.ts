@@ -22,7 +22,8 @@ export const buildCollectionListLocators = (page: Page, prefix: CollectionListPr
     noMatch: () => page.getByTestId(`${prefix}-no-match`),
     noMatchChooseFolderButton: () => page.getByTestId(`${prefix}-no-match-choose-folder`),
     selectAll: () => page.getByTestId(`${prefix}-select-all`),
-    clearSelection: () => page.getByTestId(`${prefix}-clear-selection`),
+    openLine: () => page.getByTestId(`${prefix}-open-line`),
+    openToggle: () => page.getByTestId(`${prefix}-open-toggle`),
     cancelButton: () => page.getByTestId(`${prefix}-cancel`),
     openSelectedButton: () => page.getByTestId(`${prefix}-open-selected`)
   };

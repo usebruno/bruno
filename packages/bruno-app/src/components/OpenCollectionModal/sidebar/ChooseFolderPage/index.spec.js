@@ -1,9 +1,8 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { VirtuosoMockContext } from 'react-virtuoso';
-import toast from 'react-hot-toast';
 import { ThemeProvider } from 'providers/Theme';
 import { callIpc } from 'utils/common/ipc';
 import { browseDirectories, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
@@ -37,13 +36,15 @@ const listResult = {
   note: { tone: 'info', text: 'work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.' }
 };
 
-const renderPage = ({ preferences = {}, chooseFolder = {} } = {}) => {
+const renderPage = ({ preferences = {}, chooseFolder = {}, openCollectionPaths = [] } = {}) => {
+  const openCollections = openCollectionPaths.map((pathname) => ({ uid: pathname, pathname, name: pathname }));
+  const activeWorkspace = { uid: 'workspace-1', collections: openCollectionPaths.map((pathname) => ({ path: pathname })) };
   const store = configureStore({
     reducer: {
       openCollectionModal: openCollectionModalReducer,
       app: appReducer,
-      collections: (state = { collections: [] }) => state,
-      workspaces: (state = { workspaces: [{ uid: 'workspace-1', collections: [] }], activeWorkspaceUid: 'workspace-1' }) => state
+      collections: (state = { collections: openCollections }) => state,
+      workspaces: (state = { workspaces: [activeWorkspace], activeWorkspaceUid: 'workspace-1' }) => state
     },
     preloadedState: {
       openCollectionModal: {
@@ -66,6 +67,10 @@ const renderPage = ({ preferences = {}, chooseFolder = {} } = {}) => {
   );
   return store;
 };
+
+const rows = () => screen.getAllByTestId('choose-folder-row');
+const rowNames = () => screen.getAllByTestId('choose-folder-row-name').map((name) => name.textContent);
+const rowFor = (name) => rows().find((row) => within(row).getByTestId('choose-folder-row-name').textContent === name);
 
 describe('ChooseFolderPage', () => {
   beforeEach(() => {
@@ -126,14 +131,30 @@ describe('ChooseFolderPage', () => {
     expect(screen.queryByTestId('choose-folder-list')).not.toBeInTheDocument();
   });
 
-  it('opens the folder picker again from Choose other folders', async () => {
-    renderPage({ chooseFolder: { result: { ...listResult, preselect: [] } } });
+  it('lists the collections found by path, without any way to choose more folders', () => {
+    const collections = [{ path: '/work/zeta', name: 'Zeta' }, { path: '/work/api', name: 'API' }];
+    renderPage({ chooseFolder: { result: { ...listResult, collections, preselect: [] } } });
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('choose-folder-choose-other'));
-    });
+    expect(rowNames()).toEqual(['API', 'Zeta']);
+    expect(screen.getAllByTestId('choose-folder-row-meta').map((meta) => meta.textContent)).toEqual(['', '']);
+    expect(screen.getByTestId('choose-folder-search')).toHaveAttribute('placeholder', 'Search 2 collections');
+    expect(screen.getByTestId('choose-folder-search')).not.toHaveFocus();
+    expect(screen.getByTestId('choose-folder-select-all')).not.toBeChecked();
+    expect(screen.queryByTestId('choose-folder-choose-folder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('choose-folder-open-selected')).not.toBeInTheDocument();
+  });
 
-    expect(browseDirectories).toHaveBeenCalledTimes(1);
+  it('keeps the collections already open behind Show, and offers to switch to them once shown', () => {
+    renderPage({ chooseFolder: { result: listResult }, openCollectionPaths: ['/work/billing'] });
+
+    expect(rowNames()).toEqual(['API']);
+    expect(screen.getByTestId('choose-folder-open-line')).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    fireEvent.click(screen.getByTestId('choose-folder-open-toggle'));
+
+    expect(rowNames()).toEqual(['API', 'Billing']);
+    expect(within(rowFor('Billing')).getByTestId('choose-folder-row-switch')).toHaveTextContent('Switch');
+    expect(within(rowFor('Billing')).queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('opens the selected collections', () => {

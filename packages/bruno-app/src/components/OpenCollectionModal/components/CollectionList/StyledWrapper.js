@@ -44,6 +44,11 @@ const StyledWrapper = styled.div`
     }
   }
 
+  .collection-list-select-all {
+    flex: none;
+    margin-left: 0.75rem;
+  }
+
   .collection-list-search-or {
     flex: none;
     padding: 0 0.5rem;

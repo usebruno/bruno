@@ -4,6 +4,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { IconFolder, IconSearch, IconX } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
+import Checkbox from 'ui/Checkbox';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
@@ -43,8 +44,11 @@ const CollectionList = ({
   collections,
   openPathKeys,
   hiddenPathKeys = NO_PATH_KEYS,
-  getMeta,
+  initialSelectedPaths = [],
+  getMeta = () => null,
   searchPlaceholder = 'Search collections',
+  autoFocusSearch = true,
+  showSelectAll = false,
   banner = null,
   emptyText = null,
   noMatchText,
@@ -55,7 +59,7 @@ const CollectionList = ({
   onCancel
 }) => {
   const [searchText, setSearchText] = useState('');
-  const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set(initialSelectedPaths.map(toPathKey)));
   const [showHidden, setShowHidden] = useState(false);
   const searchInput = useRef(null);
   const virtuoso = useRef(null);
@@ -82,6 +86,10 @@ const CollectionList = ({
   const selectedPaths = collections
     .filter((collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection))
     .map((collection) => collection.path);
+
+  const selectableRowKeys = rows.filter((row) => !isOpen(row)).map((row) => toPathKey(row.path));
+  const selectedRowCount = selectableRowKeys.filter((key) => selectedKeys.has(key)).length;
+  const areAllRowsSelected = selectableRowKeys.length > 0 && selectedRowCount === selectableRowKeys.length;
 
   const focusSearchWhenRemovedWithFocus = useCallback((element) => () => {
     if (element.contains(document.activeElement)) {
@@ -126,6 +134,16 @@ const CollectionList = ({
     });
   };
 
+  const toggleAllRows = () => {
+    setSelectedKeys((previous) => {
+      if (!areAllRowsSelected) {
+        return new Set([...previous, ...selectableRowKeys]);
+      }
+      const rowKeys = new Set(selectableRowKeys);
+      return new Set([...previous].filter((key) => !rowKeys.has(key)));
+    });
+  };
+
   const clearSearch = () => {
     setSearchText('');
     searchInput.current.focus();
@@ -145,8 +163,8 @@ const CollectionList = ({
             onChange={(event) => setSearchText(event.target.value)}
             autoComplete="off"
             spellCheck={false}
-            autoFocus
-            data-focus-on-show
+            autoFocus={autoFocusSearch}
+            data-focus-on-show={autoFocusSearch || undefined}
             data-testid={`${testIdPrefix}-search`}
           />
           {searchText && (
@@ -162,18 +180,33 @@ const CollectionList = ({
             </ActionIcon>
           )}
         </div>
-        <span className="collection-list-search-or">or</span>
-        <Button
-          size="sm"
-          color="secondary"
-          className="collection-list-choose-folder"
-          icon={<IconFolder size={14} strokeWidth={1.75} />}
-          title={chooseFolderTitle}
-          onClick={onChooseFolder}
-          data-testid={`${testIdPrefix}-choose-folder`}
-        >
-          Choose folder…
-        </Button>
+        {showSelectAll && (
+          <Checkbox
+            className="collection-list-select-all"
+            checked={areAllRowsSelected}
+            indeterminate={selectedRowCount > 0 && !areAllRowsSelected}
+            disabled={selectableRowKeys.length === 0}
+            onChange={toggleAllRows}
+            label="Select all"
+            data-testid={`${testIdPrefix}-select-all`}
+          />
+        )}
+        {onChooseFolder && (
+          <>
+            <span className="collection-list-search-or">or</span>
+            <Button
+              size="sm"
+              color="secondary"
+              className="collection-list-choose-folder"
+              icon={<IconFolder size={14} strokeWidth={1.75} />}
+              title={chooseFolderTitle}
+              onClick={onChooseFolder}
+              data-testid={`${testIdPrefix}-choose-folder`}
+            >
+              Choose folder…
+            </Button>
+          </>
+        )}
       </div>
 
       {banner}
@@ -189,7 +222,7 @@ const CollectionList = ({
             empty: query ? (
               <NoMatch
                 query={searchText.trim()}
-                action={(
+                action={onChooseFolder && (
                   <Button
                     variant="outline"
                     color="secondary"

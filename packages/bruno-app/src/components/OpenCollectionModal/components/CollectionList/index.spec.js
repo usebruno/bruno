@@ -472,4 +472,81 @@ describe('CollectionList', () => {
     expect(itemFor('Accounts')).toHaveClass('is-last');
     expect(itemFor('Orders')).not.toHaveClass('is-last');
   });
+
+  it('starts with the collections it is given already ticked', () => {
+    renderList({ initialSelectedPaths: ['/Users/me/work/billing'] });
+
+    expect(checkboxFor('Billing')).toBeChecked();
+    expect(checkboxFor('payments')).not.toBeChecked();
+    expect(openSelectedButton()).toHaveTextContent('Open 1 collection');
+  });
+
+  it('leaves out choosing a folder when it is not offered', () => {
+    renderList({ onChooseFolder: undefined, noMatchText: undefined });
+
+    expect(screen.queryByTestId('list-choose-folder')).not.toBeInTheDocument();
+
+    search('zzz');
+
+    expect(screen.getByTestId('list-no-match')).toHaveTextContent(/^No collection matches “zzz”$/);
+    expect(screen.queryByTestId('list-no-match-choose-folder')).not.toBeInTheDocument();
+  });
+
+  it('leaves focus where it is when the search box should not take it', () => {
+    renderList({ autoFocusSearch: false });
+
+    expect(searchBox()).not.toHaveFocus();
+    expect(searchBox()).not.toHaveAttribute('data-focus-on-show');
+  });
+
+  describe('Select all', () => {
+    const selectAll = () => screen.getByTestId('list-select-all');
+
+    it('is only shown when asked for', () => {
+      renderList();
+
+      expect(screen.queryByTestId('list-select-all')).not.toBeInTheDocument();
+    });
+
+    it('ticks every row that can be opened, then clears them', () => {
+      renderList({ showSelectAll: true, openPathKeys: new Set(['/Users/me/shop/orders-api']) });
+
+      fireEvent.click(selectAll());
+
+      expect(selectAll()).toBeChecked();
+      expect(within(rowFor('Orders')).queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(openSelectedButton()).toHaveTextContent('Open 3 collections');
+
+      fireEvent.click(selectAll());
+
+      expect(selectAll()).not.toBeChecked();
+      expect(openSelectedButton()).not.toBeInTheDocument();
+    });
+
+    it('is partly ticked while only some rows are ticked', () => {
+      renderList({ showSelectAll: true });
+
+      fireEvent.click(rowFor('Billing'));
+
+      expect(selectAll()).not.toBeChecked();
+      expect(selectAll().indeterminate).toBe(true);
+    });
+
+    it('only ticks the rows the search shows', () => {
+      renderList({ showSelectAll: true });
+      search('work');
+
+      fireEvent.click(selectAll());
+      search('');
+
+      expect(checkboxFor('Orders')).not.toBeChecked();
+      expect(openSelectedButton()).toHaveTextContent('Open 3 collections');
+    });
+
+    it('cannot be used when no shown row can be ticked', () => {
+      renderList({ showSelectAll: true, ...openAndHidden(everythingOpen) });
+
+      expect(selectAll()).toBeDisabled();
+    });
+  });
 });
