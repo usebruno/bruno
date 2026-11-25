@@ -1,3 +1,5 @@
+export const isDraggingFiles = (event) => Array.from(event.dataTransfer.types).includes('Files');
+
 const isFolderItem = (item) => item.webkitGetAsEntry()?.isDirectory === true;
 
 export const readDroppedItems = (dataTransfer, getFilePath) => {
@@ -6,6 +8,6 @@ export const readDroppedItems = (dataTransfer, getFilePath) => {
   return {
     folderPaths: folderItems.map((item) => getFilePath(item.getAsFile())).filter(Boolean),
     hasFolders: folderItems.length > 0,
-    fileCount: fileItems.length - folderItems.length
+    files: fileItems.filter((item) => !isFolderItem(item)).map((item) => item.getAsFile())
   };
 };

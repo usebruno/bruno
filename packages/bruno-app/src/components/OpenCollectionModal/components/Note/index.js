@@ -8,7 +8,7 @@ const NOTE_ICONS = {
   warning: IconAlertTriangle
 };
 
-const Note = ({ tone, children, onDismiss }) => {
+const Note = ({ tone, children, action, onDismiss }) => {
   const Icon = NOTE_ICONS[tone];
   const dismiss = (event) => {
     focusNextTabbable(event.currentTarget);
@@ -18,6 +18,16 @@ const Note = ({ tone, children, onDismiss }) => {
     <StyledWrapper $tone={tone} role="status" data-testid="open-collection-note">
       <Icon size={14} strokeWidth={2} className="note-icon" aria-hidden="true" />
       <span className="note-text">{children}</span>
+      {action ? (
+        <button
+          type="button"
+          className="text-link hover:underline whitespace-nowrap"
+          onClick={action.onClick}
+          data-testid="open-collection-note-action"
+        >
+          {action.label}
+        </button>
+      ) : null}
       <ActionIcon
         type="button"
         size="sm"
