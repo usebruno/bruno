@@ -14,6 +14,8 @@ const RegistryPage = () => (
     title="Enterprise Private Registry"
     subtitle="Release collections like packages, gated by your SSO"
     points={POINTS}
+    waitlistUrl="https://link.usebruno.com/registry-waitlist"
+    learnMoreUrl="https://link.usebruno.com/docs/registry"
   />
 );
 

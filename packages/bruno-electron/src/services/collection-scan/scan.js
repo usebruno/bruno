@@ -4,7 +4,7 @@ const { getRealPath, toPathKey, isSameOrInside, isPrunedFolderName, hasCollectio
 const { isRealFolder } = require('../collection-search/entry-kind');
 const { readMountTable, skippedMountPointsOf } = require('../collection-search/mount-points');
 const { findCloudFolders, isDatalessFile, findCloudOnlyFiles } = require('./cloud-folders');
-const { readCollectionName } = require('../collection-search/collection-name');
+const { readCollectionName } = require('./collection-name');
 const { planWholeComputer } = require('./whole-computer');
 
 const MAX_FOLDER_DEPTH = 32;

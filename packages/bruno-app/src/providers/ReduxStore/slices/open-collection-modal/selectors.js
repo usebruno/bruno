@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import get from 'lodash/get';
 import { getWorkspaceCollections } from 'utils/collections';
 import { selectActiveWorkspace, selectCollections } from 'src/selectors/collections';
 import { toPathKey } from './collection-paths';
@@ -8,10 +9,16 @@ const selectWorkspaces = (state) => state.workspaces.workspaces;
 const selectPreviousFoundCollections = (state) => state.openCollectionModal.myComputer.previousCollections;
 const selectFoundCollections = (state) => state.openCollectionModal.myComputer.collections;
 
-export const selectOpenCollectionPathKeys = createSelector(
+export const selectAutoOpenFolderPicker = (state) => get(state.app.preferences, 'openCollection.autoOpenFolderPicker', true);
+
+export const selectOpenCollections = createSelector(
   [selectCollections, selectWorkspaces, selectActiveWorkspace],
-  (collections, workspaces, activeWorkspace) =>
-    getWorkspaceCollections({ collections, workspaces, activeWorkspace }).map((collection) => toPathKey(collection.pathname))
+  (collections, workspaces, activeWorkspace) => getWorkspaceCollections({ collections, workspaces, activeWorkspace })
+);
+
+export const selectOpenCollectionPathKeys = createSelector(
+  [selectOpenCollections],
+  (openCollections) => openCollections.map((collection) => toPathKey(collection.pathname))
 );
 
 export const selectMyComputerCollections = createSelector(

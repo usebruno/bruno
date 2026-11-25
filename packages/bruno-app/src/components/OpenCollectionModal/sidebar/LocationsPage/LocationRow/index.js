@@ -1,5 +1,6 @@
 import classnames from 'classnames';
 import { IconFolder, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import { tildify } from '../../../utils/collection-location';
 import { focusNextTabbable } from '../../../utils/focus';
 import { describeLocationStatus } from '../../../utils/search-locations';
@@ -30,15 +31,15 @@ const LocationRow = ({ row, onRemove }) => {
         {status.text}
       </span>
       {isUserFolder ? (
-        <button
+        <ActionIcon
           type="button"
-          className="location-row-remove"
+          size="sm"
           aria-label={`Stop looking in ${row.path}`}
           onClick={remove}
           data-testid="locations-row-remove"
         >
           <IconX size={12} strokeWidth={2} />
-        </button>
+        </ActionIcon>
       ) : (
         <span className="location-row-spacer" />
       )}

@@ -24,21 +24,14 @@ const StyledWrapper = styled.div`
   }
 
   .choose-folder-auto-open {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
     align-self: flex-start;
-    font-size: 0.78125rem;
-    color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
     user-select: none;
 
-    input {
-      margin: 0;
-      cursor: pointer;
+    .checkbox-label {
+      color: ${(props) => props.theme.colors.text.muted};
     }
 
-    &:hover {
+    &:hover .checkbox-label {
       color: ${(props) => props.theme.text};
     }
   }

@@ -1,5 +1,4 @@
 import styled, { keyframes } from 'styled-components';
-import iconButtonStyles from '../../../components/IconButtonStyles';
 
 const spin = keyframes`
   to {
@@ -26,9 +25,6 @@ const StyledWrapper = styled.span`
   }
 
   .subtitle-rescan {
-    width: 1.25rem;
-    height: 1.25rem;
-    ${iconButtonStyles}
     border-radius: ${(props) => props.theme.border.radius.sm};
 
     &[aria-disabled='true'] {

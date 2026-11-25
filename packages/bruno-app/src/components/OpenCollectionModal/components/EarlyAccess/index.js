@@ -2,9 +2,7 @@ import { IconCheck, IconExternalLink } from '@tabler/icons';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EARLY_ACCESS_FORM_URL = 'https://forms.gle/REPLACE_WITH_EARLY_ACCESS_FORM';
-
-const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points }) => (
+const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points, waitlistUrl, learnMoreUrl }) => (
   <StyledWrapper>
     <div className="early-access" data-testid={`open-collection-early-access-${feature}`}>
       <span className="early-access-icon">
@@ -20,16 +18,27 @@ const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points }) => (
           </li>
         ))}
       </ul>
-      <Button
-        color="primary"
-        size="sm"
-        icon={<IconExternalLink size={14} strokeWidth={1.75} />}
-        iconPosition="right"
-        onClick={() => window.ipcRenderer.openExternal(`${EARLY_ACCESS_FORM_URL}?feature=${feature}`)}
-        data-testid={`open-collection-early-access-request-${feature}`}
-      >
-        Request early access
-      </Button>
+      <div className="early-access-actions">
+        <Button
+          color="primary"
+          size="sm"
+          icon={<IconExternalLink size={14} strokeWidth={1.75} />}
+          iconPosition="right"
+          onClick={() => window.ipcRenderer.openExternal(waitlistUrl)}
+          data-testid={`open-collection-early-access-request-${feature}`}
+        >
+          Request early access
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          color="secondary"
+          onClick={() => window.ipcRenderer.openExternal(learnMoreUrl)}
+          data-testid={`open-collection-early-access-learn-more-${feature}`}
+        >
+          Learn more
+        </Button>
+      </div>
     </div>
   </StyledWrapper>
 );

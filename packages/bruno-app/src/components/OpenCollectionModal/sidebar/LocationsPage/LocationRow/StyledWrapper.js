@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../../../components/IconButtonStyles';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -42,12 +41,6 @@ const StyledWrapper = styled.div`
     &.is-problem {
       color: ${(props) => props.theme.status.warning.text};
     }
-  }
-
-  .location-row-remove {
-    width: 1.375rem;
-    height: 1.375rem;
-    ${iconButtonStyles}
   }
 
   .location-row-spacer {

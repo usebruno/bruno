@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { IconSearch, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
 import { getLocalStorageValue, setLocalStorageValue } from 'utils/common/localStorage';
 import { focusNextTabbable } from '../../../utils/focus';
@@ -30,8 +31,9 @@ const SearchLocationsBanner = ({ onManage }) => {
       <Button size="sm" color="secondary" className="banner-action" onClick={onManage} data-testid="my-computer-banner-manage">
         Manage locations
       </Button>
-      <button
+      <ActionIcon
         type="button"
+        size="sm"
         className="banner-dismiss"
         aria-label="Dismiss"
         title="Dismiss"
@@ -39,7 +41,7 @@ const SearchLocationsBanner = ({ onManage }) => {
         data-testid="my-computer-banner-dismiss"
       >
         <IconX size={12} strokeWidth={2} />
-      </button>
+      </ActionIcon>
     </StyledWrapper>
   );
 };

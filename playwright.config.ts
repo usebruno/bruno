@@ -3,7 +3,8 @@ import { defineConfig } from '@playwright/test';
 const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
 
 if (process.env.CI) {
-  reporter.push(['github']);
+  // omitTags: To avoid GitHub rendering playwright tags as a @-mention in the report (eg @sanity mentions github.com/sanity).
+  reporter.push(['github', { omitTags: true }]);
   // Blob reports are mergeable across shards (see tests-linux.yml e2e-test-report).
   reporter.push(['blob']);
 }
@@ -22,7 +23,7 @@ export default defineConfig({
   projects: [
     {
       name: 'default',
-      testDir: './tests',
+      testDir: './e2e/tests',
       testIgnore: [
         'ssl/**', // custom CA certificate tests require separate server setup and certificate generation
         'auth/**', // auth tests have their own project
@@ -33,27 +34,32 @@ export default defineConfig({
     },
     {
       name: 'auth',
-      testDir: './tests/auth'
+      testDir: './e2e/tests/auth',
+      testIgnore: ['oauth2/**'] // oauth2 specs run in their own project (needs a Keycloak IdP)
+    },
+    {
+      name: 'oauth2',
+      testDir: './e2e/tests/auth/oauth2'
     },
     {
       name: 'ssl',
-      testDir: './tests/ssl'
+      testDir: './e2e/tests/ssl'
     },
     {
       // system-pac and pac specs share the same PAC/proxy/target ports.
       name: 'system-pac',
-      testDir: './tests/proxy/system-pac',
+      testDir: './e2e/tests/proxy/system-pac',
     },
     {
       name: 'mock-server',
-      testDir: './tests/mock-server'
+      testDir: './e2e/tests/mock-server'
     }
   ],
 
   webServer: [
     {
       command: 'npm run dev:web',
-      stdout: 'pipe', 
+      stdout: 'pipe',
       wait: { stdout: /ready\s+built in/i },
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000

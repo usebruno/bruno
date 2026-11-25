@@ -1,13 +1,12 @@
 const path = require('node:path');
 const { getStatements, transaction } = require('../sqlite');
 const { transientManager } = require('../transient');
+const { toPathKey } = require('../collection-search/walk');
 
 const MAX_ROWS = 50;
 const MAX_NAME_LENGTH = 256;
 
 const getPathApi = () => (process.platform === 'win32' ? path.win32 : path.posix);
-
-const toKey = (resolvedPath) => (process.platform === 'win32' ? resolvedPath.toLowerCase() : resolvedPath);
 
 const toName = (value) => (typeof value === 'string' && value.trim() !== '' ? value.slice(0, MAX_NAME_LENGTH) : null);
 
@@ -17,8 +16,8 @@ const toEntry = (value) => {
     return null;
   }
   const resolvedPath = pathApi.resolve(value);
-  const key = toKey(resolvedPath);
-  const transientKey = toKey(pathApi.resolve(transientManager.getRootDirectory()));
+  const key = toPathKey(resolvedPath);
+  const transientKey = toPathKey(pathApi.resolve(transientManager.getRootDirectory()));
   if (key === transientKey || key.startsWith(`${transientKey}${pathApi.sep}`)) {
     return null;
   }

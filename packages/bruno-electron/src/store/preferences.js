@@ -58,8 +58,7 @@ const defaultPreferences = {
     instances: []
   },
   beta: {
-    'openapi-sync': false,
-    'mock-server': true
+    'openapi-sync': false
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -186,8 +185,7 @@ const preferencesSchema = Yup.object().shape({
     })).optional()
   }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean(),
-    'mock-server': Yup.boolean()
+    'openapi-sync': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
@@ -394,14 +392,6 @@ class PreferencesStore {
       }
     }
 
-    const hasExistingPreferences = Object.keys(preferences).length > 0;
-    const mockServerDefaultApplied = get(preferences, '_migrations.mockServerBetaOnByDefault', false);
-    if (hasExistingPreferences && !mockServerDefaultApplied) {
-      preferences.beta = { ...preferences.beta, 'mock-server': true };
-      preferences._migrations = { ...preferences._migrations, mockServerBetaOnByDefault: true };
-      this.store.set('preferences', preferences);
-    }
-
     // Migrate from defaultCollectionLocation to defaultLocation
     if (preferences.general?.defaultCollectionLocation !== undefined
       && preferences.general?.defaultLocation === undefined) {
@@ -419,10 +409,6 @@ class PreferencesStore {
 
   hasSavedPreferences() {
     return Object.keys(this.store.get('preferences', {})).length > 0;
-  }
-
-  saveAutoOpenFolderPicker(enabled) {
-    return this.store.set('preferences.openCollection.autoOpenFolderPicker', enabled);
   }
 
   saveOpenCollectionSetting(key, value) {
@@ -511,18 +497,6 @@ const preferencesUtil = {
   }
 };
 
-const saveAutoOpenFolderPicker = async (enabled) => {
-  if (typeof enabled !== 'boolean') {
-    throw new Error('The folder picker setting must be true or false');
-  }
-  if (preferencesStore.hasSavedPreferences()) {
-    preferencesStore.saveAutoOpenFolderPicker(enabled);
-    return;
-  }
-  const preferences = getPreferences();
-  await savePreferences({ ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } });
-};
-
 const saveOpenCollectionSetting = async (key, value) => {
   if (preferencesStore.hasSavedPreferences()) {
     preferencesStore.saveOpenCollectionSetting(key, value);
@@ -549,7 +523,6 @@ const saveSearchWholeComputer = async (enabled) => {
 module.exports = {
   getPreferences,
   savePreferences,
-  saveAutoOpenFolderPicker,
   saveSearchFolders,
   saveSearchWholeComputer,
   preferencesUtil

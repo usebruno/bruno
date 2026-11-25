@@ -12,7 +12,7 @@ const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
-const { forgetRecentCollections } = require('./recent-collections');
+const { forgetRecentCollections } = require('../app/recent-collections');
 
 const {
   createWorkspaceConfig,

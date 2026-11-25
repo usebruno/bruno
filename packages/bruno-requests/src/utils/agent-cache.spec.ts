@@ -304,9 +304,8 @@ describe('Agent Cache', () => {
       mockSocket2.authorized = true;
 
       // Mock createConnection to return our mock sockets
-      const originalCreateConnection = Object.getPrototypeOf(Object.getPrototypeOf(agent1)).createConnection;
       let callCount = 0;
-      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(agent1)), 'createConnection').mockImplementation(function (this: any, options: any, callback: any) {
+      jest.spyOn(https.Agent.prototype as any, 'createConnection').mockImplementation(function (this: any, options: any, callback: any) {
         callCount++;
         return callCount === 1 ? mockSocket1 : mockSocket2;
       });
@@ -353,7 +352,7 @@ describe('Agent Cache', () => {
       mockSocket.remotePort = 443;
 
       // Mock createConnection
-      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(agent)), 'createConnection').mockImplementation(() => mockSocket);
+      jest.spyOn(https.Agent.prototype as any, 'createConnection').mockImplementation(() => mockSocket);
 
       // Start creating connection - this captures timeline1
       const socket = agent.createConnection({ host: 'test.com', port: 443 }, () => {});

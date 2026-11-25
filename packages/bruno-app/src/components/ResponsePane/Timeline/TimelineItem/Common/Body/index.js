@@ -36,7 +36,7 @@ const BodyBlock = ({ collection, data, dataBuffer, headers, error, item, type, i
             />
           </div>
         ) : (
-          <div className="tl-empty">No Body</div>
+          <div className="tl-empty" data-testid={`timeline-${type}-no-body`}>No Body</div>
         )
       )}
     </div>

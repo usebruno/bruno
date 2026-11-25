@@ -1,0 +1,15 @@
+{
+  "lastOpenedCollections": [
+    "{{collectionPath}}/OverviewLocation",
+    "{{collectionPath}}/OverviewEnvironments",
+    "{{collectionPath}}/OverviewRequests",
+    "{{collectionPath}}/OverviewShare",
+    "{{collectionPath}}/OverviewDocs"
+  ],
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    }
+  }
+}

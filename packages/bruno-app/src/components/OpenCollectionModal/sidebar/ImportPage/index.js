@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { useSelector } from 'react-redux';
 import { IconAlertTriangle, IconCheck, IconLink, IconUpload } from '@tabler/icons';
 import Button from 'ui/Button';
-import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { loadImportFiles, loadImportUrl } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
@@ -34,18 +34,13 @@ const ImportPage = () => {
 
   const trimmedText = text.trim();
   const hint = trimmedText ? describeImportText(trimmedText) : null;
-
-  const keepLineBreaksOnPaste = (event) => {
-    const pasted = event.clipboardData.getData('text');
-    if (pasted.includes('\n')) {
-      event.preventDefault();
-      setText(pasted);
-    }
-  };
+  const isLoadDisabled = !trimmedText || Boolean(hint?.isWarning);
 
   const loadText = (event) => {
     event.preventDefault();
-    importFrom(loadImportText(trimmedText));
+    if (!isLoadDisabled && !isLoading) {
+      importFrom(loadImportUrl(trimmedText));
+    }
   };
 
   const loadPickedFiles = (event) => {
@@ -60,20 +55,21 @@ const ImportPage = () => {
           <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
           <input
             type="text"
+            spellCheck={false}
             placeholder="Paste a file URL, e.g. https://example.com/openapi.yaml"
             aria-label="Paste a file URL"
             value={text}
             onChange={(event) => setText(event.target.value)}
-            onPaste={keepLineBreaksOnPaste}
             readOnly={isLoading}
             data-testid="import-page-text"
           />
         </div>
         <Button
+          className="import-url-load"
           type="submit"
           size="sm"
           color="secondary"
-          disabled={!trimmedText || hint.isWarning}
+          disabled={isLoadDisabled}
           loading={isLoading}
           data-testid="import-page-load"
         >

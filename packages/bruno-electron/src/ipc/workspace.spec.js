@@ -31,12 +31,12 @@ jest.mock('./mount', () => ({
   clearCollectionIndex: jest.fn()
 }));
 
-jest.mock('./recent-collections', () => ({
+jest.mock('../app/recent-collections', () => ({
   forgetRecentCollections: jest.fn()
 }));
 
 const registerWorkspaceIpc = require('./workspace');
-const { forgetRecentCollections } = require('./recent-collections');
+const { forgetRecentCollections } = require('../app/recent-collections');
 
 describe('IPC workspace handlers', () => {
   let mainWindow;

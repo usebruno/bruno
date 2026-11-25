@@ -40,6 +40,10 @@ const MyComputerPage = () => {
   const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
   const recentsByKey = useMemo(() => new Map(recentItems.map((item) => [toPathKey(item.path), item])), [recentItems]);
+  const openLastCollections = useMemo(() => {
+    const isOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
+    return [...collections.filter((collection) => !isOpen(collection)), ...collections.filter(isOpen)];
+  }, [collections, openPathKeys]);
 
   const showPage = (page) => dispatch(openCollectionModal(page));
 
@@ -122,7 +126,7 @@ const MyComputerPage = () => {
 
   return (
     <CollectionList
-      collections={collections}
+      collections={openLastCollections}
       openPathKeys={openPathKeys}
       getMeta={getMeta}
       searchPlaceholder={`Search ${countOf(collections.length, 'collection')}`}
