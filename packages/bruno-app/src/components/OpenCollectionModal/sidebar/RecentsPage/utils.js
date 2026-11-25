@@ -2,6 +2,8 @@ import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/col
 
 const byNewestFirst = (a, b) => b.usedAt - a.usedAt;
 
+const getOpenedAt = (recent, importedAt) => (recent?.lastEvent === 'opened' ? Math.max(recent.usedAt, importedAt) : importedAt);
+
 export const isSameOpenCollections = (previous, next) =>
   previous.length === next.length
   && previous.every((collection, index) =>
@@ -18,7 +20,7 @@ export const mergeOpenCollections = (recents, openCollections) => {
     .map((collection, index) => ({
       path: collection.pathname,
       name: collection.name,
-      usedAt: Math.max(recentsByKey.get(openKeys[index])?.usedAt ?? 0, collection.importedAt),
+      usedAt: getOpenedAt(recentsByKey.get(openKeys[index]), collection.importedAt),
       lastEvent: 'opened'
     }))
     .sort(byNewestFirst);

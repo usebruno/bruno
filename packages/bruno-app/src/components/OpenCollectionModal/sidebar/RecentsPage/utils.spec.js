@@ -43,6 +43,17 @@ describe('mergeOpenCollections', () => {
     ]);
   });
 
+  it('dates an open collection from when it was opened, not from a later close in another workspace', () => {
+    const recents = [recent('/work/payments', 5000, 'closed'), recent('/work/billing', 3000, 'closed')];
+
+    const merged = mergeOpenCollections(recents, [open('/work/payments', 'Payments', 1000)]);
+
+    expect(merged.collections).toEqual([
+      recent('/work/billing', 3000, 'closed'),
+      { path: '/work/payments', name: 'Payments', usedAt: 1000, lastEvent: 'opened' }
+    ]);
+  });
+
   it('places the open collections among the closed ones by time, without reordering the closed ones', () => {
     const recents = [
       recent('/work/closed-late', 5000, 'closed'),
