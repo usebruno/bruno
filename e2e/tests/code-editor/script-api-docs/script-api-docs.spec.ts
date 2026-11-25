@@ -24,7 +24,6 @@ test.describe('Script API docs in the script editor', () => {
     const hints = buildCommonLocators(page).codeEditorHints;
 
     await test.step('Open the request\'s pre-request script', async () => {
-      await page.locator('[data-app-state="loaded"]').waitFor();
       await openRequest(page, COLLECTION, REQUEST);
       await focusScriptEditor(page, 'pre-request');
     });

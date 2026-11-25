@@ -14,6 +14,7 @@ export const createCopyButton = (getText, { testId, onCopy } = {}) => {
   const copyButton = document.createElement('button');
   copyButton.className = 'copy-button';
   copyButton.type = 'button';
+  copyButton.setAttribute('aria-label', 'Copy');
   copyButton.innerHTML = COPY_ICON_SVG_TEXT;
   if (testId) copyButton.setAttribute('data-testid', testId);
 
