@@ -4,9 +4,20 @@ const { OpenApiSyncSourcesStore, toAutoCheckInterval } = require('../../store/op
 let sourcesStore;
 const getStore = () => sourcesStore || (sourcesStore = new OpenApiSyncSourcesStore());
 
+// Windows file paths are case-insensitive; URLs are compared as written.
+const isSameSource = (a, b) => {
+  if (!a || !b) {
+    return false;
+  }
+  if (process.platform === 'win32' && !/^https?:\/\//i.test(a)) {
+    return a.toLowerCase() === b.toLowerCase();
+  }
+  return a === b;
+};
+
 // Synced here before this release: approved once, keeping the auto check settings from the collection file.
 const migrateSyncedSource = ({ collectionPath, sourceKey, syncConfig, syncedSourceKey }) => {
-  if (!sourceKey || syncedSourceKey !== sourceKey) {
+  if (!isSameSource(sourceKey, syncedSourceKey)) {
     return null;
   }
   const record = {
@@ -22,8 +33,8 @@ const getSourceRecord = (args) => getStore().get(args.collectionPath) || migrate
 
 const getSourceState = (args) => {
   const record = getSourceRecord(args);
-  const isApproved = Boolean(args.sourceKey) && record?.approvedSource === args.sourceKey;
-  const isDismissed = !isApproved && Boolean(args.sourceKey) && record?.dismissedSource === args.sourceKey;
+  const isApproved = isSameSource(args.sourceKey, record?.approvedSource);
+  const isDismissed = !isApproved && isSameSource(args.sourceKey, record?.dismissedSource);
   return {
     status: isApproved ? 'approved' : isDismissed ? 'dismissed' : 'pending',
     autoCheck: isApproved && record.autoCheck !== false,
@@ -46,7 +57,7 @@ const dismissSource = ({ collectionPath, sourceKey }) => {
   const { approvedSource, ...previous } = getStore().get(collectionPath) || {};
   getStore().set(collectionPath, {
     ...previous,
-    ...(approvedSource && approvedSource !== sourceKey ? { approvedSource } : {}),
+    ...(approvedSource && !isSameSource(sourceKey, approvedSource) ? { approvedSource } : {}),
     dismissedSource: sourceKey
   });
 };
