@@ -6,11 +6,15 @@ jest.mock('../services/recent-collections', () => ({
   move: jest.fn(),
   rename: jest.fn()
 }));
+jest.mock('../utils/filesystem', () => ({ isDirectory: jest.fn() }));
+jest.mock('./collections', () => ({ openCollection: jest.fn() }));
 
 const path = require('node:path');
 const { readdir, lstat, stat } = require('node:fs/promises');
 const { homedir } = require('node:os');
 const recentCollections = require('../services/recent-collections');
+const { isDirectory } = require('../utils/filesystem');
+const { openCollection } = require('./collections');
 const {
   recordRecentCollections,
   forgetRecentCollections,
@@ -18,6 +22,7 @@ const {
   moveRecentCollection,
   renameRecentCollection,
   recordRecentCollectionClose,
+  openCollectionFromRecentMenu,
   isVolumeReachable,
   setRecentCollectionsWindow
 } = require('./recent-collections');
@@ -126,6 +131,48 @@ describe('recent collections', () => {
     await recordRecentCollectionClose('/projects/orders-link', 'Orders API');
 
     expect(recentCollections.record).not.toHaveBeenCalled();
+  });
+
+  describe('openCollectionFromRecentMenu', () => {
+    const watcher = {};
+
+    it('opens the collection and records it in Recents', async () => {
+      openCollection.mockResolvedValue({ opened: true, name: 'Orders API' });
+      isDirectory.mockReturnValue(true);
+
+      await openCollectionFromRecentMenu(mainWindow, watcher, '/projects/orders');
+
+      expect(openCollection).toHaveBeenCalledWith(mainWindow, watcher, '/projects/orders');
+      expect(recentCollections.record).toHaveBeenCalledWith([{ path: '/projects/orders', name: 'Orders API' }], 'opened');
+    });
+
+    it('opens a link to a collection folder without recording the link', async () => {
+      openCollection.mockResolvedValue({ opened: true, name: 'Orders API' });
+      isDirectory.mockReturnValue(false);
+
+      await openCollectionFromRecentMenu(mainWindow, watcher, '/projects/orders-link');
+
+      expect(recentCollections.record).not.toHaveBeenCalled();
+    });
+
+    it('records nothing and forgets nothing when the folder holds no collection', async () => {
+      openCollection.mockResolvedValue({ opened: false });
+      lstat.mockResolvedValue({ isDirectory: () => true });
+
+      await openCollectionFromRecentMenu(mainWindow, watcher, '/projects/notes');
+
+      expect(recentCollections.record).not.toHaveBeenCalled();
+      expect(recentCollections.forget).toHaveBeenCalledWith([]);
+    });
+
+    it('forgets a collection whose folder is gone', async () => {
+      onPlatform('linux');
+      openCollection.mockResolvedValue({ opened: false });
+
+      await openCollectionFromRecentMenu(mainWindow, watcher, '/home/me/orders');
+
+      expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/orders']);
+    });
   });
 
   it.each([

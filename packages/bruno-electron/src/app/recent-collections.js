@@ -2,6 +2,8 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const recentCollections = require('../services/recent-collections');
+const { isDirectory } = require('../utils/filesystem');
+const { openCollection } = require('./collections');
 
 const VOLUME_ROOT_PATTERNS = {
   darwin: /^\/Volumes\/[^/]+/,
@@ -122,6 +124,15 @@ const forgetMissingRecentCollections = async (paths) => {
   forgetRecentCollections(paths.filter((_collectionPath, index) => gone[index]));
 };
 
+const openCollectionFromRecentMenu = async (win, watcher, collectionPath) => {
+  const result = await openCollection(win, watcher, collectionPath);
+  if (!result.opened) {
+    await forgetMissingRecentCollections([collectionPath]);
+  } else if (isDirectory(collectionPath)) {
+    recordRecentCollections([{ path: collectionPath, name: result.name }], 'opened');
+  }
+};
+
 const setRecentCollectionsWindow = (mainWindow) => {
   _mainWindow = mainWindow;
 };
@@ -133,6 +144,7 @@ module.exports = {
   moveRecentCollection,
   renameRecentCollection,
   recordRecentCollectionClose,
+  openCollectionFromRecentMenu,
   isVolumeReachable,
   setRecentCollectionsWindow
 };
