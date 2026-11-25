@@ -54,8 +54,7 @@ const defaultPreferences = {
     instances: []
   },
   beta: {
-    'openapi-sync': false,
-    'mock-server': true
+    'openapi-sync': false
   },
   onboarding: {
     hasLaunchedBefore: false,
@@ -87,8 +86,9 @@ const defaultPreferences = {
   ai: {
     enabled: false,
     providers: {
-      openai: { enabled: false },
-      anthropic: { enabled: false }
+      'openai': { enabled: false },
+      'anthropic': { enabled: false },
+      'github-copilot': { enabled: false }
     },
     models: {},
     defaultModel: '',
@@ -179,8 +179,7 @@ const preferencesSchema = Yup.object().shape({
     })).optional()
   }),
   beta: Yup.object({
-    'openapi-sync': Yup.boolean(),
-    'mock-server': Yup.boolean()
+    'openapi-sync': Yup.boolean()
   }),
   onboarding: Yup.object({
     hasLaunchedBefore: Yup.boolean(),
@@ -363,14 +362,6 @@ class PreferencesStore {
         // Save the migrated preferences back to the store
         this.store.set('preferences', preferences);
       }
-    }
-
-    const hasExistingPreferences = Object.keys(preferences).length > 0;
-    const mockServerDefaultApplied = get(preferences, '_migrations.mockServerBetaOnByDefault', false);
-    if (hasExistingPreferences && !mockServerDefaultApplied) {
-      preferences.beta = { ...preferences.beta, 'mock-server': true };
-      preferences._migrations = { ...preferences._migrations, mockServerBetaOnByDefault: true };
-      this.store.set('preferences', preferences);
     }
 
     // Migrate from defaultCollectionLocation to defaultLocation

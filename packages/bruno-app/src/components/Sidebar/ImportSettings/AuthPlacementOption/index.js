@@ -6,9 +6,9 @@ const AuthPlacementOption = ({ value, onChange, disabled = false }) => {
 
   return (
     <ImportSettingRow
-      label="Set authentication at collection level"
-      info="On import, the spec's security scheme is added to the collection. Operations with a different scheme keep their own auth."
-      description="Requests and folders inherit it instead of getting their own copy."
+      label="Inherit authentication from collection folder"
+      info="When enabled, requests inherit authentication from the collection folder. When disabled, authentication is copied to each request."
+      description="Requests inherit auth from collection instead of getting their own copy."
       disabled={disabled}
       isSwitch
     >

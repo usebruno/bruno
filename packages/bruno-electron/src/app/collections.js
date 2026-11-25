@@ -210,5 +210,6 @@ module.exports = {
   openCollection,
   openCollectionFromRecentMenu,
   openCollectionsByPathname,
-  registerScratchCollectionPath
+  registerScratchCollectionPath,
+  validateSchema
 };

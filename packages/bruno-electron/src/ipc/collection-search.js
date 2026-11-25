@@ -6,6 +6,7 @@ const { readImportableFileText } = require('../services/collection-search/import
 
 const MAX_FOLDERS_PER_SEARCH = 1000;
 const MAX_REQUEST_ID_LENGTH = 100;
+const PAGE_GONE_EVENTS = ['did-navigate', 'render-process-gone', 'destroyed'];
 
 const activeSearches = new Map();
 
@@ -18,7 +19,13 @@ const isFolderPathList = (paths) =>
   && paths.length <= MAX_FOLDERS_PER_SEARCH
   && paths.every((folderPath) => typeof folderPath === 'string' && path.isAbsolute(folderPath));
 
-const findInFolders = async (request) => {
+const abortWhenPageIsGone = (sender, controller) => {
+  const abort = () => controller.abort();
+  PAGE_GONE_EVENTS.forEach((eventName) => sender.on(eventName, abort));
+  return () => PAGE_GONE_EVENTS.forEach((eventName) => sender.removeListener(eventName, abort));
+};
+
+const findInFolders = async (request, sender) => {
   const { requestId, paths } = request || {};
   if (!isRequestId(requestId)) {
     throw new Error('A folder search needs a request id');
@@ -31,6 +38,7 @@ const findInFolders = async (request) => {
   }
 
   const controller = new AbortController();
+  const stopWatchingPage = abortWhenPageIsGone(sender, controller);
   activeSearches.set(requestId, controller);
   try {
     return await findCollectionsInFolders(paths, {
@@ -44,6 +52,7 @@ const findInFolders = async (request) => {
     throw error;
   } finally {
     activeSearches.delete(requestId);
+    stopWatchingPage();
   }
 };
 
@@ -61,7 +70,7 @@ const readImportableFile = (request) => {
 };
 
 const registerCollectionSearchIpc = () => {
-  ipcMain.handle('renderer:collection-search:find-in-folders', (_event, request) => findInFolders(request));
+  ipcMain.handle('renderer:collection-search:find-in-folders', (event, request) => findInFolders(request, event.sender));
   ipcMain.handle('renderer:collection-search:cancel', (_event, request) => cancelSearch(request));
   ipcMain.handle('renderer:collection-search:read-importable-file', (_event, request) => readImportableFile(request));
 };

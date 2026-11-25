@@ -7,7 +7,7 @@ import Button from 'ui/Button';
 import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import VariableScopeIcon from 'components/VariableScopeIcon';
 import VariableScopeList from 'components/VariableScopeList';
-import { updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, updateVariableInScope } from 'providers/ReduxStore/slices/collections/actions';
 import {
   buildAddToScopes,
   buildScopeInfo,
@@ -88,16 +88,15 @@ const SetAsVariablePopover = ({ selection, onClose }) => {
     dispatch(updateVariableInScope(name, value, scopeInfo, selection.collection?.uid))
       .then(() => {
         const replaced = replaceSelectionWithVariable(selection, name, scopeType);
-        toast.success(
-          replaced || !selection.editable
-            ? `Variable "${name}" saved`
-            : `Variable "${name}" saved (selection changed, text not replaced)`
-        );
-        onClose();
+        const persisted = replaced && scopeType === VARIABLE_ADD_SCOPES.REQUEST
+          ? dispatch(saveRequest(selection.item.uid, selection.collection.uid, true)).catch(() => {})
+          : Promise.resolve();
+
+        return persisted.then(() => onClose());
       })
       .catch((error) => {
         setSaving(false);
-        toast.error(error.message);
+        toast.error(error?.message || 'Failed to save variable');
       });
   };
 

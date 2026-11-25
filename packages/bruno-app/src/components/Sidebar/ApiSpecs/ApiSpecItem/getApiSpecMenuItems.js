@@ -1,21 +1,19 @@
 import { IconBox, IconServer, IconCopy, IconEdit, IconFolder, IconX, IconTrash } from '@tabler/icons';
-import StatusBadge from 'ui/StatusBadge';
 import { getRevealInFolderLabel } from 'utils/common/platform';
 
 const API_SPEC_MENU = [
   { id: 'generate-collection', leftSection: IconBox, label: 'Generate Collection' },
   {
-    id: 'generate-mock-server',
+    id: 'create-mock-server',
     leftSection: IconServer,
-    label: 'Generate Mock Server',
-    rightSection: <StatusBadge status="info" size="xs">Beta</StatusBadge>,
+    label: 'Create Mock Server',
     requires: 'mockServer'
   },
   { id: 'clone', leftSection: IconCopy, label: 'Clone' },
   { id: 'rename', leftSection: IconEdit, label: 'Rename' },
   { id: 'reveal', leftSection: IconFolder, label: getRevealInFolderLabel() },
   { id: 'divider-1', type: 'divider' },
-  { id: 'remove', leftSection: IconX, label: 'Remove from Workspace' },
+  { id: 'remove', leftSection: IconX, label: 'Remove' },
   { id: 'delete', leftSection: IconTrash, label: 'Delete', className: 'delete-item' }
 ];
 

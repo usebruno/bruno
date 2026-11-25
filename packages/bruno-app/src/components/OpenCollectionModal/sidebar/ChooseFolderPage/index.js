@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import get from 'lodash/get';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { IconFolder } from '@tabler/icons';
+import Checkbox from 'ui/Checkbox';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
@@ -9,7 +9,7 @@ import {
   pickCollectionFolders,
   saveAutoOpenFolderPicker
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
-import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
+import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import BusyOverlay from '../../components/BusyOverlay';
 import CollectionPicker from '../../components/CollectionPicker';
 import DropZone from '../../components/DropZone';
@@ -18,7 +18,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ChooseFolderPage = () => {
   const dispatch = useDispatch();
-  const autoOpenFolderPicker = useSelector((state) => get(state.app.preferences, 'openCollection.autoOpenFolderPicker', true));
+  const autoOpenFolderPicker = useSelector(selectAutoOpenFolderPicker);
   const { status, searchLabel, result } = useSelector((state) => state.openCollectionModal.chooseFolder);
   const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
@@ -64,24 +64,23 @@ const ChooseFolderPage = () => {
                 choose folders
               </button>
             </DropZone>
-            <label className="choose-folder-auto-open">
-              <input
-                type="checkbox"
-                checked={autoOpenFolderPicker}
-                onChange={(event) => dispatch(saveAutoOpenFolderPicker(event.target.checked))}
-                data-testid="choose-folder-auto-open-picker"
-              />
-              Open the folder picker when this tab opens
-            </label>
+            <Checkbox
+              className="choose-folder-auto-open"
+              size="lg"
+              checked={autoOpenFolderPicker}
+              onChange={(event) => dispatch(saveAutoOpenFolderPicker(event.target.checked))}
+              label="Open the folder picker when this tab opens"
+              data-testid="choose-folder-auto-open-picker"
+            />
           </div>
         )}
       </div>
 
-      {isSearching ? (
+      {isSearching && (
         <BusyOverlay onCancel={() => dispatch(cancelCollectionSearch())}>
           Looking for collections in {searchLabel}…
         </BusyOverlay>
-      ) : null}
+      )}
     </StyledWrapper>
   );
 };

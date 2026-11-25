@@ -14,7 +14,7 @@ const {
   formatSearchRequestsResult
 } = require('./context');
 const { getPreferences } = require('../../store/preferences');
-const { isBuiltInModelId } = require('./providers');
+const { resolveMaxOutputTokens } = require('./providers');
 
 const getSecurityPrefs = () => get(getPreferences(), 'ai.security', null);
 
@@ -284,7 +284,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
         tools,
         stopWhen: stepCountIs(8),
         toolChoice: 'auto',
-        maxOutputTokens: isBuiltInModelId(effectiveModelId) ? 16000 : undefined,
+        maxOutputTokens: resolveMaxOutputTokens(effectiveModelId, 16000),
         abortSignal: controller.signal
       });
 

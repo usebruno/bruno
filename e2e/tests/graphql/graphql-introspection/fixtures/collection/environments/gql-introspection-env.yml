@@ -1,0 +1,23 @@
+name: gql-introspection-env
+
+variables:
+  - name: baseUrl
+    value: http://localhost:8081/api/graphql
+  - name: apiKey
+    value: dummy-api-key-12345
+  - name: apiKeyHeader
+    value: x-api-key
+  - name: clientId
+    value: dummy-client-id
+  - name: clientSecret
+    value: dummy-client-secret
+  - name: digestUsername
+    value: testuser
+  - name: digestPassword
+    value: 'Test@123'
+  - name: bearerToken
+    value: dummy-bearer-token-12345
+  - name: basicUsername
+    value: testuser
+  - name: basicPassword
+    value: 'Test@123'

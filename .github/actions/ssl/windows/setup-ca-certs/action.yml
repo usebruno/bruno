@@ -9,7 +9,7 @@ runs:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
         
-        Set-Location tests\ssl\custom-ca-certs\server
+        Set-Location e2e\tests\ssl\custom-ca-certs\server
         
         Write-Host "running certificate setup"
         node scripts/generate-certs.js
@@ -19,7 +19,7 @@ runs:
       run: |
         Set-StrictMode -Version Latest
         
-        Set-Location tests\ssl\custom-ca-certs\server
+        Set-Location e2e\tests\ssl\custom-ca-certs\server
         
         Write-Host "starting server in background"
         Start-Process -FilePath "node" -ArgumentList "index.js" -PassThru -WindowStyle Hidden

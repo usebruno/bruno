@@ -1,9 +1,9 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { readCollectionName } = require('./collection-name');
+const { readCollectionConfig } = require('./collection-name');
 
-describe('readCollectionName', () => {
+describe('readCollectionConfig', () => {
   let tempDir;
 
   beforeEach(() => {
@@ -21,46 +21,64 @@ describe('readCollectionName', () => {
     return folderPath;
   };
 
+  const nameOf = async (folderPath) => (await readCollectionConfig(folderPath)).name;
+
   it('reads info.name from opencollection.yml', async () => {
     const folderPath = collectionWith({ 'opencollection.yml': 'opencollection: 1.0.0\ninfo:\n  summary: Orders API\n  name: Orders\n' });
 
-    expect(await readCollectionName(folderPath)).toBe('Orders');
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'Orders', isBroken: false });
   });
 
   it('removes the quotes around a yml name', async () => {
     const folderPath = collectionWith({ 'opencollection.yml': 'info:\n  name: "Orders: v2"\n' });
 
-    expect(await readCollectionName(folderPath)).toBe('Orders: v2');
+    expect(await nameOf(folderPath)).toBe('Orders: v2');
   });
 
   it('trims the spaces around a yml name', async () => {
     const folderPath = collectionWith({ 'opencollection.yml': 'info:\n  name:    Orders   \n' });
 
-    expect(await readCollectionName(folderPath)).toBe('Orders');
+    expect(await nameOf(folderPath)).toBe('Orders');
   });
 
   it.each([
     ['escaped quotes', 'name: "Orders \\"v2\\""', 'Orders "v2"'],
     ['a trailing comment', 'name: Orders # main API', 'Orders'],
-    ['an unquoted colon', 'name: Orders: v2', 'Orders: v2'],
     ['text that looks like a YAML marker', 'name: --- Orders', '--- Orders'],
     ['only digits', 'name: 2024', '2024']
   ])('reads a yml name with %s', async (_description, line, expected) => {
     const folderPath = collectionWith({ 'opencollection.yml': `info:\n  ${line}\n` });
 
-    expect(await readCollectionName(folderPath)).toBe(expected);
+    expect(await nameOf(folderPath)).toBe(expected);
   });
 
-  it('reads a top-level yml name when there is no info.name', async () => {
-    const folderPath = collectionWith({ 'opencollection.yml': 'name: \'Legacy\'\n' });
+  it.each([
+    ['only a top-level name', 'name: \'Legacy\'\n'],
+    ['no name', 'opencollection: 1.0.0\n']
+  ])('names a yml collection with %s the way opening it does', async (_description, yml) => {
+    const folderPath = collectionWith({ 'opencollection.yml': yml });
 
-    expect(await readCollectionName(folderPath)).toBe('Legacy');
+    expect(await nameOf(folderPath)).toBe('Untitled Collection');
+  });
+
+  it('reads the name from an opencollection.yml with long docs', async () => {
+    const docs = 'Notes: '.repeat(20000);
+    const folderPath = collectionWith({ 'opencollection.yml': `info:\n  name: Orders\ndocs:\n  content: "${docs}"\n` });
+
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'Orders', isBroken: false });
+  });
+
+  it('lists a config bigger than it reads without judging it, named after its folder', async () => {
+    const docs = 'Notes: '.repeat(160000);
+    const folderPath = collectionWith({ 'opencollection.yml': `info:\n  name: Orders\ndocs:\n  content: "${docs}"\n` });
+
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'my-collection', isBroken: false });
   });
 
   it('reads a yml file written with Windows line endings', async () => {
     const folderPath = collectionWith({ 'opencollection.yml': 'opencollection: 1.0.0\r\ninfo:\r\n  summary: Orders API\r\n  name: Orders\r\n' });
 
-    expect(await readCollectionName(folderPath)).toBe('Orders');
+    expect(await nameOf(folderPath)).toBe('Orders');
   });
 
   it('prefers opencollection.yml over bruno.json', async () => {
@@ -69,28 +87,44 @@ describe('readCollectionName', () => {
       'bruno.json': JSON.stringify({ name: 'From json' })
     });
 
-    expect(await readCollectionName(folderPath)).toBe('From yml');
+    expect(await nameOf(folderPath)).toBe('From yml');
   });
 
-  it('reads the name from bruno.json', async () => {
+  it('reads the name from bruno.json the way opening it does', async () => {
     const folderPath = collectionWith({ 'bruno.json': JSON.stringify({ version: '1', name: ' Payments ', type: 'collection' }) });
 
-    expect(await readCollectionName(folderPath)).toBe('Payments');
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: ' Payments ', isBroken: false });
   });
 
-  it('finds the name in a bruno.json that is not valid JSON', async () => {
-    const folderPath = collectionWith({ 'bruno.json': '{ "version": "1", "name": "Payments", ' });
+  it('gives a bruno.json name that is not a string as text', async () => {
+    const folderPath = collectionWith({ 'bruno.json': JSON.stringify({ version: '1', name: 2024, type: 'collection' }) });
 
-    expect(await readCollectionName(folderPath)).toBe('Payments');
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: '2024', isBroken: false });
+  });
+
+  it('marks a collection broken when opencollection.yml is not a file, as opening fails on it', async () => {
+    const folderPath = collectionWith({ 'bruno.json': JSON.stringify({ version: '1', name: 'Payments', type: 'collection' }) });
+    fs.mkdirSync(path.join(folderPath, 'opencollection.yml'));
+
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'my-collection', isBroken: true });
   });
 
   it.each([
-    ['a bruno.json without a name', { 'bruno.json': JSON.stringify({ version: '1' }) }],
-    ['an opencollection.yml without a name', { 'opencollection.yml': 'opencollection: 1.0.0\n' }],
+    ['an opencollection.yml that is not valid YAML', { 'opencollection.yml': 'info:\n  name: Orders: v2\n' }],
+    ['an empty opencollection.yml next to a valid bruno.json', {
+      'opencollection.yml': '',
+      'bruno.json': JSON.stringify({ version: '1', name: 'Payments', type: 'collection' })
+    }],
+    ['a bruno.json that is not valid JSON', { 'bruno.json': '{ "version": "1", "name": "Payments", ' }],
+    ['a bruno.json without a name', { 'bruno.json': JSON.stringify({ version: '1', type: 'collection' }) }],
+    ['a bruno.json without a type', { 'bruno.json': JSON.stringify({ version: '1', name: 'Payments' }) }],
     ['no config file it can read', {}]
-  ])('uses the folder name for %s', async (_description, files) => {
+  ])('marks %s as a config that cannot be opened, named after its folder', async (_description, files) => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     const folderPath = collectionWith(files);
 
-    expect(await readCollectionName(folderPath)).toBe('my-collection');
+    expect(await readCollectionConfig(folderPath)).toEqual({ name: 'my-collection', isBroken: true });
+
+    consoleError.mockRestore();
   });
 });

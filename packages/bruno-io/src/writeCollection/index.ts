@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BrunoCollection, BrunoItem } from '@usebruno/schema-types';
-import { sanitizeName } from '@usebruno/common/utils';
+import { sanitizeName, getFilenameWithFormat } from '@usebruno/common/utils';
 import {
   stringifyRequest,
   stringifyFolder,
@@ -19,10 +19,6 @@ const HTTP_ITEM_TYPES = ['http-request', 'graphql-request'];
 const COLLECTION_FILES: Record<CollectionFormat, string> = {
   bru: 'collection.bru',
   yml: 'opencollection.yml'
-};
-
-const withExtension = (filename: string, ext: string): string => {
-  return filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
 };
 
 // Converters emit sparse request objects; fill what the serializers expect without dropping
@@ -68,7 +64,7 @@ const writeItems = (items: BrunoItem[], dirPath: string, format: CollectionForma
 
       writeItems(item.items || [], folderPath, format);
     } else if (SUPPORTED_WRITE_ITEM_TYPES.includes(item.type)) {
-      const filename = withExtension(sanitizeName(item.filename || `${item.name}.${format}`), format);
+      const filename = sanitizeName(getFilenameWithFormat(item, format));
       fs.writeFileSync(path.join(dirPath, filename), stringifyRequest(normalizeRequestItem(item), { format }));
     } else {
       throw new Error(`Unsupported item type: ${item.type}`);

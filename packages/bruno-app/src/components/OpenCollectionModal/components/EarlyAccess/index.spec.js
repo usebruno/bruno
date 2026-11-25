@@ -25,13 +25,13 @@ describe('early access pages', () => {
       'Publish a release or snapshot of any collection',
       'Testers, PMs and partners open it without git',
       'Runs on your premises, nothing leaves your network'
-    ]],
+    ], 'https://link.usebruno.com/registry-waitlist', 'https://link.usebruno.com/docs/registry'],
     ['API Catalog', ApiCatalogPage, 'catalog', 'Bruno API Catalog', 'The public home for Bruno collections', [
       'List your API’s collection straight from its public repo',
       'Search collections by API, company or topic',
       'They open it in Bruno in one click and get your updates'
-    ]]
-  ])('shows the %s page and requests access in the browser', (_name, Page, feature, title, subtitle, points) => {
+    ], 'https://link.usebruno.com/catalog-waitlist', 'https://link.usebruno.com/docs/catalog']
+  ])('shows the %s page and opens its waitlist and docs in the browser', (_name, Page, feature, title, subtitle, points, waitlistUrl, learnMoreUrl) => {
     renderPage(Page);
     const page = within(screen.getByTestId(`open-collection-early-access-${feature}`));
 
@@ -40,7 +40,9 @@ describe('early access pages', () => {
     expect(page.getAllByRole('listitem').map((item) => item.textContent)).toEqual(points);
 
     fireEvent.click(page.getByRole('button', { name: 'Request early access' }));
+    expect(window.ipcRenderer.openExternal).toHaveBeenLastCalledWith(waitlistUrl);
 
-    expect(window.ipcRenderer.openExternal).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`\\?feature=${feature}$`)));
+    fireEvent.click(page.getByRole('button', { name: 'Learn more' }));
+    expect(window.ipcRenderer.openExternal).toHaveBeenLastCalledWith(learnMoreUrl);
   });
 });

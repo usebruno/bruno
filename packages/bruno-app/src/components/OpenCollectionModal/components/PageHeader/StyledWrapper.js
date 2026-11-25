@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../IconButtonStyles';
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -29,12 +28,6 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .close-button {
-    width: 1.75rem;
-    height: 1.75rem;
-    ${iconButtonStyles}
   }
 `;
 
