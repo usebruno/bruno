@@ -77,6 +77,32 @@ describe('useBranchListing', () => {
     expect(fetchBranchesForRepositoryUrl).toHaveBeenCalledTimes(1);
   });
 
+  it('drops an older reply for the same URL after the URL changed away and back', async () => {
+    const calls = [];
+    fetchBranchesForRepositoryUrl.mockImplementation((url) => () => {
+      const reply = deferred();
+      calls.push({ url, reply });
+      return reply.promise;
+    });
+    const { result, rerender } = renderListing(API_URL);
+    await settle();
+    rerender({ url: WEB_URL });
+    await settle();
+    rerender({ url: API_URL });
+    await settle();
+    expect(calls.map(({ url }) => url)).toEqual([API_URL, WEB_URL, API_URL]);
+
+    await act(async () => {
+      calls[2].reply.resolve({ branches: ['main'], defaultBranch: 'main' });
+    });
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await act(async () => {
+      calls[0].reply.reject(new Error('timed out'));
+    });
+
+    expect(result.current).toEqual({ branches: ['main'], defaultBranch: 'main', loading: false, failed: false });
+  });
+
   it('drops a slower reply for a URL that is no longer current', async () => {
     const { result, rerender } = renderListing(API_URL);
     await settle();

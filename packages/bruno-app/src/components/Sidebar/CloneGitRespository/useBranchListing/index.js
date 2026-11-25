@@ -9,30 +9,29 @@ const useBranchListing = (url, { canList }) => {
   const dispatch = useDispatch();
   const debouncedUrl = useDebounce(url, 500);
   const [listing, setListing] = useState(EMPTY_BRANCH_LISTING);
-  // replies for older URLs are dropped
-  const latestUrlRef = useRef(null);
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     if (!canList(debouncedUrl)) {
       return;
     }
-    latestUrlRef.current = debouncedUrl;
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
     setListing({ ...EMPTY_BRANCH_LISTING, loading: true });
     dispatch(fetchBranchesForRepositoryUrl(debouncedUrl))
       .then(({ branches, defaultBranch }) => {
-        if (latestUrlRef.current === debouncedUrl) {
+        if (latestRequestRef.current === requestId) {
           setListing({ branches, defaultBranch: defaultBranch || '', loading: false, failed: false });
         }
       })
       .catch((error) => {
-        if (latestUrlRef.current === debouncedUrl) {
+        if (latestRequestRef.current === requestId) {
           console.error(error);
           setListing({ ...EMPTY_BRANCH_LISTING, failed: true });
         }
       });
   }, [debouncedUrl]);
 
-  // hide the previous URL's branches while the new URL is debouncing
   if (url !== debouncedUrl) {
     return { ...EMPTY_BRANCH_LISTING, loading: canList(url) };
   }
