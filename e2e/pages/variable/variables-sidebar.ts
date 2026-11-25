@@ -180,6 +180,21 @@ export const readFirstVisibleRow = (page: Page, view: VariablesView): Promise<st
     return firstVisible ? firstVisible.getAttribute('data-row-name') : null;
   });
 
+export const readFirstVisibleObjectRow = (page: Page, view: VariablesView): Promise<{ sectionKey: string; name: string } | null> =>
+  buildVariablesSidebarLocators(page).scroller(view).evaluate((element) => {
+    const top = element.getBoundingClientRect().top;
+    const rows = Array.from(element.querySelectorAll('tbody tr[data-row-name]'));
+    const objectRow = rows.find((row) => row.getBoundingClientRect().top >= top
+      && row.querySelector('[data-testid="variable-multiline-editor"]'));
+    const sectionTestId = objectRow?.closest('[data-testid$="-section"]')?.getAttribute('data-testid');
+    const name = objectRow?.getAttribute('data-row-name');
+    if (!sectionTestId || !name) return null;
+    return {
+      sectionKey: sectionTestId.replace(/^variables-sidebar-/, '').replace(/-section$/, ''),
+      name
+    };
+  });
+
 export const readVariablesViewDistanceFromBottom = (page: Page, view: VariablesView): Promise<number> =>
   buildVariablesSidebarLocators(page).scroller(view).evaluate((element) =>
     Math.round(element.scrollHeight - element.clientHeight - element.scrollTop)

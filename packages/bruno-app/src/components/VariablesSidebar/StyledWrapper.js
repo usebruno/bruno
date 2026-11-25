@@ -81,12 +81,31 @@ const StyledWrapper = styled.div`
     padding: 8px 12px 0;
   }
 
+  .variables-sidebar-content {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   .variables-sidebar-scroll {
     flex: 1;
     min-height: 0;
     overflow: auto;
     overflow-anchor: none;
     padding: 14px 12px 12px;
+
+    &.is-covered {
+      visibility: hidden;
+    }
+  }
+
+  .object-view-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .empty-note {

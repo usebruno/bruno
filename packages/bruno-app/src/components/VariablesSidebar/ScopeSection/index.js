@@ -3,14 +3,18 @@ import { IconChevronDown, IconChevronUp } from '@tabler/icons';
 import ScopePill from '../ScopePill';
 import StyledWrapper from './StyledWrapper';
 
-const ScopeSection = ({ icon: Icon, title, pill, count, isDanger, expanded, onToggle, onTitleClick, testId, children }) => {
+const ScopeSection = ({ icon: Icon, sectionKey, title, pill, count, isDanger, expanded, onToggle, onTitleClick, testId, children }) => {
   const handleTitleClick = (event) => {
     event.stopPropagation();
     onTitleClick();
   };
 
   return (
-    <StyledWrapper className={`${expanded ? 'expanded' : 'collapsed'}${isDanger ? ' is-danger' : ''}`} data-testid={testId}>
+    <StyledWrapper
+      className={`${expanded ? 'expanded' : 'collapsed'}${isDanger ? ' is-danger' : ''}`}
+      data-section-key={sectionKey}
+      data-testid={testId}
+    >
       <div
         role="button"
         tabIndex={0}

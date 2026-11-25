@@ -3,10 +3,13 @@ import {
   buildCommonLocators,
   clearVariablesSidebarPreferences,
   closeAllCollections,
+  clickVariableRowAction,
   closeVariablesSidebar,
   openCollectionFromDialog,
   openRequest,
   openVariablesSidebar,
+  readFirstVisibleObjectRow,
+  readFirstVisibleRow,
   readSettledVariablesViewScroll,
   readVariableObjectValueScroll,
   readVariablesViewDistanceFromBottom,
@@ -83,6 +86,43 @@ test.describe('Variables sidebar scroll', () => {
       await openVariablesSidebar(page);
       await expect.poll(() => readVariableObjectValueScroll(page, 'collection', 'long_object')).toBe(200);
       expect(await readVariablesViewScroll(page, 'all')).toBe(0);
+    });
+  });
+
+  test('keeps the same rows in view after the object view, a view switch and reopening', async ({ page, electronApp, collectionFixturePath }) => {
+    const { variablesSidebar } = buildCommonLocators(page);
+    let firstRow: string | null = null;
+
+    await test.step('Open all variables and scroll part of the way down', async () => {
+      await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
+      await openRequest(page, COLLECTION_NAME, 'many-variables');
+      await selectEnvironment(page, 'Local');
+      await openVariablesSidebar(page);
+      await scrollVariablesView(page, 'all', 4000);
+      await readSettledVariablesViewScroll(page, 'all');
+      firstRow = await readFirstVisibleRow(page, 'all');
+      expect(firstRow).not.toBeNull();
+    });
+
+    await test.step('The same row is at the top after going back from the object view', async () => {
+      const objectRow = await readFirstVisibleObjectRow(page, 'all');
+      expect(objectRow).not.toBeNull();
+      await clickVariableRowAction(page, objectRow!.sectionKey, objectRow!.name, 'object-expand');
+      await expect(variablesSidebar.objectView()).toBeVisible();
+      await variablesSidebar.objectViewBack().click();
+      await expect.poll(() => readFirstVisibleRow(page, 'all')).toBe(firstRow);
+    });
+
+    await test.step('The same row is at the top after switching views', async () => {
+      await selectVariablesView(page, 'used');
+      await selectVariablesView(page, 'all');
+      await expect.poll(() => readFirstVisibleRow(page, 'all')).toBe(firstRow);
+    });
+
+    await test.step('The same row is at the top after closing and reopening the sidebar', async () => {
+      await closeVariablesSidebar(page);
+      await openVariablesSidebar(page);
+      await expect.poll(() => readFirstVisibleRow(page, 'all')).toBe(firstRow);
     });
   });
 });

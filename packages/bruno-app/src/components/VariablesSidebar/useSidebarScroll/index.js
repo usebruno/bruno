@@ -13,21 +13,51 @@ const TOP_POSITION = { top: 0, atBottom: false };
 
 const maxScrollTop = (el) => el.scrollHeight - el.clientHeight;
 
+const viewportTop = (el) => el.getBoundingClientRect().top;
+
+const readAnchor = (el) => {
+  const top = viewportTop(el);
+  const row = Array.from(el.querySelectorAll('[data-section-key] tr[data-item-index]'))
+    .find((candidate) => candidate.getBoundingClientRect().bottom > top);
+  if (!row) return null;
+  return {
+    sectionKey: row.closest('[data-section-key]').dataset.sectionKey,
+    index: Number(row.dataset.itemIndex),
+    offset: row.getBoundingClientRect().top - top
+  };
+};
+
 const readPosition = (el) => ({
   top: el.scrollTop,
-  atBottom: maxScrollTop(el) > 0 && maxScrollTop(el) - el.scrollTop <= 1
+  atBottom: maxScrollTop(el) > 0 && maxScrollTop(el) - el.scrollTop <= 1,
+  anchor: readAnchor(el)
 });
 
-const useSidebarScroll = (scrollRef, view, isScrollerShown) => {
+const findAnchorRow = (el, anchor) =>
+  el.querySelector(`[data-section-key="${anchor.sectionKey}"] tr[data-item-index="${anchor.index}"]`);
+
+const useSidebarScroll = (scrollRef, tableRefs, view) => {
   const [positions, setPositions] = usePersistedState({ key: 'variables-sidebar.scroll', default: {} });
   const positionsRef = useRef(positions);
 
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (!isScrollerShown || !el) return;
+    if (!el) return;
 
     const saved = positionsRef.current[view] || TOP_POSITION;
-    const targetTop = () => (saved.atBottom ? maxScrollTop(el) : saved.top);
+    const distanceToTarget = () => {
+      if (saved.atBottom) return maxScrollTop(el) - el.scrollTop;
+      if (!saved.anchor) return saved.top - el.scrollTop;
+
+      const anchorRow = findAnchorRow(el, saved.anchor);
+      if (anchorRow) return anchorRow.getBoundingClientRect().top - viewportTop(el) - saved.anchor.offset;
+
+      const table = tableRefs.current.get(saved.anchor.sectionKey);
+      if (!table) return saved.top - el.scrollTop;
+      table.scrollToIndex({ index: saved.anchor.index, align: 'start' });
+      return null;
+    };
+
     const startedAt = performance.now();
     let isRestoring = saved.atBottom || saved.top > 0;
     let stableFrames = 0;
@@ -75,9 +105,11 @@ const useSidebarScroll = (scrollRef, view, isScrollerShown) => {
         scheduleSave(lastPosition);
         return;
       }
-      const target = targetTop();
-      if (Math.abs(el.scrollTop - target) > 1) {
-        el.scrollTop = Math.min(target, maxScrollTop(el));
+      const distance = distanceToTarget();
+      if (distance === null) {
+        stableFrames = 0;
+      } else if (Math.abs(distance) > 1) {
+        el.scrollTop = Math.min(Math.max(el.scrollTop + distance, 0), maxScrollTop(el));
         stableFrames = 0;
       } else {
         stableFrames += 1;
@@ -89,7 +121,7 @@ const useSidebarScroll = (scrollRef, view, isScrollerShown) => {
       rafId = requestAnimationFrame(holdTarget);
     };
 
-    el.scrollTop = targetTop();
+    el.scrollTop = saved.atBottom ? maxScrollTop(el) : saved.top;
     el.addEventListener('scroll', handleScroll);
     USER_SCROLL_EVENTS.forEach((type) => el.addEventListener(type, stopRestoring, { passive: true }));
     rafId = requestAnimationFrame(holdTarget);
@@ -102,7 +134,7 @@ const useSidebarScroll = (scrollRef, view, isScrollerShown) => {
       clearTimeout(zeroTimeout);
       save(lastPosition);
     };
-  }, [scrollRef, view, isScrollerShown, setPositions]);
+  }, [scrollRef, tableRefs, view, setPositions]);
 };
 
 export default useSidebarScroll;

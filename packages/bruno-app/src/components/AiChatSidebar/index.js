@@ -15,7 +15,6 @@ import {
   IconLayoutSidebarRightExpand
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
-import RightSidebarSwitcher from 'components/RightSidebarSwitcher';
 import get from 'lodash/get';
 import find from 'lodash/find';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -886,7 +885,6 @@ const AiChatSidebar = ({ collection, variant = 'sidebar' }) => {
       <div className="ai-sidebar">
         <div className="ai-sidebar-header">
           <span className="header-title">AI Assistant</span>
-          {!isPopout && <RightSidebarSwitcher active="ai" />}
           <button className="icon-btn close-btn" onClick={handleClose} title="Close">
             <IconX size={14} />
           </button>

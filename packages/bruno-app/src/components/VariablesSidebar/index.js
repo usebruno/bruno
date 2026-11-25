@@ -18,7 +18,6 @@ import { resolveFolderScopeTarget } from 'utils/variables';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 import { getLocalStorageValue, setLocalStorageValue } from 'utils/common/localStorage';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import RightSidebarSwitcher from 'components/RightSidebarSwitcher';
 import ScopeSection from './ScopeSection';
 import ScopeTable from './ScopeTable';
 import ObjectView from './ObjectView';
@@ -140,7 +139,8 @@ const VariablesSidebar = ({ collection }) => {
     && (!objectRow.secret || isSecretRevealed(objectSection, objectRow.name));
 
   const scrollRef = useRef(null);
-  useSidebarScroll(scrollRef, view, !showObjectView);
+  const tableRefs = useRef(new Map());
+  useSidebarScroll(scrollRef, tableRefs, view);
 
   const viewTabs = [
     ...(requestItem
@@ -174,6 +174,7 @@ const VariablesSidebar = ({ collection }) => {
       <ScopeSection
         key={section.key}
         icon={SCOPE_ICONS[section.scope]}
+        sectionKey={section.key}
         title={section.title}
         pill={section.pill}
         count={section.rows.length}
@@ -185,6 +186,7 @@ const VariablesSidebar = ({ collection }) => {
       >
         <ScopeTable
           section={section}
+          tableRef={(table) => (table ? tableRefs.current.set(section.key, table) : tableRefs.current.delete(section.key))}
           collection={collectionWithGlobals}
           item={requestItem}
           addToScopes={addToScopes}
@@ -214,7 +216,6 @@ const VariablesSidebar = ({ collection }) => {
       <div className="variables-sidebar">
         <div className="variables-sidebar-header">
           <span className="header-title">Variables</span>
-          <RightSidebarSwitcher active="variables" />
           <button
             type="button"
             className="icon-btn"
@@ -230,18 +231,25 @@ const VariablesSidebar = ({ collection }) => {
           <div className="variables-sidebar-tabs" data-testid="variables-sidebar-tabs">
             <ResponsiveTabs tabs={viewTabs} activeTab={view} onTabSelect={handleViewChange} />
           </div>
-          {showObjectView ? (
-            <ObjectView
-              section={objectSection}
-              row={objectRow}
-              collection={collectionWithGlobals}
-              onBack={() => setObjectSelection(null)}
-            />
-          ) : (
-            <div ref={scrollRef} className="variables-sidebar-scroll" data-testid={`variables-sidebar-${view}`}>
+          <div className="variables-sidebar-content">
+            <div
+              ref={scrollRef}
+              className={`variables-sidebar-scroll${showObjectView ? ' is-covered' : ''}`}
+              data-testid={`variables-sidebar-${view}`}
+            >
               {renderSections()}
             </div>
-          )}
+            {showObjectView && (
+              <div className="object-view-overlay">
+                <ObjectView
+                  section={objectSection}
+                  row={objectRow}
+                  collection={collectionWithGlobals}
+                  onBack={() => setObjectSelection(null)}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </StyledWrapper>

@@ -5,6 +5,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ScopeTable = ({
   section,
+  tableRef,
   collection,
   item,
   addToScopes,
@@ -49,6 +50,7 @@ const ScopeTable = ({
   return (
     <StyledWrapper>
       <EditableTable
+        ref={tableRef}
         tableId="variables-sidebar"
         testId={`variables-sidebar-${section.key}-table`}
         columns={columns}

@@ -122,7 +122,8 @@ const EditableTable = React.forwardRef(({
   const virtuosoRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
-    scrollToTop: () => virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start' })
+    scrollToTop: () => virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start' }),
+    scrollToIndex: (location) => virtuosoRef.current?.scrollToIndex(location)
   }), []);
 
   const emptyRowUidRef = useRef(null);
