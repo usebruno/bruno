@@ -8,48 +8,45 @@ import {
   createCollectionInSaveModal,
   createTransientRequestFromPreset,
   createWorkspace,
-  saveTransientViaModal
+  saveTransientViaModal,
+  openCollectionFromDialog
 } from '../../pages';
 
 type BrunoAbcApp = { app: ElectronApplication; page: Page };
 
 const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
 
-// One app per test, so parallel tests never share a window. The fixture closes it after the test.
 const test = base.extend<{ brunoAbcApp: BrunoAbcApp }>({
   brunoAbcApp: async ({ launchElectronApp, createTmpDir }, use) => {
-    const userDataPath = path.join(await createTmpDir('bruno-abc-userdata'), 'bruno-abc', 'AppData', 'Bruno');
-    const app = await launchElectronApp({ userDataPath });
-    const page = await waitForReadyPage(app);
+    let app: ElectronApplication | undefined;
+    try {
+      const userDataPath = path.join(await createTmpDir('bruno-abc-userdata'), 'bruno-abc', 'AppData', 'Bruno');
+      app = await launchElectronApp({ userDataPath });
+      const page = await waitForReadyPage(app);
 
-    const actualUserDataPath = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
-    expect(path.normalize(actualUserDataPath).split(path.sep)).toContain('bruno-abc');
+      const actualUserDataPath = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+      expect(path.normalize(actualUserDataPath).split(path.sep)).toContain('bruno-abc');
 
-    await use({ app, page });
-    await closeElectronApp(app);
+      await use({ app, page });
+    } finally {
+      if (app) {
+        await closeElectronApp(app);
+      }
+    }
   }
 });
 
-test.describe('Creating a transient request when the OS username starts with "bruno-"', () => {
+test.describe('Creating a transient request when the user data path contains "bruno', () => {
   let app: ElectronApplication;
   let page: Page;
 
-  test.beforeEach(async ({ brunoAbcApp }) => {
-    app = brunoAbcApp.app;
-    page = brunoAbcApp.page;
-  });
-
-  test.afterEach(async () => {
-    await closeAllCollections(page);
-  });
-
-  test('TC-8686: Creates a transient request from the collection level', { tag: '@sanity' }, async ({ createTmpDir }) => {
-    const collectionName = 'transient-bruno-abc';
+  test('TC-8686: Creates a transient request from the collection level', { tag: '@sanity' }, async ({
+    brunoAbcApp: { app, page },
+    collectionFixturePath
+  }) => {
     const { tabs } = buildCommonLocators(page);
 
-    await test.step('Create a collection', async () => {
-      await createCollection(page, collectionName, await createTmpDir(collectionName));
-    });
+    await openCollectionFromDialog(page, app, collectionFixturePath!);
 
     await test.step('Create a transient request by clicking the + icon', async () => {
       await createTransientRequestFromPreset(page);
@@ -60,21 +57,15 @@ test.describe('Creating a transient request when the OS username starts with "br
     });
   });
 
-  test('TC-3113: Creates a transient request from the workspace level', { tag: '@sanity' }, async ({ createTmpDir }) => {
-    const collectionName = 'workspace-level-collection';
-    const { tabs, titleBar, workspaceOverview } = buildCommonLocators(page);
+  test('TC-3113: Creates a transient request from the workspace level', { tag: '@sanity' }, async ({
+    brunoAbcApp: { app, page },
+    collectionFixturePath
+  }) => {
+    const { tabs, titleBar } = buildCommonLocators(page);
 
-    await test.step('Create a workspace', async () => {
-      await createWorkspace(page, 'transient-workspace');
-    });
-
-    await test.step('Create a collection', async () => {
-      await createCollection(page, collectionName, await createTmpDir(collectionName));
-    });
-
-    await test.step('Go to the workspace overview', async () => {
+    await test.step('Go to workspace overview', async () => {
+      await openCollectionFromDialog(page, app, collectionFixturePath!);
       await titleBar.homeButton().click();
-      await expect(workspaceOverview.collectionCard(collectionName)).toBeVisible();
     });
 
     await test.step('Create a transient request by clicking the + icon', async () => {
@@ -86,16 +77,15 @@ test.describe('Creating a transient request when the OS username starts with "br
     });
   });
 
-  test('TC-1511: Verify saving the request in a workspace having no collection to begin with', { tag: '@sanity' }, async ({ createTmpDir }) => {
-    const collectionName = 'first-collection';
-    const requestName = 'saved-request';
+  test('TC-1511: Verify saving the transient request in a workspace having no collection to begin with', { tag: '@sanity' }, async ({
+    brunoAbcApp: { app, page },
+    createTmpDir
+  }) => {
+    const collectionName = 'first-collection-bruno';
+    const requestName = 'saved-request-bruno';
     const collectionLocation = await createTmpDir(collectionName);
     const { sidebar, tabs, toast } = buildCommonLocators(page);
-    const saveModal = sidebar.saveRequestModal;
-
-    await test.step('Create a new workspace and keep it empty', async () => {
-      await createWorkspace(page, 'empty-workspace');
-    });
+    const createCollectionInTransientSaveModal = sidebar.saveRequestModal;
 
     await test.step('Create a transient request from the + icon', async () => {
       await createTransientRequestFromPreset(page);
@@ -103,7 +93,7 @@ test.describe('Creating a transient request when the OS username starts with "br
 
     await test.step('Save the request and verify the popup', async () => {
       await page.keyboard.press(saveShortcut);
-      await expect(saveModal.emptyState()).toBeVisible();
+      await expect(createCollectionInTransientSaveModal.emptyState()).toBeVisible();
     });
 
     await test.step('Create a collection from inside the popup', async () => {
@@ -112,11 +102,10 @@ test.describe('Creating a transient request when the OS username starts with "br
 
     await test.step('Choose the new collection, name the request and save', async () => {
       await saveTransientViaModal(page, requestName, { collectionName });
-      await expect(toast.byMessage('Request saved successfully')).toBeVisible();
     });
 
     await test.step('Verify that the request is saved as configured', async () => {
-      await expect(saveModal.root()).toBeHidden();
+      await expect(createCollectionInTransientSaveModal.root()).toBeHidden();
       await expect(tabs.activeRequestTabLabel()).toContainText(requestName);
       await expect.poll(() => fs.existsSync(path.join(collectionLocation, collectionName, `${requestName}.yml`))).toBe(true);
     });

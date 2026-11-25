@@ -300,8 +300,6 @@ export const revealCollectionsTop = async (page: Page) => {
   await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
 };
 
-// Create a collection from the "New collection" form inside the transient "Save Request" modal.
-// The location field is read-only and is only set through the native folder picker, so the picker is stubbed.
 export const createCollectionInSaveModal = async (
   page: Page,
   app: ElectronApplication,
