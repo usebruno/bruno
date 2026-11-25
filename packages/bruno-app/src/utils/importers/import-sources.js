@@ -1,5 +1,5 @@
 import { callIpc } from 'utils/common/ipc';
-import { isValidUrl } from 'utils/url/index';
+import { isValidUrl } from '@usebruno/common/utils';
 import { isBrunoCollection } from './bruno-collection';
 import { fetchAndValidateApiSpecFromUrl, getFetchErrorMessage } from './common';
 import { parseFileText } from './file-reader';

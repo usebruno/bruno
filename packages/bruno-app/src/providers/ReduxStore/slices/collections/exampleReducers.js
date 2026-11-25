@@ -6,7 +6,8 @@ import { findItemForExampleEditor,
   isMockResponseEditorItemUid,
   buildMockResponseEditorItem
 } from 'utils/mock-server/mock-responses/editor';
-import { parsePathParams, splitOnFirst } from 'utils/url';
+import { parsePathParams } from 'utils/url';
+import { splitOnFirst } from '@usebruno/common/utils';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {

@@ -332,6 +332,31 @@ const isSameOrigin = (url1: string, url2: string): boolean => {
   }
 };
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
+const splitOnFirst = (str: string, char: string) => {
+  if (!str || !str.length) {
+    return [str];
+  }
+
+  // Mask {{ }} template variables so their contents don't interfere with the search
+  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
+  const index = masked.indexOf(char);
+
+  if (index === -1) {
+    return [str];
+  }
+
+  return [str.slice(0, index), str.slice(index + 1)];
+};
+
 export {
   DEFAULT_SCHEME,
   getExplicitScheme,
@@ -344,6 +369,8 @@ export {
   extractMockRoutePath,
   getMockResponseRouteKey,
   isSameOrigin,
+  isValidUrl,
+  splitOnFirst,
   type QueryParam,
   type BuildQueryStringOptions,
   type ExtractQueryParamsOptions,

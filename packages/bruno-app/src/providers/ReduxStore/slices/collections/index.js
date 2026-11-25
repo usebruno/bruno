@@ -16,7 +16,8 @@ import {
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { parsePathParams, splitOnFirst } from 'utils/url';
+import { parsePathParams } from 'utils/url';
+import { splitOnFirst } from '@usebruno/common/utils';
 import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';

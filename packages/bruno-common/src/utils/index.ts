@@ -9,7 +9,9 @@ export {
   safeDecodeURIComponent,
   extractMockRoutePath,
   getMockResponseRouteKey,
-  isSameOrigin
+  isSameOrigin,
+  isValidUrl,
+  splitOnFirst
 } from './url';
 
 export {

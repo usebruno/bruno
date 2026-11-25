@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import CodeView from './CodeView';
 import CodeViewToolbar from './CodeViewToolbar';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url';
+import { isValidUrl } from '@usebruno/common/utils';
 import { get } from 'lodash';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';

@@ -1,8 +1,8 @@
-import jsyaml from 'js-yaml';
 import { interpolate } from '@usebruno/common';
 import { parseQueryParams } from '@usebruno/common/utils';
-import { isValidUrl, splitOnFirst } from 'utils/url/index';
-const xml2js = require('xml2js');
+import { isValidUrl, splitOnFirst } from '@usebruno/common/utils';
+import each from 'lodash/each';
+import xml2js from 'xml2js';
 
 const placeholderRegex = /\{\{([^}]+)\}\}/g;
 
@@ -56,7 +56,113 @@ const toTemplatePath = (path) => {
   return { templatePath: templatePath.replace(placeholderRegex, '{$1}'), segmentParamNames };
 };
 
-export const exportApiSpec = ({ variables, items, name, environments }) => {
+const xmlToJson = (xmlString) => {
+  const parser = new xml2js.Parser({ explicitArray: false, trim: true });
+  let jsonResult = null;
+
+  parser.parseString(xmlString, (err, result) => {
+    if (err) {
+      throw err;
+    } else {
+      jsonResult = result;
+    }
+  });
+
+  return jsonResult;
+};
+
+const generateInfoSection = (name) => {
+  return {
+    title: name,
+    version: '1.0.0'
+  };
+};
+
+// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
+// left out, because the secret wins at runtime)
+const getEnabledVarsAsObject = (variables = []) => {
+  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
+  const result = {};
+  variables.forEach((v) => {
+    if (v.name && v.enabled && !secretNames.has(v.name)) {
+      result[v.name] = v.value;
+    }
+  });
+  return result;
+};
+
+const generateProperyShape = (obj) => {
+  const data = {};
+
+  // add 'type'
+  if (Array.isArray(obj)) {
+    data['type'] = 'array';
+    data['items'] = {
+      type: 'string'
+    };
+  } else {
+    data['type'] = typeof obj;
+  }
+
+  // add 'properties'
+  let properties = null;
+  if (obj && typeof obj === 'object') {
+    properties = {};
+    const keys = Object.keys(obj);
+    keys.forEach((key) => {
+      const value = obj[key];
+      properties[key] = generateProperyShape(value);
+    });
+    if (keys.length) {
+      data['properties'] = properties;
+    }
+  }
+  return data;
+};
+
+const hasValue = (value) => value !== undefined && value !== null && value !== '';
+
+export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
+  const variables = {};
+  each(envVariables, (variable) => {
+    if (variable.name && variable.enabled && !variable.secret && hasValue(variable.value)) {
+      variables[variable.name] = variable.value;
+    }
+  });
+  return variables;
+};
+
+export const buildSpecVariables = ({ collectionVariables, envVariables, environment }) => {
+  const environmentVariables = environment ? envVariables?.[environment] || {} : {};
+
+  // An enabled secret wins at runtime over a collection or plain environment variable of the same name,
+  // so keep its placeholder
+  const secretNames = new Set();
+  each(environmentVariables, (variable) => {
+    if (variable.enabled && variable.secret) secretNames.add(variable.name);
+  });
+  const withoutSecretNames = (values) => Object.fromEntries(Object.entries(values).filter(([name]) => !secretNames.has(name)));
+
+  return {
+    ...withoutSecretNames(collectionVariables || {}),
+    ...withoutSecretNames(getEnvironmentVariablesKeyValuePairs(environmentVariables))
+  };
+};
+
+export default function brunoToOpenApi(name, collectionData, selectedEnvironment) {
+  const { requests: items, envVariables, collectionVariables } = collectionData;
+
+  const variables = buildSpecVariables({
+    collectionVariables,
+    envVariables,
+    environment: selectedEnvironment
+  });
+
+  const environments = Object.entries(envVariables || {}).map(([name, vars]) => ({
+    name,
+    variables: vars
+  }));
+
   // Filter only include http-request and graphql-request items that aren't transient
   items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
 
@@ -428,7 +534,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               addWarning(`Failed to parse XML in request body: ${error.message}`, item?.name);
             }
             break;
-          case 'multipartForm':
+          case 'multipartForm': {
             if (!body?.multipartForm) break;
             const multipartFormComponentId = getItemComponentId();
             {
@@ -455,7 +561,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${multipartFormComponentId}`
             };
             break;
-          case 'formUrlEncoded':
+          }
+          case 'formUrlEncoded':{
             if (!body?.formUrlEncoded) break;
             const formUrlEncodedComponentId = getItemComponentId();
             {
@@ -482,6 +589,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
               $ref: `#/components/requestBodies/${formUrlEncodedComponentId}`
             };
             break;
+          }
           case 'text':
             if (!body?.text) break;
             pathBody['requestBody'] = {
@@ -526,7 +634,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
           case 'oauth2': {
             if (!auth?.oauth2?.grantType) break;
             componentId = getItemComponentId();
-            const { authorizationUrl, accessTokenUrl, callbackUrl, scope } = auth?.oauth2;
+            const { authorizationUrl, accessTokenUrl, scope } = auth?.oauth2;
             const scopes = scope ? { [scope]: '' } : {};
             switch (auth?.oauth2?.grantType) {
               case 'authorization_code':
@@ -623,7 +731,7 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
         operation.servers = [item.operationLevelServer];
       }
 
-      let operationObject = acc[item?.url][item?.method];
+      const operationObject = acc[item?.url][item?.method];
 
       if (operationObject) {
         operationObject['x-bruno-variants'] = [
@@ -644,74 +752,8 @@ export const exportApiSpec = ({ variables, items, name, environments }) => {
   collectionToExport.servers = servers;
   collectionToExport.components = components;
 
-  let yaml = jsyaml.dump(collectionToExport);
-
   return {
-    content: yaml,
+    content: collectionToExport,
     warnings
   };
-};
-
-const xmlToJson = (xmlString) => {
-  const parser = new xml2js.Parser({ explicitArray: false, trim: true });
-  let jsonResult = null;
-
-  parser.parseString(xmlString, (err, result) => {
-    if (err) {
-      throw err;
-    } else {
-      jsonResult = result;
-    }
-  });
-
-  return jsonResult;
-};
-
-const generateInfoSection = (name) => {
-  return {
-    title: name,
-    version: '1.0.0'
-  };
-};
-
-// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
-// left out, because the secret wins at runtime)
-const getEnabledVarsAsObject = (variables = []) => {
-  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
-  const result = {};
-  variables.forEach((v) => {
-    if (v.name && v.enabled && !secretNames.has(v.name)) {
-      result[v.name] = v.value;
-    }
-  });
-  return result;
-};
-
-const generateProperyShape = (obj) => {
-  let data = {};
-
-  // add 'type'
-  if (Array.isArray(obj)) {
-    data['type'] = 'array';
-    data['items'] = {
-      type: 'string'
-    };
-  } else {
-    data['type'] = typeof obj;
-  }
-
-  // add 'properties'
-  let properties = null;
-  if (obj && typeof obj == 'object') {
-    properties = {};
-    let keys = Object.keys(obj);
-    keys.forEach((key) => {
-      let value = obj[key];
-      properties[key] = generateProperyShape(value);
-    });
-    if (keys.length) {
-      data['properties'] = properties;
-    }
-  }
-  return data;
 };

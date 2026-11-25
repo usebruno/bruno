@@ -93,7 +93,8 @@ import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/a
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { interpolateUrl, parsePathParams, splitOnFirst } from 'utils/url/index';
+import { interpolateUrl, parsePathParams } from 'utils/url/index';
+import { splitOnFirst } from '@usebruno/common/utils';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,

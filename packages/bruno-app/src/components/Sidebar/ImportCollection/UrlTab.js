@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
-import { isValidUrl } from 'utils/url/index';
+import { isValidUrl } from '@usebruno/common/utils';
 import Button from 'ui/Button';
 const UrlTab = ({
   setIsLoading,
