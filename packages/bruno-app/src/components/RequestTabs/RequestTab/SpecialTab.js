@@ -3,7 +3,7 @@ import GradientCloseButton from './GradientCloseButton';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconDatabase, IconWorld, IconHome, IconFileCode, IconConfetti, IconServer2 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDraft, needsAttention }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -91,6 +91,9 @@ const SpecialTab = ({ handleCloseClick, type, tabName, handleDoubleClick, hasDra
           <>
             <OpenAPISyncIcon size={14} className="special-tab-icon flex-shrink-0" />
             <span className="ml-1 tab-name mr-1">OpenAPI</span>
+            {needsAttention && (
+              <span className="tab-attention-dot shrink-0 w-1.5 h-1.5 mr-1 rounded-full" title="Sync source needs review" data-testid="openapi-sync-tab-pending-dot" />
+            )}
           </>
         );
       }

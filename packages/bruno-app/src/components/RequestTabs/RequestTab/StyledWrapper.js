@@ -33,6 +33,10 @@ const StyledWrapper = styled.div`
   .example-icon {
     color: ${(props) => props.theme.requestTabs.example.iconColor};
   }
+
+  .tab-attention-dot {
+    background-color: ${(props) => props.theme.status.warning.text};
+  }
 `;
 
 export default StyledWrapper;

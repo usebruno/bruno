@@ -19,7 +19,7 @@ import { isHttpUrl } from 'utils/url/index';
 const OpenAPISyncHeader = ({
   collection, spec, sourceUrl, syncStatus, onViewSpec,
   onOpenSettings, onOpenDisconnect,
-  onCheck, isLoading
+  onCheck, isLoading, isSourceApproved = true
 }) => {
   const sourceIsLocal = !isHttpUrl(sourceUrl);
   const canCheck = !!sourceUrl?.trim();
@@ -71,6 +71,8 @@ const OpenAPISyncHeader = ({
       id: 'settings',
       label: 'Edit connection settings',
       leftSection: IconSettings,
+      // Saving settings approves the source, so it waits for the banner review
+      disabled: !isSourceApproved,
       onClick: onOpenSettings
     },
     {
@@ -95,7 +97,7 @@ const OpenAPISyncHeader = ({
             color="secondary"
             size="sm"
             onClick={onCheck}
-            disabled={!canCheck}
+            disabled={!canCheck || !isSourceApproved}
             data-testid="openapi-sync-check-updates"
             loading={isLoading}
             icon={<IconRefresh size={14} />}

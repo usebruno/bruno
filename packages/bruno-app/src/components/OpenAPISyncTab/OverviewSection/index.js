@@ -56,8 +56,9 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const endpointCount = specMeta?.endpointCount ?? null;
   const lastSyncDate = openApiSyncConfig?.lastSyncDate;
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
-  const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
-  const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
+  const sourceState = useSelector((state) => state.openapiSync?.sourceStates?.[collection.uid]);
+  const autoCheckEnabled = sourceState?.status === 'approved' && sourceState.autoCheck;
+  const autoCheckInterval = sourceState?.autoCheckInterval || 5;
   const requestNameSource = openApiSyncConfig?.requestNameSource;
   const authPlacement = openApiSyncConfig?.authPlacement;
 

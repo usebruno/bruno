@@ -16,9 +16,12 @@ const swaggerSpec = workspaceSpec('legacy', 'Legacy', '/ws/specs/legacy.yaml', {
 });
 
 const collectionWithSource = (sourceUrl) => ({
+  uid: 'pets-api',
   pathname: '/ws/collections/pets-api',
-  brunoConfig: { openapi: [{ sourceUrl, autoCheck: true, autoCheckInterval: 15 }] }
+  brunoConfig: { openapi: [{ sourceUrl }] }
 });
+
+const approvedSourceState = { 'pets-api': { status: 'approved', autoCheck: true, autoCheckInterval: 15 } };
 
 const renderModal = (sourceUrl, specs = [petsSpec, zooSpec, swaggerSpec]) => {
   const onSave = jest.fn().mockResolvedValue();
@@ -30,7 +33,8 @@ const renderModal = (sourceUrl, specs = [petsSpec, zooSpec, swaggerSpec]) => {
       onDisconnect={jest.fn()}
       onClose={jest.fn()}
     />,
-    specs
+    specs,
+    { sourceStates: approvedSourceState }
   );
   return { ...utils, onSave };
 };

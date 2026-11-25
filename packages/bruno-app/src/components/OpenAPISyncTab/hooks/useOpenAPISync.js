@@ -9,7 +9,10 @@ import {
   setCollectionUpdate,
   setStoredSpec,
   setStoredSpecMeta,
-  setDrift
+  setDrift,
+  loadSyncSourceState,
+  approveSyncSource,
+  dismissSyncSource
 } from 'providers/ReduxStore/slices/openapi-sync';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
 import { isHttpUrl } from 'utils/url/index';
@@ -40,6 +43,12 @@ const useOpenAPISync = (collection) => {
   const store = useStore();
 
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
+  // Once connected, the collection file is the source of truth
+  const effectiveSourceUrl = isConfigured ? openApiSyncConfig.sourceUrl : sourceUrl;
+
+  const sourceState = useSelector((state) => state.openapiSync?.sourceStates?.[collection.uid] || null);
+  const isSourceApproved = sourceState?.status === 'approved';
+  const [isReviewingSource, setIsReviewingSource] = useState(false);
 
   const updateStoredSpec = (spec) => {
     dispatch(setStoredSpec({ collectionUid: collection.uid, spec }));
@@ -124,7 +133,7 @@ const useOpenAPISync = (collection) => {
   };
 
   const checkForUpdates = async ({ sourceUrlOverride } = {}) => {
-    const effectiveUrl = (sourceUrlOverride ?? sourceUrl).trim();
+    const effectiveUrl = (sourceUrlOverride ?? effectiveSourceUrl).trim();
     if (!effectiveUrl) {
       setError('Please enter a URL or select a file');
       return;
@@ -148,6 +157,12 @@ const useOpenAPISync = (collection) => {
           globalEnvironmentVariables: collection.globalEnvironmentVariables
         }
       });
+
+      if (result.errorCode === 'SOURCE_NOT_APPROVED') {
+        updateDrift({ fetching: false });
+        dispatch(loadSyncSourceState(collection));
+        return;
+      }
 
       if (result.errorCode === 'SOURCE_FILE_NOT_FOUND') {
         setFileNotFound(true);
@@ -198,10 +213,16 @@ const useOpenAPISync = (collection) => {
   };
 
   useEffect(() => {
-    if (isConfigured && !drift?.specDrift && !drift?.fetching) {
+    if (isConfigured && !sourceState) {
+      dispatch(loadSyncSourceState(collection));
+    }
+  }, [isConfigured, openApiSyncConfig?.sourceUrl]);
+
+  useEffect(() => {
+    if (isConfigured && isSourceApproved && !drift?.specDrift && !drift?.fetching) {
       checkForUpdates();
     }
-  }, [isConfigured]);
+  }, [isConfigured, isSourceApproved]);
 
   // Reload drift when the collection's HTTP item count differs from what was recorded at the last fetch.
   useEffect(() => {
@@ -239,6 +260,9 @@ const useOpenAPISync = (collection) => {
       }
 
       const { ipcRenderer } = window;
+
+      // Typing a source into Connect is approving it
+      await dispatch(approveSyncSource(collection, { sourceUrl: trimmedUrl }));
 
       // Validate the spec first
       const result = await ipcRenderer.invoke('renderer:compare-openapi-specs', {
@@ -291,6 +315,7 @@ const useOpenAPISync = (collection) => {
         }
       }
 
+      dispatch(loadSyncSourceState(collection));
       toast.success('OpenAPI sync connected');
     } catch (err) {
       console.error('Error connecting OpenAPI sync:', err);
@@ -384,6 +409,7 @@ const useOpenAPISync = (collection) => {
       });
       setSourceUrl(newUrl);
       setFileNotFound(false);
+      await dispatch(loadSyncSourceState(collection));
       toast.success('Settings saved');
       // Re-check with new settings — pass newUrl directly to avoid stale closure
       await checkForUpdates({ sourceUrlOverride: newUrl });
@@ -393,9 +419,37 @@ const useOpenAPISync = (collection) => {
     }
   };
 
+  const handleApproveSource = async (settings) => {
+    setIsReviewingSource(true);
+    try {
+      await dispatch(approveSyncSource(collection, { ...settings, expectedSource: sourceState?.source }));
+      await checkForUpdates();
+    } catch (err) {
+      toast.error(formatIpcError(err) || 'Failed to approve the sync source');
+      dispatch(loadSyncSourceState(collection));
+    } finally {
+      setIsReviewingSource(false);
+    }
+  };
+
+  const handleDismissSource = async () => {
+    setIsReviewingSource(true);
+    try {
+      await dispatch(dismissSyncSource(collection, { expectedSource: sourceState?.source }));
+    } catch (err) {
+      toast.error(formatIpcError(err) || 'Failed to dismiss the sync source');
+      dispatch(loadSyncSourceState(collection));
+    } finally {
+      setIsReviewingSource(false);
+    }
+  };
+
   return {
     // State
-    sourceUrl, setSourceUrl,
+    sourceUrl: effectiveSourceUrl, setSourceUrl,
+    sourceState,
+    isSourceApproved,
+    isReviewingSource,
     isLoading,
     error, setError,
     fileNotFound,
@@ -410,6 +464,8 @@ const useOpenAPISync = (collection) => {
     handleConnect,
     handleDisconnect,
     handleSaveSettings,
+    handleApproveSource,
+    handleDismissSource,
     openEndpointInTab,
     reloadDrift
   };

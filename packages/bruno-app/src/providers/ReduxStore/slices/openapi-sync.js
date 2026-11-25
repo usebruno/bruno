@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { getWorkspaceCollections } from 'utils/collections';
+import { callIpc } from 'utils/common/ipc';
 
 const initialState = {
   // Map of collectionUid -> { hasUpdates, lastChecked, error }
@@ -17,7 +18,9 @@ const initialState = {
   // Map of collectionUid -> full parsed OpenAPI spec object
   storedSpec: {},
   // Map of collectionUid -> { specDrift, collectionDrift, remoteDrift, fetching, lastChecked }
-  drift: {}
+  drift: {},
+  // Map of collectionUid -> { status, source, kind, isLocalOrPrivate, autoCheck, autoCheckInterval }
+  sourceStates: {}
 };
 
 export const openapiSyncSlice = createSlice({
@@ -43,6 +46,11 @@ export const openapiSyncSlice = createSlice({
       delete state.storedSpecMeta[collectionUid];
       delete state.storedSpec[collectionUid];
       delete state.drift[collectionUid];
+      delete state.sourceStates[collectionUid];
+    },
+    setSourceState: (state, action) => {
+      const { collectionUid, sourceState } = action.payload;
+      state.sourceStates[collectionUid] = sourceState;
     },
     setDrift: (state, action) => {
       const { collectionUid, patch } = action.payload;
@@ -157,7 +165,8 @@ export const {
   setStoredSpecMeta,
   setDrift,
   clearDrift,
-  clearOpenApiSyncTabState
+  clearOpenApiSyncTabState,
+  setSourceState
 } = openapiSyncSlice.actions;
 
 // Lightweight thunk for polling — only checks hash, no deep comparison
@@ -200,7 +209,28 @@ export const checkCollectionForUpdates = (collection) => async (dispatch) => {
   }
 };
 
-// Thunk to check active workspace collections for updates (respects per-collection autoCheck and autoCheckInterval)
+const updateSourceState = (collection, channel, request = {}) => async (dispatch) => {
+  const sourceState = await callIpc(channel, { collectionPath: collection.pathname, ...request });
+  dispatch(setSourceState({ collectionUid: collection.uid, sourceState }));
+  return sourceState;
+};
+
+export const loadSyncSourceState = (collection) => async (dispatch) => {
+  try {
+    return await dispatch(updateSourceState(collection, 'renderer:get-openapi-sync-source-state'));
+  } catch (error) {
+    console.error('[OpenAPI Sync] Error reading the sync source state:', error);
+    return null;
+  }
+};
+
+export const approveSyncSource = (collection, { autoCheck, autoCheckInterval, sourceUrl, expectedSource } = {}) =>
+  updateSourceState(collection, 'renderer:approve-openapi-sync-source', { autoCheck, autoCheckInterval, sourceUrl, expectedSource });
+
+export const dismissSyncSource = (collection, { expectedSource } = {}) =>
+  updateSourceState(collection, 'renderer:dismiss-openapi-sync-source', { expectedSource });
+
+// Thunk to check active workspace collections for updates (approved sources only, settings from app data)
 export const checkActiveWorkspaceCollectionsForUpdates = () => async (dispatch, getState) => {
   const state = getState();
   const collections = state.collections?.collections || [];
@@ -208,18 +238,15 @@ export const checkActiveWorkspaceCollectionsForUpdates = () => async (dispatch, 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
   const now = Date.now();
 
-  // Filter to active workspace collections that have OpenAPI sync configured and auto-check enabled
-  const syncableCollections = getWorkspaceCollections({ collections, workspaces, activeWorkspace }).filter((c) => {
-    const syncConfig = c.brunoConfig?.openapi?.[0];
-    if (!syncConfig?.sourceUrl) return false;
-    if (syncConfig.autoCheck === false) return false;
-    return true;
-  });
+  const linkedCollections = getWorkspaceCollections({ collections, workspaces, activeWorkspace })
+    .filter((c) => c.brunoConfig?.openapi?.[0]?.sourceUrl);
 
-  for (const collection of syncableCollections) {
-    const syncConfig = collection.brunoConfig.openapi[0];
-    const intervalMs = (syncConfig.autoCheckInterval || 5) * 60 * 1000;
-    const lastChecked = state.openapiSync?.collectionUpdates?.[collection.uid]?.lastChecked || 0;
+  for (const collection of linkedCollections) {
+    const sourceState = await dispatch(loadSyncSourceState(collection));
+    if (sourceState?.status !== 'approved' || !sourceState.autoCheck) continue;
+
+    const intervalMs = sourceState.autoCheckInterval * 60 * 1000;
+    const lastChecked = getState().openapiSync?.collectionUpdates?.[collection.uid]?.lastChecked || 0;
 
     // Only check if enough time has elapsed since last check for this collection
     if (now - lastChecked >= intervalMs) {

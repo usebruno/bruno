@@ -13,11 +13,15 @@ import CollectionStatusSection from './CollectionStatusSection';
 import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
 import OverviewSection from './OverviewSection';
+import SourceApprovalBanner from './SourceApprovalBanner';
 import useOpenAPISync from './hooks/useOpenAPISync';
 
 const OpenAPISyncTab = ({ collection }) => {
   const {
     sourceUrl, setSourceUrl,
+    sourceState,
+    isSourceApproved,
+    isReviewingSource,
     isLoading,
     error, setError,
     fileNotFound,
@@ -30,6 +34,8 @@ const OpenAPISyncTab = ({ collection }) => {
     handleConnect,
     handleDisconnect,
     handleSaveSettings,
+    handleApproveSource,
+    handleDismissSource,
     openEndpointInTab,
     reloadDrift
   } = useOpenAPISync(collection);
@@ -37,6 +43,7 @@ const OpenAPISyncTab = ({ collection }) => {
   const dispatch = useDispatch();
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
+  const needsSourceReview = isConfigured && (sourceState?.status === 'pending' || sourceState?.status === 'dismissed');
 
   const handleViewSpec = () => {
     dispatch(addTab({
@@ -112,63 +119,77 @@ const OpenAPISyncTab = ({ collection }) => {
               onOpenDisconnect={() => setShowDisconnectModal(true)}
               onCheck={checkForUpdates}
               isLoading={isLoading}
+              isSourceApproved={isSourceApproved}
             />
 
-            <ResponsiveTabs
-              tabs={syncTabs}
-              activeTab={activeTab}
-              onTabSelect={setActiveTab}
-            />
-
-            {activeTab === 'overview' && (
-              <div className="sync-tab-content">
-                <OverviewSection
-                  collection={collection}
-                  storedSpec={storedSpec}
-                  collectionDrift={collectionDrift}
-                  specDrift={specDrift}
-                  remoteDrift={remoteDrift}
-                  onTabSelect={setActiveTab}
-                  error={error}
-                  onOpenSettings={() => setShowSettingsModal(true)}
-                />
-              </div>
+            {needsSourceReview && (
+              <SourceApprovalBanner
+                sourceState={sourceState}
+                isBusy={isReviewingSource}
+                onApprove={handleApproveSource}
+                onDismiss={handleDismissSource}
+              />
             )}
 
-            {activeTab === 'collection-changes' && (
-              <div className="sync-tab-content">
-
-                <CollectionStatusSection
-                  collection={collection}
-                  collectionDrift={collectionDrift}
-                  reloadDrift={reloadDrift}
-                  specDrift={specDrift}
-                  storedSpec={storedSpec}
-                  lastSyncDate={openApiSyncConfig?.lastSyncDate}
-                  onOpenEndpoint={openEndpointInTab}
-                  isLoading={isDriftLoading || isLoading}
+            {isSourceApproved && (
+              <>
+                <ResponsiveTabs
+                  tabs={syncTabs}
+                  activeTab={activeTab}
                   onTabSelect={setActiveTab}
                 />
-              </div>
-            )}
 
-            {activeTab === 'spec-updates' && (
-              <div className="sync-tab-content">
-                <SpecStatusSection
-                  collection={collection}
-                  sourceUrl={sourceUrl}
-                  isLoading={isLoading}
-                  error={error}
-                  setError={setError}
-                  fileNotFound={fileNotFound}
-                  specDrift={specDrift}
-                  storedSpec={storedSpec}
-                  collectionDrift={collectionDrift}
-                  remoteDrift={remoteDrift}
-                  onCheck={checkForUpdates}
-                  onOpenSettings={() => setShowSettingsModal(true)}
-                />
-              </div>
+                {activeTab === 'overview' && (
+                  <div className="sync-tab-content">
+                    <OverviewSection
+                      collection={collection}
+                      storedSpec={storedSpec}
+                      collectionDrift={collectionDrift}
+                      specDrift={specDrift}
+                      remoteDrift={remoteDrift}
+                      onTabSelect={setActiveTab}
+                      error={error}
+                      onOpenSettings={() => setShowSettingsModal(true)}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'collection-changes' && (
+                  <div className="sync-tab-content">
+
+                    <CollectionStatusSection
+                      collection={collection}
+                      collectionDrift={collectionDrift}
+                      reloadDrift={reloadDrift}
+                      specDrift={specDrift}
+                      storedSpec={storedSpec}
+                      lastSyncDate={openApiSyncConfig?.lastSyncDate}
+                      onOpenEndpoint={openEndpointInTab}
+                      isLoading={isDriftLoading || isLoading}
+                      onTabSelect={setActiveTab}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'spec-updates' && (
+                  <div className="sync-tab-content">
+                    <SpecStatusSection
+                      collection={collection}
+                      sourceUrl={sourceUrl}
+                      isLoading={isLoading}
+                      error={error}
+                      setError={setError}
+                      fileNotFound={fileNotFound}
+                      specDrift={specDrift}
+                      storedSpec={storedSpec}
+                      collectionDrift={collectionDrift}
+                      remoteDrift={remoteDrift}
+                      onCheck={checkForUpdates}
+                      onOpenSettings={() => setShowSettingsModal(true)}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

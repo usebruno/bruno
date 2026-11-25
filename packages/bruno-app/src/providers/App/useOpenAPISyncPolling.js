@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { checkActiveWorkspaceCollectionsForUpdates } from 'providers/ReduxStore/slices/openapi-sync';
+import { checkActiveWorkspaceCollectionsForUpdates, loadSyncSourceState } from 'providers/ReduxStore/slices/openapi-sync';
 import { getWorkspaceCollections } from 'utils/collections';
 
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -20,14 +20,21 @@ const useOpenAPISyncPolling = () => {
     [activeWorkspace, collections, workspaces]
   );
 
-  // Derive a stable boolean so polling doesn't restart on every collection mutation
-  const hasSyncableCollections = useMemo(
-    () => activeWorkspaceCollections.some((c) => {
-      const syncConfig = c.brunoConfig?.openapi?.[0];
-      return syncConfig?.sourceUrl && syncConfig.autoCheck !== false;
-    }),
+  // Stable key so the effects don't rerun on every collection mutation
+  const linkedCollectionsKey = useMemo(
+    () => activeWorkspaceCollections
+      .filter((c) => c.brunoConfig?.openapi?.[0]?.sourceUrl)
+      .map((c) => `${c.uid}\u0000${c.brunoConfig.openapi[0].sourceUrl}`)
+      .join('\n'),
     [activeWorkspaceCollections]
   );
+  const hasSyncableCollections = linkedCollectionsKey !== '';
+
+  useEffect(() => {
+    activeWorkspaceCollections
+      .filter((c) => c.brunoConfig?.openapi?.[0]?.sourceUrl)
+      .forEach((c) => dispatch(loadSyncSourceState(c)));
+  }, [dispatch, linkedCollectionsKey]);
 
   useEffect(() => {
     if (!pollingEnabled || !hasSyncableCollections) {
