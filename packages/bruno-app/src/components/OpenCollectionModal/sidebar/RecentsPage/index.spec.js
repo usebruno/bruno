@@ -152,7 +152,7 @@ describe('RecentsPage', () => {
     expect(openSelected).toHaveTextContent('Open 2 collections');
 
     fireEvent.click(openSelected);
-    expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/work/billing', '/Users/me/shop/orders'], { silent: true, recordRecent: true });
+    expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/work/billing', '/Users/me/shop/orders'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
   });
 
   it('opens the focused collection with Enter', async () => {
@@ -162,7 +162,7 @@ describe('RecentsPage', () => {
     checkboxFor('Orders').focus();
     fireEvent.keyDown(checkboxFor('Orders'), { key: 'Enter' });
 
-    expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/shop/orders'], { silent: true, recordRecent: true });
+    expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/shop/orders'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
   });
 
   it('switches to a collection that is already open instead of opening it again', async () => {

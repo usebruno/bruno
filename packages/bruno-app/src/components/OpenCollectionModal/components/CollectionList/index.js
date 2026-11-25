@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import classnames from 'classnames';
 import { Virtuoso } from 'react-virtuoso';
 import { IconFolder, IconSearch, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
@@ -140,15 +141,16 @@ const CollectionList = ({
             data-testid={`${testIdPrefix}-search`}
           />
           {searchText && (
-            <button
+            <ActionIcon
               type="button"
+              size="sm"
               className="collection-list-search-clear"
               aria-label="Clear search"
               onClick={clearSearch}
               data-testid={`${testIdPrefix}-search-clear`}
             >
               <IconX size={14} strokeWidth={1.5} />
-            </button>
+            </ActionIcon>
           )}
         </div>
         <span className="collection-list-search-or">or</span>

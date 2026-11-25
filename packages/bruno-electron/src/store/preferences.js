@@ -378,14 +378,6 @@ class PreferencesStore {
   savePreferences(newPreferences) {
     return this.store.set('preferences', newPreferences);
   }
-
-  hasSavedPreferences() {
-    return Object.keys(this.store.get('preferences', {})).length > 0;
-  }
-
-  saveAutoOpenFolderPicker(enabled) {
-    return this.store.set('preferences.openCollection.autoOpenFolderPicker', enabled);
-  }
 }
 
 const preferencesStore = new PreferencesStore();
@@ -469,21 +461,8 @@ const preferencesUtil = {
   }
 };
 
-const saveAutoOpenFolderPicker = async (enabled) => {
-  if (typeof enabled !== 'boolean') {
-    throw new Error('The folder picker setting must be true or false');
-  }
-  if (preferencesStore.hasSavedPreferences()) {
-    preferencesStore.saveAutoOpenFolderPicker(enabled);
-    return;
-  }
-  const preferences = getPreferences();
-  await savePreferences({ ...preferences, openCollection: { ...preferences.openCollection, autoOpenFolderPicker: enabled } });
-};
-
 module.exports = {
   getPreferences,
   savePreferences,
-  saveAutoOpenFolderPicker,
   preferencesUtil
 };

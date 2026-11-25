@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../IconButtonStyles';
 import iconInputStyles from '../IconInputStyles';
 
 const StyledWrapper = styled.div`
@@ -39,9 +38,6 @@ const StyledWrapper = styled.div`
     position: absolute;
     top: 0.25rem;
     right: 0.75rem;
-    width: 1.375rem;
-    height: 1.375rem;
-    ${iconButtonStyles}
 
     &:hover {
       background: none;
