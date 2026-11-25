@@ -14,6 +14,12 @@ const StyledWrapper = styled.div`
   background: ${(props) => props.theme.background.mantle};
   color: ${(props) => props.theme.text};
   text-align: center;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+
+  &.is-drag-over {
+    border-color: ${(props) => props.theme.status.info.text};
+    background: ${(props) => props.theme.status.info.background};
+  }
 
   .drop-zone-icon {
     color: ${(props) => props.theme.colors.text.muted};

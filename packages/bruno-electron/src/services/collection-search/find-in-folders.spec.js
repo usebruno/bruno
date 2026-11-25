@@ -189,7 +189,7 @@ describe('findCollectionsInFolders', () => {
 
     expect(result.folders).toEqual([
       folderSummary(exports, 'folder', [], [
-        { name: 'Orders.postman_collection.json', format: 'postman' }
+        { path: path.join(exports, 'Orders.postman_collection.json'), name: 'Orders.postman_collection.json', format: 'postman' }
       ])
     ]);
   });

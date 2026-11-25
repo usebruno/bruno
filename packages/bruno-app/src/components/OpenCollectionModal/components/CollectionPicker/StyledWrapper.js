@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import iconInputStyles from '../IconInputStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;
@@ -7,39 +8,9 @@ const StyledWrapper = styled.div`
   flex-direction: column;
 
   .collection-picker-search {
-    position: relative;
+    ${iconInputStyles}
     flex: none;
     margin: 0.25rem 1.25rem 0.875rem;
-
-    input {
-      width: 100%;
-      height: 2rem;
-      padding: 0 1.875rem 0 2rem;
-      border: 0.0625rem solid ${(props) => props.theme.input.border};
-      border-radius: ${(props) => props.theme.border.radius.base};
-      outline: none;
-      background: ${(props) => props.theme.input.bg};
-      font: inherit;
-      font-size: ${(props) => props.theme.font.size.base};
-      color: ${(props) => props.theme.text};
-
-      &::placeholder {
-        color: ${(props) => props.theme.input.placeholder.color};
-        opacity: ${(props) => props.theme.input.placeholder.opacity};
-      }
-
-      &:focus {
-        border-color: ${(props) => props.theme.input.focusBorder};
-      }
-    }
-  }
-
-  .collection-picker-search-icon {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.625rem;
-    color: ${(props) => props.theme.colors.text.muted};
-    pointer-events: none;
   }
 
   .collection-picker-search-clear {
