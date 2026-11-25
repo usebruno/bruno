@@ -2,20 +2,18 @@ import { describe, it, expect } from '@jest/globals';
 import { normalizeOpenApiSyncConfigs } from './index';
 
 describe('normalizeOpenApiSyncConfigs', () => {
-  it('keeps the sync metadata and fills in the auto-check defaults', () => {
+  it('keeps the sync metadata without adding auto check settings', () => {
     expect(normalizeOpenApiSyncConfigs([
       { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags' }
     ])).toEqual([
       {
         sourceUrl: 'https://example.com/openapi.json',
-        groupBy: 'tags',
-        autoCheck: true,
-        autoCheckInterval: 5
+        groupBy: 'tags'
       }
     ]);
   });
 
-  it('preserves explicitly configured auto-check settings', () => {
+  it('keeps auto check settings an older file already has', () => {
     expect(normalizeOpenApiSyncConfigs([
       {
         sourceUrl: 'https://example.com/openapi.json',
@@ -35,6 +33,12 @@ describe('normalizeOpenApiSyncConfigs', () => {
         autoCheckInterval: 30
       }
     ]);
+  });
+
+  it('drops auto check settings that are not a boolean and a number', () => {
+    expect(normalizeOpenApiSyncConfigs([
+      { sourceUrl: 'https://example.com/openapi.json', autoCheck: 'yes', autoCheckInterval: '5' }
+    ])).toEqual([{ sourceUrl: 'https://example.com/openapi.json' }]);
   });
 
   it('drops malformed entries and keeps the usable ones', () => {
@@ -47,9 +51,7 @@ describe('normalizeOpenApiSyncConfigs', () => {
     ])).toEqual([
       {
         sourceUrl: 'https://example.com/openapi.json',
-        groupBy: 'tags',
-        autoCheck: true,
-        autoCheckInterval: 5
+        groupBy: 'tags'
       }
     ]);
   });
@@ -72,9 +74,7 @@ describe('normalizeOpenApiSyncConfigs', () => {
     ])).toEqual([
       {
         sourceUrl: 'https://example.com/openapi.json',
-        groupBy: 'path',
-        autoCheck: true,
-        autoCheckInterval: 5
+        groupBy: 'path'
       }
     ]);
   });
@@ -88,9 +88,7 @@ describe('normalizeOpenApiSyncConfigs', () => {
       expect(config).toEqual({
         sourceUrl: 'https://example.com/openapi.json',
         groupBy: 'tags',
-        authPlacement,
-        autoCheck: true,
-        autoCheckInterval: 5
+        authPlacement
       });
       expect(Object.keys(config).slice(0, 3)).toEqual(['sourceUrl', 'groupBy', 'authPlacement']);
     });
@@ -116,9 +114,7 @@ describe('normalizeOpenApiSyncConfigs', () => {
         sourceUrl: 'https://example.com/openapi.json',
         groupBy: 'tags',
         authPlacement: 'collection',
-        requestNameSource,
-        autoCheck: true,
-        autoCheckInterval: 5
+        requestNameSource
       });
       expect(Object.keys(config).slice(0, 4)).toEqual(['sourceUrl', 'groupBy', 'authPlacement', 'requestNameSource']);
     });
@@ -140,9 +136,7 @@ describe('normalizeOpenApiSyncConfigs', () => {
     ]);
 
     expect(config).toEqual({
-      sourceUrl: 'https://example.com/openapi.json',
-      autoCheck: true,
-      autoCheckInterval: 5
+      sourceUrl: 'https://example.com/openapi.json'
     });
     expect('groupBy' in config).toBe(false);
   });
