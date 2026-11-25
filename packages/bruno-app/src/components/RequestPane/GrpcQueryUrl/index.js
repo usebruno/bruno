@@ -55,6 +55,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
   const methodDropdownRef = useRef(null);
   const protoDropdownRef = useRef(null);
   const latestReflectionRequestIdRef = useRef(0);
+  const loadedMethodsUrlRef = useRef(null);
 
   const protoFileManagement = useProtoFileManagement(collection, protoFilePath);
   const reflectionManagement = useReflectionManagement(item, collection);
@@ -88,17 +89,38 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
-  const handleReflection = async (url, isManualRefresh = false) => {
-    const requestId = ++latestReflectionRequestIdRef.current;
-    const { methods, error, fromCache } = await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh);
-    if (requestId !== latestReflectionRequestIdRef.current) return;
+  const setLoadedMethods = (methods, resolvedUrl = null) => {
+    loadedMethodsUrlRef.current = resolvedUrl;
+    setGrpcMethods(methods);
+  };
 
-    if (error) {
-      toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
+  const reconcileSelectedMethod = (methods) => {
+    if (!methods || methods.length === 0) return;
+
+    const currentMethod = selectedGrpcMethod && methods.find((method) => method.path === selectedGrpcMethod.path);
+    if (!currentMethod) {
+      setSelectedGrpcMethod(null);
+      onMethodSelect({ path: '', type: '' });
       return;
     }
 
-    setGrpcMethods(methods);
+    setSelectedGrpcMethod({
+      path: currentMethod.path,
+      type: currentMethod.type
+    });
+  };
+
+  const applyReflectionResult = ({ methods, error, fromCache, resolvedUrl }) => {
+    if (error) {
+      toast.error(`Failed to load gRPC methods: ${error.message || 'Unknown error'}`);
+
+      if (resolvedUrl !== loadedMethodsUrlRef.current) {
+        setLoadedMethods([]);
+      }
+      return;
+    }
+
+    setLoadedMethods(methods, resolvedUrl);
     setProtoFilePath('');
     setIsReflectionMode(true);
 
@@ -116,21 +138,22 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
       toast.success(`Loaded ${methods.length} gRPC methods from reflection`);
     }
 
-    if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
-      if (!haveSelectedMethod) {
-        setSelectedGrpcMethod(null);
-        onMethodSelect({ path: '', type: '' });
-      } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
-        if (currentMethod) {
-          setSelectedGrpcMethod({
-            path: selectedGrpcMethod.path,
-            type: currentMethod.type
-          });
-        }
-      }
-    }
+    reconcileSelectedMethod(methods);
+  };
+
+  // A reflection claims the latest slot when it starts; a result arriving after a newer
+  // claim is dropped.
+  const claimLatestReflectionSlot = () => {
+    const requestId = ++latestReflectionRequestIdRef.current;
+    return (result) => {
+      if (requestId !== latestReflectionRequestIdRef.current) return;
+      applyReflectionResult(result);
+    };
+  };
+
+  const handleReflection = async (url, isManualRefresh = false) => {
+    const applyIfLatest = claimLatestReflectionSlot();
+    applyIfLatest(await reflectionManagement.loadMethodsFromReflection(url, isManualRefresh));
   };
 
   const onUrlChange = (value) => {
@@ -158,7 +181,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
 
     if (!protoFilePath && value) {
       setIsReflectionMode(true);
-      reflectionManagement.scheduleReflection(finalUrl, handleReflection);
+      reflectionManagement.scheduleReflection(finalUrl, claimLatestReflectionSlot());
     }
   };
 
@@ -168,33 +191,19 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
     if (error) {
       console.error('Failed to load gRPC methods:', error);
       toast.error('Failed to load gRPC methods');
-      setGrpcMethods([]);
+      setLoadedMethods([]);
       return;
     }
 
     setProtoFilePath(filePath);
-    setGrpcMethods(methods);
+    setLoadedMethods(methods);
     setIsReflectionMode(false);
 
     if (!fromCache) {
       toast.success(`Loaded ${methods.length} gRPC methods from proto file`);
     }
 
-    if (methods && methods.length > 0) {
-      const haveSelectedMethod = selectedGrpcMethod && methods.some((method) => method.path === selectedGrpcMethod.path);
-      if (!haveSelectedMethod) {
-        setSelectedGrpcMethod(null);
-        onMethodSelect({ path: '', type: '' });
-      } else if (selectedGrpcMethod) {
-        const currentMethod = methods.find((method) => method.path === selectedGrpcMethod.path);
-        if (currentMethod) {
-          setSelectedGrpcMethod({
-            path: selectedGrpcMethod.path,
-            type: currentMethod.type
-          });
-        }
-      }
-    }
+    reconcileSelectedMethod(methods);
   };
 
   const handleGrpcurl = async (url) => {
@@ -273,7 +282,7 @@ const GrpcQueryUrl = ({ item, collection, handleRun }) => {
         handleReflection(url);
       }
     } else {
-      setGrpcMethods([]);
+      setLoadedMethods([]);
       setSelectedGrpcMethod(null);
       onMethodSelect({ path: '', type: '' });
     }

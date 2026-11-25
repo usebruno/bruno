@@ -7,6 +7,7 @@ import useLocalStorage from 'hooks/useLocalStorage/index';
 import { getAllVariables } from 'utils/collections';
 
 const REFLECTION_DEBOUNCE_MS = 3000;
+const REFLECTION_CACHE_KEY = 'bruno.grpc.reflectionCache';
 
 /**
  * Custom hook for managing reflection data and server discovery
@@ -16,11 +17,11 @@ const REFLECTION_DEBOUNCE_MS = 3000;
 export default function useReflectionManagement(item, collection) {
   const dispatch = useDispatch();
 
-  const [reflectionCache, setReflectionCache] = useLocalStorage('bruno.grpc.reflectionCache', {});
+  const [reflectionCache, setReflectionCache] = useLocalStorage(REFLECTION_CACHE_KEY, {});
   const [isLoadingMethods, setIsLoadingMethods] = useState(false);
 
   const resolveUrl = (url) => {
-    if (!url) return null;
+    if (!url || typeof url !== 'string') return null;
     const vars = getAllVariables(collection, item);
     return interpolate(url, vars) || url;
   };
@@ -29,17 +30,17 @@ export default function useReflectionManagement(item, collection) {
    * Load gRPC methods from server reflection
    * @param {string} url - The gRPC server URL
    * @param {boolean} isManualRefresh - Whether this is a manual refresh
-   * @returns {Promise<{methods: Array, error: Error|null}>}
+   * @returns {Promise<{methods: Array, error: Error|null, resolvedUrl: string|null}>}
    */
   const loadMethodsFromReflection = async (url, isManualRefresh = false) => {
-    if (!url) {
-      return { methods: [], error: new Error('No URL provided') };
+    const resolvedUrl = resolveUrl(url);
+    if (!resolvedUrl) {
+      return { methods: [], error: new Error('No URL provided'), resolvedUrl };
     }
 
-    const resolvedUrl = resolveUrl(url);
-    const cachedMethods = resolvedUrl ? reflectionCache[resolvedUrl] : null;
+    const cachedMethods = reflectionCache[resolvedUrl];
     if (!isManualRefresh && cachedMethods && !isLoadingMethods) {
-      return { methods: cachedMethods, error: null, fromCache: true };
+      return { methods: cachedMethods, error: null, fromCache: true, resolvedUrl };
     }
 
     setIsLoadingMethods(true);
@@ -48,20 +49,18 @@ export default function useReflectionManagement(item, collection) {
 
       if (error) {
         console.error('Error loading gRPC methods:', error);
-        return { methods: [], error };
+        return { methods: [], error, resolvedUrl };
       }
 
-      if (resolvedUrl) {
-        setReflectionCache((prevCache) => ({
-          ...prevCache,
-          [resolvedUrl]: methods
-        }));
-      }
+      setReflectionCache((prevCache) => ({
+        ...prevCache,
+        [resolvedUrl]: methods
+      }));
 
-      return { methods, error: null, fromCache: false };
+      return { methods, error: null, fromCache: false, resolvedUrl };
     } catch (error) {
       console.error('Error loading gRPC methods:', error);
-      return { methods: [], error };
+      return { methods: [], error, resolvedUrl };
     } finally {
       setIsLoadingMethods(false);
     }
