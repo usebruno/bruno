@@ -4,7 +4,7 @@ const MIN_LIST_HEIGHT = 100;
 const EDGE_GAP = 8;
 const DEFAULT_OFFSET_DISTANCE = 10;
 
-// Keeps a gap above the window edge unless that drops the list under its minimum, and never passes the edge
+// Leaves a gap at the window edge, unless that makes the list shorter than its minimum height
 export const getFittedMaxHeight = ({ available, max }) =>
   Math.max(0, Math.min(max, available, Math.max(MIN_LIST_HEIGHT, available - EDGE_GAP)));
 
@@ -34,7 +34,7 @@ export const createFitToSpaceModifiers = (maxDropdownHeight) => [
         chrome
       });
       const maxHeight = getFittedMaxHeight({ available, max: maxDropdownHeight });
-      // Caps the list to the window space below the trigger and shrinks the popper rect so it stays below with flip off
+      // Caps the list height and gives popper the smaller size, so the list stays below the field
       listbox.style.maxHeight = `${maxHeight}px`;
       state.rects.popper.height = Math.min(state.rects.popper.height, maxHeight + chrome);
     }

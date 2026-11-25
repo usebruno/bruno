@@ -376,6 +376,7 @@ const Select = ({
           <div
             ref={menuRef}
             role="listbox"
+            data-testid={testId ? `${testId}-listbox` : undefined}
             tabIndex={searchable ? undefined : -1}
             onKeyDown={searchable ? undefined : handleKeyDown}
             style={{ maxHeight: maxDropdownHeight, overflowY: 'auto', outline: 'none' }}

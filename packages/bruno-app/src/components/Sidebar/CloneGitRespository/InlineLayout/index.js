@@ -2,8 +2,6 @@ import React from 'react';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-// Shows the clone flow inside a page (like the Git page of the Open collection modal) instead of in its own modal.
-// It takes the same props as Modal, so CloneGitRepository can pick either one without changing its content.
 const InlineLayout = ({
   confirmText,
   handleConfirm,

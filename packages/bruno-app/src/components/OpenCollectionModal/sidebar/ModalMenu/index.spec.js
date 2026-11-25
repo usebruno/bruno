@@ -7,11 +7,11 @@ import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collect
 import { OPEN_COLLECTION_PAGES } from '../pages';
 import ModalMenu from './index';
 
-const renderMenu = (activePageId = 'choose-folder') => {
+const renderMenu = (activePageId = 'choose-folder', modal = {}) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
     preloadedState: {
-      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId }
+      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId, ...modal }
     }
   });
   render(
@@ -79,5 +79,29 @@ describe('ModalMenu', () => {
 
     fireEvent.keyDown(items[items.length - 1], { key: 'ArrowDown' });
     expect(items[0]).toHaveFocus();
+  });
+
+  it('shows a spinner on Git and keeps every page reachable while a clone runs', () => {
+    const store = renderMenu('git', { pageBusy: true });
+
+    const gitItem = screen.getByTestId('open-collection-menu-item-git');
+    expect(gitItem).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('open-collection-menu-item-git-spinner')).toBeInTheDocument();
+    menuItems().forEach((item) => expect(item).not.toHaveAttribute('aria-disabled'));
+    menuItems().filter((item) => item !== gitItem).forEach((item) => {
+      expect(item).not.toHaveAttribute('aria-busy');
+      expect(item.querySelector('.animate-spin')).toBeNull();
+    });
+
+    fireEvent.click(screen.getByTestId('open-collection-menu-item-recents'));
+    expect(store.getState().openCollectionModal.page).toBe('recents');
+    expect(screen.getByTestId('open-collection-menu-item-git-spinner')).toBeInTheDocument();
+  });
+
+  it('shows no spinner when no clone runs', () => {
+    renderMenu('git');
+
+    expect(screen.getByTestId('open-collection-menu-item-git')).not.toHaveAttribute('aria-busy');
+    expect(screen.queryByTestId('open-collection-menu-item-git-spinner')).toBeNull();
   });
 });

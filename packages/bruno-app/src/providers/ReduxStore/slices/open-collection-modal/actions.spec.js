@@ -19,7 +19,6 @@ import {
   openDroppedItems,
   pickCollectionFolders,
   saveAutoOpenFolderPicker,
-  setPageBusy,
   switchToCollection
 } from './actions';
 
@@ -170,13 +169,12 @@ describe('open collection modal actions', () => {
       expect(browseDirectories).not.toHaveBeenCalled();
     });
 
-    it('stays on a busy page and leaves the folder picker closed', () => {
+    it('switches pages while a clone runs on the Git page', () => {
       const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
 
-      store.dispatch(openCollectionModal('choose-folder'));
+      store.dispatch(openCollectionModal('recents'));
 
-      expect(modalState(store).page).toBe('git');
-      expect(browseDirectories).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ page: 'recents', pageBusy: true });
     });
 
     it('starts Choose folder afresh and picks again when it was showing found collections', async () => {
@@ -408,31 +406,6 @@ describe('open collection modal actions', () => {
       expect(modalState(store)).toMatchObject({ isOpen: true, page: 'recents' });
     });
 
-    it.each([
-      ['opens a picked collection', pickedCollection],
-      ['lists the collections inside a folder', folderResult(
-        [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
-        [{ path: '/work/api', name: 'API' }]
-      )]
-    ])('drops a search that would have %s once a clone makes the page busy', async (_label, result) => {
-      const search = deferred();
-      searchReturns(search.promise);
-      openingReturns(Promise.resolve({ opened: ['/work/api'], failed: [], invalid: [] }));
-      const { store } = createStore({ modal: openOn('choose-folder') });
-
-      const searching = store.dispatch(findCollectionsInFolders(['/work']));
-      const { searchId } = modalState(store).chooseFolder;
-      store.dispatch(openCollectionModal('git'));
-      store.dispatch(setPageBusy(true));
-      search.resolve(result);
-      await searching;
-
-      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
-      expect(openMultipleCollections).not.toHaveBeenCalled();
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'git', pageBusy: true });
-      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', searchId: null, result: null });
-    });
-
     it('shows the collections found inside a folder', async () => {
       searchReturns(Promise.resolve(folderResult(
         [{ path: '/work', status: 'folder', collectionPaths: ['/work/api', '/work/open'], importableFiles: [] }],
@@ -478,6 +451,14 @@ describe('open collection modal actions', () => {
       expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
       expect(modalState(store).chooseFolder).toEqual(closedModal.chooseFolder);
       expect(openMultipleCollections).not.toHaveBeenCalled();
+    });
+
+    it('closes the modal and clears the busy flag while a clone runs', () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      store.dispatch(closeOpenCollectionModal());
+
+      expect(modalState(store)).toMatchObject({ isOpen: false, pageBusy: false });
     });
 
     it('cancels the search in the main process when the modal closes', () => {
@@ -598,36 +579,14 @@ describe('open collection modal actions', () => {
       expect(modalState(store).page).toBe('import');
     });
 
-    it('ignores a file named in a note while a clone keeps the page busy', async () => {
-      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+    it('reads a file named in a note while a clone runs on the Git page', async () => {
+      readImportableFile.mockResolvedValue(importData);
+      const { store } = createStore({ modal: { ...openOn('choose-folder'), pageBusy: true } });
       const file = { path: '/work/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
 
-      await expect(store.dispatch(loadImportableFile(file))).resolves.toBeNull();
+      await expect(store.dispatch(loadImportableFile(file))).resolves.toEqual(importData);
 
-      expect(readImportableFile).not.toHaveBeenCalled();
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: 'git' });
-    });
-  });
-
-  describe('setPageBusy', () => {
-    it('leaves a running folder search alone when the page becomes free', () => {
-      searchReturns(new Promise(() => {}));
-      const { store } = createStore({ modal: { ...openOn('choose-folder'), pageBusy: true } });
-      store.dispatch(findCollectionsInFolders(['/work']));
-
-      store.dispatch(setPageBusy(false));
-
-      expect(callIpc).not.toHaveBeenCalledWith(CANCEL_SEARCH, expect.anything());
-      expect(modalState(store)).toMatchObject({ pageBusy: false, chooseFolder: { status: 'searching' } });
-    });
-
-    it('marks the page busy without cancelling when no search runs', () => {
-      const { store } = createStore({ modal: openOn('git') });
-
-      store.dispatch(setPageBusy(true));
-
-      expect(callIpc).not.toHaveBeenCalled();
-      expect(modalState(store).pageBusy).toBe(true);
+      expect(modalState(store).page).toBe('import');
     });
   });
 
@@ -687,13 +646,14 @@ describe('open collection modal actions', () => {
       expect(modalState(store).page).toBe('recents');
     });
 
-    it('ignores a drop while the page is busy', async () => {
+    it('searches a folder dropped while a clone runs on the Git page', async () => {
+      searchReturns(Promise.resolve(plainFolderResult));
       const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
 
       await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [] }));
 
-      expect(callIpc).not.toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.anything());
-      expect(modalState(store).page).toBe('git');
+      expect(callIpc).toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.objectContaining({ paths: ['/work'] }));
+      expect(modalState(store).page).toBe('choose-folder');
     });
 
     it('ignores a drop while collections are opening', async () => {

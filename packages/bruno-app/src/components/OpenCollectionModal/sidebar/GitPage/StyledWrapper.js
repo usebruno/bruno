@@ -20,6 +20,13 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.tabs.active.color};
       border-bottom-color: ${(props) => props.theme.tabs.active.border};
     }
+
+    &[aria-disabled='true'],
+    &[aria-disabled='true']:hover {
+      color: ${(props) => props.theme.colors.text.subtext0};
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 `;
 

@@ -19,8 +19,7 @@ import {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded,
-  pageBusyChanged
+  collectionsOpeningEnded
 } from './index';
 import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
@@ -189,24 +188,13 @@ export const loadImportFiles = (files) => async (dispatch) => {
 
 export const loadImportUrl = (url) => loadImportData(() => readImportUrl(url));
 
-export const setPageBusy = (busy) => (dispatch, getState) => {
-  if (busy && getState().openCollectionModal.chooseFolder.searchId) {
-    dispatch(cancelCollectionSearch());
-  }
-  dispatch(pageBusyChanged(busy));
-};
-
-export const loadImportableFile = (file) => (dispatch, getState) => {
-  if (getState().openCollectionModal.pageBusy) {
-    return Promise.resolve(null);
-  }
+export const loadImportableFile = (file) => (dispatch) => {
   dispatch(showOpenCollectionPage(IMPORT_PAGE));
   return dispatch(loadImportData(() => readImportableFile(file)));
 };
 
 export const openDroppedItems = ({ folderPaths, hasFolders, files }) => async (dispatch, getState) => {
-  const { openingId, pageBusy } = getState().openCollectionModal;
-  if (openingId || pageBusy) {
+  if (getState().openCollectionModal.openingId) {
     return;
   }
   if (hasFolders && folderPaths.length === 0) {
@@ -257,10 +245,7 @@ export const saveAutoOpenFolderPicker = (enabled) => (dispatch, getState) => {
 };
 
 export const openCollectionModal = (page) => (dispatch, getState) => {
-  const { isOpen, openingId, chooseFolder, pageBusy } = getState().openCollectionModal;
-  if (pageBusy) {
-    return;
-  }
+  const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
   if (page !== CHOOSE_FOLDER_PAGE && chooseFolder.searchId) {
     dispatch(cancelCollectionSearch());
   }

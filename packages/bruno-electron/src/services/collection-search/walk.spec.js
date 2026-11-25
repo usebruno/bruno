@@ -103,7 +103,7 @@ describe('CollectionWalker', () => {
     expect(foundPaths(walker)).toEqual([kept]);
   });
 
-  it('searches hidden and build folders but still skips .git and node_modules when name pruning is off', async () => {
+  it('searches hidden and build folders but still skips .git and node_modules when searching a whole repository', async () => {
     makeCollection('bruno.json', '.git', 'hooks', 'collection');
     makeCollection('bruno.json', 'node_modules', 'package', 'collection');
     const kept = [
@@ -113,9 +113,29 @@ describe('CollectionWalker', () => {
       makeCollection('bruno.json', 'Tool.app', 'collection')
     ];
 
-    const walker = await walk(tempDir, { pruneByName: false });
+    const walker = await walk(tempDir, { wholeRepository: true });
 
     expect(foundPaths(walker)).toEqual(kept.sort());
+  });
+
+  it('does not list .git or node_modules as a collection when searching a whole repository', async () => {
+    makeCollection('bruno.json', '.git');
+    makeCollection('opencollection.yml', 'node_modules');
+    const linked = makeCollection('bruno.json', 'elsewhere', 'linked');
+    const picked = makeFolder('picked');
+    fs.symlinkSync(linked, path.join(picked, 'node_modules'), folderLinkType);
+
+    expect(foundPaths(await walk(tempDir, { wholeRepository: true }))).toEqual([linked]);
+    expect(foundPaths(await walk(picked, { wholeRepository: true }))).toEqual([]);
+  });
+
+  it('lists collections nested inside another collection when searching a whole repository', async () => {
+    const root = makeCollection('bruno.json', 'repo');
+    const nested = makeCollection('opencollection.yml', 'repo', 'examples', 'nested');
+    const deeper = makeCollection('bruno.json', 'repo', 'examples', 'nested', 'deeper');
+
+    expect(foundPaths(await walk(root, { wholeRepository: true }))).toEqual([root, nested, deeper].sort());
+    expect(foundPaths(await walk(root))).toEqual([root]);
   });
 
   it('searches folders that are only named like Linux system folders', async () => {

@@ -28,14 +28,14 @@ const abortWhenPageIsGone = (sender, controller) => {
 };
 
 const findInFolders = async (request, sender) => {
-  const { requestId, paths, pruneByName } = request || {};
+  const { requestId, paths, wholeRepository } = request || {};
   if (!isRequestId(requestId)) {
     throw new Error('A folder search needs a request id');
   }
   if (!isFolderPathList(paths)) {
     throw new Error(`A folder search needs 1 to ${MAX_FOLDERS_PER_SEARCH} absolute folder paths`);
   }
-  if (!isOptionalBoolean(pruneByName)) {
+  if (!isOptionalBoolean(wholeRepository)) {
     throw new Error('A folder search option must be true or false');
   }
   if (activeSearches.has(requestId)) {
@@ -49,7 +49,7 @@ const findInFolders = async (request, sender) => {
     return await findCollectionsInFolders(paths, {
       signal: controller.signal,
       excludedFolders: [transientManager.getRootDirectory()],
-      pruneByName
+      wholeRepository
     });
   } catch (error) {
     if (controller.signal.aborted) {

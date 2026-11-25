@@ -64,7 +64,7 @@ const summarizeFolder = async (folder, collections, isOnlyFolder) => {
 
 const findCollectionsInFolders = async (
   folderPaths,
-  { signal, maxFolders = MAX_FOLDERS, excludedFolders = [], pruneByName = true } = {}
+  { signal, maxFolders = MAX_FOLDERS, excludedFolders = [], wholeRepository = false } = {}
 ) => {
   const excludedKeys = await Promise.all(
     excludedFolders.map(async (folderPath) => toPathKey(await getRealPath(folderPath).catch(() => folderPath)))
@@ -73,7 +73,7 @@ const findCollectionsInFolders = async (
     signal,
     maxFolders,
     excludedKeys,
-    pruneByName,
+    wholeRepository,
     skippedMountPoints: await getSkippedMountPoints()
   });
 

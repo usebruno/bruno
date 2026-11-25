@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { IMPORT_COLLECTION_SELECTION_WIDTH } from 'components/SelectionList/constants';
+import iconInputStyles from 'components/IconInputStyles';
 
 const StyledWrapper = styled.div`
   width: ${IMPORT_COLLECTION_SELECTION_WIDTH};
@@ -29,6 +30,23 @@ const StyledWrapper = styled.div`
     .select-trigger.textbox {
       font-size: ${(props) => props.theme.font.size.base};
       border-radius: ${(props) => props.theme.border.radius.sm};
+    }
+  }
+
+  &.clone-inline {
+    .icon-input-field {
+      ${iconInputStyles}
+    }
+
+    .icon-input-field.no-icon input {
+      padding-left: 0.625rem;
+    }
+
+    .branch-select .select-trigger.textbox {
+      height: 2rem;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-radius: ${(props) => props.theme.border.radius.base};
     }
   }
 

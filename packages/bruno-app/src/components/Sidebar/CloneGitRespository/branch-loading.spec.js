@@ -57,7 +57,7 @@ const renderFlow = (props = {}, store = createStore()) =>
     </Provider>
   );
 
-const typeUrl = (url) => fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: url } });
+const typeUrl = (url) => fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: url } });
 
 const advance = (ms) => act(async () => {
   jest.advanceTimersByTime(ms);
@@ -149,8 +149,8 @@ describe('CloneGitRepository branch loading', () => {
     });
     await advance(500);
 
-    expect(screen.getByLabelText('Git Repository URL')).toHaveValue(API_URL);
-    expect(screen.getByLabelText('Location')).toHaveValue('/home/user/elsewhere');
+    expect(screen.getByLabelText('Repository URL')).toHaveValue(API_URL);
+    expect(screen.getByLabelText('Clone to location')).toHaveValue('/home/user/elsewhere');
   });
 
   it('loads branches for an scp-style SSH URL and clones with it', async () => {
@@ -358,7 +358,7 @@ describe('CloneGitRepository branch loading', () => {
     expect(window.ipcRenderer.invoke).toHaveBeenCalledWith(COLLECTION_SEARCH_CHANNEL, {
       requestId: expect.any(String),
       paths: [path.join('/home/user/collections', 'api')],
-      pruneByName: false
+      wholeRepository: true
     });
     expect(screen.getByText('Orders API')).toBeInTheDocument();
     expect(screen.getByText('Billing API')).toBeInTheDocument();

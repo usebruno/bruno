@@ -1,7 +1,9 @@
 import classnames from 'classnames';
-import { useDispatch } from 'react-redux';
+import { IconLoader2 } from '@tabler/icons';
+import { useDispatch, useSelector } from 'react-redux';
 import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { OPEN_COLLECTION_PAGES } from '../pages';
+import { GIT_PAGE_ID } from '../GitPage/constants';
 import StyledWrapper from './StyledWrapper';
 
 const SOURCES_LABEL_ID = 'open-collection-sources-label';
@@ -22,21 +24,28 @@ const moveFocus = (event) => {
 
 const ModalMenu = ({ titleId, activePageId }) => {
   const dispatch = useDispatch();
+  const isPageBusy = useSelector((state) => state.openCollectionModal.pageBusy);
   const topPages = OPEN_COLLECTION_PAGES.filter((page) => page.group !== 'sources');
   const sourcePages = OPEN_COLLECTION_PAGES.filter((page) => page.group === 'sources');
 
   const renderItem = ({ id, label, icon: Icon }) => {
     const isActive = id === activePageId;
+    const isWorking = id === GIT_PAGE_ID && isPageBusy;
     return (
       <button
         key={id}
         type="button"
         className={classnames('menu-item', { active: isActive })}
         aria-current={isActive ? 'page' : undefined}
+        aria-busy={isWorking || undefined}
         onClick={() => dispatch(openCollectionModal(id))}
         data-testid={`open-collection-menu-item-${id}`}
       >
-        <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
+        {isWorking ? (
+          <IconLoader2 className="animate-spin" size={16} strokeWidth={1.75} aria-hidden="true" data-testid={`open-collection-menu-item-${id}-spinner`} />
+        ) : (
+          <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
+        )}
         <span className="menu-item-label">{label}</span>
       </button>
     );

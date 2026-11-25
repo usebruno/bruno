@@ -42,4 +42,18 @@ describe('Select popper options', () => {
 
     expect(lastDropdownProps().appendTo).toBe(appendTo);
   });
+
+  it('gives the listbox a test id built from the select test id', () => {
+    renderSelect({ 'data-testid': 'branch-select' });
+    const { getByRole } = render(lastDropdownProps().children);
+
+    expect(getByRole('listbox')).toHaveAttribute('data-testid', 'branch-select-listbox');
+  });
+
+  it('leaves the listbox without a test id when the select has none', () => {
+    renderSelect();
+    const { getByRole } = render(lastDropdownProps().children);
+
+    expect(getByRole('listbox')).not.toHaveAttribute('data-testid');
+  });
 });

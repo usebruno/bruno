@@ -3729,7 +3729,7 @@ export const findCollectionsInClonedRepository = (dir) => async () => {
   const result = await callIpc('renderer:collection-search:find-in-folders', {
     requestId: uuid(),
     paths: [dir],
-    pruneByName: false
+    wholeRepository: true
   });
   return {
     items: result.collections

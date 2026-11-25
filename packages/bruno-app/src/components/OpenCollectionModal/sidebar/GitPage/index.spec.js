@@ -4,13 +4,14 @@ jest.mock('nanoid', () => ({
 
 import '@testing-library/jest-dom';
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
-import openCollectionModalReducer, { hideOpenCollectionModal, pageBusyChanged } from 'providers/ReduxStore/slices/open-collection-modal';
-import { cloneGitRepository, findCollectionsInClonedRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
+import openCollectionModalReducer, { hideOpenCollectionModal, pageBusyChanged, showOpenCollectionPage } from 'providers/ReduxStore/slices/open-collection-modal';
+import { cloneGitRepository, fetchBranchesForRepositoryUrl, findCollectionsInClonedRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
+import toast from 'react-hot-toast';
 import GitUrlTab from './GitUrlTab';
 import GitPage from './index';
 
@@ -20,6 +21,11 @@ jest.mock('./tabs', () => ({
   get GIT_PAGE_TABS() {
     return mockTabs.current || jest.requireActual('./tabs').GIT_PAGE_TABS;
   }
+}));
+
+jest.mock('react-hot-toast', () => ({
+  __esModule: true,
+  default: { success: jest.fn(), error: jest.fn(), custom: jest.fn() }
 }));
 
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
@@ -74,6 +80,7 @@ const twoTabs = () => [
 describe('GitPage', () => {
   afterEach(() => {
     mockTabs.current = null;
+    toast.success.mockClear();
   });
 
   it('shows no tab bar when there is one tab', async () => {
@@ -82,7 +89,10 @@ describe('GitPage', () => {
     await act(async () => {});
 
     expect(screen.queryByTestId('open-collection-git-tabs')).toBeNull();
-    expect(screen.getByTestId('open-collection-git-panel-git-url')).toBeVisible();
+    const panel = screen.getByTestId('open-collection-git-panel-git-url');
+    expect(panel).toBeVisible();
+    expect(panel).not.toHaveAttribute('role');
+    expect(panel).not.toHaveAttribute('aria-labelledby');
   });
 
   it('lets the page and the tab panel fill the modal height so the panel can shrink', async () => {
@@ -102,6 +112,7 @@ describe('GitPage', () => {
 
     expect(screen.getByTestId('open-collection-git-tabs')).toBeInTheDocument();
     expect(screen.getByTestId('open-collection-git-tab-other')).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('open-collection-git-tab-git-url')).not.toHaveAttribute('aria-disabled');
     expect(screen.getByTestId('open-collection-git-panel-other')).toBeInTheDocument();
     expect(screen.queryByTestId('open-collection-git-panel-git-url')).toBeNull();
 
@@ -125,6 +136,81 @@ describe('GitPage', () => {
     expect(screen.getByTestId('open-collection-git-panel-git-url')).toBeInTheDocument();
   });
 
+  it('links each tab to the panel and the panel to the active tab', async () => {
+    mockTabs.current = twoTabs();
+    renderPage();
+    await act(async () => {});
+
+    expect(screen.getByRole('tablist')).toHaveAttribute('aria-label', 'Git source');
+    const otherTab = screen.getByTestId('open-collection-git-tab-other');
+    const gitUrlTab = screen.getByTestId('open-collection-git-tab-git-url');
+    let panel = screen.getByRole('tabpanel');
+    expect(otherTab).toHaveAttribute('aria-controls', panel.id);
+    expect(gitUrlTab).toHaveAttribute('aria-controls', panel.id);
+    expect(panel).toHaveAttribute('aria-labelledby', otherTab.id);
+    expect(otherTab).toHaveAttribute('tabindex', '0');
+    expect(gitUrlTab).toHaveAttribute('tabindex', '-1');
+
+    fireEvent.click(gitUrlTab);
+    await act(async () => {});
+
+    panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('aria-labelledby', gitUrlTab.id);
+    expect(otherTab).toHaveAttribute('tabindex', '-1');
+    expect(gitUrlTab).toHaveAttribute('tabindex', '0');
+  });
+
+  it('moves focus between tabs with the arrow, Home and End keys without switching tabs', async () => {
+    mockTabs.current = [
+      ...twoTabs(),
+      { id: 'third', label: 'Third', component: () => <div>third</div> }
+    ];
+    renderPage();
+    await act(async () => {});
+
+    const tablist = screen.getByRole('tablist');
+    const [other, gitUrl, third] = ['other', 'git-url', 'third'].map((id) => screen.getByTestId(`open-collection-git-tab-${id}`));
+    other.focus();
+
+    expect(fireEvent.keyDown(tablist, { key: 'ArrowRight' })).toBe(false);
+    expect(gitUrl).toHaveFocus();
+    fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+    expect(third).toHaveFocus();
+    fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+    expect(other).toHaveFocus();
+    fireEvent.keyDown(tablist, { key: 'ArrowLeft' });
+    expect(third).toHaveFocus();
+    fireEvent.keyDown(tablist, { key: 'Home' });
+    expect(other).toHaveFocus();
+    fireEvent.keyDown(tablist, { key: 'End' });
+    expect(third).toHaveFocus();
+
+    expect(other).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('open-collection-git-panel-other')).toBeInTheDocument();
+
+    fireEvent.keyDown(third, { key: 'Enter' });
+    await act(async () => {});
+
+    expect(third).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('open-collection-git-panel-third')).toBeInTheDocument();
+  });
+
+  it('closes an open branch list when another page of the modal opens', async () => {
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+    fetchBranchesForRepositoryUrl.mockImplementation(() => () => Promise.resolve({ branches: ['main', 'dev'], defaultBranch: 'main' }));
+    const store = renderPage();
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
+    await waitFor(() => expect(screen.getByTestId('clone-git-repository-branch-select')).toHaveTextContent('main'));
+    fireEvent.click(screen.getByTestId('clone-git-repository-branch-select'));
+    expect(screen.getByTestId('clone-git-repository-branch-select-listbox')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(showOpenCollectionPage('import'));
+    });
+
+    expect(screen.queryByTestId('clone-git-repository-branch-select-listbox')).toBeNull();
+  });
+
   it('passes params to the tab opened with openTab', async () => {
     mockTabs.current = twoTabs();
     renderPage();
@@ -132,7 +218,7 @@ describe('GitPage', () => {
     fireEvent.click(screen.getByTestId('open-git-url'));
     await act(async () => {});
 
-    expect(screen.getByLabelText('Git Repository URL')).toHaveValue(SOURCE_URL);
+    expect(screen.getByLabelText('Repository URL')).toHaveValue(SOURCE_URL);
   });
 
   it('remounts the tab with new params when openTab targets the active tab', async () => {
@@ -195,6 +281,9 @@ describe('GitPage', () => {
       mockTabs.current = twoTabs();
       renderPage({ pageBusy: true });
 
+      expect(screen.getByTestId('open-collection-git-tab-git-url')).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByTestId('open-collection-git-tab-other')).not.toHaveAttribute('aria-disabled');
+
       fireEvent.click(screen.getByTestId('open-collection-git-tab-git-url'));
 
       expect(screen.getByTestId('open-collection-git-tab-other')).toHaveAttribute('aria-selected', 'true');
@@ -220,7 +309,7 @@ describe('GitPage', () => {
     const store = renderPage();
     const pageBusy = () => store.getState().openCollectionModal.pageBusy;
 
-    fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: SOURCE_URL } });
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
     });
@@ -232,6 +321,48 @@ describe('GitPage', () => {
     expect(pageBusy()).toBe(false);
   });
 
+  it('keeps the page busy until the scan after a clone finishes', async () => {
+    cloneGitRepository.mockImplementation(() => () => Promise.resolve());
+    let finishScan;
+    findCollectionsInClonedRepository.mockImplementation(() => () => new Promise((resolve) => {
+      finishScan = resolve;
+    }));
+    const store = renderPage();
+    const pageBusy = () => store.getState().openCollectionModal.pageBusy;
+
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+    expect(screen.getByText('Scanning for Bruno files')).toBeInTheDocument();
+    expect(pageBusy()).toBe(true);
+
+    await act(async () => {
+      finishScan({ items: [], skippedItems: [] });
+    });
+    expect(pageBusy()).toBe(false);
+  });
+
+  it('marks only the scan step failed when the scan fails after a clone', async () => {
+    cloneGitRepository.mockImplementation(() => () => Promise.resolve());
+    findCollectionsInClonedRepository.mockImplementation(() => () => Promise.reject(new Error('scan failed')));
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const store = renderPage();
+
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+
+    expect(screen.getByText('Scan failed')).toBeInTheDocument();
+    expect(screen.queryByText('Cloning failed')).toBeNull();
+    expect(screen.queryByTestId('clone-git-scan-result')).toBeNull();
+    expect(screen.getByTestId('clone-git-repository-modal-back-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('clone-git-inline-confirm')).toHaveTextContent('Close');
+    expect(store.getState().openCollectionModal.pageBusy).toBe(false);
+    consoleError.mockRestore();
+  });
+
   it('keeps the page busy for a second clone when a clone from a closed Git page ends', async () => {
     const finishers = [];
     cloneGitRepository.mockImplementation(() => () => new Promise((resolve) => {
@@ -241,7 +372,7 @@ describe('GitPage', () => {
     const store = createModalStore();
     const pageBusy = () => store.getState().openCollectionModal.pageBusy;
     const startClone = async () => {
-      fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: SOURCE_URL } });
+      fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
       await act(async () => {
         fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
       });
@@ -270,12 +401,38 @@ describe('GitPage', () => {
     expect(pageBusy()).toBe(false);
   });
 
+  it('keeps cloning after the modal closes and says when the clone is done', async () => {
+    let finishClone;
+    cloneGitRepository.mockImplementation(() => () => new Promise((resolve) => {
+      finishClone = resolve;
+    }));
+    findCollectionsInClonedRepository.mockImplementation(() => () => Promise.resolve({ items: [], skippedItems: [] }));
+    const store = createModalStore();
+    const page = renderPageWithStore(store);
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+
+    page.unmount();
+    act(() => {
+      store.dispatch(hideOpenCollectionModal());
+    });
+    expect(store.getState().openCollectionModal.pageBusy).toBe(false);
+    await act(async () => {
+      finishClone();
+    });
+
+    expect(toast.success).toHaveBeenCalledWith('Repository cloned successfully');
+    expect(store.getState().openCollectionModal.pageBusy).toBe(false);
+  });
+
   it('frees the page when the clone fails', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     cloneGitRepository.mockImplementation(() => () => Promise.reject(new Error('clone failed')));
     const store = renderPage();
 
-    fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: SOURCE_URL } });
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
     });
@@ -291,7 +448,7 @@ describe('GitPage', () => {
     openMultipleCollections.mockImplementation((paths) => () => Promise.resolve({ opened: paths, failed: [], invalid: [] }));
     const store = renderPage();
 
-    fireEvent.change(screen.getByLabelText('Git Repository URL'), { target: { value: SOURCE_URL } });
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: SOURCE_URL } });
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
     });

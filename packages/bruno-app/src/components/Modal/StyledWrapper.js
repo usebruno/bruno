@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { rgba } from 'polished';
-import { textboxStyles, choiceInputStyles } from './formControlStyles';
+import { textboxStyles, choiceInputStyles } from 'components/FormControlStyles';
 
 const Wrapper = styled.div`
   color: ${(props) => props.theme.text};

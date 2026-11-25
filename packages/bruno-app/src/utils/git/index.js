@@ -48,6 +48,16 @@ export const getSafeGitRemoteUrls = (remotes = []) => {
 const URL_WITH_SCHEME = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
 const SCP_LIKE_URL = /^([^@/\s]+)@[^:/\s]+:/;
 
+// git still reads a user from URLs with a missing or extra slash, like https:/token@host
+const hasParsedNonSshUser = (url) => {
+  try {
+    const { user, protocol } = gitUrlParse(url);
+    return Boolean(user) && protocol !== 'ssh';
+  } catch {
+    return false;
+  }
+};
+
 // A user over ssh (git@host) is an account name; anywhere else, or with a password, it is a credential
 export const hasUrlCredentials = (url) => {
   if (!url || typeof url !== 'string') {
@@ -58,13 +68,16 @@ export const hasUrlCredentials = (url) => {
   if (schemeMatch) {
     const [, scheme, authority] = schemeMatch;
     const atIndex = authority.lastIndexOf('@');
-    if (atIndex === -1) {
-      return false;
+    if (atIndex !== -1) {
+      return authority.slice(0, atIndex).includes(':') || !scheme.toLowerCase().includes('ssh');
     }
-    return authority.slice(0, atIndex).includes(':') || !scheme.toLowerCase().includes('ssh');
+  } else {
+    const scpMatch = SCP_LIKE_URL.exec(trimmedUrl);
+    if (scpMatch && scpMatch[1].includes(':')) {
+      return true;
+    }
   }
-  const scpMatch = SCP_LIKE_URL.exec(trimmedUrl);
-  return Boolean(scpMatch && scpMatch[1].includes(':'));
+  return hasParsedNonSshUser(trimmedUrl);
 };
 
 export const isGitRepositoryUrl = (url) => {

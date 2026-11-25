@@ -131,7 +131,7 @@ describe('collection actions', () => {
   const makeGetState = (collection) => () => ({ collections: { collections: [collection] } });
 
   describe('findCollectionsInClonedRepository', () => {
-    it('searches the cloned folder without name pruning and returns the collections and the broken collection paths', async () => {
+    it('searches the whole cloned repository and returns the collections and the broken collection paths', async () => {
       window.ipcRenderer.invoke.mockResolvedValue({
         folders: [],
         collections: [{ path: '/repos/api/payments', name: 'Payments' }],
@@ -145,7 +145,7 @@ describe('collection actions', () => {
       expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:collection-search:find-in-folders', {
         requestId: 'request-uid',
         paths: ['/repos/api'],
-        pruneByName: false
+        wholeRepository: true
       });
       expect(result).toEqual({
         items: [{ pathname: '/repos/api/payments', name: 'Payments' }],

@@ -52,7 +52,7 @@ describe('CloneGitRepository variants', () => {
   it('prefills an editable url from initialUrl', async () => {
     renderFlow({ variant: 'inline', initialUrl: 'https://gitlab.com/acme/api.git' });
     await act(async () => {});
-    const input = screen.getByLabelText('Git Repository URL');
+    const input = screen.getByLabelText('Repository URL');
     expect(input).toHaveValue('https://gitlab.com/acme/api.git');
     expect(input).not.toHaveAttribute('readonly');
   });
@@ -64,8 +64,48 @@ describe('CloneGitRepository variants', () => {
       collectionRepositoryUrl: 'https://github.com/acme/locked.git'
     });
     await act(async () => {});
-    expect(screen.queryByLabelText('Git Repository URL')).toBeNull();
+    expect(screen.queryByLabelText('Repository URL')).toBeNull();
     expect(screen.getByText('https://github.com/acme/locked.git')).toBeInTheDocument();
+  });
+
+  it('shows the url with a git icon and the location in the import page input style in the inline layout', () => {
+    renderFlow({ variant: 'inline' });
+
+    const url = screen.getByLabelText('Repository URL');
+    expect(url).toHaveAttribute('placeholder', 'https://github.com/org/repo');
+    expect(url).not.toHaveClass('textbox');
+    expect(url.parentElement).toHaveClass('icon-input-field');
+    expect(url.previousElementSibling.tagName).toBe('svg');
+    expect(url.parentElement.nextElementSibling).toHaveTextContent('Any git host: GitHub, GitLab, Bitbucket or self-hosted.');
+
+    const location = screen.getByLabelText('Clone to location');
+    expect(location).not.toHaveClass('textbox');
+    expect(location.parentElement).toHaveClass('icon-input-field', 'no-icon');
+  });
+
+  it('sizes the url, location and branch fields like the import page input in the inline layout', () => {
+    renderFlow({ variant: 'inline' });
+
+    const url = getComputedStyle(screen.getByLabelText('Repository URL'));
+    const location = getComputedStyle(screen.getByLabelText('Clone to location'));
+    const branch = getComputedStyle(screen.getByTestId('clone-git-repository-branch-select'));
+    expect(url.height).toBe('2rem');
+    expect(url.paddingLeft).toBe('2rem');
+    expect(location.height).toBe('2rem');
+    expect(location.paddingLeft).toBe('0.625rem');
+    expect(branch.height).toBe('2rem');
+  });
+
+  it('keeps the fixed repository header and textbox location in the modal', async () => {
+    renderFlow({ collectionRepositoryUrl: 'https://github.com/acme/locked.git' });
+    await act(async () => {});
+
+    expect(screen.getByText('https://github.com/acme/locked.git')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Repository URL')).toBeNull();
+    expect(screen.queryByTestId('clone-git-repository-url-hint')).toBeNull();
+    expect(screen.getByLabelText('Clone to location')).toHaveClass('textbox');
+    expect(screen.getByLabelText('Clone to location').parentElement).not.toHaveClass('icon-input-field');
+    expect(getComputedStyle(screen.getByTestId('clone-git-repository-branch-select')).height).not.toBe('2rem');
   });
 
   it('lets the clone form fill the inline layout body', () => {

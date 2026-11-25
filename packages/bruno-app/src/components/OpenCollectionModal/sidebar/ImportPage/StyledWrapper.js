@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import iconInputStyles from '../../components/IconInputStyles';
+import iconInputStyles from 'components/IconInputStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;

@@ -9,13 +9,13 @@ export const buildGitPageLocators = (page: Page) => {
   const skippedWarning = (): Locator => panel().getByTestId('skipped-paths-warning');
 
   return {
-    modal: (): Locator => page.getByTestId('open-collection-modal'),
     panel,
-    urlInput: (): Locator => panel().getByLabel('Git Repository URL'),
-    locationInput: (): Locator => panel().getByLabel('Location', { exact: true }),
+    urlInput: (): Locator => panel().getByTestId('clone-git-repository-url'),
+    urlHint: (): Locator => panel().getByTestId('clone-git-repository-url-hint'),
+    locationInput: (): Locator => panel().getByLabel('Clone to location', { exact: true }),
     branchSelect: (): Locator => panel().getByTestId('clone-git-repository-branch-select'),
     // The branch list is attached to document.body, outside the panel
-    branchList: (): Locator => page.getByRole('listbox'),
+    branchList: (): Locator => page.getByTestId('clone-git-repository-branch-select-listbox'),
     inlineBody: (): Locator => panel().getByTestId('clone-git-inline-body'),
     inlineFooter: (): Locator => panel().getByTestId('clone-git-inline-footer'),
     confirmButton: (): Locator => panel().getByTestId('clone-git-inline-confirm'),
@@ -26,6 +26,10 @@ export const buildGitPageLocators = (page: Page) => {
     skippedPath: (name: string): Locator => skippedWarning().getByTestId('skipped-paths-warning-item').filter({ hasText: name }),
     collectionList,
     collectionRows,
+    collectionCheckbox: (name: string): Locator =>
+      collectionRows()
+        .filter({ has: page.getByTestId('selection-item-title').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`) }) })
+        .getByRole('checkbox'),
     collectionRow: (name: string): Locator =>
       collectionRows().filter({
         has: page.getByTestId('selection-item-title').filter({ hasText: new RegExp(`^${escapeRegExp(name)}$`) })
@@ -43,6 +47,14 @@ export const openBranchList = async (page: Page) => {
     await gitPage.branchSelect().click();
     await gitPage.branchList().waitFor({ state: 'visible' });
   });
+};
+
+export const getFormFieldHeights = async (page: Page): Promise<number[]> => {
+  const gitPage = buildGitPageLocators(page);
+  const fields = [gitPage.urlInput(), gitPage.locationInput(), gitPage.branchSelect()];
+  await Promise.all(fields.map((field) => field.waitFor({ state: 'visible' })));
+  const boxes = await Promise.all(fields.map((field) => field.boundingBox()));
+  return boxes.map((box) => box?.height ?? 0);
 };
 
 export const getBranchListPlacement = async (page: Page) => {

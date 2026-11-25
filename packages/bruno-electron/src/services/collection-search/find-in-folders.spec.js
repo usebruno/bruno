@@ -334,7 +334,7 @@ describe('findCollectionsInFolders', () => {
     });
   });
 
-  it('finds collections in hidden and build folders but not in .git or node_modules when name pruning is off', async () => {
+  it('finds collections in hidden and build folders but not in .git or node_modules when searching a whole repository', async () => {
     const repository = makeFolder('repository');
     makeBruCollection('Git', 'repository', '.git', 'hooks', 'git');
     makeBruCollection('Fixture', 'repository', 'node_modules', 'package', 'fixture');
@@ -342,7 +342,7 @@ describe('findCollectionsInFolders', () => {
     const built = makeBruCollection('Built', 'repository', 'build', 'built');
     const dist = makeYmlCollection('Dist', 'repository', 'dist', 'dist');
 
-    const result = await findCollectionsInFolders([repository], { pruneByName: false });
+    const result = await findCollectionsInFolders([repository], { wholeRepository: true });
 
     expect(result.collections).toEqual(expect.arrayContaining([
       { path: hidden, name: 'Hidden' },
@@ -351,5 +351,20 @@ describe('findCollectionsInFolders', () => {
     ]));
     expect(result.collections).toHaveLength(3);
     expect(result.brokenCollectionPaths).toEqual([]);
+  });
+
+  it('finds collections nested inside a cloned collection when searching a whole repository', async () => {
+    const repository = makeBruCollection('Root', 'repository');
+    const nested = makeYmlCollection('Nested', 'repository', 'examples', 'nested');
+    const broken = makeBrokenCollection('repository', 'examples', 'broken');
+
+    const result = await findCollectionsInFolders([repository], { wholeRepository: true });
+
+    expect(result.collections).toEqual(expect.arrayContaining([
+      { path: repository, name: 'Root' },
+      { path: nested, name: 'Nested' }
+    ]));
+    expect(result.collections).toHaveLength(2);
+    expect(result.brokenCollectionPaths).toEqual([broken]);
   });
 });

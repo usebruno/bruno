@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection-modal';
@@ -39,11 +40,15 @@ const ModalShell = () => {
   const [opener] = useState(() => document.activeElement);
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
-  const isPageBusy = useSelector((state) => state.openCollectionModal.pageBusy);
   const note = useSelector((state) => state.openCollectionModal.chooseFolder.result?.note);
   const page = OPEN_COLLECTION_PAGES.find(({ id }) => id === pageId) || OPEN_COLLECTION_PAGES[0];
   const Page = page.component;
   const [showDropOverlay, setShowDropOverlay] = useState(false);
+  const [visitedKeptPageIds, setVisitedKeptPageIds] = useState([]);
+  if (page.keepMounted && !visitedKeptPageIds.includes(page.id)) {
+    setVisitedKeptPageIds([...visitedKeptPageIds, page.id]);
+  }
+  const keptPages = OPEN_COLLECTION_PAGES.filter(({ id, keepMounted }) => keepMounted && visitedKeptPageIds.includes(id));
 
   const close = () => dispatch(closeOpenCollectionModal());
 
@@ -91,7 +96,7 @@ const ModalShell = () => {
       if (dialog.contains(event.target)) {
         lastFocused = event.target;
       } else if (!isInAnotherDialog(event.target)) {
-        (lastFocused.isConnected ? lastFocused : dialog).focus();
+        (lastFocused.isConnected && !lastFocused.closest('[inert]') ? lastFocused : dialog).focus();
       }
     };
 
@@ -149,12 +154,22 @@ const ModalShell = () => {
             )}
             <div className="modal-page" data-testid={`open-collection-page-${page.id}`}>
               <div className="modal-page-content" inert={isOpening}>
-                <Page />
+                {page.keepMounted ? null : <Page />}
+                {keptPages.map(({ id, component: KeptPage }) => (
+                  <div
+                    key={id}
+                    className={classnames('flex flex-col flex-1 min-h-0', { hidden: id !== page.id })}
+                    inert={id !== page.id}
+                    data-testid={`open-collection-kept-page-${id}`}
+                  >
+                    <KeptPage />
+                  </div>
+                ))}
               </div>
               {isOpening && <BusyOverlay>Opening…</BusyOverlay>}
             </div>
           </div>
-          {showDropOverlay && !isOpening && !isPageBusy ? <DropOverlay /> : null}
+          {showDropOverlay && !isOpening && <DropOverlay />}
         </div>
       </StyledWrapper>
     </Portal>

@@ -7,10 +7,12 @@ import openCollectionModalReducer, {
   collectionsOpeningEnded,
   collectionsOpeningStarted,
   hideOpenCollectionModal,
-  showOpenCollectionModal
+  showOpenCollectionModal,
+  showOpenCollectionPage
 } from 'providers/ReduxStore/slices/open-collection-modal';
 import OpenCollectionModal from 'components/OpenCollectionModal';
 import { ImportHandoffContext } from '../ImportHandoff/context';
+import { getTabbableElements } from '../../utils/focus';
 import ModalShell from './index';
 
 jest.mock('nanoid', () => {
@@ -26,6 +28,11 @@ jest.mock('../../sidebar/ChooseFolderPage', () => ({
       <input type="file" hidden />
     </div>
   )
+}));
+
+jest.mock('../../sidebar/GitPage', () => ({
+  __esModule: true,
+  default: () => <input aria-label="Repository URL" data-testid="git-page-url" />
 }));
 
 jest.mock('../../sidebar/RecentsPage', () => ({
@@ -123,6 +130,51 @@ describe('ModalShell', () => {
     await waitFor(() => expect(checkbox).toHaveFocus());
   });
 
+  describe('the Git page', () => {
+    it('stays mounted and hidden on other pages, and comes back as it was', () => {
+      const store = renderShell('git');
+      const urlInput = screen.getByTestId('git-page-url');
+      fireEvent.change(urlInput, { target: { value: 'https://github.com/org/repo' } });
+
+      act(() => {
+        store.dispatch(showOpenCollectionPage('recents'));
+      });
+
+      const keptGitPage = screen.getByTestId('open-collection-kept-page-git');
+      expect(keptGitPage).toHaveClass('hidden');
+      expect(keptGitPage).toHaveAttribute('inert');
+      expect(screen.getByLabelText('Search recents')).toBeInTheDocument();
+
+      act(() => {
+        store.dispatch(showOpenCollectionPage('git'));
+      });
+
+      expect(screen.getByTestId('open-collection-kept-page-git')).not.toHaveClass('hidden');
+      expect(screen.getByTestId('open-collection-kept-page-git')).not.toHaveAttribute('inert');
+      expect(screen.getByTestId('git-page-url')).toBe(urlInput);
+      expect(urlInput).toHaveValue('https://github.com/org/repo');
+      expect(screen.queryByLabelText('Search recents')).toBeNull();
+    });
+
+    it('is not mounted until it is first opened', () => {
+      renderShell('recents');
+
+      expect(screen.queryByTestId('open-collection-kept-page-git')).toBeNull();
+      expect(screen.queryByTestId('git-page-url')).toBeNull();
+    });
+
+    it('leaves the hidden Git page out of the Tab order', () => {
+      const store = renderShell('git');
+      act(() => {
+        store.dispatch(showOpenCollectionPage('choose-folder'));
+      });
+
+      const tabbable = getTabbableElements(screen.getByTestId('open-collection-modal'));
+      expect(tabbable).not.toContain(screen.getByTestId('git-page-url'));
+      expect(tabbable).toContain(screen.getByTestId('page-checkbox'));
+    });
+  });
+
   describe('dragging over the modal', () => {
     const fileDrag = { types: ['Files'] };
     const dialog = () => screen.getByTestId('open-collection-modal');
@@ -187,13 +239,13 @@ describe('ModalShell', () => {
       expect(queryOverlay()).not.toBeInTheDocument();
     });
 
-    it('does not offer a drop while the page is busy', () => {
-      const store = createStore({ isOpen: true, page: 'choose-folder', pageBusy: true });
+    it('offers the drop while a clone runs on the Git page', () => {
+      const store = createStore({ isOpen: true, page: 'git', pageBusy: true });
       renderWithStore(<ModalShell />, store);
 
       fireEvent.dragEnter(dialog(), { dataTransfer: fileDrag });
 
-      expect(queryOverlay()).not.toBeInTheDocument();
+      expect(queryOverlay()).toBeInTheDocument();
     });
 
     it('offers the drop once collections finish opening during the drag', () => {
@@ -414,6 +466,25 @@ describe('ModalShell', () => {
     fireEvent.keyDown(document.body, { key: 'Tab' });
 
     expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveFocus();
+  });
+
+  it('takes focus back to the dialog when the control it remembers is on the hidden Git page', () => {
+    const store = createStore({ isOpen: true, page: 'git' });
+    renderWithStore(
+      <>
+        <ModalShell />
+        <input data-testid="background-search" aria-label="Search sidebar" />
+      </>,
+      store
+    );
+    screen.getByTestId('git-page-url').focus();
+    act(() => {
+      store.dispatch(showOpenCollectionPage('choose-folder'));
+    });
+
+    screen.getByTestId('background-search').focus();
+
+    expect(screen.getByTestId('open-collection-modal')).toHaveFocus();
   });
 
   it('takes focus back when a control behind it grabs focus', () => {
