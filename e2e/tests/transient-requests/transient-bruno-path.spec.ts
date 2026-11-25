@@ -36,7 +36,7 @@ const test = base.extend<{ brunoAbcApp: BrunoAbcApp }>({
   }
 });
 
-test.describe('Creating a transient request when the user data path contains "bruno', () => {
+test.describe('Creating a transient request when the user data path contains "bruno"', () => {
   let app: ElectronApplication;
   let page: Page;
 
