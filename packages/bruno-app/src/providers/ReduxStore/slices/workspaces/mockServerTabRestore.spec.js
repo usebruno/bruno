@@ -97,17 +97,6 @@ describe('restoring a collection opened during snapshot hydration', () => {
     };
   });
 
-  it('does not reopen a saved mock response as the active tab when Mock Server is off', async () => {
-    const store = createStore(false);
-
-    await store.dispatch(hydrateSnapshotForOpenedCollection(COLLECTION_PATH));
-
-    expect(openTabTypes(store)).toEqual(['collection-runner']);
-    expect(activeTabType(store)).not.toBe('mock-response');
-  });
-
-  it('reopens the saved mock response as the active tab when Mock Server is on', async () => {
-    const store = createStore(true);
   it('reopens the saved mock response as the active tab', async () => {
     const store = createStore();
 
