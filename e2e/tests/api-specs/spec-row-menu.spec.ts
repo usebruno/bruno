@@ -10,7 +10,7 @@ import {
 import { openWorkspaceFromDialog, buildCommonLocators, buildMockServerLocators } from '../../pages';
 import { expandApiSpecsSection, openApiSpecRowMenu, chooseApiSpecRowAction } from '../../pages/api-spec';
 import { buildTitleBarLocators } from '../../pages/app-shell/title-bar';
-import { waitForReadyPage, stubOpenDirectoryDialog } from '../../utils';
+import { waitForReadyPage, stubOpenDirectoryDialog, seedApprovedSyncSource } from '../../utils';
 
 const OPENAPI_FIXTURES = path.resolve(__dirname, '..', 'import', 'openapi', 'fixtures');
 const COMPREHENSIVE_TITLE = 'Comprehensive API Test Collection';
@@ -116,8 +116,9 @@ const seedWorkspace = async (createTmpDir: CreateTmpDir, { mockServer = true, wi
       version: '1',
       name: SYNCED_COLLECTION,
       type: 'collection',
-      openapi: [{ sourceUrl: '../../specs/examples.yaml', groupBy: 'tags', autoCheck: false }]
+      openapi: [{ sourceUrl: '../../specs/examples.yaml', groupBy: 'tags' }]
     }, null, 2));
+    seedApprovedSyncSource(userDataPath, collectionPath, '../../specs/examples.yaml');
   }
 
   return { userDataPath, workspacePath };

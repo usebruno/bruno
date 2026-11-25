@@ -9,6 +9,15 @@ export const readOpenApiSyncConfig = (collectionDir: string) => {
   return collection.extensions.bruno.openapi;
 };
 
+// What an earlier approval leaves in app data, for collections a test writes as already connected
+export const seedApprovedSyncSource = (userDataPath: string, collectionPath: string, sourceUrl: string, { autoCheck = false, autoCheckInterval = 5 } = {}) => {
+  const approvedSource = /^https?:\/\//i.test(sourceUrl) ? sourceUrl : path.resolve(collectionPath, sourceUrl);
+  const storePath = path.join(userDataPath, 'openapi-sync-sources.json');
+  const existing = fs.existsSync(storePath) ? JSON.parse(fs.readFileSync(storePath, 'utf8')) : { collections: {} };
+  existing.collections[collectionPath] = { approvedSource, autoCheck, autoCheckInterval };
+  fs.writeFileSync(storePath, JSON.stringify(existing, null, 2));
+};
+
 export const readBrunoJsonSyncConfig = (collectionDir: string) => {
   return JSON.parse(fs.readFileSync(path.join(collectionDir, 'bruno.json'), 'utf8')).openapi;
 };
@@ -23,8 +32,6 @@ export const expectSyncedWithSpec = (collectionDir: string, syncConfig: any, spe
     groupBy: 'tags',
     authPlacement,
     requestNameSource,
-    autoCheck: true,
-    autoCheckInterval: 5,
     lastSyncDate: expect.any(String),
     specHash: specHashOf(specFile)
   }]);
