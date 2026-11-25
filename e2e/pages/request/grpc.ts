@@ -161,8 +161,6 @@ export const selectGrpcMethod = async (page: Page, methodName: string) => {
   });
 };
 
-// Typed keystroke by keystroke so reflection's debounce sees real typing, and cleared first
-// because typing inserts at the cursor — a url left behind would be appended to, not replaced.
 export const typeGrpcUrl = async (page: Page, url: string) => {
   await test.step(`Type gRPC url: ${url}`, async () => {
     const editor = buildGrpcLocators(page).request.queryUrlEditor();
