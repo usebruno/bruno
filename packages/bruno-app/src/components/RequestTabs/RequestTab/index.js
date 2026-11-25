@@ -142,7 +142,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
     event.preventDefault();
     event.stopPropagation();
-    menuDropdownRef.current?.show();
+    menuDropdownRef.current?.show({ x: event.clientX, y: event.clientY });
   };
 
   // Prevent the browser's autoscroll (triggered on middle-button mousedown)

@@ -52,7 +52,7 @@ const ApiSpecItem = ({ apiSpec }) => {
   const handleRightClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    menuDropdownRef.current?.toggle();
+    menuDropdownRef.current?.toggle({ x: e.clientX, y: e.clientY });
   };
 
   const handleReveal = () => {

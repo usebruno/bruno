@@ -206,7 +206,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     // Otherwise, show the regular menu dropdown
     const _menuDropdown = menuDropdownRef.current;
     if (_menuDropdown) {
-      _menuDropdown.toggle();
+      _menuDropdown.toggle({ x: event.clientX, y: event.clientY });
     }
   };
 

@@ -78,13 +78,15 @@ export const buildSidebarLocators = (page: Page) => {
 
     // The "..." menu on a sidebar row. `type` picks the row and the testid prefix:
     // 'item' for a collection item row (`collection-item-menu-*`), 'collection' for a
-    // top-level collection row (`collection-actions-*`). Trigger is in the row; items
-    // are portaled to <body>, so page-scoped.
+    // top-level collection row (`collection-actions-*`). Trigger is in the row; the menu
+    // is portaled to <body>, so page-scoped.
     rowMenu: (name: string, type: 'item' | 'collection' = 'item') => {
       const row = type === 'collection' ? collectionRow(name) : itemRow(name);
       const testId = type === 'collection' ? 'collection-actions' : 'collection-item-menu';
       return {
         trigger: () => row.getByTestId(testId),
+        // The menu frame Tippy positions, which holds the `${testId}-dropdown` content
+        popup: () => page.locator('.dropdown').filter({ has: page.getByTestId(`${testId}-dropdown`) }),
         item: (action: string) => page.getByTestId(`${testId}-${action}`)
       };
     },

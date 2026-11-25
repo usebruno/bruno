@@ -20,7 +20,9 @@ export const buildRequestTabsLocators = (page: Page) => ({
   leftChevron: () => page.getByLabel('Left Chevron'),
   scrollContainer: () => page.locator('.tabs-scroll-container'),
   activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
-  // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+  // The request tab's right-click menu. `requestTabMenu` is the frame Tippy positions and `key` a menu
+  // item id (e.g. 'clone-request').
+  requestTabMenu: () => page.locator('.dropdown').filter({ has: page.getByTestId('menu-dropdown-dropdown') }),
   requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
   activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
   closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
