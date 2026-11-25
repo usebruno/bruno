@@ -131,6 +131,12 @@ const OpenAPISyncTab = ({ collection }) => {
               />
             )}
 
+            {!isSourceApproved && !needsSourceReview && (
+              <div className="sync-review-empty-state mt-5" data-testid="openapi-sync-source-loading">
+                <p>Loading the sync source...</p>
+              </div>
+            )}
+
             {isSourceApproved && (
               <>
                 <ResponsiveTabs
