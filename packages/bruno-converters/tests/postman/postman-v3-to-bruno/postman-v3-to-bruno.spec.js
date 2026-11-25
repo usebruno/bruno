@@ -372,7 +372,7 @@ describe('postmanToBruno with a v3 collection', () => {
     ]));
 
     expect(collection.items.map((item) => item.name)).toEqual(['Same', 'Same', 'Same']);
-    expect(collection.items.map((item) => item.filename)).toEqual([undefined, 'Same_1', undefined]);
+    expect(collection.items.map((item) => item.filename)).toEqual(['Same', 'Same_1', 'Same']);
     expect(collection.items[2].root.meta.name).toBe('Same');
   });
 
@@ -383,7 +383,7 @@ describe('postmanToBruno with a v3 collection', () => {
     ]));
 
     expect(collection.items.map((item) => item.name)).toEqual(['API', 'api']);
-    expect(collection.items.map((item) => item.filename)).toEqual([undefined, 'api_1']);
+    expect(collection.items.map((item) => item.filename)).toEqual(['API', 'api_1']);
     expect(collection.items[1].root.meta.name).toBe('api');
     expect(collection.items[0].items[0].request.url).toBe('https://example.com/upper');
     expect(collection.items[1].items[0].request.url).toBe('https://example.com/lower');

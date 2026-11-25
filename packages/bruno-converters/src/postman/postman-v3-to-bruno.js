@@ -166,7 +166,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     const brunoItem = {
       uid,
       name,
-      ...(filename !== name && { filename }),
+      filename,
       type: 'http-request',
       seq,
       request,
@@ -197,7 +197,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     return {
       uid,
       name,
-      ...(filename !== name && { filename }),
+      filename,
       type: 'folder',
       seq,
       items: importItems(item.items, path),
