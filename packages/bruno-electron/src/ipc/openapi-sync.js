@@ -23,7 +23,7 @@ const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
-const { approveSource, forgetSource } = require('../services/openapi-sync-sources');
+const { isSourceApproved, approveSource, forgetSource } = require('../services/openapi-sync-sources');
 const jsyaml = require('js-yaml');
 
 /**
@@ -179,6 +179,13 @@ const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, e
 
   if (!isValidHttpUrl(sourceUrl) && !isLocalFilePath(sourceUrl)) {
     return { error: 'Invalid source: only http/https URLs and local file paths are allowed' };
+  }
+
+  if (!collectionPath || !isSourceApproved(sourceApprovalArgs(collectionPath, sourceUrl))) {
+    return {
+      error: 'This sync source isn’t approved on this computer yet. Review it in the OpenAPI Sync tab.',
+      errorCode: 'SOURCE_NOT_APPROVED'
+    };
   }
 
   let content;
@@ -2175,6 +2182,7 @@ if (process.env.NODE_ENV === 'test') {
     declaredBodyOf,
     compareRequestFields,
     specConversionOptions,
-    ensureTagFolder
+    ensureTagFolder,
+    fetchSpecFromSource
   };
 }
