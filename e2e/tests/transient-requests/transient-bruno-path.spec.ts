@@ -3,11 +3,8 @@ import * as path from 'path';
 import { test as base, expect, closeElectronApp, waitForReadyPage, ElectronApplication, Page } from '../../playwright';
 import {
   buildCommonLocators,
-  closeAllCollections,
-  createCollection,
   createCollectionInSaveModal,
   createTransientRequestFromPreset,
-  createWorkspace,
   saveTransientViaModal,
   openCollectionFromDialog
 } from '../../pages';
