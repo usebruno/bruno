@@ -36,7 +36,7 @@ test.describe('Open collection modal: importing files', () => {
     await closeAllCollections(page);
   });
 
-  test('the import shortcut shows an empty Import page with Load disabled', async ({ pageWithUserData: page }) => {
+  test('the import shortcut shows an empty Import page', async ({ pageWithUserData: page }) => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
     const importPage = buildImportPageLocators(page);
 
@@ -47,10 +47,17 @@ test.describe('Open collection modal: importing files', () => {
     await test.step('Verify the Import page waits for a URL, text or files', async () => {
       await expect(openCollectionModal.pageTitle()).toHaveText('Import');
       await expect(importPage.textInput()).toHaveValue('');
-      await expect(importPage.hint()).toBeHidden();
-      await expect(importPage.loadButton()).toBeDisabled();
+      await expect(importPage.textInput()).toHaveAttribute('placeholder', 'Paste a URL or raw JSON/YAML');
+      await expect(importPage.enterHint()).toBeHidden();
+      await expect(importPage.zipWarning()).toBeHidden();
       await expect(importPage.dropZone()).toContainText('Drop anywhere to import');
+      await expect(importPage.dropZone()).toContainText('Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno');
       await expect(importPage.selectFilesLink()).toBeVisible();
+    });
+
+    await test.step('Verify the links to the import docs', async () => {
+      await expect(importPage.migrateLink()).toHaveText('Migrating from Postman?');
+      await expect(importPage.docsLink()).toHaveText('Learn more about importing');
     });
   });
 

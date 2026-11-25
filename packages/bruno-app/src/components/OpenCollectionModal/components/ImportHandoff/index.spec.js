@@ -5,11 +5,16 @@ import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { isDirectory } from 'utils/filesystem';
-import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import { readImportableFiles } from 'utils/importers/import-sources';
+import openCollectionModalReducer, { importRequested } from 'providers/ReduxStore/slices/open-collection-modal';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { useImportHandoff } from './context';
 import ImportHandoff from './index';
 
+jest.mock('nanoid', () => {
+  let count = 0;
+  return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
+});
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectories: jest.fn(),
@@ -19,6 +24,10 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   importCollectionFromZip: jest.fn()
 }));
 jest.mock('utils/filesystem', () => ({ isDirectory: jest.fn() }));
+jest.mock('utils/importers/import-sources', () => ({
+  ...jest.requireActual('utils/importers/import-sources'),
+  readImportableFiles: jest.fn()
+}));
 jest.mock('components/Sidebar/ImportCollectionLocation', () => ({
   __esModule: true,
   default: ({ rawData, format, sourceUrl, filePath, rawContent, onClose, handleSubmit }) => (
@@ -98,6 +107,22 @@ describe('ImportHandoff', () => {
 
     expect(screen.getByTestId('bulk-modal')).toHaveTextContent('2');
     expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
+  });
+
+  it('imports the files a folder search asked for', async () => {
+    readImportableFiles.mockResolvedValue(single);
+    const store = renderHandoff(null);
+    const files = [{ path: '/work/a.yaml', name: 'a.yaml', format: 'openapi' }];
+
+    await act(async () => {
+      store.dispatch(importRequested({ files }));
+    });
+
+    expect(readImportableFiles).toHaveBeenCalledTimes(1);
+    expect(readImportableFiles).toHaveBeenCalledWith(files);
+    expect(store.getState().openCollectionModal.importRequest).toBeNull();
+    expect(isModalOpen(store)).toBe(false);
+    expect(screen.getByTestId('location-modal')).toBeInTheDocument();
   });
 
   it('stays out of the way when nothing was loaded', async () => {

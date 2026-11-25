@@ -21,6 +21,7 @@ import {
   folderResultCleared,
   importLoadStarted,
   importLoadEnded,
+  importRequested,
   collectionsOpeningStarted,
   collectionsOpeningEnded,
   recentsLoadStarted,
@@ -33,7 +34,7 @@ import {
 import { selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
 import { getFolderName, toPathKey } from './collection-paths';
-import { readImportableFile, readImportFiles, readImportUrl } from 'utils/importers/import-sources';
+import { readImportableFiles, readImportFiles, readImportText } from 'utils/importers/import-sources';
 
 const getSearchLabel = (folderPaths) =>
   folderPaths.length === 1 ? getFolderName(folderPaths[0]) : `${folderPaths.length} folders`;
@@ -154,6 +155,9 @@ export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => a
   } else if (outcome.type === 'switch') {
     toast.success(`${outcome.name} is already open`);
     dispatch(switchToCollection(outcome.path));
+  } else if (outcome.type === 'import') {
+    dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT));
+    dispatch(importRequested({ files: outcome.files }));
   } else {
     toast.success('Those collections are already open');
     dispatch(closeOpenCollectionModal());
@@ -177,6 +181,10 @@ const loadImportData = (read) => async (dispatch, getState) => {
     const importData = await read();
     if (isCurrentLoad()) {
       dispatch(importLoadEnded());
+      const skippedFileNames = importData.skippedFileNames ?? [];
+      if (skippedFileNames.length > 0) {
+        toast(`${skippedFileNames.join(', ')} ${skippedFileNames.length === 1 ? 'isn’t a valid collection, so it was' : 'aren’t valid collections, so they were'} skipped.`);
+      }
       return importData;
     }
   } catch (error) {
@@ -188,20 +196,13 @@ const loadImportData = (read) => async (dispatch, getState) => {
   return null;
 };
 
-export const loadImportFiles = (files) => async (dispatch) => {
-  const importData = await dispatch(loadImportData(() => readImportFiles(files)));
-  const skippedFileNames = importData?.skippedFileNames ?? [];
-  if (skippedFileNames.length > 0) {
-    toast(`${skippedFileNames.join(', ')} ${skippedFileNames.length === 1 ? 'isn’t a valid collection, so it was' : 'aren’t valid collections, so they were'} skipped.`);
-  }
-  return importData;
-};
+export const loadImportFiles = (files) => loadImportData(() => readImportFiles(files));
 
-export const loadImportUrl = (url) => loadImportData(() => readImportUrl(url));
+export const loadImportText = (text) => loadImportData(() => readImportText(text));
 
-export const loadImportableFile = (file) => (dispatch) => {
+export const loadImportableFiles = (files) => (dispatch) => {
   dispatch(showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT));
-  return dispatch(loadImportData(() => readImportableFile(file)));
+  return dispatch(loadImportData(() => readImportableFiles(files)));
 };
 
 export const openDroppedItems = ({ folderPaths, hasFolders, files }) => async (dispatch, getState) => {

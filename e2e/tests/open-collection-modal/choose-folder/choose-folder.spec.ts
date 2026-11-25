@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect, ElectronApplication } from '../../../playwright';
 import { buildCommonLocators, closeAllCollections, dismissModalIfOpen, mockBrowseFiles, openCollectionFromDialog } from '../../../pages';
@@ -13,6 +14,7 @@ import {
   openListedCollection,
   selectListedCollections
 } from '../../../pages/open-collection-modal/choose-folder';
+import { writeZip } from '../import/helpers';
 
 const chooseFolderShortcut = process.platform === 'darwin' ? '⇧ ⌘ O' : 'Ctrl+Shift+O';
 
@@ -372,14 +374,52 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('offers to import an export file found in a picked folder', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('imports the export file found in a picked folder straight away', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const { import: importLocators } = buildCommonLocators(page);
     const openCollectionModal = buildOpenCollectionModalLocators(page);
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'postman-only')]);
 
-    await test.step('Verify the note names the export file', async () => {
-      await expect(openCollectionModal.note()).toContainText('postman-only isn’t a collection, but it has a Postman export in it (export.postman_collection.json). That needs importing, not opening.');
+    await test.step('Verify the export is ready to import', async () => {
+      await expect(openCollectionModal.root()).toBeHidden();
+      await expect(importLocators.locationModal()).toBeVisible();
+      await expect(importLocators.locationModal()).toContainText('Postman Only Export');
+    });
+  });
+
+  test('sends the export files found in a picked folder to bulk import', async ({ pageWithUserData: page, collectionFixturePath, createTmpDir }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const exportsFolder = await createTmpDir('choose-folder-exports');
+
+    await test.step('Put two Postman exports in a folder', async () => {
+      const postmanExport = fs.readFileSync(path.join(collectionFixturePath!, 'postman-only', 'export.postman_collection.json'), 'utf8');
+      fs.writeFileSync(path.join(exportsFolder, 'orders.postman_collection.json'), postmanExport.replace('Postman Only Export', 'Orders Export'));
+      fs.writeFileSync(path.join(exportsFolder, 'billing.postman_collection.json'), postmanExport.replace('Postman Only Export', 'Billing Export'));
+    });
+
+    await chooseFolders(page, electronApp, [exportsFolder]);
+
+    await test.step('Verify both exports are ready to import together', async () => {
+      await expect(openCollectionModal.root()).toBeHidden();
+      await expect(importLocators.bulkModal()).toContainText('Orders Export');
+      await expect(importLocators.bulkModal()).toContainText('Billing Export');
+    });
+  });
+
+  test('offers to import a collection ZIP found in a picked folder', async ({ pageWithUserData: page, createTmpDir }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const zipFolder = await createTmpDir('choose-folder-zip');
+
+    await test.step('Put a collection ZIP in a folder', async () => {
+      writeZip(path.join(zipFolder, 'backup.zip'), { 'bruno.json': JSON.stringify({ version: '1', name: 'Zipped Collection', type: 'collection' }) });
+    });
+
+    await chooseFolders(page, electronApp, [zipFolder]);
+
+    await test.step('Verify the note names the ZIP', async () => {
+      await expect(openCollectionModal.note()).toContainText('isn’t a collection, but it has an importable file in it (backup.zip). That needs importing, not opening.');
       await expect(openCollectionModal.noteActionButton()).toHaveText('Import it');
     });
 
@@ -387,10 +427,9 @@ test.describe('Choose folder', () => {
       await openCollectionModal.noteActionButton().click();
     });
 
-    await test.step('Verify the export is ready to import', async () => {
+    await test.step('Verify the ZIP is ready to import', async () => {
       await expect(openCollectionModal.root()).toBeHidden();
       await expect(importLocators.locationModal()).toBeVisible();
-      await expect(importLocators.locationModal()).toContainText('Postman Only Export');
     });
   });
 

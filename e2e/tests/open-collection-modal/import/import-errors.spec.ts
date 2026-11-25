@@ -77,9 +77,14 @@ const textErrors: { title: string; text: (serverUrl: string) => string; message:
     message: 'Unsupported collection format'
   },
   {
-    title: 'text that is not a URL',
+    title: 'text that is neither JSON nor YAML',
     text: () => 'just some words',
-    message: 'Please enter a valid URL'
+    message: 'Could not parse the text as JSON or YAML'
+  },
+  {
+    title: 'JSON text in no collection format',
+    text: () => '{"hello":"world"}',
+    message: 'Unsupported collection format'
   }
 ];
 

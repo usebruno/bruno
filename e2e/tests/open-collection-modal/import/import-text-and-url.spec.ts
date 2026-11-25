@@ -9,7 +9,7 @@ import {
   closeOpenCollectionModal,
   showOpenCollectionModal
 } from '../../../pages/open-collection-modal/shell';
-import { buildImportPageLocators, loadImportText } from '../../../pages/open-collection-modal/import-page';
+import { buildImportPageLocators, loadImportText, pasteImportText } from '../../../pages/open-collection-modal/import-page';
 import { startLocalServer } from '../../../servers';
 import { importFixturePath } from './helpers';
 
@@ -48,7 +48,7 @@ test.describe('Open collection modal: importing text and URLs', () => {
     await closeAllCollections(page);
   });
 
-  test('a JSON URL is described, loaded and imported', async ({ pageWithUserData: page, createTmpDir }) => {
+  test('a JSON URL loads on Enter and is imported', async ({ pageWithUserData: page, createTmpDir }) => {
     const { import: importLocators, sidebar } = buildCommonLocators(page);
     const openCollectionModal = buildOpenCollectionModalLocators(page);
     const importPage = buildImportPageLocators(page);
@@ -59,12 +59,13 @@ test.describe('Open collection modal: importing text and URLs', () => {
       await importPage.textInput().fill(`${server.url}/postman.json`);
     });
 
-    await test.step('Verify the hint reads the URL as JSON', async () => {
-      await expect(importPage.hint()).toHaveText('JSON from a URL · Bruno detects Postman, Insomnia or OpenAPI');
+    await test.step('Verify the field offers Enter to import', async () => {
+      await expect(importPage.enterHint()).toHaveText('Enter to import');
+      await expect(importPage.zipWarning()).toBeHidden();
     });
 
-    await test.step('Load the URL', async () => {
-      await importPage.loadButton().click();
+    await test.step('Press Enter in the text field', async () => {
+      await importPage.textInput().press('Enter');
     });
 
     await test.step('Verify the location modal opens for the fetched collection', async () => {
@@ -83,22 +84,10 @@ test.describe('Open collection modal: importing text and URLs', () => {
     });
   });
 
-  test('a YAML URL is described and its OpenAPI spec offers the folder arrangement', async ({ pageWithUserData: page }) => {
+  test('a pasted YAML URL loads right away and its OpenAPI spec offers the folder arrangement', async ({ pageWithUserData: page }) => {
     const { import: importLocators } = buildCommonLocators(page);
-    const importPage = buildImportPageLocators(page);
 
-    await test.step('Enter the URL of an OpenAPI spec on the Import page', async () => {
-      await showOpenCollectionModal(page, 'import');
-      await importPage.textInput().fill(`${server.url}/openapi.yaml`);
-    });
-
-    await test.step('Verify the hint reads the URL as YAML', async () => {
-      await expect(importPage.hint()).toHaveText('YAML from a URL · a Bruno collection is unpacked, an OpenAPI spec is converted');
-    });
-
-    await test.step('Load the URL', async () => {
-      await importPage.loadButton().click();
-    });
+    await pasteImportText(page, `  ${server.url}/openapi.yaml\n`);
 
     await test.step('Verify the location modal offers the folder arrangement for the spec', async () => {
       await expect(importLocators.locationModal()).toContainText('Sample API');
@@ -106,49 +95,54 @@ test.describe('Open collection modal: importing text and URLs', () => {
     });
   });
 
-  test('a ZIP URL is flagged as not supported and cannot be loaded', async ({ pageWithUserData: page }) => {
+  test('a ZIP URL is flagged as not supported and is not loaded', async ({ pageWithUserData: page }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
     const importPage = buildImportPageLocators(page);
 
-    await test.step('Enter the URL of a ZIP on the Import page', async () => {
-      await showOpenCollectionModal(page, 'import');
-      await importPage.textInput().fill(`${server.url}/collection.zip`);
+    await test.step('Paste the URL of a ZIP on the Import page', async () => {
+      await pasteImportText(page, `${server.url}/collection.zip`);
     });
 
-    await test.step('Verify the hint warns that ZIP URLs are not supported and Load stays disabled', async () => {
-      await expect(importPage.hint()).toHaveText('Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.');
-      await expect(importPage.loadButton()).toBeDisabled();
+    await test.step('Verify the field keeps the URL and warns that ZIP URLs are not supported', async () => {
+      await expect(importPage.textInput()).toHaveValue(`${server.url}/collection.zip`);
+      await expect(importPage.zipWarning()).toHaveText('Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.');
+      await expect(importPage.enterHint()).toBeHidden();
+    });
+
+    await test.step('Press Enter in the text field', async () => {
+      await importPage.textInput().press('Enter');
+    });
+
+    await test.step('Verify nothing is loaded', async () => {
+      await expect(importPage.loadingSpinner()).toBeHidden();
+      await expect(importPage.textInput()).toBeEditable();
+      await expect(openCollectionModal.pageView('import')).toBeVisible();
+      await expect(importLocators.locationModal()).toBeHidden();
     });
   });
 
   test('a URL without a file extension is fetched and its format detected', async ({ pageWithUserData: page }) => {
     const { import: importLocators } = buildCommonLocators(page);
-    const importPage = buildImportPageLocators(page);
 
-    await test.step('Enter a URL with no file extension on the Import page', async () => {
-      await showOpenCollectionModal(page, 'import');
-      await importPage.textInput().fill(`${server.url}/plain`);
-    });
-
-    await test.step('Verify the hint says the format is detected after fetching', async () => {
-      await expect(importPage.hint()).toHaveText('URL · Bruno fetches it and detects the format');
-    });
-
-    await test.step('Load the URL', async () => {
-      await importPage.loadButton().click();
-    });
+    await loadImportText(page, `${server.url}/plain`);
 
     await test.step('Verify the location modal opens for the Postman collection the URL returned', async () => {
       await expect(importLocators.locationModal()).toContainText('Sample Postman Collection');
     });
   });
 
-  test('Enter in the text field loads the URL', async ({ pageWithUserData: page }) => {
+  test('raw JSON loads on Enter', async ({ pageWithUserData: page }) => {
     const { import: importLocators } = buildCommonLocators(page);
     const importPage = buildImportPageLocators(page);
 
-    await test.step('Enter the URL of a Postman collection on the Import page', async () => {
+    await test.step('Enter a Postman collection as one line of JSON on the Import page', async () => {
       await showOpenCollectionModal(page, 'import');
-      await importPage.textInput().fill(`${server.url}/postman.json`);
+      await importPage.textInput().fill(JSON.stringify(JSON.parse(postmanCollection)));
+    });
+
+    await test.step('Verify the field offers Enter to import', async () => {
+      await expect(importPage.enterHint()).toHaveText('Enter to import');
     });
 
     await test.step('Press Enter in the text field', async () => {
@@ -160,20 +154,32 @@ test.describe('Open collection modal: importing text and URLs', () => {
     });
   });
 
-  test('while a URL loads, the text field is read-only and Load is busy', async ({ pageWithUserData: page }) => {
+  test('pasted multi-line YAML keeps its line breaks and loads the OpenAPI spec right away', async ({ pageWithUserData: page }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+
+    await pasteImportText(page, openApiSpec);
+
+    await test.step('Verify the location modal opens for the spec', async () => {
+      await expect(importLocators.locationModal()).toContainText('Sample API');
+      await expect(importLocators.groupingDropdown()).toBeVisible();
+    });
+  });
+
+  test('while a URL loads, the text field is read-only and shows a spinner', async ({ pageWithUserData: page }) => {
     const { import: importLocators } = buildCommonLocators(page);
     const importPage = buildImportPageLocators(page);
 
-    const slowResponse = await test.step('Load a URL whose response the server holds back', async () => {
+    const slowResponse = await test.step('Paste a URL whose response the server holds back', async () => {
       const slowRequest = once(server.server, 'request');
-      await loadImportText(page, `${server.url}/slow.json`);
+      await pasteImportText(page, `${server.url}/slow.json`);
       const [, response] = (await slowRequest) as [IncomingMessage, ServerResponse];
       return response;
     });
 
-    await test.step('Verify the text field is read-only and Load is busy', async () => {
+    await test.step('Verify the text field is read-only and shows the spinner instead of the Enter hint', async () => {
       await expect(importPage.textInput()).not.toBeEditable();
-      await expect(importPage.loadButton()).toBeDisabled();
+      await expect(importPage.loadingSpinner()).toBeVisible();
+      await expect(importPage.enterHint()).toBeHidden();
     });
 
     await test.step('Send the response', async () => {

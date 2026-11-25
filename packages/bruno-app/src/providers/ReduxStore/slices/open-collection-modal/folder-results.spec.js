@@ -89,13 +89,45 @@ describe('getFolderSearchOutcome with one folder', () => {
   });
 
   it.each([
-    ['postman', 'Orders.postman_collection.json', 'a Postman export'],
-    ['insomnia', 'insomnia.json', 'an Insomnia export'],
-    ['openapi', 'openapi.yaml', 'an OpenAPI spec'],
-    ['zip', 'backup.zip', 'an importable file']
-  ])('says a folder with %s files needs importing', (format, name, label) => {
+    ['postman', 'Orders.postman_collection.json'],
+    ['insomnia', 'insomnia.json'],
+    ['openapi', 'openapi.yaml']
+  ])('imports a folder with a %s file straight away', (format, name) => {
+    const file = { path: `/work/exports/${name}`, name, format };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [file])] }), nothingOpen);
+
+    expect(outcome).toEqual({ type: 'import', files: [file], skippedText: '' });
+  });
+
+  it('imports every export file of a folder and leaves its ZIPs out', () => {
+    const postman = { path: '/work/exports/orders.json', name: 'orders.json', format: 'postman' };
+    const zip = { path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' };
+    const openApi = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [postman, zip, openApi])] }), nothingOpen);
+
+    expect(outcome).toEqual({ type: 'import', files: [postman, openApi], skippedText: '' });
+  });
+
+  it('says which folders inside could not be read when it imports a folder', () => {
+    const file = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
     const outcome = getFolderSearchOutcome(
-      searchResult({ folders: [folder('/work/exports', 'folder', [], [{ path: `/work/exports/${name}`, name, format }])] }),
+      searchResult({ folders: [folder('/work/exports', 'folder', [], [file])], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome).toEqual({ type: 'import', files: [file], skippedText: 'Bruno couldn’t read 1 folder inside exports.' });
+  });
+
+  it('says files dropped with a folder it imports were left out', () => {
+    const file = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [file])] }), nothingOpen, 1);
+
+    expect(outcome.skippedText).toBe('1 dropped file wasn’t opened. Use Import file or URL to import it.');
+  });
+
+  it('says a folder with only a ZIP needs importing', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work/exports', 'folder', [], [{ path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' }])] }),
       nothingOpen
     );
 
@@ -103,18 +135,18 @@ describe('getFolderSearchOutcome with one folder', () => {
       type: 'message',
       note: {
         tone: 'info',
-        text: `exports isn’t a collection, but it has ${label} in it (${name}). That needs importing, not opening.`,
-        importFile: { path: `/work/exports/${name}`, name, format }
+        text: 'exports isn’t a collection, but it has an importable file in it (backup.zip). That needs importing, not opening.',
+        importFile: { path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' }
       }
     });
   });
 
-  it('names the first importable file and warns when folders inside could not be read', () => {
+  it('names the first ZIP and warns when folders inside could not be read', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({
         folders: [folder('/work/exports', 'folder', [], [
           { name: 'a.zip', format: 'zip' },
-          { name: 'openapi.yaml', format: 'openapi' }
+          { name: 'b.zip', format: 'zip' }
         ])],
         unreadableFolderCount: 1
       }),

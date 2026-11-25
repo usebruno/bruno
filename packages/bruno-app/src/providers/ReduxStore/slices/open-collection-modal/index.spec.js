@@ -3,6 +3,8 @@ import reducer, {
   showOpenCollectionPage,
   importLoadStarted,
   importLoadEnded,
+  importRequested,
+  importRequestTaken,
   hideOpenCollectionModal,
   folderPickStarted,
   folderSearchStarted,
@@ -44,6 +46,7 @@ describe('openCollectionModal slice', () => {
       lastPage: DEFAULT_OPEN_COLLECTION_PAGE,
       openingId: null,
       importLoadId: null,
+      importRequest: null,
       chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null },
       recents: { status: 'idle', loadId: null, items: [], error: null },
       myComputer: { status: 'idle', scanId: null, locations: null, collections: [], previousCollections: [], error: null }
@@ -195,6 +198,20 @@ describe('openCollectionModal slice', () => {
 
       expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT)])).toBe('load-1');
       expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.RECENTS)])).toBeNull();
+    });
+  });
+
+  describe('importRequest', () => {
+    const files = [{ path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' }];
+    const importRequest = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT), ...actions]).importRequest;
+
+    it('holds the files to import until the request is taken', () => {
+      expect(importRequest([importRequested({ files })])).toEqual({ files });
+      expect(importRequest([importRequested({ files }), importRequestTaken()])).toBeNull();
+    });
+
+    it('drops the request when the modal closes', () => {
+      expect(importRequest([importRequested({ files }), hideOpenCollectionModal()])).toBeNull();
     });
   });
 

@@ -327,7 +327,7 @@ describe('ModalShell', () => {
   });
 
   it('offers to import the file a note names', async () => {
-    const importFile = { path: '/work/notes.json', name: 'notes.json', format: 'postman' };
+    const importFile = { path: '/work/backup.zip', name: 'backup.zip', format: 'zip' };
     const result = { id: 'search-1', type: 'message', note: { tone: 'info', text: 'Needs importing.', importFile } };
     const store = createStore({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, chooseFolder: { ...closedState.chooseFolder, result } });
     renderWithStore(<ModalShell />, store);

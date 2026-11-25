@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
-import { readImportFiles, readImportUrl } from 'utils/importers/import-sources';
+import { readImportFiles, readImportText } from 'utils/importers/import-sources';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { ImportHandoffContext } from '../../components/ImportHandoff/context';
 import ImportPage from './index';
@@ -18,7 +18,7 @@ jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.f
 jest.mock('utils/importers/import-sources', () => ({
   ...jest.requireActual('utils/importers/import-sources'),
   readImportFiles: jest.fn(),
-  readImportUrl: jest.fn()
+  readImportText: jest.fn()
 }));
 
 const importData = { rawData: { openapi: '3.0.0' }, type: 'openapi' };
@@ -43,102 +43,142 @@ const renderPage = () => {
 };
 
 const textField = () => screen.getByTestId('import-page-text');
-const loadButton = () => screen.getByRole('button', { name: 'Load' });
 const type = (value) => fireEvent.change(textField(), { target: { value } });
+const submit = () => fireEvent.submit(textField().closest('form'));
+const paste = (value) => fireEvent.paste(textField(), { clipboardData: { getData: () => value } });
 
 describe('ImportPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('asks for a URL in a single-line field and offers to select files', () => {
+  afterEach(() => {
+    delete window.ipcRenderer;
+  });
+
+  it('asks for a URL or raw JSON/YAML in a single-line field and offers to select files', () => {
     renderPage();
 
     expect(textField()).toHaveAttribute('type', 'text');
     expect(textField()).toHaveAttribute('spellcheck', 'false');
-    expect(textField()).toHaveAttribute('placeholder', 'Paste a file URL, e.g. https://example.com/openapi.yaml');
+    expect(textField()).toHaveAttribute('placeholder', 'Paste a URL or raw JSON/YAML');
+    expect(screen.getByRole('textbox', { name: 'Paste a URL or raw JSON/YAML' })).toBe(textField());
+    expect(screen.queryByRole('button', { name: 'Load' })).not.toBeInTheDocument();
     expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('Drop anywhere to import');
-    expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('OpenCollection · Bruno · Postman · Insomnia · OpenAPI · WSDL');
+    expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno');
     expect(screen.getByTestId('import-page-select-files')).toHaveTextContent('select files');
   });
 
-  it('enables Load once there is text and says what Bruno will do with it', () => {
+  it('shows the Enter hint once there is text', () => {
     renderPage();
-    expect(loadButton()).toBeDisabled();
-    expect(screen.queryByTestId('import-page-hint')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('import-page-enter-hint')).not.toBeInTheDocument();
 
-    type('https://example.com/openapi.json');
+    type('openapi: 3.0.0');
 
-    expect(loadButton()).toBeEnabled();
-    expect(screen.getByTestId('import-page-hint')).toHaveTextContent('JSON from a URL');
-    expect(screen.getByTestId('import-page-hint')).toHaveClass('is-ok');
+    expect(screen.getByTestId('import-page-enter-hint')).toHaveTextContent('Enter to import');
+    expect(screen.queryByTestId('import-page-zip-warning')).not.toBeInTheDocument();
+
+    type('   ');
+
+    expect(screen.queryByTestId('import-page-enter-hint')).not.toBeInTheDocument();
   });
 
-  it('warns about a ZIP URL and keeps Load off', () => {
+  it('warns about a ZIP URL instead of offering Enter', () => {
     renderPage();
 
     type('https://example.com/orders.zip');
 
-    expect(screen.getByTestId('import-page-hint')).toHaveClass('is-warning');
-    expect(loadButton()).toBeDisabled();
+    expect(screen.getByTestId('import-page-zip-warning')).toHaveTextContent('Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.');
+    expect(screen.queryByTestId('import-page-enter-hint')).not.toBeInTheDocument();
   });
 
-  it('shows no hint for text that is not a URL and leaves the check to Load, like the old URL tab', async () => {
-    readImportUrl.mockRejectedValue(new Error('Please enter a valid URL'));
-    renderPage();
-
-    type('openapi: 3.0.0');
-    expect(screen.queryByTestId('import-page-hint')).not.toBeInTheDocument();
-    fireEvent.click(loadButton());
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Please enter a valid URL'));
-  });
-
-  it('hands what it loaded over', async () => {
-    readImportUrl.mockResolvedValue(importData);
+  it('loads the typed text on Enter and hands what it loaded over', async () => {
+    readImportText.mockResolvedValue(importData);
     const { importFrom } = renderPage();
     type('  https://example.com/openapi.yaml ');
 
-    fireEvent.click(loadButton());
+    submit();
 
-    await waitFor(() => expect(readImportUrl).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
+    await waitFor(() => expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
   });
 
-  it('holds the field while it loads', () => {
-    readImportUrl.mockReturnValue(new Promise(() => {}));
+  it('does not load on Enter without text, for a ZIP URL or while a load is running', () => {
+    readImportText.mockReturnValue(new Promise(() => {}));
     renderPage();
-    type('https://example.com/openapi.yaml');
 
-    fireEvent.click(loadButton());
-
-    expect(textField()).toHaveAttribute('readonly');
-  });
-
-  it('loads when the field is submitted with Enter', async () => {
-    readImportUrl.mockResolvedValue(importData);
-    renderPage();
-    type('https://example.com/openapi.yaml');
-
-    fireEvent.submit(textField().closest('form'));
-
-    await waitFor(() => expect(readImportUrl).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
-  });
-
-  it('does not load on Enter while Load is off or a load is running', () => {
-    readImportUrl.mockReturnValue(new Promise(() => {}));
-    renderPage();
-    const submit = () => fireEvent.submit(textField().closest('form'));
-
+    submit();
+    type('   ');
     submit();
     type('https://example.com/orders.zip');
     submit();
-    expect(readImportUrl).not.toHaveBeenCalled();
+    expect(readImportText).not.toHaveBeenCalled();
 
     type('https://example.com/openapi.yaml');
     submit();
     submit();
-    expect(readImportUrl).toHaveBeenCalledTimes(1);
+    expect(readImportText).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads pasted text right away, replacing what was in the field', async () => {
+    readImportText.mockResolvedValue(importData);
+    const { importFrom } = renderPage();
+    type('https://example.com/old.json');
+
+    paste('\nopenapi: 3.0.0\ninfo:\n  title: Orders\n');
+
+    expect(readImportText).toHaveBeenCalledWith('openapi: 3.0.0\ninfo:\n  title: Orders');
+    expect(textField()).toHaveValue('openapi: 3.0.0info:  title: Orders');
+    await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
+  });
+
+  it('keeps a pasted ZIP URL in the field without loading it', () => {
+    renderPage();
+
+    paste('https://example.com/orders.zip');
+
+    expect(textField()).toHaveValue('https://example.com/orders.zip');
+    expect(screen.getByTestId('import-page-zip-warning')).toBeInTheDocument();
+    expect(readImportText).not.toHaveBeenCalled();
+  });
+
+  it('leaves an empty paste to the field and ignores a paste while a load is running', () => {
+    readImportText.mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    paste('   ');
+    expect(readImportText).not.toHaveBeenCalled();
+
+    paste('https://example.com/openapi.yaml');
+    paste('https://example.com/other.yaml');
+
+    expect(readImportText).toHaveBeenCalledTimes(1);
+    expect(textField()).toHaveValue('https://example.com/openapi.yaml');
+  });
+
+  it('holds the field and shows a spinner in it while it loads', () => {
+    readImportText.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    expect(screen.queryByTestId('import-page-loading')).not.toBeInTheDocument();
+
+    paste('https://example.com/openapi.yaml');
+
+    expect(textField()).toHaveAttribute('readonly');
+    expect(screen.getByRole('status', { name: 'Loading' })).toBe(screen.getByTestId('import-page-loading'));
+    expect(screen.queryByTestId('import-page-enter-hint')).not.toBeInTheDocument();
+  });
+
+  it('shows why it could not load in a toast and keeps the text to try again', async () => {
+    readImportText.mockRejectedValue(new Error('Could not parse the text as JSON or YAML'));
+    renderPage();
+
+    paste('just some words');
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not parse the text as JSON or YAML'));
+    expect(textField()).toHaveValue('just some words');
+    expect(textField()).not.toHaveAttribute('readonly');
+    expect(screen.queryByTestId('import-page-loading')).not.toBeInTheDocument();
+    expect(screen.getByTestId('import-page-enter-hint')).toBeInTheDocument();
   });
 
   it('highlights the drop zone only while files are over it', () => {
@@ -153,18 +193,6 @@ describe('ImportPage', () => {
 
     fireEvent.dragLeave(zone, { dataTransfer: { types: ['Files'] } });
     expect(zone).not.toHaveClass('is-drag-over');
-  });
-
-  it('shows why it could not load in a toast and lets the text be changed', async () => {
-    readImportUrl.mockRejectedValue(new Error('Could not find example.com. Check the address for a typo.'));
-    renderPage();
-    type('https://example.com/openapi.yaml');
-
-    fireEvent.click(loadButton());
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not find example.com. Check the address for a typo.'));
-    expect(textField()).not.toHaveAttribute('readonly');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('opens the file picker from the link', () => {
@@ -185,5 +213,17 @@ describe('ImportPage', () => {
 
     expect(readImportFiles).toHaveBeenCalledWith([picked]);
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
+  });
+
+  it.each([
+    ['Migrating from Postman?', 'https://docs.usebruno.com/get-started/import-export-data/postman-migration'],
+    ['Learn more about importing', 'https://docs.usebruno.com/get-started/import-export-data/import-collections']
+  ])('opens "%s" in the browser', (label, url) => {
+    window.ipcRenderer = { send: jest.fn(), openExternal: jest.fn() };
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(window.ipcRenderer.openExternal).toHaveBeenCalledWith(url);
   });
 });

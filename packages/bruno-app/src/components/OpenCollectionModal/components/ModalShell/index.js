@@ -6,7 +6,7 @@ import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection
 import {
   addFolderResultToSearch,
   closeOpenCollectionModal,
-  loadImportableFile,
+  loadImportableFiles,
   openCollectionModal,
   openDroppedItems
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
@@ -103,7 +103,7 @@ const ModalShell = () => {
 
   const getNoteAction = () => {
     if (note.importFile) {
-      return { label: 'Import it', onClick: () => importFrom(loadImportableFile(note.importFile)) };
+      return { label: 'Import it', onClick: () => importFrom(loadImportableFiles([note.importFile])) };
     }
     if (foldersToAdd) {
       return { label: 'Add to search locations', onClick: addFoldersToSearch };

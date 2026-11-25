@@ -96,13 +96,13 @@ test.describe('OpenAPI URL Import', () => {
       await expect(importPage.textInput()).toBeVisible();
     });
 
-    await test.step('Enter the OpenAPI v3 URL and verify it is read as a JSON URL', async () => {
+    await test.step('Enter the OpenAPI v3 URL and verify the field offers Enter to import', async () => {
       await importPage.textInput().fill(openApiUrl);
-      await expect(importPage.hint()).toContainText('JSON from a URL');
+      await expect(importPage.enterHint()).toHaveText('Enter to import');
     });
 
-    await test.step('Load the URL and import', async () => {
-      await importPage.loadButton().click();
+    await test.step('Press Enter and import', async () => {
+      await importPage.textInput().press('Enter');
       await locationModal.waitFor({ state: 'visible' });
       await expect(locationModal).toContainText(collectionName);
 

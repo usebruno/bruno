@@ -5,11 +5,14 @@ import { buildOpenCollectionModalLocators, showOpenCollectionModal } from './she
 
 export const buildImportPageLocators = (page: Page) => ({
   textInput: () => page.getByTestId('import-page-text'),
-  loadButton: () => page.getByTestId('import-page-load'),
-  hint: () => page.getByTestId('import-page-hint'),
+  loadingSpinner: () => page.getByTestId('import-page-loading'),
+  enterHint: () => page.getByTestId('import-page-enter-hint'),
+  zipWarning: () => page.getByTestId('import-page-zip-warning'),
   dropZone: () => page.getByTestId('import-page-drop-zone'),
   selectFilesLink: () => page.getByTestId('import-page-select-files'),
-  fileInput: () => page.getByTestId('import-page-file-input')
+  fileInput: () => page.getByTestId('import-page-file-input'),
+  migrateLink: () => page.getByTestId('import-page-migrate-link'),
+  docsLink: () => page.getByTestId('import-page-docs-link')
 });
 
 export const selectImportFiles = async (page: Page, filePaths: string[]) => {
@@ -20,11 +23,22 @@ export const selectImportFiles = async (page: Page, filePaths: string[]) => {
 };
 
 export const loadImportText = async (page: Page, text: string) => {
-  await test.step('Load a URL on the Import page', async () => {
+  await test.step('Enter a URL or text on the Import page and press Enter', async () => {
     const importPage = buildImportPageLocators(page);
     await showOpenCollectionModal(page, 'import');
     await importPage.textInput().fill(text);
-    await importPage.loadButton().click();
+    await importPage.textInput().press('Enter');
+  });
+};
+
+export const pasteImportText = async (page: Page, text: string) => {
+  await test.step('Paste a URL or text on the Import page', async () => {
+    await showOpenCollectionModal(page, 'import');
+    await buildImportPageLocators(page).textInput().evaluate((input, value) => {
+      const clipboardData = new DataTransfer();
+      clipboardData.setData('text/plain', value);
+      input.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+    }, text);
   });
 };
 

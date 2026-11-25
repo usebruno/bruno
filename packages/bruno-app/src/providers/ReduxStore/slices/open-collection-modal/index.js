@@ -17,6 +17,7 @@ const initialState = {
   lastPage: DEFAULT_OPEN_COLLECTION_PAGE,
   openingId: null,
   importLoadId: null,
+  importRequest: null,
   chooseFolder: {
     status: 'idle',
     searchId: null,
@@ -96,6 +97,12 @@ export const openCollectionModalSlice = createSlice({
     },
     importLoadEnded: (state) => {
       state.importLoadId = null;
+    },
+    importRequested: (state, action) => {
+      state.importRequest = action.payload;
+    },
+    importRequestTaken: (state) => {
+      state.importRequest = null;
     },
     collectionsOpeningStarted: (state, action) => {
       state.openingId = action.payload;
@@ -188,6 +195,8 @@ export const {
   folderResultCleared,
   importLoadStarted,
   importLoadEnded,
+  importRequested,
+  importRequestTaken,
   collectionsOpeningStarted,
   collectionsOpeningEnded,
   recentsLoadStarted,

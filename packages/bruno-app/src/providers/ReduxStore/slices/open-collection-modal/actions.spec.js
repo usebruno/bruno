@@ -12,16 +12,16 @@ import openCollectionModalReducer, {
   myComputerLocationsReceived,
   myComputerScanFinished
 } from './index';
-import { readImportableFile, readImportFiles, readImportUrl } from 'utils/importers/import-sources';
+import { readImportableFiles, readImportFiles, readImportText } from 'utils/importers/import-sources';
 import {
   addFolderResultToSearch,
   addSearchFolders,
   cancelCollectionSearch,
   closeOpenCollectionModal,
   findCollectionsInFolders,
-  loadImportableFile,
+  loadImportableFiles,
   loadImportFiles,
-  loadImportUrl,
+  loadImportText,
   loadRecentCollections,
   openCollectionModal,
   openCollectionModalOnLastPage,
@@ -49,8 +49,8 @@ jest.mock('react-hot-toast', () => {
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('utils/importers/import-sources', () => ({
   readImportFiles: jest.fn(),
-  readImportUrl: jest.fn(),
-  readImportableFile: jest.fn()
+  readImportText: jest.fn(),
+  readImportableFiles: jest.fn()
 }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectories: jest.fn(),
@@ -413,6 +413,23 @@ describe('open collection modal actions', () => {
       expect(modalState(store)).toMatchObject({ isOpen: true, chooseFolder: { status: 'idle', result: null } });
     });
 
+    it('goes to Import and asks for the export files of a picked folder to be imported', async () => {
+      const exportFile = { path: '/work/exports/orders.postman_collection.json', name: 'orders.postman_collection.json', format: 'postman' };
+      const zipFile = { path: '/work/exports/orders.zip', name: 'orders.zip', format: 'zip' };
+      searchReturns(Promise.resolve(folderResult([{ path: '/work/exports', status: 'folder', collectionPaths: [], importableFiles: [exportFile, zipFile] }], [])));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      await store.dispatch(findCollectionsInFolders(['/work/exports']));
+
+      expect(modalState(store)).toMatchObject({
+        isOpen: true,
+        page: OPEN_COLLECTION_PAGE.IMPORT,
+        importRequest: { files: [exportFile] },
+        chooseFolder: { status: 'idle', searchId: null, result: null }
+      });
+      expect(toast).not.toHaveBeenCalled();
+    });
+
     it('brings back the last list when the next search is cancelled', () => {
       searchReturns(new Promise(() => {}));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { ...closedModal.chooseFolder, result: listResult }) });
@@ -604,19 +621,19 @@ describe('open collection modal actions', () => {
     });
 
     it('marks the page as loading while it reads', () => {
-      readImportUrl.mockReturnValue(new Promise(() => {}));
+      readImportText.mockReturnValue(new Promise(() => {}));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
+      store.dispatch(loadImportText('https://example.com/spec.yaml'));
 
       expect(modalState(store).importLoadId).toEqual(expect.any(String));
     });
 
     it('shows why in a toast when it cannot be read, without the IPC prefix', async () => {
-      readImportUrl.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
+      readImportText.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      await expect(store.dispatch(loadImportUrl('https://example.com/spec.yaml'))).resolves.toBeNull();
+      await expect(store.dispatch(loadImportText('https://example.com/spec.yaml'))).resolves.toBeNull();
 
       expect(toast.error).toHaveBeenCalledWith('No such file');
       expect(modalState(store).importLoadId).toBeNull();
@@ -624,10 +641,10 @@ describe('open collection modal actions', () => {
 
     it('ignores a read that finishes after the page was left', async () => {
       const reading = deferred();
-      readImportUrl.mockReturnValue(reading.promise);
+      readImportText.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
       reading.resolve(importData);
 
@@ -637,10 +654,10 @@ describe('open collection modal actions', () => {
 
     it('stays quiet about a failed read after the page was left', async () => {
       const reading = deferred();
-      readImportUrl.mockReturnValue(reading.promise);
+      readImportText.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
       reading.reject(new Error('Nope'));
 
@@ -659,15 +676,25 @@ describe('open collection modal actions', () => {
       expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', searchId: null });
     });
 
-    it('shows the Import page before reading a file named in a note', async () => {
-      readImportableFile.mockResolvedValue(importData);
+    it('shows the Import page before reading files found in a folder', async () => {
+      readImportableFiles.mockResolvedValue(importData);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
       const file = { path: '/work/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
 
-      await expect(store.dispatch(loadImportableFile(file))).resolves.toEqual(importData);
+      await expect(store.dispatch(loadImportableFiles([file]))).resolves.toEqual(importData);
 
-      expect(readImportableFile).toHaveBeenCalledWith(file);
+      expect(readImportableFiles).toHaveBeenCalledWith([file]);
       expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.IMPORT);
+    });
+
+    it('says which files found in a folder were skipped when it loads the rest', async () => {
+      const severalFiles = { type: 'multiple', filesData: [{ file: droppedFile, data: importData.rawData, type: 'openapi' }], skippedFileNames: ['notes.json'] };
+      readImportableFiles.mockResolvedValue(severalFiles);
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
+
+      await store.dispatch(loadImportableFiles([{ path: '/work/openapi.yaml', name: 'openapi.yaml' }, { path: '/work/notes.json', name: 'notes.json' }]));
+
+      expect(toast).toHaveBeenCalledWith('notes.json isn’t a valid collection, so it was skipped.');
     });
   });
 

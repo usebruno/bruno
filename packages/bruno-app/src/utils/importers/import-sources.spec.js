@@ -1,6 +1,6 @@
 import { callIpc } from 'utils/common/ipc';
 import { fetchAndValidateApiSpecFromUrl } from './common';
-import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
+import { readImportableFiles, readImportFiles, readImportText } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('./common', () => ({ ...jest.requireActual('./common'), fetchAndValidateApiSpecFromUrl: jest.fn() }));
@@ -11,6 +11,7 @@ const postman = { info: { name: 'Orders', schema: 'https://schema.getpostman.com
 const insomnia = { _type: 'export', __export_format: 4, resources: [] };
 const openCollection = { opencollection: '1.0.0', info: { name: 'Orders' } };
 const wsdl = '<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"><wsdl:types/></wsdl:definitions>';
+const openApiYaml = 'openapi: 3.0.0\ninfo:\n  title: Orders\n  version: "1"\npaths: {}\n';
 
 const file = (name, content = '') => ({
   name,
@@ -136,21 +137,18 @@ describe('import sources', () => {
     });
   });
 
-  describe('readImportUrl', () => {
+  describe('readImportText', () => {
     const url = 'https://example.com/openapi.yaml';
 
     it('fetches a URL and keeps where it came from', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openApi, specType: 'openapi', rawContent: 'raw' });
 
-      await expect(readImportUrl(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
+      await expect(readImportText(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
       expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledWith({ url });
     });
 
-    it.each([
-      ['a malformed URL', 'http://'],
-      ['pasted file content', 'openapi: 3.0.0\ninfo:\n  title: Orders']
-    ])('refuses %s without fetching', async (_description, text) => {
-      await expect(readImportUrl(text)).rejects.toThrow('Please enter a valid URL');
+    it('refuses a malformed URL without fetching', async () => {
+      await expect(readImportText('http://')).rejects.toThrow('Please enter a valid URL');
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
     });
 
@@ -161,40 +159,63 @@ describe('import sources', () => {
     ])('says why the fetch failed when %s', async (_description, cause, message) => {
       fetchAndValidateApiSpecFromUrl.mockRejectedValue(new Error(`Failed to fetch API specification: ${cause}`));
 
-      await expect(readImportUrl(url)).rejects.toThrow(message);
+      await expect(readImportText(url)).rejects.toThrow(message);
     });
 
     it('says when a fetched document is in no format it knows', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: { hello: 'world' }, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('does not mistake a fetched web page for WSDL', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: '<html>definitions</html>', specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('says when a fetched document is empty', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: null, specType: 'unknown', rawContent: '~' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('recognises a fetched OpenCollection document', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openCollection, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
+      await expect(readImportText(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
+    });
+
+    it.each([
+      ['JSON', JSON.stringify(postman), postman, 'postman'],
+      ['YAML', openApiYaml, openApi, 'openapi']
+    ])('reads raw %s text without fetching', async (_description, text, data, type) => {
+      await expect(readImportText(`\n${text}\n`)).resolves.toEqual({ rawData: data, type });
+      expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['plain words', 'just some words'],
+      ['broken YAML', 'info: [Orders'],
+      ['JSON null', 'null']
+    ])('says when raw text is not JSON or YAML: %s', async (_description, text) => {
+      await expect(readImportText(text)).rejects.toThrow('Could not parse the text as JSON or YAML');
+    });
+
+    it('says when raw text is in no format it knows', async () => {
+      await expect(readImportText('{"hello":"world"}')).rejects.toThrow('Unsupported collection format');
     });
   });
 
-  describe('readImportableFile', () => {
-    it('reads a file by its path', async () => {
+  describe('readImportableFiles', () => {
+    const readFiles = (texts) => callIpc.mockImplementation((_channel, { path }) =>
+      path in texts ? Promise.resolve(texts[path]) : Promise.reject(new Error(`${path} isn’t a file Bruno can import`)));
+
+    it('reads one file by its path', async () => {
       const text = JSON.stringify(openApi);
       callIpc.mockResolvedValue(text);
 
-      await expect(readImportableFile({ path: '/work/openapi.json', name: 'openapi.json' })).resolves.toEqual({
+      await expect(readImportableFiles([{ path: '/work/openapi.json', name: 'openapi.json' }])).resolves.toEqual({
         rawData: openApi,
         type: 'openapi',
         filePath: '/work/openapi.json',
@@ -206,16 +227,60 @@ describe('import sources', () => {
     it('reads a file with an upper case .JSON extension as JSON', async () => {
       callIpc.mockResolvedValue('{"openapi":"3.0.0","info":{"title":"A","title":"B","version":"1"},"paths":{}}');
 
-      await expect(readImportableFile({ path: '/work/OPENAPI.JSON', name: 'OPENAPI.JSON' })).resolves.toMatchObject({ type: 'openapi' });
+      await expect(readImportableFiles([{ path: '/work/OPENAPI.JSON', name: 'OPENAPI.JSON' }])).resolves.toMatchObject({ type: 'openapi' });
+    });
+
+    it('keeps the path of one YAML file', async () => {
+      callIpc.mockResolvedValue(openApiYaml);
+
+      await expect(readImportableFiles([{ path: '/work/openapi.yaml', name: 'openapi.yaml' }])).resolves.toEqual({
+        rawData: openApi,
+        type: 'openapi',
+        filePath: '/work/openapi.yaml',
+        rawContent: openApiYaml
+      });
     });
 
     it('hands a ZIP over by its path', async () => {
       callIpc.mockResolvedValue(true);
 
-      await expect(readImportableFile({ path: '/work/orders.zip', name: 'orders.zip' })).resolves.toEqual({
+      await expect(readImportableFiles([{ path: '/work/orders.zip', name: 'orders.zip' }])).resolves.toEqual({
         rawData: { zipFilePath: '/work/orders.zip', collectionName: 'orders' },
         type: 'bruno-zip'
       });
+    });
+
+    it('reads several files by their paths and skips the ones it cannot use', async () => {
+      readFiles({
+        '/work/openapi.yaml': openApiYaml,
+        '/work/orders.json': JSON.stringify(postman),
+        '/work/notes.json': '{"hello":"world"}'
+      });
+
+      const result = await readImportableFiles([
+        { path: '/work/openapi.yaml', name: 'openapi.yaml' },
+        { path: '/work/notes.json', name: 'notes.json' },
+        { path: '/work/gone.json', name: 'gone.json' },
+        { path: '/work/orders.json', name: 'orders.json' }
+      ]);
+
+      expect(result).toEqual({
+        type: 'multiple',
+        filesData: [
+          { file: { name: 'openapi.yaml', type: '' }, data: openApi, type: 'openapi', filePath: '/work/openapi.yaml', rawContent: openApiYaml },
+          { file: { name: 'orders.json', type: 'application/json' }, data: postman, type: 'postman', filePath: '/work/orders.json', rawContent: undefined }
+        ],
+        skippedFileNames: ['notes.json', 'gone.json']
+      });
+    });
+
+    it('says when none of several files can be used', async () => {
+      readFiles({ '/work/a.json': '{}' });
+
+      await expect(readImportableFiles([
+        { path: '/work/a.json', name: 'a.json' },
+        { path: '/work/b.json', name: 'b.json' }
+      ])).rejects.toThrow('No valid collections found');
     });
   });
 });
