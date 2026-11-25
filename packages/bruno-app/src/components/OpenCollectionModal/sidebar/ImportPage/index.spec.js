@@ -155,13 +155,13 @@ describe('ImportPage', () => {
   });
 
   it('shows why it could not load in a toast and lets the text be changed', async () => {
-    readImportUrl.mockRejectedValue(new Error('URL import failed. Please check the URL and try again.'));
+    readImportUrl.mockRejectedValue(new Error('Could not find example.com. Check the address for a typo.'));
     renderPage();
     type('https://example.com/openapi.yaml');
 
     fireEvent.click(loadButton());
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('URL import failed. Please check the URL and try again.'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not find example.com. Check the address for a typo.'));
     expect(textField()).not.toHaveAttribute('readonly');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

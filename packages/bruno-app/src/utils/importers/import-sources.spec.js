@@ -3,7 +3,7 @@ import { fetchAndValidateApiSpecFromUrl } from './common';
 import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
-jest.mock('./common', () => ({ fetchAndValidateApiSpecFromUrl: jest.fn() }));
+jest.mock('./common', () => ({ ...jest.requireActual('./common'), fetchAndValidateApiSpecFromUrl: jest.fn() }));
 
 const openApi = { openapi: '3.0.0', info: { title: 'Orders', version: '1' }, paths: {} };
 const swagger = { swagger: '2.0', info: { title: 'Orders', version: '1' }, paths: {} };
@@ -154,10 +154,14 @@ describe('import sources', () => {
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
     });
 
-    it('says when the fetch fails', async () => {
-      fetchAndValidateApiSpecFromUrl.mockRejectedValue(new Error('404'));
+    it.each([
+      ['the host cannot be found', 'getaddrinfo ENOTFOUND example.com', 'Could not find example.com. Check the address for a typo.'],
+      ['the server answers with an error', 'Request failed with status code 404', 'example.com responded with 404.'],
+      ['anything else goes wrong', 'socket hang up', 'Could not fetch a specification from example.com.']
+    ])('says why the fetch failed when %s', async (_description, cause, message) => {
+      fetchAndValidateApiSpecFromUrl.mockRejectedValue(new Error(`Failed to fetch API specification: ${cause}`));
 
-      await expect(readImportUrl(url)).rejects.toThrow('URL import failed. Please check the URL and try again.');
+      await expect(readImportUrl(url)).rejects.toThrow(message);
     });
 
     it('says when a fetched document is in no format it knows', async () => {

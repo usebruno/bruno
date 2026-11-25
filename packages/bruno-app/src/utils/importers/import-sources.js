@@ -1,7 +1,7 @@
 import { callIpc } from 'utils/common/ipc';
 import { isValidUrl } from 'utils/url/index';
 import { isBrunoCollection } from './bruno-collection';
-import { fetchAndValidateApiSpecFromUrl } from './common';
+import { fetchAndValidateApiSpecFromUrl, getFetchErrorMessage } from './common';
 import { parseFileText } from './file-reader';
 import { isInsomniaCollection } from './insomnia-collection';
 import { isOpenCollection } from './opencollection';
@@ -107,7 +107,7 @@ export const readImportUrl = async (value) => {
   try {
     fetched = await fetchAndValidateApiSpecFromUrl({ url });
   } catch (error) {
-    throw new Error('URL import failed. Please check the URL and try again.');
+    throw new Error(getFetchErrorMessage(error, url));
   }
   const type = fetched.data !== null && typeof fetched.data === 'object' && detectImportFormat(fetched.data);
   if (!type) {
