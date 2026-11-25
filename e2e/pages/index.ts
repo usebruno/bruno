@@ -11,6 +11,7 @@ export * from './runner';
 export * from './app-shell/ai-preferences';
 export * from './app-shell/preferences';
 export * from './app-shell/tabs';
+export * from './app-shell/unsaved-changes-modal';
 
 // collection
 export * from './collection/collection-run';
@@ -41,6 +42,7 @@ export * from './request/auth';
 export * from './request/body';
 export * from './request/create';
 export * from './request/generate-code';
+export * from './request/graphql-auth-introspection';
 export * from './request/graphql-query-builder';
 export * from './request/grpc';
 export * from './request/pane';

@@ -13,6 +13,7 @@ const tabDraftIndicator = (tab: Locator) => tab.locator('.has-changes-icon');
  */
 export const buildRequestTabsLocators = (page: Page) => ({
   allRequestTabs: () => page.locator('.request-tab'),
+  tabByName: (name: string) => page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) }),
   requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
   folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
   collectionSettingsTab: () =>
@@ -31,7 +32,9 @@ export const buildRequestTabsLocators = (page: Page) => ({
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
   tabDraftIndicator,
   requestTabDraftIndicator: (requestName: string) =>
-    tabDraftIndicator(page.locator('.request-tab').filter({ hasText: requestName }))
+    tabDraftIndicator(page.locator('.request-tab').filter({ hasText: requestName })),
+  tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient'),
+  tabLabel: (tab: Locator) => tab.locator('.tab-label')
 });
 
 const buildLocators = (page: Page) => ({
@@ -69,6 +72,15 @@ export const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
   });
 };
 
+// Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
+const clickTabContextMenuItem = async (page: Page, tabLabel: Locator, itemId: string) => {
+  await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
+
+  const dropdown = page.locator('.tippy-box.dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  await dropdown.locator(`[role="menuitem"][data-item-id="${itemId}"]`).click();
+};
+
 /**
  * Close a request tab that has unsaved changes, discarding them in the confirmation modal.
  * @param page - The page object
@@ -99,16 +111,7 @@ export const closeAllTabs = async (page: Page) => {
       return; // No request tabs to close
     }
 
-    // Right-click on the tab label to open context menu. Aim at its left edge
-    // on a short tab name the close-gradient overlay covers the label's centre.
-    await requestTabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
-
-    // Wait for the dropdown menu to appear
-    const dropdown = page.locator('.tippy-box.dropdown');
-    await dropdown.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Click "Close All" menu item
-    await dropdown.locator('[role="menuitem"][data-item-id="close-all"]').click();
+    await clickTabContextMenuItem(page, requestTabLabel, 'close-all');
 
     // Handle "Unsaved Transient Requests" modal if it appears
     const discardAllButton = page.getByRole('button', { name: 'Discard All' });
@@ -124,10 +127,24 @@ export const closeAllTabs = async (page: Page) => {
   });
 };
 
+/**
+ * Pick an entry from a request tab's right-click menu (e.g. "close-others", "close-left").
+ * @param page - The page object
+ * @param tabName - Exact label of the tab to right-click
+ * @param itemId - The menu item's data-item-id
+ */
+export const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
+  await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
+    const { tabs } = buildLocators(page);
+    await clickTabContextMenuItem(page, tabs.tabLabel(tabs.tabByName(tabName)), itemId);
+  });
+};
+
 // Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
 export const switchToOpenTab = async (page: Page, label: string) => {
   await test.step(`Switch to tab "${label}"`, async () => {
-    const tab = page.getByTestId('request-tab').filter({ has: page.getByText(label, { exact: true }) });
+    const { tabs } = buildLocators(page);
+    const tab = tabs.tabByName(label);
     await tab.click();
     await expect(tab).toHaveAttribute('aria-selected', 'true');
   });

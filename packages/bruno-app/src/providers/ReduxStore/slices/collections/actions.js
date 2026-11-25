@@ -268,7 +268,22 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
 
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:save-multiple-requests', itemsToSave).then(resolve).catch(reject);
+    ipcRenderer
+      .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(() => {
+        const savedDraftsByCollection = new Map();
+        each(items, (item) => {
+          if (!savedDraftsByCollection.has(item.collectionUid)) {
+            savedDraftsByCollection.set(item.collectionUid, []);
+          }
+          savedDraftsByCollection.get(item.collectionUid).push({ itemUid: item.uid, savedDraft: item.draft });
+        });
+        savedDraftsByCollection.forEach((savedDrafts, collectionUid) => {
+          dispatch(_saveRequests({ collectionUid, savedDrafts }));
+        });
+      })
+      .then(resolve)
+      .catch(reject);
   }).catch((err) => {
     toast.error(err?.name === 'ValidationError' ? err.message : 'Failed to save requests!');
     throw err;
@@ -464,12 +479,9 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
     saves.push(
       dispatch(saveMultipleRequests(collectionRequestDrafts))
         .then(() => {
-          const savedDrafts = collectionRequestDrafts.map((draft) => ({ itemUid: draft.uid, savedDraft: draft.draft }));
-          dispatch(_saveRequests({ collectionUid, savedDrafts }));
-
           const savedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
-          const itemUids = savedDrafts
-            .map(({ itemUid }) => itemUid)
+          const itemUids = collectionRequestDrafts
+            .map((draft) => draft.uid)
             .filter((itemUid) => {
               const savedItem = findItemInCollection(savedCollection, itemUid);
               return Boolean(savedItem) && !savedItem.draft;
