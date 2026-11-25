@@ -135,13 +135,13 @@ test.describe('Recents', () => {
       await closeElectronApp(app);
     });
 
-    test('lists the last closed collection first and open collections last', async () => {
+    test('lists collections by when they were last opened or closed, newest first', async () => {
       const recents = buildRecentsLocators(page);
 
       await showOpenCollectionModal(page, 'recents');
 
       await test.step('Verify the order of the rows', async () => {
-        await expect(recents.rowNames()).toHaveText([GAMMA, BETA, ALPHA]);
+        await expect(recents.rowNames()).toHaveText([GAMMA, ALPHA, BETA]);
       });
     });
 
@@ -193,7 +193,7 @@ test.describe('Recents', () => {
 
       await test.step('Verify the search is empty and every collection is listed', async () => {
         await expect(recents.searchInput()).toHaveValue('');
-        await expect(recents.rowNames()).toHaveText([GAMMA, BETA, ALPHA]);
+        await expect(recents.rowNames()).toHaveText([GAMMA, ALPHA, BETA]);
       });
     });
 
@@ -365,9 +365,9 @@ test.describe('Recents', () => {
       await openRecentCollection(page, GAMMA);
 
       await test.step('Verify opening fails, the modal stays on Recents and Recent Gamma leaves the list', async () => {
-        await expect(toast.byMessage('Failed to open 1 collection')).toBeVisible();
+        await expect(toast.byMessage('Failed to open recent-gamma. The folder doesn’t exist anymore.')).toBeVisible();
         await expect(openCollectionModal.pageView('recents')).toBeVisible();
-        await expect(recents.rowNames()).toHaveText([BETA, ALPHA]);
+        await expect(recents.rowNames()).toHaveText([ALPHA, BETA]);
       });
     });
   });

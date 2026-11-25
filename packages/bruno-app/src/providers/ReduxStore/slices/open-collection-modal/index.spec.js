@@ -10,6 +10,7 @@ import reducer, {
   folderPickEnded,
   folderNoteDismissed,
   folderResultAddedToSearch,
+  folderResultCleared,
   collectionsOpeningStarted,
   collectionsOpeningEnded,
   recentsLoadStarted,
@@ -162,6 +163,15 @@ describe('openCollectionModal slice', () => {
 
       expect(reducer(dismissed, folderResultAddedToSearch({ resultId: 'search-1', text: addedText }))).toBe(dismissed);
     });
+  });
+
+  it('folderResultCleared drops the result', () => {
+    const found = applyActions([
+      folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' }),
+      folderSearchFinished({ searchId: 'search-1', result: listResult })
+    ]);
+
+    expect(reducer(found, folderResultCleared()).chooseFolder.result).toBeNull();
   });
 
   it('tracks collections being opened by the id of that opening', () => {

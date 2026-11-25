@@ -88,6 +88,9 @@ export const openCollectionModalSlice = createSlice({
         result.addedToSearch = true;
       }
     },
+    folderResultCleared: (state) => {
+      state.chooseFolder.result = null;
+    },
     importLoadStarted: (state, action) => {
       state.importLoadId = action.payload;
     },
@@ -182,6 +185,7 @@ export const {
   folderPickEnded,
   folderNoteDismissed,
   folderResultAddedToSearch,
+  folderResultCleared,
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
