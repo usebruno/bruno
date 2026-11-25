@@ -23,6 +23,7 @@ const postmanToBruno = (collection, options = {}) => {
 };
 
 const isPostmanCollection = (data) => {
+  // Postman v3 collection format
   if (data.$kind === 'collection' && Array.isArray(data.items)) {
     return true;
   }

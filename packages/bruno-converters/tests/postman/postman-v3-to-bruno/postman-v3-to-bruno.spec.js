@@ -364,23 +364,27 @@ describe('postmanToBruno with a v3 collection', () => {
     ]);
   });
 
-  it('de-duplicates sibling names per item kind', async () => {
+  it('de-duplicates sibling filenames per item kind and keeps the display names', async () => {
     const { collection } = await postmanToBruno(makeV3Collection([
       makeV3Request('Same'),
       makeV3Request('Same'),
       makeV3Folder('Same', [])
     ]));
 
-    expect(collection.items.map((item) => item.name)).toEqual(['Same', 'Same_1', 'Same']);
+    expect(collection.items.map((item) => item.name)).toEqual(['Same', 'Same', 'Same']);
+    expect(collection.items.map((item) => item.filename)).toEqual([undefined, 'Same_1', undefined]);
+    expect(collection.items[2].root.meta.name).toBe('Same');
   });
 
-  it('de-duplicates sibling names that differ only by case', async () => {
+  it('de-duplicates sibling filenames that differ only by case and keeps the display names', async () => {
     const { collection } = await postmanToBruno(makeV3Collection([
       makeV3Folder('API', [makeV3Request('Get', { url: 'https://example.com/upper' })]),
       makeV3Folder('api', [makeV3Request('Get', { url: 'https://example.com/lower' })])
     ]));
 
-    expect(collection.items.map((item) => item.name)).toEqual(['API', 'api_1']);
+    expect(collection.items.map((item) => item.name)).toEqual(['API', 'api']);
+    expect(collection.items.map((item) => item.filename)).toEqual([undefined, 'api_1']);
+    expect(collection.items[1].root.meta.name).toBe('api');
     expect(collection.items[0].items[0].request.url).toBe('https://example.com/upper');
     expect(collection.items[1].items[0].request.url).toBe('https://example.com/lower');
   });

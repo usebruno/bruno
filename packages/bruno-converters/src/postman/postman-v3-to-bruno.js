@@ -148,7 +148,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     };
   };
 
-  const importRequest = (item, { name, seq, path }) => {
+  const importRequest = (item, { name, filename, seq, path }) => {
     const method = readMethod(item.method, 'GET');
     const uid = uuid();
     const request = {
@@ -166,6 +166,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     const brunoItem = {
       uid,
       name,
+      ...(filename !== name && { filename }),
       type: 'http-request',
       seq,
       request,
@@ -181,7 +182,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     return brunoItem;
   };
 
-  const importFolder = (item, { name, seq, path }) => {
+  const importFolder = (item, { name, filename, seq, path }) => {
     const uid = uuid();
     const request = {
       auth: importAuth(item.auth, 'inherit', { issues, path }),
@@ -196,6 +197,7 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
     return {
       uid,
       name,
+      ...(filename !== name && { filename }),
       type: 'folder',
       seq,
       items: importItems(item.items, path),
@@ -225,9 +227,11 @@ const createImporter = ({ preserveScripts, logTranslationFailures, scriptMap }) 
 
       try {
         if (item.$kind === ITEM_KINDS.FOLDER) {
-          brunoItems.push(importFolder(item, { name: nameFolder(item.name || 'Untitled Folder'), seq, path }));
+          const name = item.name || 'Untitled Folder';
+          brunoItems.push(importFolder(item, { name, filename: nameFolder(name), seq, path }));
         } else if (item.$kind === ITEM_KINDS.HTTP) {
-          brunoItems.push(importRequest(item, { name: nameRequest(item.name || 'Untitled Request'), seq, path }));
+          const name = item.name || 'Untitled Request';
+          brunoItems.push(importRequest(item, { name, filename: nameRequest(name), seq, path }));
         } else {
           issues.push({ path, severity: 'error', message: `Unsupported item type "${item.$kind}", not imported`, sourceItem: item });
         }
