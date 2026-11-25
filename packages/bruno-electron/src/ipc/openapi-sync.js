@@ -174,7 +174,9 @@ const isValidOpenApiSpec = (spec) => {
  * Handles proxy/cert resolution for remote URLs.
  * Returns { content, spec } on success, or { error, errorCode? } on failure.
  */
-const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, environmentContext = {} }) => {
+const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl: rawSourceUrl, environmentContext = {} }) => {
+  // Trimmed like the approval key, so the approved source is the one that gets read.
+  const sourceUrl = typeof rawSourceUrl === 'string' ? rawSourceUrl.trim() : rawSourceUrl;
   const { activeEnvironmentUid, environments = [], runtimeVariables = {}, globalEnvironmentVariables = {} } = environmentContext;
 
   if (!isValidHttpUrl(sourceUrl) && !isLocalFilePath(sourceUrl)) {

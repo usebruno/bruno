@@ -197,6 +197,16 @@ describe('OpenAPI sync source approval', () => {
     expect((await fetchFromSource(path.join(workDir, 'spec.json'))).content).toBe(SPEC);
   });
 
+  it('reads the approved file, not a look-alike with a trailing space', async () => {
+    const specPath = path.join(workDir, 'spec.json');
+    fs.writeFileSync(specPath, SPEC);
+    fs.writeFileSync(`${specPath} `, 'not approved');
+    writeCollection(collectionPath, { sourceUrl: specPath });
+    approveOpenApiSyncSource({ collectionPath });
+
+    expect((await fetchFromSource(`${specPath} `)).content).toBe(SPEC);
+  });
+
   it('gates a local file source the same way', async () => {
     const specPath = path.join(workDir, 'spec.json');
     fs.writeFileSync(specPath, SPEC);
