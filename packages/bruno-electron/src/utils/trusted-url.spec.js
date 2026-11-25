@@ -6,7 +6,7 @@ jest.mock('electron-is-dev', () => false);
 
 const FILE_APP = pathToFileURL(path.resolve('/bruno/web/index.html')).href;
 const FILE_OTHER = pathToFileURL(path.resolve('/bruno/web/other.html')).href;
-const DEV_APP = 'http://localhost:3000';
+const DEV_APP = 'http://127.0.0.1:3000';
 
 describe('isAppUrl', () => {
   it('accepts the app document, ignoring hash/query', () => {
@@ -22,6 +22,8 @@ describe('isAppUrl', () => {
     'data:text/html,hi',
     'http://localhost.evil.com',
     'http://localhost:3001',
+    'http://localhost:3000',
+    'http://[::1]:3000',
     undefined,
     ''
   ])('rejects %s', (url) => {

@@ -4,8 +4,11 @@ const isDev = require('electron-is-dev');
 
 const getAppUrl = () => {
   const devPort = process.env.BRUNO_DEV_PORT || 3000;
+  // IPv4 loopback, not "localhost": rsbuild checks and binds the port on IPv4, and
+  // "localhost" can resolve to ::1 first and reach another server using the same
+  // port on IPv6.
   return isDev
-    ? `http://localhost:${devPort}`
+    ? `http://127.0.0.1:${devPort}`
     : format({
         pathname: path.join(__dirname, '../../web/index.html'),
         protocol: 'file:',
