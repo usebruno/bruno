@@ -148,12 +148,12 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
 
   return (
     <div ref={ref} className={itemClasses} data-testid="runner-request-item">
-      <div className="drag-handle">
+      <div className="drag-handle" data-testid="runner-request-drag-handle">
         <IconGripVertical size={16} strokeWidth={1.5} />
       </div>
 
       <div className="checkbox-container" onClick={() => !isDisabled && onSelect(item)}>
-        <div className="checkbox">
+        <div className="checkbox" data-testid="runner-request-checkbox">
           {isSelected && !isDisabled && <IconCheck className="checkbox-icon" size={12} strokeWidth={3} />}
         </div>
       </div>
@@ -162,10 +162,10 @@ const RequestItem = ({ item, index, moveItem, isSelected, onSelect, onDrop, isDi
         {methodInfo.methodText}
       </div>
 
-      <div className="request-name">
-        <span>{item.name}</span>
+      <div className="request-name" data-testid="runner-request-name">
+        <span data-testid="runner-request-item-name">{item.name}</span>
         {item.folderPath && (
-          <span className="folder-path">{item.folderPath}</span>
+          <span className="folder-path" data-testid="runner-request-folder-path">{item.folderPath}</span>
         )}
       </div>
     </div>
