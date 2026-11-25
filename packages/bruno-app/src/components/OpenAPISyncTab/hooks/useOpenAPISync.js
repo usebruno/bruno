@@ -375,7 +375,7 @@ const useOpenAPISync = (collection) => {
   };
 
   // Save connection settings from the modal
-  const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval }) => {
+  const handleSaveSettings = async ({ sourceUrl: newUrl, autoCheck, autoCheckInterval, expectedSource }) => {
     const sourceUrlChanged = newUrl !== openApiSyncConfig?.sourceUrl;
 
     // Validate the spec before saving if source URL changed (URL only; files are validated at picker)
@@ -397,7 +397,7 @@ const useOpenAPISync = (collection) => {
     try {
       const { ipcRenderer } = window;
 
-      await dispatch(approveSyncSource(collection, { sourceUrl: newUrl, autoCheck, autoCheckInterval }));
+      await dispatch(approveSyncSource(collection, { sourceUrl: newUrl, autoCheck, autoCheckInterval, expectedSource }));
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
         config: { sourceUrl: newUrl }
@@ -410,7 +410,8 @@ const useOpenAPISync = (collection) => {
       await checkForUpdates({ sourceUrlOverride: newUrl });
     } catch (err) {
       console.error('Error saving settings:', err);
-      toast.error('Failed to save settings');
+      toast.error(formatIpcError(err) || 'Failed to save settings');
+      dispatch(loadSyncSourceState(collection));
     }
   };
 

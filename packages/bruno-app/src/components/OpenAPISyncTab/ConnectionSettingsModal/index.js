@@ -28,6 +28,8 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const sourceState = useSelector((state) => state.openapiSync?.sourceStates?.[collection.uid]);
   const workspaceSpecs = useWorkspaceApiSpecs();
   const [editedSource, setEditedSource] = useState(null);
+  // Saving an unedited source must not approve one the file switched to while the modal was open.
+  const [shownSource] = useState(sourceState?.source);
   // Recomputed every render until the first edit, so specs that load after the modal opens still select the Workspace tab.
   const initialSource = resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs);
   const { mode, sources } = editedSource || initialSource;
@@ -42,7 +44,12 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave({ sourceUrl: effectiveSource, autoCheck, autoCheckInterval: checkInterval });
+      await onSave({
+        sourceUrl: effectiveSource,
+        autoCheck,
+        autoCheckInterval: checkInterval,
+        ...(!editedSource && { expectedSource: shownSource })
+      });
       onClose();
     } catch (_) {
       // caller (handleSaveSettings) already shows a toast on failure
