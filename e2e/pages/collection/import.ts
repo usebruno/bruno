@@ -42,6 +42,7 @@ export const buildImportCollectionLocators = (page: Page) => ({
   bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
   bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
   bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
+  bulkCollectionName: (name: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) }).getByTestId('selection-item-title'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
   parsingError: () => page.getByTestId('import-error-message'),
   browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),

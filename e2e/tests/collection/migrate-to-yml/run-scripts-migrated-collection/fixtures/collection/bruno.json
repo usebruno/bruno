@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "migrate-scripts",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

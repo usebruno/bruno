@@ -45,6 +45,7 @@ const menuTemplate = require('./app/menu-template');
 const { openCollection } = require('./app/collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const { registerCollectionSearchIpc } = require('./ipc/collection-search');
 const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
@@ -572,6 +573,7 @@ app.on('ready', async () => {
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
+  registerCollectionSearchIpc();
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
