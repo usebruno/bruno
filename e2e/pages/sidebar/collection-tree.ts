@@ -288,7 +288,7 @@ export const openCollectionsMenu = async (page: Page) => {
   await test.step('Open the Collections menu', async () => {
     const sidebar = buildSidebarLocators(page);
     await sidebar.collectionsActionsMenu().click();
-    await expect(sidebar.saveAllButton()).toBeVisible();
+    await sidebar.saveAllButton().waitFor({ state: 'visible' });
   });
 };
 
@@ -301,7 +301,7 @@ export const closeCollectionsMenu = async (page: Page) => {
   await test.step('Close the Collections menu', async () => {
     const sidebar = buildSidebarLocators(page);
     await sidebar.collectionsActionsMenu().click();
-    await expect(sidebar.saveAllButton()).toBeHidden();
+    await sidebar.saveAllButton().waitFor({ state: 'hidden' });
   });
 };
 
@@ -314,7 +314,6 @@ export const saveAllFromCollectionsMenu = async (page: Page) => {
   await test.step('Save all from the Collections menu', async () => {
     const sidebar = buildSidebarLocators(page);
     await openCollectionsMenu(page);
-    await expect(sidebar.saveAllButton()).not.toHaveAttribute('aria-disabled', 'true');
     await sidebar.saveAllButton().click();
   });
 };

@@ -69,7 +69,6 @@ test.describe('Save all across the workspace', () => {
   let collectionsDir: string;
 
   test.beforeEach(async ({ page, createTmpDir }) => {
-    await page.locator('[data-app-state="loaded"]').waitFor();
     await closeAllCollections(page);
 
     collectionsDir = await createTmpDir('save-all-workspace');

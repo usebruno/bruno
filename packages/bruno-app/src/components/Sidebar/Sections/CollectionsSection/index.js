@@ -47,8 +47,10 @@ const CollectionsSection = () => {
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
   const activeWorkspace = useSelector(selectActiveWorkspace);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const hasUnsavedChanges = useSelector((state) =>
-    hasWorkspaceDrafts({
+    actionsMenuOpen
+    && hasWorkspaceDrafts({
       collections: selectCollections(state),
       workspaces: state.workspaces.workspaces,
       activeWorkspace: selectActiveWorkspace(state)
@@ -335,6 +337,8 @@ const CollectionsSection = () => {
         data-testid="collections-header-actions-menu"
         items={actionsDropdownItems}
         placement="bottom-end"
+        opened={actionsMenuOpen}
+        onChange={setActionsMenuOpen}
       >
         <ActionIcon
           label="More actions"

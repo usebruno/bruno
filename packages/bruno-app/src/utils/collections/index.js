@@ -2623,8 +2623,6 @@ const getEnvironmentDraft = (collection) => {
 const findScratchCollection = (collections, activeWorkspace) =>
   activeWorkspace ? collections.find((collection) => collection.uid === activeWorkspace.scratchCollectionUid) : undefined;
 
-const someItem = (items = [], predicate) => items.some((item) => predicate(item) || someItem(item.items, predicate));
-
 export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
   const drafts = {
     collectionDrafts: [],
@@ -2671,23 +2669,7 @@ export const getWorkspaceDrafts = ({ collections = [], workspaces = [], activeWo
   return drafts;
 };
 
-export const hasWorkspaceDrafts = ({ collections = [], workspaces = [], activeWorkspace = null }) => {
-  const hasDrafts = (collection) =>
-    Boolean(collection.draft)
-    || Boolean(getEnvironmentDraft(collection))
-    || someItem(
-      collection.items,
-      (item) => hasUnsavedFileContent(collection, item) || hasUnsavedFolderSettings(item) || hasUnsavedItemChanges(item)
-    );
-
-  if (getWorkspaceCollections({ collections, workspaces, activeWorkspace }).some(hasDrafts)) {
-    return true;
-  }
-
-  const scratchCollection = findScratchCollection(collections, activeWorkspace);
-  return Boolean(scratchCollection)
-    && someItem(scratchCollection.items, (item) => Boolean(item.isTransient) && hasUnsavedItemChanges(item));
-};
+export const hasWorkspaceDrafts = (args) => Object.values(getWorkspaceDrafts(args)).some((drafts) => drafts.length > 0);
 
 export const isSelectionEntryCollapsed = (entry) =>
   entry.type === 'collection' ? entry.collection.collapsed : isCollectionItemCollapsed(entry.item);
