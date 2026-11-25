@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { findImportableFiles } = require('./importable-files');
+const AdmZip = require('adm-zip');
+const { findImportableFiles, readImportableFileText } = require('./importable-files');
 
 describe('findImportableFiles', () => {
   let tempDir;
@@ -19,11 +20,17 @@ describe('findImportableFiles', () => {
     return path.join(tempDir, name);
   };
 
+  const writeZip = (name, entryNames) => {
+    const zip = new AdmZip();
+    entryNames.forEach((entryName) => zip.addFile(entryName, Buffer.from('{}')));
+    zip.writeZip(path.join(tempDir, name));
+  };
+
   const formatsByName = async () =>
     Object.fromEntries((await findImportableFiles(tempDir)).map((file) => [file.name, file.format]));
 
-  it('recognises Postman, Insomnia and OpenAPI exports and zip archives', async () => {
-    writeFile('backup.zip');
+  it('recognises Postman, Insomnia and OpenAPI exports and Bruno collection zips', async () => {
+    writeZip('backup.zip', ['bruno.json', 'ping.bru']);
     writeFile('Orders.postman_collection.json', '{}');
     writeFile('postman.json', '{ "info": { "_postman_id": "1" } }');
     writeFile('openapi.json', '{ "openapi": "3.0.0" }');
@@ -44,6 +51,21 @@ describe('findImportableFiles', () => {
       'swagger.yml': 'openapi',
       'insomnia.yaml': 'insomnia'
     });
+  });
+
+  it('recognises a collection zip whose files sit in one top folder', async () => {
+    writeZip('orders.zip', ['orders/opencollection.yml', 'orders/ping.yml']);
+
+    expect(await formatsByName()).toEqual({ 'orders.zip': 'zip' });
+  });
+
+  it('ignores a zip that is not a Bruno collection', async () => {
+    writeZip('photos.zip', ['beach.jpg']);
+    writeZip('nested.zip', ['backups/orders/bruno.json']);
+    writeFile('broken.zip', 'not a zip');
+    writeFile('openapi.yaml', 'openapi: 3.1.0\n');
+
+    expect(await formatsByName()).toEqual({ 'openapi.yaml': 'openapi' });
   });
 
   it('ignores other files and folders', async () => {
@@ -74,13 +96,53 @@ describe('findImportableFiles', () => {
     expect(await formatsByName()).toEqual({ 'openapi.yaml': 'openapi' });
   });
 
-  it('returns the name and format of each file', async () => {
-    writeFile('openapi.yaml', 'openapi: 3.0.0\n');
+  it('returns the full path, name and format of each file', async () => {
+    const filePath = writeFile('openapi.yaml', 'openapi: 3.0.0\n');
 
-    expect(await findImportableFiles(tempDir)).toEqual([{ name: 'openapi.yaml', format: 'openapi' }]);
+    expect(await findImportableFiles(tempDir)).toEqual([{ path: filePath, name: 'openapi.yaml', format: 'openapi' }]);
   });
 
   it('returns nothing for a folder it cannot read', async () => {
     expect(await findImportableFiles(path.join(tempDir, 'missing'))).toEqual([]);
+  });
+
+  describe('readImportableFileText', () => {
+    it('returns the whole text of an importable file', async () => {
+      const filePath = writeFile('openapi.yaml', 'openapi: 3.0.0\ninfo:\n  title: Orders\n');
+
+      expect(await readImportableFileText(filePath)).toBe('openapi: 3.0.0\ninfo:\n  title: Orders\n');
+    });
+
+    it('drops a byte order mark', async () => {
+      const filePath = writeFile('openapi.json', '\uFEFF{ "openapi": "3.0.0" }');
+
+      expect(await readImportableFileText(filePath)).toBe('{ "openapi": "3.0.0" }');
+    });
+
+    it('refuses a ZIP', async () => {
+      const filePath = writeFile('backup.zip', 'not text');
+
+      await expect(readImportableFileText(filePath)).rejects.toThrow('backup.zip isn’t a file Bruno can import');
+    });
+
+    it('refuses a missing file', async () => {
+      await expect(readImportableFileText(path.join(tempDir, 'gone.json'))).rejects.toThrow('gone.json isn’t a file Bruno can import');
+    });
+
+    const itWithFileLinks = process.platform === 'win32' ? it.skip : it;
+
+    itWithFileLinks('refuses a link, even one named like an export', async () => {
+      const target = writeFile('secret.txt', 'secret');
+      const link = path.join(tempDir, 'Orders.postman_collection.json');
+      fs.symlinkSync(target, link);
+
+      await expect(readImportableFileText(link)).rejects.toThrow('isn’t a file Bruno can import');
+    });
+
+    it('refuses a file that is not something Bruno can import', async () => {
+      const filePath = writeFile('secrets.json', '{ "token": "abc" }');
+
+      await expect(readImportableFileText(filePath)).rejects.toThrow('secrets.json isn’t a file Bruno can import');
+    });
   });
 });
