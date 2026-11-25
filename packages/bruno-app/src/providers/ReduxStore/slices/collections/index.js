@@ -13,6 +13,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  flattenItems,
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
@@ -252,6 +253,23 @@ const applyDataType = (variable, dataType) => {
   }
 
   return variable;
+};
+
+const acknowledgeSavedDraft = (item, savedDraft) => {
+  if (!item || !item.draft || !savedDraft) {
+    return;
+  }
+
+  item.request = savedDraft.request;
+  if (savedDraft.settings) {
+    item.settings = savedDraft.settings;
+  }
+  if (savedDraft.app) {
+    item.app = savedDraft.app;
+  }
+  if (isEqual(current(item.draft), savedDraft)) {
+    item.draft = null;
+  }
 };
 
 export const collectionsSlice = createSlice({
@@ -982,28 +1000,21 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-
-        if (item && item.draft && savedDraft) {
-          item.request = savedDraft.request;
-          if (savedDraft.settings) {
-            item.settings = savedDraft.settings;
-          }
-          if (savedDraft.app) {
-            item.app = savedDraft.app;
-          }
-          if (isEqual(current(item.draft), savedDraft)) {
-            item.draft = null;
-          }
-        }
+        acknowledgeSavedDraft(findItemInCollection(collection, itemUid), savedDraft);
       }
     },
     saveRequests: (state, action) => {
       const { collectionUid, savedDrafts } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
-      savedDrafts.forEach(({ itemUid, savedDraft }) => {
-        collectionsSlice.caseReducers.saveRequest(state, { payload: { collectionUid, itemUid, savedDraft } });
-      });
+      if (collection) {
+        const savedDraftsByItemUid = new Map(savedDrafts.map(({ itemUid, savedDraft }) => [itemUid, savedDraft]));
+        flattenItems(collection.items).forEach((item) => {
+          if (savedDraftsByItemUid.has(item.uid)) {
+            acknowledgeSavedDraft(item, savedDraftsByItemUid.get(item.uid));
+          }
+        });
+      }
     },
     deleteRequestDraft: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);

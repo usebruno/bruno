@@ -110,7 +110,8 @@ import {
   mergeHeaders,
   isPathOrDescendant,
   isCollectionItemCollapsed,
-  getWorkspaceDrafts
+  getWorkspaceDrafts,
+  flattenItems
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
 import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR, isEnvironmentValidationError } from 'utils/environments';
@@ -165,7 +166,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       return reject();
     }
 
-    const savedDraft = item.draft;
+    const savedDraft = findItemInCollection(collection, itemUid).draft;
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
@@ -480,12 +481,10 @@ export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
       dispatch(saveMultipleRequests(collectionRequestDrafts))
         .then(() => {
           const savedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
-          const itemUids = collectionRequestDrafts
-            .map((draft) => draft.uid)
-            .filter((itemUid) => {
-              const savedItem = findItemInCollection(savedCollection, itemUid);
-              return Boolean(savedItem) && !savedItem.draft;
-            });
+          const submittedUids = new Set(collectionRequestDrafts.map((draft) => draft.uid));
+          const itemUids = flattenItems(savedCollection ? savedCollection.items : [])
+            .filter((item) => submittedUids.has(item.uid) && !item.draft)
+            .map((item) => item.uid);
           dispatch(clearExampleEditModesForItems({ itemUids }));
         })
     );
