@@ -611,7 +611,7 @@ The Playwright configs stay at the repo root:
 
   It also starts the web dev server and the test API server (`packages/bruno-tests`, port 8081) before the run.
 - `playwright.benchmark.config.ts` runs the `*.bench.ts` files in `e2e/tests/benchmarks/`.
-- `playwright.merge.config.ts` merges sharded CI reports.
+- `playwright.merge.config.ts` merges sharded CI reports from Linux and Windows E2E workflows.
 
 ## Additional Resources
 

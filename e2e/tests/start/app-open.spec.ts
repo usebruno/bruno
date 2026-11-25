@@ -1,5 +1,6 @@
 import { test, expect } from '../../playwright';
 
+// Default-project smoke; runs under Linux/Windows CI Playwright shards (see tests-linux.yml / tests-windows.yml).
 test('Check if the workspace name is visible in the sidebar', async ({ page }) => {
   // Wait for the app to be loaded
   await page.locator('[data-app-state="loaded"]').waitFor({ timeout: 30000 });
