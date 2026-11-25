@@ -4,9 +4,10 @@ import classnames from 'classnames';
 import { IconCopy, IconDots, IconPencil, IconServer2, IconTrash } from '@tabler/icons';
 import toast from 'react-hot-toast';
 import { deleteMockResponse, saveMockResponse } from 'providers/ReduxStore/slices/mock-server/index';
-import { addTab, closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { removeMockResponseEditor, syncMockResponseEditorSaved } from 'providers/ReduxStore/slices/collections';
 import { cloneMockResponseRecord } from 'utils/mock-server/mock-responses';
+import { openMockResponseTab } from 'utils/mock-server/mock-server-instances';
 import RenameMockResponseModal from 'components/MockServer/MockResponse/RenameMockResponseModal';
 import MockConfirmModal from 'components/MockServer/MockConfirmModal';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -28,15 +29,7 @@ const MockResponseSidebarItem = ({
   const [isCloning, setIsCloning] = useState(false);
 
   const openResponseTab = (nextResponse) => {
-    dispatch(addTab({
-      uid: nextResponse.uid,
-      type: 'mock-response',
-      mockServerUid: instance.uid,
-      collectionUid,
-      responseName: nextResponse.name,
-      tabName: nextResponse.name,
-      preview: false
-    }));
+    dispatch(openMockResponseTab(instance, nextResponse));
   };
 
   const handleRenameConfirm = async (name) => {

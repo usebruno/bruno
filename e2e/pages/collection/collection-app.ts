@@ -1,26 +1,16 @@
 import { Page } from '../../playwright';
 
 /**
- * Collection app editor, plus the "Migrate to YML" pill and modal it blocks with unsaved edits.
+ * Collection app editor. The "Migrate to YML" pill, modal and drafts step live in migrate-to-yml.ts.
  */
 export const buildCollectionAppLocators = (page: Page) => {
-  const migrateModal = () => page.getByTestId('migrate-to-yml-modal');
-  const draftsStep = () => page.getByTestId('migration-drafts-step');
   const activeAppSlot = () => page.getByTestId('app-preview-slot').filter({ visible: true });
 
   return {
-    modal: migrateModal,
-    modalTitle: () => migrateModal().getByTestId('modal-title'),
-    modalCollectionName: () => migrateModal().getByTestId('migrate-to-yml-collection-name'),
-    pill: () => page.getByTestId('migrate-yml-pill'),
     emptyStateAddCodeButton: () => activeAppSlot().getByTestId('empty-app-state').getByTestId('empty-app-add-code'),
     codeView: () => activeAppSlot().getByTestId('collection-app-code'),
     codeEditor: () => activeAppSlot().getByTestId('collection-app-code-editor').locator('.CodeMirror'),
-    viewToggle: (view: 'code' | 'preview') => activeAppSlot().getByTestId(`collection-app-view-${view}`),
-    draftsStep,
-    draftsTitle: () => draftsStep().getByTestId('migration-drafts-title'),
-    draftsSummary: () => draftsStep().getByTestId('migration-drafts-summary'),
-    draftsItems: () => draftsStep().getByTestId('migration-drafts-item')
+    viewToggle: (view: 'code' | 'preview') => activeAppSlot().getByTestId(`collection-app-view-${view}`)
   };
 };
 
@@ -31,15 +21,6 @@ export const addCollectionAppCodeFromEmptyState = async (page: Page) => {
   const collectionApp = buildCollectionAppLocators(page);
   await collectionApp.emptyStateAddCodeButton().click();
   await collectionApp.codeView().waitFor({ state: 'visible' });
-};
-
-/**
- * Opens the migration modal from the "Migrate to YML" pill in the collection header.
- */
-export const openMigrateToYmlModalFromPill = async (page: Page) => {
-  const collectionApp = buildCollectionAppLocators(page);
-  await collectionApp.pill().click();
-  await collectionApp.modal().waitFor({ state: 'visible', timeout: 5000 });
 };
 
 /**

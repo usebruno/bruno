@@ -62,7 +62,7 @@ const SelectionList = ({
 
     return (
       <>
-        <span className="selection-item-title">{itemTitle}</span>
+        <span className="selection-item-title" data-testid="selection-item-title">{itemTitle}</span>
         {description && (
           <span
             className="selection-item-description"
