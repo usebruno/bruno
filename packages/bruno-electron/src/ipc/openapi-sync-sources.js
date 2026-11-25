@@ -1,7 +1,7 @@
 const path = require('node:path');
 const { ipcMain } = require('electron');
 const { getSourceState, approveSource, dismissSource, describeSource } = require('../services/openapi-sync-sources');
-const { sourceApprovalArgs, loadBrunoConfig } = require('./openapi-sync');
+const { sourceApprovalArgs } = require('./openapi-sync');
 
 const requireCollectionPath = (collectionPath) => {
   if (typeof collectionPath !== 'string' || !path.isAbsolute(collectionPath)) {
@@ -12,13 +12,7 @@ const requireCollectionPath = (collectionPath) => {
 // Read from the collection file, never the renderer, so an approval names the source the collection points at.
 const currentSourceArgs = (collectionPath) => {
   requireCollectionPath(collectionPath);
-  let sourceUrl;
-  try {
-    sourceUrl = loadBrunoConfig(collectionPath).brunoConfig?.openapi?.[0]?.sourceUrl;
-  } catch {
-    sourceUrl = undefined;
-  }
-  return sourceApprovalArgs(collectionPath, sourceUrl);
+  return sourceApprovalArgs(collectionPath);
 };
 
 const getOpenApiSyncSourceState = ({ collectionPath } = {}) => {
@@ -39,9 +33,7 @@ const requireShownSource = (sourceKey, expectedSource) => {
 // `sourceUrl` comes only from the Connect form, before the typed source is saved.
 const approveOpenApiSyncSource = ({ collectionPath, sourceUrl, expectedSource, autoCheck, autoCheckInterval } = {}) => {
   requireCollectionPath(collectionPath);
-  const sourceKey = sourceUrl === undefined
-    ? currentSourceArgs(collectionPath).sourceKey
-    : sourceApprovalArgs(collectionPath, sourceUrl).sourceKey;
+  const { sourceKey } = sourceApprovalArgs(collectionPath, sourceUrl);
   if (!sourceKey) {
     throw new Error('This collection has no sync source to approve');
   }

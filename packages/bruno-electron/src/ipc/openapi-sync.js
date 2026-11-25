@@ -299,6 +299,7 @@ const toSourceKey = (collectionPath, sourceUrl) =>
   (typeof sourceUrl === 'string' && sourceUrl.trim() ? resolveSourceUrl(collectionPath, sourceUrl.trim()) : null);
 
 // The sync config and last synced source feed the one-time migration of sources synced here before.
+// Without a sourceUrl, the source is the one the collection file points at.
 const sourceApprovalArgs = (collectionPath, sourceUrl) => {
   let syncConfig = null;
   try {
@@ -308,7 +309,7 @@ const sourceApprovalArgs = (collectionPath, sourceUrl) => {
   }
   return {
     collectionPath,
-    sourceKey: toSourceKey(collectionPath, sourceUrl),
+    sourceKey: toSourceKey(collectionPath, sourceUrl === undefined ? syncConfig?.sourceUrl : sourceUrl),
     syncConfig,
     syncedSourceKey: getSpecEntryForUrl(collectionPath)?.sourceUrl
   };
@@ -2158,7 +2159,6 @@ module.exports = registerOpenAPISyncIpc;
 module.exports.saveSpecAndUpdateMetadata = saveSpecAndUpdateMetadata;
 module.exports.cleanupSpecFilesForCollection = cleanupSpecFilesForCollection;
 module.exports.sourceApprovalArgs = sourceApprovalArgs;
-module.exports.loadBrunoConfig = loadBrunoConfig;
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV === 'test') {
