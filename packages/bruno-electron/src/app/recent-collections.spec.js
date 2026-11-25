@@ -1,4 +1,4 @@
-jest.mock('node:fs/promises', () => ({ readdir: jest.fn(), lstat: jest.fn(), stat: jest.fn() }));
+jest.mock('node:fs/promises', () => ({ readdir: jest.fn(), lstat: jest.fn(), stat: jest.fn(), realpath: jest.fn() }));
 jest.mock('node:os', () => ({ homedir: jest.fn() }));
 jest.mock('../services/recent-collections', () => ({
   record: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock('../utils/filesystem', () => ({ isDirectory: jest.fn() }));
 jest.mock('./collections', () => ({ openCollection: jest.fn() }));
 
 const path = require('node:path');
-const { readdir, lstat, stat } = require('node:fs/promises');
+const { readdir, lstat, stat, realpath } = require('node:fs/promises');
 const { homedir } = require('node:os');
 const recentCollections = require('../services/recent-collections');
 const { isDirectory } = require('../utils/filesystem');
@@ -35,17 +35,26 @@ const fsError = (code) => Object.assign(new Error(code), { code });
 
 const waitForBroadcast = () => new Promise((resolve) => setImmediate(resolve));
 
-const onFolders = (devices) => {
+const onFolders = (devices, links = {}) => {
+  const resolveLink = (folderPath) => links[folderPath] ?? folderPath;
   const statOf = (folderPath) => {
-    if (devices[folderPath] === undefined) {
+    const target = resolveLink(folderPath);
+    if (devices[target] === undefined) {
       throw fsError('ENOENT');
     }
-    return { dev: devices[folderPath] };
+    return { dev: devices[target], isDirectory: () => true, isSymbolicLink: () => false };
   };
   stat.mockImplementation(async (folderPath) => statOf(folderPath));
+  lstat.mockImplementation(async (folderPath) => (links[folderPath] ? { isDirectory: () => false, isSymbolicLink: () => true } : statOf(folderPath)));
+  realpath.mockImplementation(async (folderPath) => {
+    statOf(folderPath);
+    return resolveLink(folderPath);
+  });
   readdir.mockImplementation(async (folderPath) => {
     statOf(folderPath);
-    return Object.keys(devices).filter((other) => path.dirname(other) === folderPath).map((other) => path.basename(other));
+    return [...Object.keys(devices), ...Object.keys(links)]
+      .filter((other) => path.dirname(other) === resolveLink(folderPath))
+      .map((other) => path.basename(other));
   });
 };
 
@@ -58,11 +67,13 @@ describe('recent collections', () => {
     readdir.mockResolvedValue(['orders']);
     lstat.mockRejectedValue(fsError('ENOENT'));
     stat.mockRejectedValue(fsError('ENOENT'));
+    realpath.mockImplementation(async (folderPath) => folderPath);
     homedir.mockReturnValue('/home/me');
   });
 
   afterEach(() => {
     Object.defineProperty(process, 'platform', originalPlatform);
+    delete process.env.SNAP_REAL_HOME;
   });
 
   it('tells the window once per tick that recent collections changed', async () => {
@@ -285,6 +296,37 @@ describe('recent collections', () => {
     await forgetMissingRecentCollections(['/home/me/bruno-collections/orders']);
 
     expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/bruno-collections/orders']);
+  });
+
+  it('judges a collection in the home folder by the real home folder of a snap install', async () => {
+    onPlatform('linux');
+    process.env.SNAP_REAL_HOME = '/home/me';
+    homedir.mockReturnValue('/home/me/snap/bruno/123');
+    readdir.mockImplementation(async (folderPath) => (folderPath === '/home/me/bruno-collections' ? [] : ['bruno-collections']));
+
+    await forgetMissingRecentCollections(['/home/me/bruno-collections/orders']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/bruno-collections/orders']);
+  });
+
+  it('judges a missing folder by the nearest folder above it when the home folder cannot be found', async () => {
+    onPlatform('linux');
+    homedir.mockImplementation(() => {
+      throw new Error('no home folder');
+    });
+
+    await forgetMissingRecentCollections(['/srv/old-project/api']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/srv/old-project/api']);
+  });
+
+  it('keeps a collection reached through a link in the home folder while the share it points at is unmounted', async () => {
+    onPlatform('linux');
+    onFolders({ '/home': 1, '/home/me': 1, '/mnt': 1, '/mnt/nas': 1 }, { '/home/me/nas': '/mnt/nas' });
+
+    await forgetMissingRecentCollections(['/home/me/nas/orders']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith([]);
   });
 
   it('keeps a collection behind a link to a drive that is unplugged', async () => {

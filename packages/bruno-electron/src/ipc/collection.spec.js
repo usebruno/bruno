@@ -502,5 +502,54 @@ describe('IPC collection handlers', () => {
 
       expect(moveRecentCollection).toHaveBeenCalledWith(ordersCollection, path.join(workspacePath, 'collections', 'orders'));
     });
+
+    describe('when the change cannot be saved', () => {
+      let consoleError;
+      let outputFileSync;
+
+      beforeEach(() => {
+        consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        outputFileSync = jest.spyOn(fsExtra, 'outputFileSync');
+      });
+
+      afterEach(() => {
+        consoleError.mockRestore();
+        outputFileSync.mockRestore();
+      });
+
+      it('keeps the row name of a collection whose new name cannot be written', async () => {
+        const ordersCollection = writeCollection('orders', 'Orders API');
+        outputFileSync.mockImplementationOnce(() => {
+          throw new Error('EACCES: permission denied');
+        });
+
+        await expect(ipcMain._getHandler('renderer:rename-collection')({}, 'Orders', ordersCollection)).rejects.toThrow('EACCES');
+
+        expect(renameRecentCollection).not.toHaveBeenCalled();
+      });
+
+      it('keeps the row on the old folder when a move into a workspace is rolled back', async () => {
+        const workspacePath = path.join(collectionsFolder, 'team');
+        fs.mkdirSync(workspacePath);
+        fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), jsyaml.dump({
+          opencollection: '1.0.0',
+          info: { name: 'Team', type: 'workspace' },
+          collections: []
+        }));
+        const ordersCollection = writeCollection('orders', 'Orders API');
+        app.getPath.mockReturnValue(collectionsFolder);
+        registerCollectionsIpc(mainWindow, { removeWatcher: jest.fn() });
+
+        await expect(ipcMain._getHandler('renderer:move-collection-to-workspace')({}, {
+          workspacePath,
+          collectionPath: ordersCollection,
+          collectionUid: 'orders-uid',
+          collectionName: ''
+        })).rejects.toThrow('Invalid collection');
+
+        expect(fs.existsSync(ordersCollection)).toBe(true);
+        expect(moveRecentCollection).not.toHaveBeenCalled();
+      });
+    });
   });
 });

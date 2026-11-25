@@ -56,7 +56,7 @@ const CollectionList = ({
   const rowsElement = useRef(null);
   const rangeAnchorKey = useRef(null);
 
-  const isOpen = useCallback((collection) => openPathKeys.has(toPathKey(collection.path)), [openPathKeys]);
+  const isOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
   const isHidden = useCallback((collection) => hiddenPathKeys.has(toPathKey(collection.path)), [hiddenPathKeys]);
   const query = searchText.trim().toLowerCase();
 
@@ -64,7 +64,7 @@ const CollectionList = ({
     () => (query ? collections.filter((collection) => matchesSearch(collection, query)) : collections),
     [collections, query]
   );
-  const hiddenCount = useMemo(() => matches.filter(isHidden).length, [matches, isHidden]);
+  const hiddenCount = matches.filter(isHidden).length;
   const rows = useMemo(
     () => (showHidden ? matches : matches.filter((collection) => !isHidden(collection))),
     [matches, showHidden, isHidden]

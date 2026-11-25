@@ -71,7 +71,7 @@ const isBehindMissingLink = async (folderPath) => {
   }
 };
 
-const isInsideFolder = (filePath, folderPath) => filePath.startsWith(`${folderPath}${path.sep}`);
+const isInsideFolder = (filePath, folderPath) => filePath.startsWith(`${folderPath}${path.posix.sep}`);
 
 const isMountPoint = async (folderPath) => {
   const [folderStats, parentStats] = await Promise.all([fs.stat(folderPath), fs.stat(path.dirname(folderPath))]);
@@ -89,23 +89,45 @@ const isMountedBelow = async (mountFolder, folderPath) => {
   }
 };
 
+const toRealPath = async (folderPath) => {
+  try {
+    return await fs.realpath(folderPath);
+  } catch (error) {
+    const parentPath = path.dirname(folderPath);
+    if (!isMissingPathError(error) || parentPath === folderPath) {
+      throw error;
+    }
+    return path.posix.join(await toRealPath(parentPath), path.basename(folderPath));
+  }
+};
+
+const getHomeFolder = async () => {
+  try {
+    return await fs.realpath(process.env.SNAP_REAL_HOME || os.homedir());
+  } catch {
+    return null;
+  }
+};
+
 const isVolumeReachable = async (collectionPath) => {
   try {
     if (await isBehindMissingLink(path.dirname(collectionPath))) {
       return false;
     }
-    const volumeRoot = process.platform === 'win32'
-      ? path.win32.parse(collectionPath).root
-      : VOLUME_ROOT_PATTERNS[process.platform]?.exec(collectionPath)?.[0];
+    if (process.platform === 'win32') {
+      return (await fs.readdir(path.win32.parse(collectionPath).root)).length > 0;
+    }
+    const realPath = await toRealPath(collectionPath);
+    const volumeRoot = VOLUME_ROOT_PATTERNS[process.platform]?.exec(realPath)?.[0];
     if (volumeRoot) {
       return (await fs.readdir(volumeRoot)).length > 0;
     }
-    const mountFolder = MOUNT_FOLDERS[process.platform]?.find((folderPath) => isInsideFolder(collectionPath, folderPath));
+    const mountFolder = MOUNT_FOLDERS[process.platform]?.find((folderPath) => isInsideFolder(realPath, folderPath));
     if (mountFolder) {
-      return await isMountedBelow(mountFolder, path.dirname(collectionPath));
+      return await isMountedBelow(mountFolder, path.dirname(realPath));
     }
-    const homeFolder = os.homedir();
-    return await isNearestFolderInUse(isInsideFolder(collectionPath, homeFolder) ? homeFolder : path.dirname(collectionPath));
+    const homeFolder = await getHomeFolder();
+    return await isNearestFolderInUse(homeFolder && isInsideFolder(realPath, homeFolder) ? homeFolder : path.dirname(realPath));
   } catch {
     return false;
   }
