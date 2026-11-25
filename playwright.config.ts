@@ -4,7 +4,7 @@ const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-
 
 if (process.env.CI) {
   reporter.push(['github']);
-  // Blob reports are mergeable across shards (see tests-linux.yml e2e-test-report).
+  // Blob reports are mergeable across shards (see tests-linux.yml and tests-windows.yml e2e-test-report).
   reporter.push(['blob']);
 }
 
