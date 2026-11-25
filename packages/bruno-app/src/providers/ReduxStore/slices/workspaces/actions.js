@@ -1154,13 +1154,15 @@ export const closeWorkspaceAction = (workspaceUid, { deleteFiles = false } = {})
       }
 
       let innerCollectionUids = new Set();
+      let folderDeleteError = null;
       if (deleteFiles) {
         const workspaceFolder = `${normalizePath(workspace.pathname)}/`;
         innerCollectionUids = new Set(getState().collections.collections
           .filter((c) => normalizePath(c.pathname).startsWith(workspaceFolder))
           .map((c) => c.uid));
 
-        await ipcRenderer.invoke('renderer:delete-workspace', workspace.pathname);
+        const result = await ipcRenderer.invoke('renderer:delete-workspace', workspace.pathname);
+        folderDeleteError = result?.success === false ? result.error : null;
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
@@ -1188,6 +1190,12 @@ export const closeWorkspaceAction = (workspaceUid, { deleteFiles = false } = {})
           dispatch(removeCollection({ collectionUid }));
           dispatch(clearCollectionState({ collectionUid }));
         });
+      }
+
+      if (folderDeleteError) {
+        console.error(`Could not fully delete workspace folder ${workspace.pathname}:`, folderDeleteError);
+        toast.error(`Removed "${workspace.name}", but some of its files couldn't be deleted`);
+        return { filesLeftOnDisk: true };
       }
     } catch (error) {
       toast.error(error.message || (deleteFiles ? 'Failed to delete workspace' : 'Failed to close workspace'));

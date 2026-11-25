@@ -132,6 +132,21 @@ describe('closeWorkspaceAction with deleteFiles', () => {
     expect(invokedChannels()).toEqual(['renderer:delete-workspace']);
   });
 
+  it('still removes the workspace and its collections when the folder is only partly deleted', async () => {
+    window.ipcRenderer.invoke.mockResolvedValueOnce({ success: false, error: 'EBUSY: resource busy' });
+    const toast = require('react-hot-toast').default;
+    const collections = [{ uid: 'inner', pathname: '/team/collections/api' }];
+    const tabs = [{ uid: 'inner-tab', collectionUid: 'inner' }];
+
+    const { dispatch, finalWorkspaces } = await run({ closing, activeWorkspaceUid: 'ws-1', options: { deleteFiles: true }, collections, tabs });
+
+    expect(invokedChannels()).toEqual(['renderer:delete-workspace', 'renderer:close-workspace']);
+    expect(finalWorkspaces().workspaces.map((w) => w.uid)).toEqual(['default']);
+    expect(dispatch).toHaveBeenCalledWith(closeTabs({ tabUids: ['inner-tab'], reopenable: false }));
+    expect(dispatch).toHaveBeenCalledWith(removeCollection({ collectionUid: 'inner' }));
+    expect(toast.error).toHaveBeenCalledWith('Removed "Team WS", but some of its files couldn\'t be deleted');
+  });
+
   it('removes only the collections and tabs stored inside the deleted folder', async () => {
     const collections = [
       { uid: 'inner', pathname: '/team/collections/api' },

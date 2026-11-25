@@ -17,8 +17,10 @@ const DeleteWorkspace = ({ workspace, onClose }) => {
 
     setIsDeleting(true);
     try {
-      await dispatch(closeWorkspaceAction(workspace.uid, { deleteFiles: true }));
-      toast.success(`Deleted "${workspace.name}" workspace`);
+      const result = await dispatch(closeWorkspaceAction(workspace.uid, { deleteFiles: true }));
+      if (!result?.filesLeftOnDisk) {
+        toast.success(`Deleted "${workspace.name}" workspace`);
+      }
       onClose();
     } catch (error) {
       setIsDeleting(false);
