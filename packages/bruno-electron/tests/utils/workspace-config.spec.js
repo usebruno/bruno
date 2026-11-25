@@ -403,6 +403,14 @@ describe('getWorkspaceCollectionPathsInsideFolder', () => {
 
     expect(getWorkspaceCollectionPathsInsideFolder(workspacePath)).toEqual([]);
   });
+
+  it('treats a folder whose name starts with two dots as inside', () => {
+    const dotted = path.join(workspacePath, '..cache', 'api');
+    makeCollection(dotted);
+    writeYml(['..cache/api']);
+
+    expect(getWorkspaceCollectionPathsInsideFolder(workspacePath)).toEqual([dotted]);
+  });
 });
 
 describe('workspace specs normalization', () => {

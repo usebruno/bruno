@@ -619,7 +619,8 @@ const getWorkspaceCollectionPathsInsideFolder = (workspacePath) => {
     .map((collection) => collection.path)
     .filter((collectionPath) => {
       const relative = collectionPath ? path.relative(workspacePath, collectionPath) : '..';
-      return !relative.startsWith('..') && !path.isAbsolute(relative);
+      const isOutside = relative === '..' || relative.startsWith(`..${path.sep}`);
+      return !isOutside && !path.isAbsolute(relative);
     });
 };
 
