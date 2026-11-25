@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "migrate-unsaved-request",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -33,7 +33,7 @@ import React from 'react';
  * isArray     : is array
  */
 
-const AssertionOperator = ({ operator, onChange }) => {
+const AssertionOperator = ({ operator, onChange, disabled = false, extraOperators = [], ariaLabel }) => {
   const operators = [
     'eq',
     'neq',
@@ -62,7 +62,8 @@ const AssertionOperator = ({ operator, onChange }) => {
     'isNumber',
     'isString',
     'isBoolean',
-    'isArray'
+    'isArray',
+    ...extraOperators
   ];
 
   const handleChange = (e) => {
@@ -81,7 +82,7 @@ const AssertionOperator = ({ operator, onChange }) => {
   };
 
   return (
-    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select">
+    <select value={operator} onChange={handleChange} className="mousetrap" data-testid="assertion-operator-select" disabled={disabled} aria-label={ariaLabel}>
       {operators.map((operator) => (
         <option key={operator} value={operator}>
           {getLabel(operator)}

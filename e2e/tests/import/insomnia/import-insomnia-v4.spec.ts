@@ -1,6 +1,6 @@
-import { test } from '../../../playwright';
+import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { closeAllCollections, importCollection } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, expandFolder, importCollection, openCollection } from '../../../pages';
 
 test.describe('Import Insomnia Collection v4', () => {
   test.afterEach(async ({ page }) => {
@@ -12,6 +12,56 @@ test.describe('Import Insomnia Collection v4', () => {
 
     await importCollection(page, insomniaFile, await createTmpDir('insomnia-v4-test'), {
       expectedCollectionName: 'Test API Collection v4'
+    });
+  });
+
+  test('TC-110: Imports an Insomnia collection from a JSON file', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+    const insomniaFile = path.join(__dirname, 'fixtures', 'insomnia-v4.json');
+    const { plusMenu, import: importLocators, request, sidebar, tabs } = buildCommonLocators(page);
+    const collectionName = 'Test API Collection v4';
+    const locationModal = importLocators.locationModal();
+    const collectionTempDir = await createTmpDir('insomnia-v4-json');
+
+    await test.step('Open the plus menu and choose import collection', async () => {
+      await plusMenu.button().click();
+      await plusMenu.importCollection().waitFor({ state: 'visible' });
+      await plusMenu.importCollection().click();
+      await importLocators.modal().waitFor({ state: 'visible' });
+    });
+
+    await test.step('Verify that import dialog shows File', async () => {
+      await expect(importLocators.fileTab()).toContainText('File');
+    });
+
+    await test.step('Choose the Insomnia JSON file', async () => {
+      await expect(importLocators.chooseFilesButton()).toBeVisible();
+      await importLocators.fileInput().setInputFiles(insomniaFile);
+      await locationModal.waitFor({ state: 'visible' });
+      // await expect(locationModal.getByText(collectionName)).toBeVisible();
+      await expect(locationModal).toContainText(collectionName);
+    });
+
+    await test.step('Import the collection', async () => {
+      await importLocators.locationInput().fill(collectionTempDir);
+      await importLocators.importButton().click();
+      await locationModal.waitFor({ state: 'hidden' });
+      await sidebar.collection(collectionName).waitFor({ state: 'visible' });
+    });
+
+    await test.step('Verify that the imported collection keeps its requests', async () => {
+      await openCollection(page, collectionName);
+      await expect(sidebar.itemsIn(collectionName, 'Get Users')).toBeVisible();
+      await expect(sidebar.itemsIn(collectionName, 'Authentication')).toBeVisible();
+
+      await expandFolder(page, 'Authentication');
+      // FIXME(aparna-bruno): There's a bug here with the insomnia import that needs the `first` call to get the first row item instead of the test failing with duplicate items
+      // await expect(sidebar.itemsIn(collectionName, 'Login User').first()).toBeVisible();
+      await expect(sidebar.folderRequest('Authentication', 'Login User').first()).toBeVisible();
+
+      await sidebar.itemsIn(collectionName, 'Get Users').click();
+      await expect(tabs.activeRequestTab()).toContainText('Get Users');
+      await expect(request.methodDropdown()).toContainText('GET');
+      await expect(request.urlLine()).toContainText('{{baseUrl}}/api/users');
     });
   });
 });

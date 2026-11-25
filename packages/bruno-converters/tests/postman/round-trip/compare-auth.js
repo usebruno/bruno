@@ -32,7 +32,8 @@ const normalizeAuth = (auth) => {
 // Keys Postman omits at a non-empty default it still applies; absent means the default, not "unset".
 const POSTMAN_NON_EMPTY_DEFAULTS = {
   oauth2: [
-    { key: 'headerPrefix', value: 'Bearer', appliesWhen: (params) => (params.addTokenTo || 'header') === 'header' }
+    { key: 'headerPrefix', value: 'Bearer', appliesWhen: (params) => (params.addTokenTo || 'header') === 'header' },
+    { key: 'grant_type', value: 'authorization_code', appliesWhen: () => true }
   ]
 };
 

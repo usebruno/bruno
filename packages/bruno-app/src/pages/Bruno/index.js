@@ -9,6 +9,7 @@ import AiChatPopout from 'components/AiChatSidebar/Popout';
 import VariablesSidebar from 'components/VariablesSidebar';
 import Sidebar from 'components/Sidebar';
 import OpenCollection from 'components/Sidebar/OpenCollection';
+import OpenCollectionModal from 'components/OpenCollectionModal';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
 import TabPanelErrorBoundary from 'components/RequestTabPanel/TabPanelErrorBoundary';
@@ -152,6 +153,7 @@ export default function Main() {
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
       <OpenCollection />
+      <OpenCollectionModal />
     </div>
     // </ErrorCapture>
   );

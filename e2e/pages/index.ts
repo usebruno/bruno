@@ -11,6 +11,7 @@ export * from './runner';
 export * from './app-shell/ai-preferences';
 export * from './app-shell/preferences';
 export * from './app-shell/tabs';
+export * from './app-shell/unsaved-changes-modal';
 
 // collection
 export * from './collection/collection-run';
@@ -41,6 +42,7 @@ export * from './request/auth';
 export * from './request/body';
 export * from './request/create';
 export * from './request/generate-code';
+export * from './request/graphql-auth-introspection';
 export * from './request/graphql-query-builder';
 export * from './request/grpc';
 export * from './request/pane';
@@ -52,6 +54,7 @@ export * from './request/websocket';
 // response
 export * from './response/example';
 export * from './response/pane';
+export * from './response/timeline';
 
 // shared-ui
 export * from './shared-ui/autocomplete';
@@ -62,6 +65,7 @@ export * from './shared-ui/code-editor-search';
 export * from './shared-ui/dropdown';
 export * from './shared-ui/file-mode';
 export * from './shared-ui/modal';
+export * from './shared-ui/settings-pane';
 export * from './shared-ui/single-line-editor';
 export * from './shared-ui/table';
 export * from './shared-ui/tags';

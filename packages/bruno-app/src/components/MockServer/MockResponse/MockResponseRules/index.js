@@ -1,32 +1,44 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import EditableTable from 'components/EditableTable';
+import AssertionOperator from 'components/RequestPane/Assertions/AssertionOperator';
+import { isUnaryAssertionOperator } from 'utils/assertions';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const TARGET_OPTIONS = [
   { value: 'header', label: 'Header' },
   { value: 'query', label: 'Query' },
-  { value: 'body', label: 'Body' }
+  { value: 'body', label: 'Body' },
+  { value: 'path', label: 'Path' }
 ];
 
-const OPERATOR_OPTIONS = [
-  { value: 'equals', label: 'equals' },
-  { value: 'not_equals', label: 'not equals' },
-  { value: 'contains', label: 'contains' },
-  { value: 'matches', label: 'matches' }
-];
+const toAssertionOperator = (value) => {
+  if (!value || value === 'equals') {
+    return 'eq';
+  }
+  if (value === 'not_equals') {
+    return 'neq';
+  }
+  if (value === 'regex') {
+    return 'matches';
+  }
+  return value;
+};
+
+const MOCK_ONLY_OPERATORS = ['isNotNull'];
 
 const DEFAULT_CONDITION = {
   target: 'header',
   key: '',
-  operator: 'equals',
+  operator: 'eq',
   value: ''
 };
 
 const KEY_PLACEHOLDERS = {
   body: '$.user.type',
   query: 'page',
-  header: 'x-api-key'
+  header: 'x-api-key',
+  path: 'id'
 };
 
 const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
@@ -130,16 +142,13 @@ const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
       name: 'Operator',
       width: '22%',
       render: ({ value, onChange: onCellChange }) => (
-        <select
-          value={value === 'regex' ? 'matches' : (value || DEFAULT_CONDITION.operator)}
+        <AssertionOperator
+          operator={toAssertionOperator(value)}
           disabled={!editMode}
-          onChange={(event) => onCellChange(event.target.value)}
-          aria-label="Rule operator"
-        >
-          {OPERATOR_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+          onChange={onCellChange}
+          extraOperators={MOCK_ONLY_OPERATORS}
+          ariaLabel="Rule operator"
+        />
       )
     },
     {
@@ -147,7 +156,24 @@ const MockResponseRules = ({ rules, editMode, onChange, onAddRule }) => {
       name: 'Value',
       width: '31%',
       readOnly: !editMode,
-      placeholder: 'Value'
+      placeholder: 'Value',
+      render: ({ row, value, onChange: onCellChange }) => {
+        const ignoresValue = isUnaryAssertionOperator(row.operator) || MOCK_ONLY_OPERATORS.includes(row.operator);
+
+        return (
+          <input
+            type="text"
+            autoComplete="off"
+            spellCheck="false"
+            className="mousetrap"
+            value={ignoresValue ? '' : (value || '')}
+            readOnly={!editMode}
+            disabled={ignoresValue}
+            placeholder={ignoresValue ? '' : 'Value'}
+            onChange={(event) => onCellChange(event.target.value)}
+          />
+        );
+      }
     }
   ];
 

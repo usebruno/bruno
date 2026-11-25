@@ -1,0 +1,10 @@
+info:
+  name: second
+  type: http
+  seq: 2
+  tags:
+    - regression
+
+http:
+  method: GET
+  url: http://localhost:8081/api/wait-for?time=300

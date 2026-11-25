@@ -128,6 +128,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                   loading={isSchemaLoading}
                   disabled={isSchemaLoading}
                   onClick={() => loadSchema('introspection')}
+                  data-testid="gql-load-from-introspection-btn"
                 >
                   Load from Introspection
                 </Button>
@@ -170,7 +171,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
   return (
     <ErrorBoundary>
       <StyledWrapper>
-        <div className="query-builder-search">
+        <div className="query-builder-search" data-testid="query-builder-search">
           <input
             type="text"
             placeholder="Search operations..."
@@ -180,7 +181,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
           />
         </div>
 
-        <div className="query-builder-tree">
+        <div className="query-builder-tree" data-testid="query-builder-tree">
           {availableRootTypes.map((rootType) => {
             const isExpanded = effectiveExpandedRootTypes.has(rootType);
             const fields = filteredFieldsByType[rootType] || [];
@@ -191,6 +192,7 @@ const QueryBuilder = ({ schema, onQueryChange, editorValue, onVariablesChange, v
                 <button
                   type="button"
                   className="root-type-node"
+                  data-testid={`query-builder-root-${rootType}`}
                   onClick={() => !isDisabled && toggleRootType(rootType)}
                   aria-expanded={isExpanded}
                   disabled={isDisabled}

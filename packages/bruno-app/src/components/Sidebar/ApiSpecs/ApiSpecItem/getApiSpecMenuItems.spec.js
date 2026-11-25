@@ -32,10 +32,6 @@ describe('getApiSpecMenuItems', () => {
     ]);
   });
 
-  it('hides Create Mock Server when the beta flag is off', () => {
-    expect(ids(menu(false))).not.toContain('create-mock-server');
-  });
-
   it('labels each action', () => {
     expect(menu(true).filter((item) => item.type !== 'divider').map((item) => item.label)).toEqual([
       'Generate Collection',
