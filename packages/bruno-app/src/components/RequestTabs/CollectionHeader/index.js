@@ -217,8 +217,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   const hasOpenApiSyncConfigured = collection?.brunoConfig?.openapi?.[0]?.sourceUrl;
   const hasOpenApiUpdates = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.hasUpdates;
-  const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
   const isOpenApiSourcePending = hasOpenApiSyncConfigured && syncSourceStatus === 'pending';
+  const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
 
   // Count tabs for the current collection
   const tabCount = tabCountsByCollection[collection.uid] || 0;

@@ -2180,9 +2180,9 @@ if (process.env.NODE_ENV === 'test') {
     mergeBody,
     mergeSpecIntoRequest,
     declaredBodyOf,
+    fetchSpecFromSource,
     compareRequestFields,
     specConversionOptions,
-    ensureTagFolder,
-    fetchSpecFromSource
+    ensureTagFolder
   };
 }

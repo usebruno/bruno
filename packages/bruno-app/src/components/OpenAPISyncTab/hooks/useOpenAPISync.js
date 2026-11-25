@@ -315,8 +315,8 @@ const useOpenAPISync = (collection) => {
         }
       }
 
-      dispatch(loadSyncSourceState(collection));
       toast.success('OpenAPI sync connected');
+      dispatch(loadSyncSourceState(collection));
     } catch (err) {
       console.error('Error connecting OpenAPI sync:', err);
       setError(formatIpcError(err) || 'Failed to connect');
