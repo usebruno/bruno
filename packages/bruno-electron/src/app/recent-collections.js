@@ -1,10 +1,15 @@
 const fs = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
 const recentCollections = require('../services/recent-collections');
 
 const VOLUME_ROOT_PATTERNS = {
   darwin: /^\/Volumes\/[^/]+/,
-  linux: /^\/(?:media\/[^/]+|run\/media\/[^/]+|run\/user\/\d+\/gvfs|mnt)\/[^/]+/
+  linux: /^\/run\/user\/\d+\/gvfs\/[^/]+/
+};
+
+const MOUNT_FOLDERS = {
+  linux: ['/media', '/run/media', '/mnt']
 };
 
 let _mainWindow = null;
@@ -64,6 +69,24 @@ const isBehindMissingLink = async (folderPath) => {
   }
 };
 
+const isInsideFolder = (filePath, folderPath) => filePath.startsWith(`${folderPath}${path.sep}`);
+
+const isMountPoint = async (folderPath) => {
+  const [folderStats, parentStats] = await Promise.all([fs.stat(folderPath), fs.stat(path.dirname(folderPath))]);
+  return folderStats.dev !== parentStats.dev;
+};
+
+const isMountedBelow = async (mountFolder, folderPath) => {
+  if (!isInsideFolder(folderPath, mountFolder)) {
+    return false;
+  }
+  try {
+    return (await isMountPoint(folderPath)) || isMountedBelow(mountFolder, path.dirname(folderPath));
+  } catch (error) {
+    return isMissingPathError(error) && isMountedBelow(mountFolder, path.dirname(folderPath));
+  }
+};
+
 const isVolumeReachable = async (collectionPath) => {
   try {
     if (await isBehindMissingLink(path.dirname(collectionPath))) {
@@ -72,7 +95,15 @@ const isVolumeReachable = async (collectionPath) => {
     const volumeRoot = process.platform === 'win32'
       ? path.win32.parse(collectionPath).root
       : VOLUME_ROOT_PATTERNS[process.platform]?.exec(collectionPath)?.[0];
-    return volumeRoot ? (await fs.readdir(volumeRoot)).length > 0 : await isNearestFolderInUse(path.dirname(collectionPath));
+    if (volumeRoot) {
+      return (await fs.readdir(volumeRoot)).length > 0;
+    }
+    const mountFolder = MOUNT_FOLDERS[process.platform]?.find((folderPath) => isInsideFolder(collectionPath, folderPath));
+    if (mountFolder) {
+      return await isMountedBelow(mountFolder, path.dirname(collectionPath));
+    }
+    const homeFolder = os.homedir();
+    return await isNearestFolderInUse(isInsideFolder(collectionPath, homeFolder) ? homeFolder : path.dirname(collectionPath));
   } catch {
     return false;
   }

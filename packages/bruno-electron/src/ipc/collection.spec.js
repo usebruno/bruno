@@ -65,7 +65,7 @@ jest.mock('@usebruno/filestore', () => ({
   stringifyCollection: jest.fn(async () => 'mock-collection-stringified')
 }));
 
-jest.mock('./recent-collections', () => ({
+jest.mock('../app/recent-collections', () => ({
   recordRecentCollections: jest.fn(),
   recordRecentCollectionClose: jest.fn(),
   forgetMissingRecentCollections: jest.fn(),
@@ -82,7 +82,7 @@ const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
-const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('./recent-collections');
+const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('../app/recent-collections');
 
 describe('IPC collection handlers', () => {
   let mainWindow;

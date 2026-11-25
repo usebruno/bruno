@@ -6,11 +6,11 @@ jest.mock('electron', () => ({
   ipcMain: { emit: jest.fn() }
 }));
 
-jest.mock('../ipc/recent-collections', () => ({
+jest.mock('./recent-collections', () => ({
   recordRecentCollections: jest.fn()
 }));
 
-const { recordRecentCollections } = require('../ipc/recent-collections');
+const { recordRecentCollections } = require('./recent-collections');
 const { openCollectionFromRecentMenu } = require('./collections');
 
 describe('openCollectionFromRecentMenu', () => {

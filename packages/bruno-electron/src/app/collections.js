@@ -6,7 +6,7 @@ const { isDirectory, getCollectionStats, normalizeAndResolvePath } = require('..
 const { generateUidBasedOnHash } = require('../utils/common');
 const { transformBrunoConfigAfterRead } = require('../utils/transformBrunoConfig');
 const { parseCollection } = require('@usebruno/filestore');
-const { recordRecentCollections } = require('../ipc/recent-collections');
+const { recordRecentCollections } = require('./recent-collections');
 
 // Track scratch collection paths (temp directories for workspace scratch requests)
 const scratchCollectionPaths = new Set();

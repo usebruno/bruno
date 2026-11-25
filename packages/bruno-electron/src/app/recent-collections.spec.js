@@ -1,4 +1,5 @@
 jest.mock('node:fs/promises', () => ({ readdir: jest.fn(), lstat: jest.fn(), stat: jest.fn() }));
+jest.mock('node:os', () => ({ homedir: jest.fn() }));
 jest.mock('../services/recent-collections', () => ({
   record: jest.fn(),
   forget: jest.fn(),
@@ -6,7 +7,9 @@ jest.mock('../services/recent-collections', () => ({
   rename: jest.fn()
 }));
 
+const path = require('node:path');
 const { readdir, lstat, stat } = require('node:fs/promises');
+const { homedir } = require('node:os');
 const recentCollections = require('../services/recent-collections');
 const {
   recordRecentCollections,
@@ -27,7 +30,21 @@ const fsError = (code) => Object.assign(new Error(code), { code });
 
 const waitForBroadcast = () => new Promise((resolve) => setImmediate(resolve));
 
-describe('recent collections IPC', () => {
+const onFolders = (devices) => {
+  const statOf = (folderPath) => {
+    if (devices[folderPath] === undefined) {
+      throw fsError('ENOENT');
+    }
+    return { dev: devices[folderPath] };
+  };
+  stat.mockImplementation(async (folderPath) => statOf(folderPath));
+  readdir.mockImplementation(async (folderPath) => {
+    statOf(folderPath);
+    return Object.keys(devices).filter((other) => path.dirname(other) === folderPath).map((other) => path.basename(other));
+  });
+};
+
+describe('recent collections', () => {
   let mainWindow;
 
   beforeEach(() => {
@@ -36,6 +53,7 @@ describe('recent collections IPC', () => {
     readdir.mockResolvedValue(['orders']);
     lstat.mockRejectedValue(fsError('ENOENT'));
     stat.mockRejectedValue(fsError('ENOENT'));
+    homedir.mockReturnValue('/home/me');
   });
 
   afterEach(() => {
@@ -115,11 +133,9 @@ describe('recent collections IPC', () => {
     ['win32', '\\\\server\\share\\orders', '\\\\server\\share\\'],
     ['darwin', '/Volumes/USB Drive/orders', '/Volumes/USB Drive'],
     ['darwin', '/Users/me/orders', '/Users/me'],
-    ['linux', '/media/me/USB/orders', '/media/me/USB'],
-    ['linux', '/run/media/me/USB/orders', '/run/media/me/USB'],
     ['linux', '/run/user/1000/gvfs/smb-share:server=nas,share=team/apis/orders', '/run/user/1000/gvfs/smb-share:server=nas,share=team'],
-    ['linux', '/mnt/data/orders', '/mnt/data'],
     ['linux', '/home/me/orders', '/home/me'],
+    ['linux', '/home/me/projects/orders', '/home/me'],
     ['freebsd', '/usr/home/me/orders', '/usr/home/me']
   ])('on %s checks %s at %s', async (platform, collectionPath, volumeRoot) => {
     onPlatform(platform);
@@ -132,11 +148,36 @@ describe('recent collections IPC', () => {
     ['an empty root, as an unplugged drive leaves its mount point, as unreachable', [], false],
     ['a root that lists entries as reachable', ['orders'], true]
   ])('reports a volume with %s', async (_label, entries, isReachable) => {
-    onPlatform('linux');
+    onPlatform('darwin');
     readdir.mockResolvedValue(entries);
 
-    await expect(isVolumeReachable('/mnt/data/orders')).resolves.toBe(isReachable);
-    expect(readdir).toHaveBeenCalledWith('/mnt/data');
+    await expect(isVolumeReachable('/Volumes/USB/orders')).resolves.toBe(isReachable);
+    expect(readdir).toHaveBeenCalledWith('/Volumes/USB');
+  });
+
+  it.each([
+    ['a drive mounted for a user under /media', '/media/me/USB/orders', { '/media': 1, '/media/me': 1, '/media/me/USB': 2 }],
+    ['a drive mounted straight under /media', '/media/data/orders', { '/media': 1, '/media/data': 2 }],
+    ['a drive mounted for a user under /run/media', '/run/media/me/USB/orders', { '/run/media': 1, '/run/media/me': 1, '/run/media/me/USB': 2 }],
+    ['a drive mounted under /mnt', '/mnt/data/orders', { '/mnt': 1, '/mnt/data': 2 }],
+    ['a share mounted deeper under /mnt', '/mnt/nas/projects/orders', { '/mnt': 1, '/mnt/nas': 1, '/mnt/nas/projects': 2 }],
+    ['a folder inside a share mounted under /mnt', '/mnt/nas/projects/orders', { '/mnt': 1, '/mnt/nas': 2, '/mnt/nas/projects': 2 }]
+  ])('on linux reports %s as reachable', async (_label, collectionPath, devices) => {
+    onPlatform('linux');
+    onFolders(devices);
+
+    await expect(isVolumeReachable(collectionPath)).resolves.toBe(true);
+  });
+
+  it.each([
+    ['an unplugged drive whose mount point is gone', '/media/me/USB/orders', { '/media': 1, '/media/me': 1 }],
+    ['an unmounted drive under /media', '/media/data/orders', { '/media': 1, '/media/data': 1 }],
+    ['an unmounted share deeper under /mnt', '/mnt/nas/projects/orders', { '/mnt': 1, '/mnt/nas': 1, '/mnt/nas/projects': 1 }]
+  ])('on linux reports %s as unreachable', async (_label, collectionPath, devices) => {
+    onPlatform('linux');
+    onFolders(devices);
+
+    await expect(isVolumeReachable(collectionPath)).resolves.toBe(false);
   });
 
   it('reports a volume whose root cannot be read as unreachable', async () => {
@@ -178,16 +219,25 @@ describe('recent collections IPC', () => {
   it('judges a missing folder by the nearest folder above it that still exists', async () => {
     onPlatform('linux');
     readdir.mockImplementation(async (folderPath) => {
-      if (folderPath === '/home/me/old-project') {
+      if (folderPath === '/srv/old-project') {
         throw fsError('ENOENT');
       }
       return ['notes'];
     });
 
-    await forgetMissingRecentCollections(['/home/me/old-project/api']);
+    await forgetMissingRecentCollections(['/srv/old-project/api']);
 
-    expect(readdir).toHaveBeenCalledWith('/home/me');
-    expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/old-project/api']);
+    expect(readdir).toHaveBeenCalledWith('/srv');
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/srv/old-project/api']);
+  });
+
+  it('forgets a collection deleted from a folder in the home folder that it leaves empty', async () => {
+    onPlatform('linux');
+    readdir.mockImplementation(async (folderPath) => (folderPath === '/home/me/bruno-collections' ? [] : ['bruno-collections']));
+
+    await forgetMissingRecentCollections(['/home/me/bruno-collections/orders']);
+
+    expect(recentCollections.forget).toHaveBeenCalledWith(['/home/me/bruno-collections/orders']);
   });
 
   it('keeps a collection behind a link to a drive that is unplugged', async () => {
