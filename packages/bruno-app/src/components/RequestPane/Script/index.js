@@ -128,6 +128,7 @@ const Script = ({ item, collection }) => {
               fontSize={get(preferences, 'font.codeFontSize')}
               onEdit={onRequestScriptEdit}
               mode="javascript"
+              prettifyOnPaste
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'bru']}
@@ -151,6 +152,7 @@ const Script = ({ item, collection }) => {
               fontSize={get(preferences, 'font.codeFontSize')}
               onEdit={onResponseScriptEdit}
               mode="javascript"
+              prettifyOnPaste
               onRun={onRun}
               onSave={onSave}
               showHintsFor={['req', 'res', 'bru']}

@@ -170,6 +170,29 @@ describe('CodeEditor', () => {
       .toBeLessThan(editor.setValue.mock.invocationCallOrder[0]);
   });
 
+  it.each([
+    ['valid JavaScript', true, 'paste', '', 0, 'const x={a:1}', ['const x = { a: 1 };']],
+    ['invalid JavaScript', true, 'paste', '', 0, 'const x =', null],
+    ['inline JavaScript', true, 'paste', 'call()', 5, 'x', null],
+    ['typed JavaScript', true, '+input', '', 0, 'const x=1', null],
+    ['paste without opt-in', false, 'paste', '', 0, 'const x=1', null]
+  ])('handles prettify on paste for %s', (_label, prettifyOnPaste, origin, value, ch, text, expected) => {
+    setupEditorWithRef({ value, mode: 'javascript', prettifyOnPaste });
+    const editor = CodeMirror.mock.results[0].value;
+    editor.getLine.mockReturnValue(value);
+    const beforeChange = editor.on.mock.calls.find(([event]) => event === 'beforeChange')[1];
+    const position = { line: 0, ch };
+    const update = jest.fn();
+
+    beforeChange(editor, { from: position, to: position, text: [text], origin, update });
+
+    if (expected) {
+      expect(update).toHaveBeenCalledWith(null, null, expected);
+    } else {
+      expect(update).not.toHaveBeenCalled();
+    }
+  });
+
   it('enters degraded mode when a pathological line is pasted', () => {
     const view = setupEditorWithRef({ value: 'short', mode: 'application/json' });
     const editor = CodeMirror.mock.results[0].value;

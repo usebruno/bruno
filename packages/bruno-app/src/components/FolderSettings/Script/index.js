@@ -137,6 +137,7 @@ const Script = ({ collection, folder }) => {
               theme={displayedTheme}
               onEdit={onRequestScriptEdit}
               mode="javascript"
+              prettifyOnPaste
               onSave={handleSave}
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}
@@ -158,6 +159,7 @@ const Script = ({ collection, folder }) => {
               theme={displayedTheme}
               onEdit={onResponseScriptEdit}
               mode="javascript"
+              prettifyOnPaste
               onSave={handleSave}
               font={get(preferences, 'font.codeFont', 'default')}
               fontSize={get(preferences, 'font.codeFontSize')}

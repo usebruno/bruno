@@ -48,6 +48,7 @@ const Tests = ({ collection }) => {
           theme={displayedTheme}
           onEdit={onEdit}
           mode="javascript"
+          prettifyOnPaste
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
