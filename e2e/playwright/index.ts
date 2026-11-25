@@ -170,6 +170,11 @@ export type FakeClipboard = {
   copiedText: () => Promise<string>;
 };
 
+export type ToastLog = {
+  /** Every toast raised since recording started, oldest first, dismissed ones included. */
+  messages: () => Promise<string[]>;
+};
+
 export const test = baseTest.extend<
   {
     context: BrowserContext;
@@ -179,6 +184,7 @@ export const test = baseTest.extend<
     collectionFixturePath: string | null;
     workspaceFixturePath: string | null;
     installFakeClipboard: (page: Page) => Promise<FakeClipboard>;
+    recordToasts: (page: Page) => Promise<ToastLog>;
     restartApp: (options?: { initUserDataPath?: string }) => Promise<ElectronApplication>;
   },
   {
@@ -369,6 +375,40 @@ export const test = baseTest.extend<
     // every page independently and one failure can't leave the rest patched.
     await Promise.allSettled(
       patchedPages.map((page) => page.evaluate(() => Reflect.deleteProperty(navigator, 'clipboard')))
+    );
+  },
+
+  // Logs every toast the app raises, in order, so a spec can assert which ones a flow produced
+  recordToasts: async ({ }, use) => {
+    const observedPages: Page[] = [];
+
+    await use(async (page: Page) => {
+      await page.getByTestId('toaster').evaluate((toaster) => {
+        // Re-reading every toast on each mutation keeps the text of one that mounts empty and
+        // fills in a moment later; the Map keys on the node, so a toast is logged once.
+        const logged = new Map<Element, string>();
+        const log = () => toaster
+          .querySelectorAll('[role="status"]')
+          .forEach((toast) => logged.set(toast, toast.textContent ?? ''));
+
+        const observer = new MutationObserver(log);
+        observer.observe(toaster, { childList: true, subtree: true, characterData: true });
+        log();
+
+        (window as any).__toastLog = { logged, observer };
+      });
+      observedPages.push(page);
+
+      return {
+        messages: () => page.evaluate(() => [...(window as any).__toastLog.logged.values()] as string[])
+      };
+    });
+
+    await Promise.allSettled(
+      observedPages.map((page) => page.evaluate(() => {
+        (window as any).__toastLog?.observer.disconnect();
+        Reflect.deleteProperty(window, '__toastLog');
+      }))
     );
   },
 

@@ -1,4 +1,5 @@
 import { test, expect, Page } from '../../playwright';
+import { readEditorValue } from '../shared-ui/autocomplete';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
 import { buildRequestTabsLocators } from '../app-shell/tabs';
 
@@ -14,10 +15,12 @@ export const buildGrpcLocators = (page: Page) => ({
     dropdown: () => page.getByTestId('grpc-methods-dropdown'),
     item: (methodName: string) =>
       page.getByTestId('grpc-methods-dropdown').getByTestId('grpc-method-item').filter({ hasText: methodName }),
-    selectedName: () => page.getByTestId('selected-grpc-method-name')
+    selectedName: () => page.getByTestId('selected-grpc-method-name'),
+    refresh: () => page.getByTestId('refresh-methods-icon')
   },
   request: {
     queryUrlContainer: () => page.getByTestId('grpc-query-url-container'),
+    queryUrlEditor: () => page.getByTestId('grpc-query-url-container').locator('.CodeMirror'),
     sendButton: () => page.getByTestId('grpc-send-request-button'),
     messagesContainer: () => page.getByTestId('grpc-messages-container'),
     messages: () => page.getByTestId('grpc-messages-container').locator('.message-container'),
@@ -155,5 +158,21 @@ export const selectGrpcMethod = async (page: Page, methodName: string) => {
     await locators.method.dropdown().waitFor({ state: 'visible', timeout: 5000 });
     await locators.method.item(methodName).first().click();
     await expect(locators.method.selectedName()).toContainText(methodName);
+  });
+};
+
+// Typed keystroke by keystroke so reflection's debounce sees real typing, and cleared first
+// because typing inserts at the cursor — a url left behind would be appended to, not replaced.
+export const typeGrpcUrl = async (page: Page, url: string) => {
+  await test.step(`Type gRPC url: ${url}`, async () => {
+    const editor = buildGrpcLocators(page).request.queryUrlEditor();
+
+    await editor.click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.press('Backspace');
+    await expect.poll(() => readEditorValue(editor)).toBe('');
+
+    await page.keyboard.type(url);
+    await expect.poll(() => readEditorValue(editor)).toBe(url);
   });
 };
