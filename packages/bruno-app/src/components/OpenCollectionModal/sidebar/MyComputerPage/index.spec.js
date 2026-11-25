@@ -314,7 +314,7 @@ describe('MyComputerPage', () => {
     fireEvent.click(rowFor('Payments'));
     fireEvent.click(screen.getByTestId('my-computer-open-selected'));
 
-    expect(openMultipleCollections).toHaveBeenCalledWith([payments.path, billing.path], { silent: true, recordRecent: true });
+    expect(openMultipleCollections).toHaveBeenCalledWith([payments.path, billing.path], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
   });
 
   it('switches to a collection that is already open, closing the modal and stopping the search', async () => {

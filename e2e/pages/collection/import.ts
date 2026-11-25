@@ -49,6 +49,7 @@ export const buildImportCollectionLocators = (page: Page) => ({
       bulkCollectionTitle: (name: string) => bulkCollectionsList().getByText(name, { exact: true })
     };
   })(),
+  bulkCollectionName: (name: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) }).getByTestId('selection-item-title'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
   browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
   importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),

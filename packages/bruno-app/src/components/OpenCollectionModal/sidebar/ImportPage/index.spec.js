@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
-import { readImportFiles, readImportText } from 'providers/ReduxStore/slices/open-collection-modal/import-sources';
+import { readImportFiles, readImportUrl } from 'utils/importers/import-sources';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { ImportHandoffContext } from '../../components/ImportHandoff/context';
 import ImportPage from './index';
@@ -15,10 +15,10 @@ jest.mock('nanoid', () => {
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
-jest.mock('providers/ReduxStore/slices/open-collection-modal/import-sources', () => ({
-  ...jest.requireActual('providers/ReduxStore/slices/open-collection-modal/import-sources'),
+jest.mock('utils/importers/import-sources', () => ({
+  ...jest.requireActual('utils/importers/import-sources'),
   readImportFiles: jest.fn(),
-  readImportText: jest.fn()
+  readImportUrl: jest.fn()
 }));
 
 const importData = { rawData: { openapi: '3.0.0' }, type: 'openapi' };
@@ -51,9 +51,11 @@ describe('ImportPage', () => {
     jest.clearAllMocks();
   });
 
-  it('asks for a URL and offers to select files', () => {
+  it('asks for a URL in a single-line field and offers to select files', () => {
     renderPage();
 
+    expect(textField()).toHaveAttribute('type', 'text');
+    expect(textField()).toHaveAttribute('spellcheck', 'false');
     expect(textField()).toHaveAttribute('placeholder', 'Paste a file URL, e.g. https://example.com/openapi.yaml');
     expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('Drop anywhere to import');
     expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('OpenCollection · Bruno · Postman · Insomnia · OpenAPI · WSDL');
@@ -81,19 +83,30 @@ describe('ImportPage', () => {
     expect(loadButton()).toBeDisabled();
   });
 
+  it('shows no hint for text that is not a URL and leaves the check to Load, like the old URL tab', async () => {
+    readImportUrl.mockRejectedValue(new Error('Please enter a valid URL'));
+    renderPage();
+
+    type('openapi: 3.0.0');
+    expect(screen.queryByTestId('import-page-hint')).not.toBeInTheDocument();
+    fireEvent.click(loadButton());
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Please enter a valid URL'));
+  });
+
   it('hands what it loaded over', async () => {
-    readImportText.mockResolvedValue(importData);
+    readImportUrl.mockResolvedValue(importData);
     const { importFrom } = renderPage();
     type('  https://example.com/openapi.yaml ');
 
     fireEvent.click(loadButton());
 
-    await waitFor(() => expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
+    await waitFor(() => expect(readImportUrl).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
   });
 
   it('holds the field while it loads', () => {
-    readImportText.mockReturnValue(new Promise(() => {}));
+    readImportUrl.mockReturnValue(new Promise(() => {}));
     renderPage();
     type('https://example.com/openapi.yaml');
 
@@ -102,15 +115,30 @@ describe('ImportPage', () => {
     expect(textField()).toHaveAttribute('readonly');
   });
 
-  it('keeps the line breaks of pasted YAML', async () => {
-    readImportText.mockResolvedValue(importData);
+  it('loads when the field is submitted with Enter', async () => {
+    readImportUrl.mockResolvedValue(importData);
     renderPage();
-    const yaml = 'openapi: 3.0.0\ninfo:\n  title: Orders';
+    type('https://example.com/openapi.yaml');
 
-    fireEvent.paste(textField(), { clipboardData: { getData: () => yaml } });
-    fireEvent.click(loadButton());
+    fireEvent.submit(textField().closest('form'));
 
-    await waitFor(() => expect(readImportText).toHaveBeenCalledWith(yaml));
+    await waitFor(() => expect(readImportUrl).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
+  });
+
+  it('does not load on Enter while Load is off or a load is running', () => {
+    readImportUrl.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    const submit = () => fireEvent.submit(textField().closest('form'));
+
+    submit();
+    type('https://example.com/orders.zip');
+    submit();
+    expect(readImportUrl).not.toHaveBeenCalled();
+
+    type('https://example.com/openapi.yaml');
+    submit();
+    submit();
+    expect(readImportUrl).toHaveBeenCalledTimes(1);
   });
 
   it('highlights the drop zone only while files are over it', () => {
@@ -128,13 +156,13 @@ describe('ImportPage', () => {
   });
 
   it('shows why it could not load in a toast and lets the text be changed', async () => {
-    readImportText.mockRejectedValue(new Error('URL import failed. Please check the URL and try again.'));
+    readImportUrl.mockRejectedValue(new Error('Could not find example.com. Check the address for a typo.'));
     renderPage();
     type('https://example.com/openapi.yaml');
 
     fireEvent.click(loadButton());
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('URL import failed. Please check the URL and try again.'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not find example.com. Check the address for a typo.'));
     expect(textField()).not.toHaveAttribute('readonly');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

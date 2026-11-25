@@ -1,18 +1,28 @@
 import styled from 'styled-components';
+import { rgba } from 'polished';
 
 const StyledWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  height: 3rem;
+  min-height: 3rem;
   padding: 0.375rem 0.5rem;
   border-radius: ${(props) => props.theme.border.radius.md};
   cursor: pointer;
 
   &:hover,
   &:has(:focus-visible) {
-    background: ${(props) => props.theme.background.crust};
+    background: ${(props) => rgba(props.theme.text, 0.04)};
+  }
+
+  &:has(:focus-visible) {
+    box-shadow: inset 0 0 0 0.0625rem ${(props) => props.theme.input.focusBorder};
+
+    .checkbox-input:focus-visible + .checkbox-box,
+    .collection-list-row-action button:focus-visible {
+      box-shadow: none;
+    }
   }
 
   .collection-list-row-lead {

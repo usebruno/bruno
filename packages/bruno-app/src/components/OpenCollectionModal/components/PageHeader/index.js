@@ -1,11 +1,13 @@
 import { IconArrowLeft, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 
 const PageHeader = ({ title, description, onBack, onClose }) => (
   <StyledWrapper>
     {onBack && (
-      <button
+      <ActionIcon
         type="button"
+        size="lg"
         className="back-button"
         aria-label="Back"
         onClick={onBack}
@@ -13,21 +15,21 @@ const PageHeader = ({ title, description, onBack, onClose }) => (
         data-testid="open-collection-back"
       >
         <IconArrowLeft size={16} strokeWidth={2} />
-      </button>
+      </ActionIcon>
     )}
     <div className="page-header-text">
       <h3 data-testid="open-collection-page-title">{title}</h3>
       {description && <span className="page-header-description">{description}</span>}
     </div>
-    <button
+    <ActionIcon
       type="button"
-      className="close-button"
+      size="lg"
       aria-label="Close"
       onClick={onClose}
       data-testid="open-collection-close"
     >
       <IconX size={16} strokeWidth={1.75} />
-    </button>
+    </ActionIcon>
   </StyledWrapper>
 );
 

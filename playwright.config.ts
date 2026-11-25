@@ -3,7 +3,8 @@ import { defineConfig } from '@playwright/test';
 const reporter: any[] = [['list'], ['html'], ['json', { outputFile: 'playwright-report/results.json' }]];
 
 if (process.env.CI) {
-  reporter.push(['github']);
+  // omitTags: To avoid GitHub rendering playwright tags as a @-mention in the report (eg @sanity mentions github.com/sanity).
+  reporter.push(['github', { omitTags: true }]);
   // Blob reports are mergeable across shards (see tests-linux.yml e2e-test-report).
   reporter.push(['blob']);
 }
@@ -33,7 +34,12 @@ export default defineConfig({
     },
     {
       name: 'auth',
-      testDir: './e2e/tests/auth'
+      testDir: './e2e/tests/auth',
+      testIgnore: ['oauth2/**'] // oauth2 specs run in their own project (needs a Keycloak IdP)
+    },
+    {
+      name: 'oauth2',
+      testDir: './e2e/tests/auth/oauth2'
     },
     {
       name: 'ssl',
@@ -53,7 +59,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run dev:web',
-      stdout: 'pipe', 
+      stdout: 'pipe',
       wait: { stdout: /ready\s+built in/i },
       reuseExistingServer: !process.env.CI,
       timeout: 10 * 60 * 1000

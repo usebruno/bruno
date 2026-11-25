@@ -1,3 +1,4 @@
+import kebabCase from 'lodash/kebabCase';
 import { test, expect, Page } from '../../playwright';
 import { selectRequestPaneTab } from './pane';
 import { buildSidebarLocators } from '../sidebar/collection-tree';
@@ -15,7 +16,9 @@ export const buildRequestSettingsLocators = (page: Page) => ({
   encodeUrlToggle: () => page.getByTestId('encode-url-toggle'),
   followRedirectsToggle: () => page.getByTestId('follow-redirects-toggle'),
   forwardAuthToggle: () => page.getByTestId('forward-auth-header-toggle'),
-  maxRedirectsInput: () => page.locator('#maxRedirects')
+  maxRedirectsInput: () => page.locator('#maxRedirects'),
+  tagsInput: () => page.getByTestId('tag-input').getByRole('textbox'),
+  tagItem: (tagName: string) => page.getByTestId(`tag-${kebabCase(tagName)}`)
 });
 
 /**
@@ -45,5 +48,19 @@ export const expectRequestMaxRedirects = async (page: Page, requestName: string,
     await locators.sidebar.request(requestName).click();
     await selectRequestPaneTab(page, 'Settings');
     await expect(locators.requestSettings.maxRedirectsInput()).toHaveValue(expected);
+  });
+};
+
+/**
+ * Add a tag onto a request.
+ * @param page - The Playwright page object
+ * @param tagName - The tag to add
+ * @returns void
+ */
+export const addRequestTag = async (page: Page, tagName: string) => {
+  await test.step(`Enter tag "${tagName}"`, async () => {
+    const input = buildRequestSettingsLocators(page).tagsInput();
+    await input.fill(tagName);
+    await input.press('Enter');
   });
 };

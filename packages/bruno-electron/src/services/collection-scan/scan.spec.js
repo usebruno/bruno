@@ -16,6 +16,7 @@ const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
 const folderLinkType = process.platform === 'win32' ? 'junction' : 'dir';
 const canRemoveReadAccess = process.platform !== 'win32' && process.getuid() !== 0;
 const readFolder = fsPromises.readdir;
+const planOf = (plan) => ({ roots: [], volumeRoots: [], prunePaths: [], mountPrunePaths: [], ...plan });
 
 describe('scanLocations', () => {
   let tempDir;
@@ -28,7 +29,7 @@ describe('scanLocations', () => {
     findCloudFolders.mockResolvedValue({ syncFolders: [], placeholderFolders: [] });
     isDatalessFile.mockResolvedValue(false);
     findCloudOnlyFiles.mockResolvedValue(new Set());
-    planWholeComputer.mockReturnValue({ roots: [], prunePaths: [] });
+    planWholeComputer.mockReturnValue(planOf({}));
   });
 
   afterEach(() => {
@@ -593,6 +594,79 @@ describe('scanLocations', () => {
     })).rejects.toThrow('The port is closed');
   });
 
+  describe('a location that holds system folders, while the whole computer is not searched', () => {
+    it('skips the folders the whole computer prunes, and walks only the roots it adds inside those folders', async () => {
+      const system = makeFolder('system');
+      const workApi = makeBruCollection('Work API', 'system', 'work', 'api');
+      makeBruCollection('Shared tool', 'system', 'usr', 'share', 'tool');
+      const localTool = makeBruCollection('Local tool', 'system', 'usr', 'local', 'tool');
+      makeBruCollection('Volume API', 'system', 'Volumes', 'backup', 'api');
+      makeBruCollection('App tools', 'system', 'Applications', 'tools', 'api');
+      makeBruCollection('Elsewhere API', 'elsewhere', 'api');
+      const mounts = [{ path: path.join(system, 'Volumes', 'backup'), kind: 'removable' }];
+      readMountTable.mockResolvedValue(mounts);
+      planWholeComputer.mockReturnValue(planOf({
+        roots: [system, path.join(system, 'usr', 'local'), path.join(system, 'Applications'), path.join(tempDir, 'elsewhere')],
+        volumeRoots: [path.join(system, 'Volumes', 'backup')],
+        prunePaths: [path.join(system, 'usr'), path.join(system, 'Volumes')]
+      }));
+      const env = { SystemRoot: 'C:\\Windows' };
+      const readdir = jest.spyOn(fsPromises, 'readdir');
+
+      const { collections, statuses } = await scan({ locations: [location('system', 'system')], platform: 'linux', env });
+
+      expect(ownedPaths(collections)).toEqual([[workApi, 'system'], [localTool, 'system']].sort());
+      expect(readdir.mock.calls.map(([target]) => target)).not.toContain(path.join(system, 'usr', 'share'));
+      expect(readdir.mock.calls.map(([target]) => target)).not.toContain(path.join(system, 'Volumes', 'backup'));
+      expect(planWholeComputer.mock.calls).toEqual([[{ platform: 'linux', mounts, env }]]);
+      expect(readMountTable.mock.calls).toEqual([[{ platform: 'linux', env, detectUsb: false }]]);
+      expect(statuses).toEqual([{ id: 'system', status: 'done', found: 2 }]);
+    });
+
+    it('walks a duplicate view of a disk, which only the whole computer search skips', async () => {
+      const system = makeFolder('system');
+      const copyApi = makeBruCollection('Copy API', 'system', 'home', 'me', 'data', 'api');
+      planWholeComputer.mockReturnValue(planOf({ roots: [system], mountPrunePaths: [path.join(system, 'home', 'me', 'data')] }));
+      const home = location('home', 'system', 'home', 'me');
+
+      const { collections: withoutComputer } = await scan({ locations: [home], platform: 'linux' });
+      const { collections: withComputer } = await scan({ locations: [home, computerAt('system')], platform: 'linux' });
+
+      expect(ownedPaths(withoutComputer)).toEqual([[copyApi, 'home']]);
+      expect(withComputer).toEqual([]);
+    });
+
+    it('credits a root the whole computer adds to the innermost location that holds it', async () => {
+      const system = makeFolder('system');
+      const localTool = makeBruCollection('Local tool', 'system', 'usr', 'local', 'tool');
+      planWholeComputer.mockReturnValue(planOf({ roots: [system, path.join(system, 'usr', 'local')], prunePaths: [path.join(system, 'usr')] }));
+
+      const { collections, statuses } = await scan({
+        locations: [location('system', 'system'), location('usr', 'system', 'usr')],
+        platform: 'linux'
+      });
+
+      expect(ownedPaths(collections)).toEqual([[localTool, 'usr']]);
+      expect(statuses).toEqual([
+        { id: 'system', status: 'done', found: 0 },
+        { id: 'usr', status: 'done', found: 1 }
+      ]);
+    });
+
+    it('builds the Windows prunes from the drive letters of the locations, without reading the mount table', async () => {
+      const env = { SystemRoot: 'C:\\Windows' };
+
+      await scan({
+        locations: [{ id: 'c-drive', path: 'C:\\' }, { id: 'work', path: 'D:\\work' }, { id: 'more-work', path: 'D:\\more' }, { id: 'share', path: '\\\\server\\share' }],
+        platform: 'win32',
+        env
+      });
+
+      expect(readMountTable).not.toHaveBeenCalled();
+      expect(planWholeComputer.mock.calls).toEqual([[{ platform: 'win32', mounts: [{ path: 'C:\\', kind: 'local' }, { path: 'D:\\', kind: 'local' }], env }]]);
+    });
+  });
+
   describe('the whole computer', () => {
     it('walks each of its roots and the locations inside them once, and credits each collection to the location closest to it', async () => {
       const system = makeFolder('system');
@@ -606,10 +680,10 @@ describe('scanLocations', () => {
       const home = { ...location('home', 'system', 'Users', 'me'), kind: 'home' };
       const mounts = [{ path: path.join(system, 'Volumes', 'usb'), kind: 'removable' }];
       readMountTable.mockResolvedValue(mounts);
-      planWholeComputer.mockReturnValue({
+      planWholeComputer.mockReturnValue(planOf({
         roots: [system, path.join(system, 'usr', 'local'), path.join(system, 'Volumes', 'usb')],
         prunePaths: [path.join(system, 'usr'), path.join(system, 'private'), path.join(system, 'Volumes'), path.join(system, 'Volumes', 'usb', 'System')]
-      });
+      }));
       const env = { SystemRoot: 'C:\\Windows' };
       const readdir = jest.spyOn(fsPromises, 'readdir');
 
@@ -630,7 +704,7 @@ describe('scanLocations', () => {
       makeBruCollection('Cached', 'data', 'cache', 'api');
       const dataApi = makeBruCollection('Data API', 'data', 'api');
       const privateWork = makeBruCollection('Private work', 'system', 'private', 'work', 'api');
-      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [path.join(tempDir, 'data', 'cache'), path.join(system, 'private')] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [system], prunePaths: [path.join(tempDir, 'data', 'cache'), path.join(system, 'private')] }));
 
       const { collections, statuses } = await scan({
         locations: [location('data', 'data'), location('private-work', 'system', 'private', 'work'), computerAt('system')],
@@ -648,7 +722,7 @@ describe('scanLocations', () => {
     it('reports a missing location while it searches the rest', async () => {
       makeFolder('system');
       const systemApi = makeBruCollection('System API', 'system', 'api');
-      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system')], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [path.join(tempDir, 'system')], prunePaths: [] }));
 
       const { collections, statuses } = await scan({ locations: [location('gone', 'gone'), computerAt('system')], platform: 'linux' });
 
@@ -665,7 +739,7 @@ describe('scanLocations', () => {
     ])('reports its status from its system root alone when %s', async (_label, systemName, usbName, status) => {
       makeBruCollection('System API', 'system', 'api');
       makeBruCollection('USB API', 'usb', 'api');
-      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, systemName), path.join(tempDir, usbName)], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [path.join(tempDir, systemName), path.join(tempDir, usbName)], prunePaths: [] }));
 
       const { statuses } = await scan({ locations: [computerAt(systemName)], platform: 'linux' });
 
@@ -679,7 +753,7 @@ describe('scanLocations', () => {
       makeBruCollection('Shared API', 'system', 'Users', 'me', 'OneDrive', 'Shared', 'api');
       const downloadsApi = makeBruCollection('Downloads API', 'system', 'Users', 'me', 'Downloads', 'api');
       findCloudFolders.mockResolvedValue({ syncFolders: [oneDrive], placeholderFolders: [oneDrive] });
-      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [system], prunePaths: [] }));
       const desktop = path.join(oneDrive, 'Desktop');
       const knownFolders = [desktop, path.join(oneDrive, 'Documents'), path.join(system, 'Users', 'me', 'Downloads')];
       const readdir = jest.spyOn(fsPromises, 'readdir');
@@ -701,7 +775,7 @@ describe('scanLocations', () => {
       const documentsLink = path.join(system, 'home', 'Documents');
       fs.symlinkSync(path.join(dropbox, 'Documents'), documentsLink, folderLinkType);
       findCloudFolders.mockResolvedValue({ syncFolders: [dropbox], placeholderFolders: [dropbox] });
-      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [system], prunePaths: [] }));
 
       const { collections } = await scan({ locations: [computerAt('system')], platform: 'linux', knownFolders: [documentsLink] });
 
@@ -712,7 +786,7 @@ describe('scanLocations', () => {
       const system = makeFolder('system');
       const systemApi = makeBruCollection('System API', 'system', 'api');
       makeBruCollection('Pruned API', 'system', 'usr', 'api');
-      planWholeComputer.mockReturnValue({ roots: [system], prunePaths: [path.join(system, 'usr')] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [system], prunePaths: [path.join(system, 'usr')] }));
       const readdir = jest.spyOn(fsPromises, 'readdir');
 
       const { collections, statuses } = await scan({ locations: [{ id: 'system-folder', path: system, kind: 'user' }, computerAt('system')], platform: 'linux' });
@@ -729,7 +803,7 @@ describe('scanLocations', () => {
       makeFolder('system');
       const usb = makeFolder('usb');
       makeBruCollection('USB API', 'usb', 'api');
-      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] }));
       fs.chmodSync(usb, 0o000);
 
       try {
@@ -874,7 +948,7 @@ describe('scanLocations', () => {
       makeBruCollection('USB API', 'usb', 'api');
       makeFolder('system');
       readMountTable.mockResolvedValue([{ path: usb, kind: 'removable' }]);
-      planWholeComputer.mockReturnValue({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] });
+      planWholeComputer.mockReturnValue(planOf({ roots: [path.join(tempDir, 'system'), usb], prunePaths: [] }));
       const reads = trackReads();
 
       const { collections } = await scan({

@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../IconButtonStyles';
 import iconInputStyles from '../IconInputStyles';
 
 const StyledWrapper = styled.div`
@@ -15,7 +14,7 @@ const StyledWrapper = styled.div`
     padding: 0.125rem 1.25rem 0.625rem;
 
     .collection-list-choose-folder button {
-      height: 2rem;
+      height: 1.875rem;
     }
   }
 
@@ -23,15 +22,26 @@ const StyledWrapper = styled.div`
     ${iconInputStyles}
     flex: 1;
     min-width: 0;
+
+    > svg {
+      top: 0.5rem;
+    }
+
+    input {
+      height: 1.875rem;
+      padding-left: 1.75rem;
+      font-size: ${(props) => props.theme.font.size.sm};
+    }
   }
 
   .collection-list-search-clear {
     position: absolute;
     top: 0.25rem;
-    right: 0.25rem;
-    width: 1.375rem;
-    height: 1.375rem;
-    ${iconButtonStyles}
+    right: 0.75rem;
+
+    &:hover {
+      background: none;
+    }
   }
 
   .collection-list-search-or {
@@ -75,6 +85,28 @@ const StyledWrapper = styled.div`
     &:hover::after,
     &:has(+ .collection-list-item:hover)::after {
       visibility: hidden;
+    }
+  }
+
+  .collection-list-open-line {
+    margin: 0;
+    padding: 0.625rem 0.5rem;
+    font-size: ${(props) => props.theme.font.size.sm};
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
+  .collection-list-open-toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.125rem;
+    cursor: pointer;
+
+    &:hover {
+      color: ${(props) => props.theme.text};
     }
   }
 

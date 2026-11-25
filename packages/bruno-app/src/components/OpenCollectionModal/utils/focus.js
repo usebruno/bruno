@@ -30,7 +30,7 @@ export const focusNextTabbable = (element, leaving) => {
   }
 };
 
-export const returnFocusAfterOverlay = (element) => {
+export const returnFocusTo = (element) => {
   queueMicrotask(() => {
     if (element instanceof HTMLElement && element.isConnected) {
       focusWhenFocusIsLost(element);

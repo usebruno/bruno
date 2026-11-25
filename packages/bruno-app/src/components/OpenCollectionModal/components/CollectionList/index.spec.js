@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { VirtuosoMockContext } from 'react-virtuoso';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -27,6 +28,7 @@ const renderList = (props = {}, preferences = {}) => {
           <CollectionList
             collections={collections}
             openPathKeys={new Set()}
+            hiddenPathKeys={new Set()}
             getMeta={(collection) => collection.meta}
             noMatchText="Only collections you have opened before are listed."
             testIdPrefix="list"
@@ -48,6 +50,11 @@ const checkboxFor = (name) => within(rowFor(name)).getByLabelText(`Select ${name
 const searchBox = () => screen.getByTestId('list-search');
 const search = (text) => fireEvent.change(searchBox(), { target: { value: text } });
 const openSelectedButton = () => screen.queryByTestId('list-open-selected');
+const openLine = () => screen.queryByTestId('list-open-line');
+const openToggle = () => screen.getByTestId('list-open-toggle');
+const toggleOpenCollections = () => fireEvent.click(openToggle());
+const everythingOpen = new Set(collections.map((collection) => collection.path));
+const openAndHidden = (pathKeys) => ({ openPathKeys: pathKeys, hiddenPathKeys: pathKeys });
 
 describe('CollectionList', () => {
   it('shows each collection with the folder it sits in and its meta', () => {
@@ -60,10 +67,96 @@ describe('CollectionList', () => {
     expect(within(rowFor('Orders')).getByTestId('list-row-path')).toHaveTextContent('~/shop/orders-api');
   });
 
-  it('keeps the given order and moves the collections already open to the end', () => {
-    renderList({ openPathKeys: new Set(['/Users/me/work/payments']) });
+  it('hides the collections already open and says how many are not shown', () => {
+    const { rerender } = renderList(openAndHidden(new Set(['/Users/me/work/payments'])));
 
-    expect(rowNames()).toEqual(['Billing', 'Orders', 'Accounts', 'payments']);
+    expect(rowNames()).toEqual(['Billing', 'Orders', 'Accounts']);
+    expect(openLine()).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    rerender(openAndHidden(new Set(['/Users/me/work/payments', '/Users/me/work/accounts'])));
+    expect(rowNames()).toEqual(['Billing', 'Orders']);
+    expect(openLine()).toHaveTextContent('2 collections already open in this workspace aren’t shown. Show');
+  });
+
+  it('keeps an open collection it is not asked to hide in the list, greyed', () => {
+    renderList({
+      openPathKeys: new Set(['/Users/me/work/payments', '/Users/me/work/billing']),
+      hiddenPathKeys: new Set(['/Users/me/work/payments'])
+    });
+
+    expect(rowNames()).toEqual(['Billing', 'Orders', 'Accounts']);
+    expect(rowFor('Billing')).toHaveClass('is-open');
+    expect(openLine()).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+  });
+
+  it('shows the collections already open in the given order once asked, and hides them again', () => {
+    const { rerender } = renderList(openAndHidden(new Set(['/Users/me/work/payments'])));
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['payments', 'Billing', 'Orders', 'Accounts']);
+    expect(rowFor('payments')).toHaveClass('is-open');
+    expect(openLine()).toHaveTextContent('Showing collections already open in this workspace. Hide');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Billing', 'Orders', 'Accounts']);
+
+    rerender(openAndHidden(new Set()));
+    expect(openLine()).not.toBeInTheDocument();
+  });
+
+  it('keeps focus on the Show and Hide toggle', () => {
+    renderList(openAndHidden(new Set(['/Users/me/work/payments'])));
+    openToggle().focus();
+
+    toggleOpenCollections();
+    expect(openToggle()).toHaveTextContent('Hide');
+    expect(openToggle()).toHaveFocus();
+
+    toggleOpenCollections();
+    expect(openToggle()).toHaveTextContent('Show');
+    expect(openToggle()).toHaveFocus();
+  });
+
+  it('starts with the collections already open hidden even when every collection is open', () => {
+    renderList(openAndHidden(everythingOpen));
+
+    expect(rowNames()).toEqual([]);
+    expect(screen.queryByTestId('list-no-match')).not.toBeInTheDocument();
+    expect(openLine()).toHaveTextContent('4 collections already open in this workspace aren’t shown. Show');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['payments', 'Billing', 'Orders', 'Accounts']);
+    expect(openLine()).toHaveTextContent('Showing collections already open in this workspace. Hide');
+  });
+
+  it('keeps the search and the toggle focus while the open ones are shown and hidden during a search', () => {
+    renderList(openAndHidden(everythingOpen));
+
+    search('bill');
+    expect(screen.getByTestId('list-no-match')).toHaveTextContent('No collection matches “bill”');
+    expect(openLine()).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+    openToggle().focus();
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Billing']);
+    expect(openToggle()).toHaveFocus();
+
+    toggleOpenCollections();
+    expect(searchBox()).toHaveValue('bill');
+    expect(screen.getByTestId('list-no-match')).toBeInTheDocument();
+    expect(openToggle()).toHaveFocus();
+  });
+
+  it('counts only the collections already open that the search matches', () => {
+    renderList(openAndHidden(new Set(['/Users/me/work/payments', '/Users/me/work/billing'])));
+
+    search('billing');
+    expect(screen.getByTestId('list-no-match')).toHaveTextContent('No collection matches “billing”');
+    expect(openLine()).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    search('orders');
+    expect(rowNames()).toEqual(['Orders']);
+    expect(openLine()).not.toBeInTheDocument();
   });
 
   it('greys out a collection that is already open and never ticks it', () => {
@@ -161,6 +254,30 @@ describe('CollectionList', () => {
     expect(openSelectedButton()).toHaveTextContent('Open 3 collections');
   });
 
+  it('leaves a shown open collection out of a shift-click range, even after it closes', () => {
+    const { rerender } = renderList({ openPathKeys: new Set(['/Users/me/work/billing']) });
+
+    fireEvent.click(rowFor('payments'));
+    fireEvent.click(rowFor('Orders'), { shiftKey: true });
+    expect(openSelectedButton()).toHaveTextContent('Open 2 collections');
+
+    rerender({ openPathKeys: new Set() });
+    expect(checkboxFor('Billing')).not.toBeChecked();
+    expect(openSelectedButton()).toHaveTextContent('Open 2 collections');
+  });
+
+  it('leaves Space on the Switch button of an open collection alone, while Enter still switches', async () => {
+    const user = userEvent.setup();
+    const { onSwitch } = renderList({ openPathKeys: new Set(['/Users/me/work/billing']) });
+    within(rowFor('Billing')).getByRole('button', { name: 'Switch to Billing' }).focus();
+
+    await user.keyboard(' ');
+    expect(onSwitch).not.toHaveBeenCalled();
+
+    await user.keyboard('{Enter}');
+    expect(onSwitch).toHaveBeenCalledWith('/Users/me/work/billing');
+  });
+
   it('moves focus between rows with the arrow keys and stops at both ends', () => {
     renderList();
     checkboxFor('payments').focus();
@@ -241,8 +358,21 @@ describe('CollectionList', () => {
     const noMatch = screen.getByTestId('list-no-match');
     expect(noMatch).toHaveTextContent('No collection matches “zzz”');
     expect(noMatch).toHaveTextContent('Only collections you have opened before are listed.');
-    fireEvent.click(within(noMatch).getByRole('button', { name: 'Choose folder…' }));
+    const chooseFolder = within(noMatch).getByRole('button', { name: 'Choose folder…' });
+    expect(chooseFolder).toHaveAttribute('title', expect.stringMatching(/^Choose a collection folder to open it in place \(.*(Shift|⇧).*O\)$/));
+    fireEvent.click(chooseFolder);
     expect(onChooseFolder).toHaveBeenCalled();
+  });
+
+  it('keeps the ticked rows but hides the footer while nothing matches', () => {
+    renderList();
+    fireEvent.click(rowFor('Billing'));
+
+    search('zzz');
+    expect(openSelectedButton()).not.toBeInTheDocument();
+
+    search('');
+    expect(openSelectedButton()).toHaveTextContent('Open 1 collection');
   });
 
   it('offers to choose a folder next to the search box', () => {
@@ -253,6 +383,8 @@ describe('CollectionList', () => {
     expect(chooseFolder).toHaveAttribute('title', expect.stringMatching(/^Choose a collection folder to open it in place \(.*(Shift|⇧).*O\)$/));
     expect(searchBox()).toHaveAttribute('placeholder', 'Search collections');
     expect(searchBox()).toHaveAccessibleName('Search collections');
+    expect(searchBox()).toHaveAttribute('spellcheck', 'false');
+    expect(searchBox()).toHaveAttribute('autocomplete', 'off');
 
     fireEvent.click(chooseFolder);
     expect(onChooseFolder).toHaveBeenCalled();

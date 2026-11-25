@@ -50,7 +50,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) =>
   return (
     <StyledWrapper className="w-full">
       <label className="block mb-1">Username</label>
-      <div className="single-line-editor-wrapper mb-3">
+      <div className="single-line-editor-wrapper mb-3" data-testid="auth-basic-username">
         <SingleLineEditor
           value={basicAuth.username || ''}
           theme={storedTheme}
@@ -65,7 +65,7 @@ const BasicAuth = ({ item, collection, updateAuth, request, save, readOnly }) =>
       </div>
 
       <label className="block mb-1">Password</label>
-      <div className="single-line-editor-wrapper flex items-center">
+      <div className="single-line-editor-wrapper flex items-center" data-testid="auth-basic-password">
         <SingleLineEditor
           value={basicAuth.password || ''}
           theme={storedTheme}

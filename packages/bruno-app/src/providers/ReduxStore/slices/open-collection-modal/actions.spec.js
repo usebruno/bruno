@@ -12,7 +12,7 @@ import openCollectionModalReducer, {
   myComputerLocationsReceived,
   myComputerScanFinished
 } from './index';
-import { readImportableFile, readImportFiles, readImportText } from './import-sources';
+import { readImportableFile, readImportFiles, readImportUrl } from 'utils/importers/import-sources';
 import {
   addFolderResultToSearch,
   addSearchFolders,
@@ -21,7 +21,7 @@ import {
   findCollectionsInFolders,
   loadImportableFile,
   loadImportFiles,
-  loadImportText,
+  loadImportUrl,
   loadRecentCollections,
   openCollectionModal,
   openCollectionModalOnLastPage,
@@ -47,9 +47,9 @@ jest.mock('react-hot-toast', () => {
   return { __esModule: true, default: mockToast };
 });
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
-jest.mock('./import-sources', () => ({
+jest.mock('utils/importers/import-sources', () => ({
   readImportFiles: jest.fn(),
-  readImportText: jest.fn(),
+  readImportUrl: jest.fn(),
   readImportableFile: jest.fn()
 }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
@@ -96,6 +96,7 @@ const listResult = {
 const folderResult = (folders, collections) => ({
   folders,
   collections,
+  brokenCollectionPaths: [],
   unreadableFolderCount: 0,
   stoppedEarly: false
 });
@@ -395,9 +396,31 @@ describe('open collection modal actions', () => {
 
       await store.dispatch(findCollectionsInFolders(['/work/api']));
 
-      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, recordRecent: true });
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('does not leave the last search’s note on screen when the next pick opens straight away and fails', async () => {
+      searchReturns(Promise.resolve(pickedCollection));
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+      const lastResult = { id: 'search-0', type: 'message', note: { tone: 'info', text: 'docs isn’t a Bruno collection.' } };
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { ...closedModal.chooseFolder, result: lastResult }) });
+
+      await store.dispatch(findCollectionsInFolders(['/work/api']));
+
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse bruno.json');
+      expect(modalState(store)).toMatchObject({ isOpen: true, chooseFolder: { status: 'idle', result: null } });
+    });
+
+    it('brings back the last list when the next search is cancelled', () => {
+      searchReturns(new Promise(() => {}));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { ...closedModal.chooseFolder, result: listResult }) });
+
+      store.dispatch(findCollectionsInFolders(['/work/docs']));
+      store.dispatch(cancelCollectionSearch());
+
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', result: listResult });
     });
 
     it('says which picked folders were skipped when it opens the rest', async () => {
@@ -450,12 +473,13 @@ describe('open collection modal actions', () => {
       expect(modalState(store).isOpen).toBe(false);
     });
 
-    it('goes back to Choose folder when the search ends while another page shows', async () => {
+    it('cancels the search when another page is opened, so its result never pulls the user back', async () => {
       const search = deferred();
       searchReturns(search.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
 
       const searching = store.dispatch(findCollectionsInFolders(['/work']));
+      const { searchId } = modalState(store).chooseFolder;
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
       search.resolve(folderResult(
         [{ path: '/work', status: 'folder', collectionPaths: ['/work/api'], importableFiles: [] }],
@@ -463,11 +487,22 @@ describe('open collection modal actions', () => {
       ));
       await searching;
 
-      expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
-      expect(modalState(store).chooseFolder.result.note).toEqual({
-        tone: 'info',
-        text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open.'
-      });
+      expect(callIpc).toHaveBeenCalledWith(CANCEL_SEARCH, { requestId: searchId });
+      expect(modalState(store)).toMatchObject({ page: OPEN_COLLECTION_PAGE.RECENTS, chooseFolder: { status: 'idle', searchId: null, result: null } });
+    });
+
+    it('does not open a collection the search found after the user moved to another page', async () => {
+      const search = deferred();
+      searchReturns(search.promise);
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      const searching = store.dispatch(findCollectionsInFolders(['/work/api']));
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
+      search.resolve(pickedCollection);
+      await searching;
+
+      expect(openMultipleCollections).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.RECENTS });
     });
 
     it('shows the collections found inside a folder', async () => {
@@ -569,19 +604,19 @@ describe('open collection modal actions', () => {
     });
 
     it('marks the page as loading while it reads', () => {
-      readImportText.mockReturnValue(new Promise(() => {}));
+      readImportUrl.mockReturnValue(new Promise(() => {}));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
 
       expect(modalState(store).importLoadId).toEqual(expect.any(String));
     });
 
     it('shows why in a toast when it cannot be read, without the IPC prefix', async () => {
-      readImportText.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
+      readImportUrl.mockRejectedValue(new Error('Error invoking remote method \'renderer:x\': Error: No such file'));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      await expect(store.dispatch(loadImportText('{}'))).resolves.toBeNull();
+      await expect(store.dispatch(loadImportUrl('https://example.com/spec.yaml'))).resolves.toBeNull();
 
       expect(toast.error).toHaveBeenCalledWith('No such file');
       expect(modalState(store).importLoadId).toBeNull();
@@ -589,10 +624,10 @@ describe('open collection modal actions', () => {
 
     it('ignores a read that finishes after the page was left', async () => {
       const reading = deferred();
-      readImportText.mockReturnValue(reading.promise);
+      readImportUrl.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
       reading.resolve(importData);
 
@@ -602,10 +637,10 @@ describe('open collection modal actions', () => {
 
     it('stays quiet about a failed read after the page was left', async () => {
       const reading = deferred();
-      readImportText.mockReturnValue(reading.promise);
+      readImportUrl.mockReturnValue(reading.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.IMPORT) });
 
-      const loading = store.dispatch(loadImportText('https://example.com/spec.yaml'));
+      const loading = store.dispatch(loadImportUrl('https://example.com/spec.yaml'));
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
       reading.reject(new Error('Nope'));
 
@@ -703,13 +738,19 @@ describe('open collection modal actions', () => {
   });
 
   describe('openCollectionsFromModal', () => {
-    it('keeps the modal open and counts the failures when nothing opened', async () => {
-      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'Unable to parse bruno.json' }], invalid: [] }));
+    it('keeps the modal open and says why in one toast when nothing opened', async () => {
+      openingReturns(Promise.resolve({
+        opened: [],
+        failed: [{ path: '/work/api', error: 'Unable to parse opencollection.yml: Nested mappings are not allowed\n\n  name: a: b\n' }],
+        invalid: []
+      }));
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
 
       await store.dispatch(openCollectionsFromModal(['/work/api']));
 
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open api. Unable to parse opencollection.yml: Nested mappings are not allowed');
       expect(modalState(store)).toMatchObject({ isOpen: true, openingId: null });
     });
 
@@ -720,8 +761,18 @@ describe('open collection modal actions', () => {
       await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
 
       expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(toast.error).toHaveBeenCalledWith('Failed to open 1 collection');
+      expect(toast.error).toHaveBeenCalledWith('Failed to open gone. The folder doesn’t exist anymore.');
       expect(modalState(store).isOpen).toBe(false);
+    });
+
+    it('counts the failures in one toast when several collections fail to open', async () => {
+      openingReturns(Promise.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: ['/work/gone'] }));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      await store.dispatch(openCollectionsFromModal(['/work/api', '/work/gone']));
+
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
     });
 
     it('opens the collections once even when asked twice', () => {
@@ -735,38 +786,22 @@ describe('open collection modal actions', () => {
       expect(modalState(store).openingId).toEqual(expect.any(String));
     });
 
-    it('leaves a modal opened again in the meantime alone', async () => {
+    it('stays open while collections are opening, so they cannot be opened a second time', async () => {
       const opening = deferred();
       openingReturns(opening.promise);
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
 
       const result = store.dispatch(openCollectionsFromModal(['/work/api']));
       store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
+      store.dispatch(openCollectionsFromModal(['/work/api']));
+
+      expect(modalState(store)).toMatchObject({ isOpen: true, openingId: expect.any(String) });
+      expect(openMultipleCollections).toHaveBeenCalledTimes(1);
+
       opening.resolve({ opened: ['/work/api'], failed: [], invalid: [] });
       await result;
 
-      expect(toast.success).toHaveBeenCalledWith('Collection added to workspace');
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.RECENTS, openingId: null });
-    });
-
-    it('lets an opening from before a close finish without ending the next one', async () => {
-      const firstOpening = deferred();
-      const secondOpening = deferred();
-      openMultipleCollections
-        .mockReturnValueOnce(() => firstOpening.promise)
-        .mockReturnValueOnce(() => secondOpening.promise);
-      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
-
-      const first = store.dispatch(openCollectionsFromModal(['/work/api']));
-      store.dispatch(closeOpenCollectionModal());
-      store.dispatch(showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
-      store.dispatch(openCollectionsFromModal(['/work/billing']));
-      const { openingId } = modalState(store);
-      firstOpening.resolve({ opened: [], failed: [{ path: '/work/api', error: 'bad json' }], invalid: [] });
-      await first;
-
-      expect(modalState(store)).toMatchObject({ isOpen: true, openingId });
+      expect(modalState(store)).toMatchObject({ isOpen: false, openingId: null });
     });
 
     it('shows an error when opening fails', async () => {
@@ -1302,14 +1337,38 @@ describe('open collection modal actions', () => {
       expect(modalState(store)).toMatchObject({ page: OPEN_COLLECTION_PAGE.RECENTS, recents: { status: 'ready', items: recentItems } });
     });
 
-    it.each([OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, OPEN_COLLECTION_PAGE.IMPORT])('leaves them alone when the modal opens on %s', (page) => {
+    it.each([OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, OPEN_COLLECTION_PAGE.IMPORT])('reads them as soon as the modal opens on %s, so Recents is ready before it is shown', async (page) => {
       pickerReturns(new Promise(() => {}));
+      recentsReturn(Promise.resolve(recentItems));
       const { store } = createStore();
 
       store.dispatch(openCollectionModal(page));
+      await flushPromises();
+
+      expect(callIpc).toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: recentItems });
+    });
+
+    it('shows the list read on opening at once when Recents is chosen, refreshing it in the background', async () => {
+      pickerReturns(new Promise(() => {}));
+      recentsReturn(Promise.resolve(recentItems));
+      const { store } = createStore();
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
+      await flushPromises();
+
+      recentsReturn(new Promise(() => {}));
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
+
+      expect(callIpc.mock.calls.filter(([channel]) => channel === LIST_RECENT_COLLECTIONS)).toHaveLength(2);
+      expect(modalState(store).recents).toMatchObject({ status: 'ready', items: recentItems });
+    });
+
+    it('leaves them alone when another page is shown in the open modal', () => {
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.RECENTS) });
+
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.IMPORT));
 
       expect(callIpc).not.toHaveBeenCalledWith(LIST_RECENT_COLLECTIONS);
-      expect(modalState(store).recents).toEqual(closedModal.recents);
     });
 
     it('reads them the first time My computer is shown, and not when it is shown again', async () => {

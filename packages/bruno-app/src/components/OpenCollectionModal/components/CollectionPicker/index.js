@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import classnames from 'classnames';
 import { Virtuoso } from 'react-virtuoso';
 import { IconSearch, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
@@ -41,20 +42,18 @@ const CollectionPicker = ({
   const [selectedKeys, setSelectedKeys] = useState(() => new Set(initialSelection.map(toPathKey)));
   const searchInput = useRef(null);
 
-  const isOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
+  const isOpen = useCallback((collection) => openPathKeys.has(toPathKey(collection.path)), [openPathKeys]);
+  const isSelected = (collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection);
   const query = searchText.trim().toLowerCase();
 
   const rows = useMemo(() => {
     const matches = query ? collections.filter((collection) => matchesSearch(collection, query)) : collections;
-    const isAlreadyOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
-    return [...matches.filter((collection) => !isAlreadyOpen(collection)), ...matches.filter(isAlreadyOpen)];
-  }, [collections, query, openPathKeys]);
+    return [...matches.filter((collection) => !isOpen(collection)), ...matches.filter(isOpen)];
+  }, [collections, query, isOpen]);
 
   const visibleSelectableKeys = rows.filter((collection) => !isOpen(collection)).map((collection) => toPathKey(collection.path));
   const allVisibleSelected = visibleSelectableKeys.length > 0 && visibleSelectableKeys.every((key) => selectedKeys.has(key));
-  const selectedPaths = collections
-    .filter((collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection))
-    .map((collection) => collection.path);
+  const selectedPaths = collections.filter(isSelected).map((collection) => collection.path);
 
   const toggleRow = (collection) => {
     const key = toPathKey(collection.path);
@@ -71,15 +70,11 @@ const CollectionPicker = ({
 
   const toggleAllVisible = () => {
     setSelectedKeys((previous) => {
-      const next = new Set(previous);
-      visibleSelectableKeys.forEach((key) => {
-        if (allVisibleSelected) {
-          next.delete(key);
-        } else {
-          next.add(key);
-        }
-      });
-      return next;
+      if (!allVisibleSelected) {
+        return new Set([...previous, ...visibleSelectableKeys]);
+      }
+      const visibleKeys = new Set(visibleSelectableKeys);
+      return new Set([...previous].filter((key) => !visibleKeys.has(key)));
     });
   };
 
@@ -106,24 +101,25 @@ const CollectionPicker = ({
           onChange={(event) => setSearchText(event.target.value)}
           data-testid={`${testIdPrefix}-search`}
         />
-        {searchText ? (
-          <button
+        {searchText && (
+          <ActionIcon
             type="button"
+            size="sm"
             className="collection-picker-search-clear"
             aria-label="Clear search"
             onClick={clearSearch}
             data-testid={`${testIdPrefix}-search-clear`}
           >
             <IconX size={12} strokeWidth={2.2} />
-          </button>
-        ) : null}
+          </ActionIcon>
+        )}
       </div>
 
       <div className="collection-picker-summary">
         <strong>
           {countOf(collections.length, 'collection')} in {folders.length === 1 ? tildify(folders[0]) : countOf(folders.length, 'folder')}
         </strong>
-        {visibleSelectableKeys.length > 1 ? (
+        {visibleSelectableKeys.length > 1 && (
           <button
             type="button"
             className="text-link hover:underline whitespace-nowrap"
@@ -132,7 +128,7 @@ const CollectionPicker = ({
           >
             {allVisibleSelected ? 'Clear selection' : 'Select all'}
           </button>
-        ) : null}
+        )}
       </div>
 
       <div className="collection-picker-list" data-testid={`${testIdPrefix}-list`}>
@@ -148,7 +144,7 @@ const CollectionPicker = ({
               collection={collection}
               location={getLocationInFolders(folders, collection.path)}
               isOpen={isOpen(collection)}
-              isSelected={selectedKeys.has(toPathKey(collection.path))}
+              isSelected={isSelected(collection)}
               testIdPrefix={testIdPrefix}
               onToggle={() => toggleRow(collection)}
               onOpen={() => onOpen([collection.path])}

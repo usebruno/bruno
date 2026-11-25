@@ -61,6 +61,14 @@ describe('CollectionPicker', () => {
     expect(document.querySelector('.collection-picker-summary strong')).toHaveTextContent('4 collections in 2 folders');
   });
 
+  it('counts a collection picked directly as one of the folders, without changing where the rows sit', () => {
+    renderPicker({ folders: ['/Users/me/work', '/Users/me/work/shop/orders'] });
+
+    expect(document.querySelector('.collection-picker-summary strong')).toHaveTextContent('4 collections in 2 folders');
+    expect(rowFor('Orders').querySelector('.collection-row-meta')).toHaveTextContent('shop/orders');
+    expect(rowFor('Payments').querySelector('.collection-row-meta')).toHaveTextContent('payments');
+  });
+
   it('lists the collections in the order found, with the ones already open last', () => {
     renderPicker({ openPathKeys: new Set(['/Users/me/work/payments']) });
 
@@ -87,7 +95,8 @@ describe('CollectionPicker', () => {
     expect(within(billing).getByLabelText('Select Billing')).toBeDisabled();
     expect(within(billing).queryByTestId('picker-row-open')).not.toBeInTheDocument();
 
-    fireEvent.click(billing);
+    fireEvent.click(within(billing).getByText('Already open'));
+    expect(within(billing).getByLabelText('Select Billing')).not.toBeChecked();
     expect(openButton()).toBeDisabled();
   });
 
@@ -97,7 +106,7 @@ describe('CollectionPicker', () => {
     expect(openButton()).toHaveTextContent('Open');
     expect(openButton()).toBeDisabled();
 
-    fireEvent.click(rowFor('Payments'));
+    fireEvent.click(rowFor('Payments').querySelector('.collection-row-meta'));
     fireEvent.click(within(rowFor('Orders')).getByLabelText('Select Orders'));
 
     expect(footerStart()).toHaveTextContent('2 selected');
@@ -116,10 +125,11 @@ describe('CollectionPicker', () => {
     expect(openButton()).toHaveTextContent('Open 1 collection');
   });
 
-  it('shows an already open collection as picked without counting it', () => {
+  it('never shows an already open collection as ticked or counts it, even when it was picked directly', () => {
     renderPicker({ initialSelection: ['/Users/me/work/billing'], openPathKeys: new Set(['/Users/me/work/billing']) });
 
-    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).toBeChecked();
+    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).not.toBeChecked();
+    expect(within(rowFor('Billing')).getByLabelText('Select Billing')).toBeDisabled();
     expect(openButton()).toBeDisabled();
     expect(footerStart()).toHaveTextContent('Choose other folders…');
   });
@@ -141,6 +151,21 @@ describe('CollectionPicker', () => {
 
     fireEvent.click(selectAll);
     expect(openButton()).toBeDisabled();
+  });
+
+  it('clears only the shown collections and keeps the selections the search hides', () => {
+    renderPicker({
+      collections: [...collections, { path: '/Users/me/work/pay-ins', name: 'Pay ins' }],
+      initialSelection: ['/Users/me/work/accounts']
+    });
+    search('pay');
+    const selectAll = screen.getByTestId('picker-select-all');
+
+    fireEvent.click(selectAll);
+    expect(openButton()).toHaveTextContent('Open 3 collections');
+
+    fireEvent.click(selectAll);
+    expect(openButton()).toHaveTextContent('Open 1 collection');
   });
 
   it('offers Select all only when two or more collections can be picked', () => {
@@ -209,23 +234,12 @@ describe('CollectionPicker', () => {
     expect(screen.getByTestId('picker-cancel')).toHaveFocus();
   });
 
-  it('does not open a collection when its checkbox is double clicked', () => {
-    const { onOpen } = renderPicker();
-
-    fireEvent.doubleClick(within(rowFor('Billing')).getByLabelText('Select Billing'));
-
-    expect(onOpen).not.toHaveBeenCalled();
-  });
-
   it('opens one collection from its row without changing the selection', () => {
     const { onOpen } = renderPicker();
 
     fireEvent.click(within(rowFor('Payments')).getByLabelText('Open Payments'));
     expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/payments']);
     expect(openButton()).toBeDisabled();
-
-    fireEvent.doubleClick(rowFor('Billing'));
-    expect(onOpen).toHaveBeenCalledWith(['/Users/me/work/billing']);
   });
 
   it('chooses other folders and cancels', () => {

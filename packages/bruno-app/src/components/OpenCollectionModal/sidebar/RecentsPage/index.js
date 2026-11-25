@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { IconAlertTriangle, IconClock } from '@tabler/icons';
 import Button from 'ui/Button';
 import {
@@ -9,28 +9,32 @@ import {
   openCollectionsFromModal,
   switchToCollection
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
-import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
+import { selectOpenCollections } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import CollectionList from '../../components/CollectionList';
 import EmptyState from '../../components/EmptyState';
 import { describeLastUse } from '../../utils/relative-time';
+import { isSameOpenCollections, mergeOpenCollections } from './utils';
 
 const RecentsPage = () => {
   const dispatch = useDispatch();
   const { status, items, error } = useSelector((state) => state.openCollectionModal.recents);
-  const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
-  const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
+  const openCollections = useSelector(selectOpenCollections, isSameOpenCollections);
+  const { collections, openPathKeys, unrecordedPathKeys } = useMemo(
+    () => mergeOpenCollections(items, openCollections),
+    [items, openCollections]
+  );
 
   const showPage = (page) => dispatch(openCollectionModal(page));
   const chooseFolders = () => dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
 
   const openFolderButton = (
-    <Button color="primary" fullWidth onClick={chooseFolders} data-testid="recents-open-folder">
+    <Button color="primary" onClick={chooseFolders} data-testid="recents-open-folder">
       Open a collection folder…
     </Button>
   );
 
-  if (status === 'error') {
+  if (status === 'error' && items.length === 0) {
     return (
       <EmptyState
         key="error"
@@ -39,7 +43,7 @@ const RecentsPage = () => {
         actions={(
           <>
             {openFolderButton}
-            <Button variant="outline" color="secondary" fullWidth onClick={() => dispatch(loadRecentCollections())} data-testid="recents-retry">
+            <Button variant="outline" color="secondary" onClick={() => dispatch(loadRecentCollections())} data-testid="recents-retry">
               Try again
             </Button>
           </>
@@ -51,9 +55,9 @@ const RecentsPage = () => {
     );
   }
 
-  if (status !== 'ready') {
+  if (status === 'idle' || status === 'loading') {
     return (
-      <EmptyState key="loading" data-testid="recents-loading">
+      <EmptyState key="loading" isLoading data-testid="recents-loading">
         Loading…
       </EmptyState>
     );
@@ -68,7 +72,7 @@ const RecentsPage = () => {
         actions={(
           <>
             {openFolderButton}
-            <Button variant="outline" color="secondary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.MY_COMPUTER)} data-testid="recents-show-my-computer">
+            <Button variant="outline" color="secondary" onClick={() => showPage(OPEN_COLLECTION_PAGE.MY_COMPUTER)} data-testid="recents-show-my-computer">
               Show collections on this computer
             </Button>
           </>
@@ -95,8 +99,9 @@ const RecentsPage = () => {
 
   return (
     <CollectionList
-      collections={items}
+      collections={collections}
       openPathKeys={openPathKeys}
+      hiddenPathKeys={unrecordedPathKeys}
       getMeta={describeLastUse}
       noMatchText="Recents only lists collections you have opened before. If it lives somewhere else, choose its folder."
       testIdPrefix="recents"

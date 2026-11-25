@@ -4,7 +4,7 @@ const { getRealPath, toPathKey, isSameOrInside, isPrunedFolderName, hasCollectio
 const { isRealFolder } = require('../collection-search/entry-kind');
 const { readMountTable, skippedMountPointsOf } = require('../collection-search/mount-points');
 const { findCloudFolders, isDatalessFile, findCloudOnlyFiles } = require('./cloud-folders');
-const { readCollectionName } = require('../collection-search/collection-name');
+const { readCollectionName } = require('./collection-name');
 const { planWholeComputer } = require('./whole-computer');
 
 const MAX_FOLDER_DEPTH = 32;
@@ -12,6 +12,8 @@ const CONCURRENCY = 16;
 const RECENTS_CONCURRENCY = 4;
 const CLOUD_CHECK_BATCH_SIZE = 25;
 const RECENTS_LOCATION_ID = 'recents';
+
+const DRIVE_ROOT = /^[A-Za-z]:\\$/;
 
 const isUncPath = (folderPath, platform) => platform === 'win32' && folderPath.startsWith('\\\\');
 
@@ -32,24 +34,44 @@ const toRealPathKeyWithoutOpening = async (folderPath) => {
 
 const toFolderDepth = (realPath) => path.relative(path.parse(realPath).root, realPath).split(path.sep).filter(Boolean).length;
 
+const withTrailingSeparator = (folderPath) => (folderPath.endsWith(path.sep) ? folderPath : `${folderPath}${path.sep}`);
+
 const isComputerLocation = (location) => location.kind === 'computer';
 
 const isCollectionManifest = (entry) => hasCollectionConfig([entry]);
 
-const toRoots = ({ locations, computerRoots }) => {
+const toDriveRootMounts = (locations) =>
+  [...new Set(locations.map((location) => path.win32.parse(location.path).root))]
+    .filter((root) => DRIVE_ROOT.test(root))
+    .map((root) => ({ path: root, kind: 'local' }));
+
+const innermostLocationOf = (locations, folderPath) => {
+  const folderKey = toResolvedPathKey(folderPath);
+  return locations
+    .map((location) => ({ location, key: toResolvedPathKey(location.path) }))
+    .filter(({ key }) => isSameOrInside(key, folderKey))
+    .sort((a, b) => b.key.length - a.key.length)[0]?.location;
+};
+
+const toRoots = ({ locations, planRoots }) => {
   const otherLocations = locations.filter((location) => !isComputerLocation(location));
   const locationRoots = otherLocations.map(({ id, path: rootPath }) => ({ locationId: id, path: rootPath, reportsStatus: true }));
+  const locationKeys = new Set(otherLocations.map((location) => toResolvedPathKey(location.path)));
+  const extraRoots = planRoots.filter((rootPath) => !locationKeys.has(toResolvedPathKey(rootPath)));
   const computer = locations.find(isComputerLocation);
   if (!computer) {
-    return locationRoots;
+    return [
+      ...locationRoots,
+      ...extraRoots.flatMap((rootPath) => {
+        const owner = innermostLocationOf(otherLocations, rootPath);
+        return owner ? [{ locationId: owner.id, path: rootPath, reportsStatus: false }] : [];
+      })
+    ];
   }
-  const locationKeys = new Set(otherLocations.map((location) => toResolvedPathKey(location.path)));
   const systemRootKey = toResolvedPathKey(computer.path);
   return [
     ...locationRoots,
-    ...computerRoots
-      .filter((rootPath) => !locationKeys.has(toResolvedPathKey(rootPath)))
-      .map((rootPath) => ({ locationId: computer.id, path: rootPath, reportsStatus: toResolvedPathKey(rootPath) === systemRootKey }))
+    ...extraRoots.map((rootPath) => ({ locationId: computer.id, path: rootPath, reportsStatus: toResolvedPathKey(rootPath) === systemRootKey }))
   ];
 };
 
@@ -86,9 +108,13 @@ const scanLocations = async ({
   const isInsideSyncFolder = (key) => syncFolderKeyList.some((syncKey) => isSameOrInside(syncKey, key));
   const isInsidePlaceholderFolder = (filePath) => placeholderFolderKeys.some((folderKey) => isSameOrInside(folderKey, toPathKey(filePath)));
   const cloudKnownFolders = knownFolders.filter((_folderPath, index) => knownFolderKeys[index] && isInsideSyncFolder(knownFolderKeys[index]));
-  const plan = searchesComputer ? planWholeComputer({ platform, mounts, env }) : { roots: [], prunePaths: [] };
-  const prunedKeys = new Set(plan.prunePaths.map(toResolvedPathKey));
-  const roots = toRoots({ locations, computerRoots: [...plan.roots, ...cloudKnownFolders] });
+  const planMounts = platform === 'win32' && !searchesComputer ? toDriveRootMounts(locations) : mounts;
+  const plan = planWholeComputer({ platform, mounts: planMounts, env });
+  const planPruneKeys = plan.prunePaths.map(toResolvedPathKey);
+  const isInsidePlanPrune = (rootPath) => planPruneKeys.some((pruneKey) => isSameOrInside(pruneKey, toResolvedPathKey(rootPath)));
+  const prunedKeys = new Set(searchesComputer ? [...planPruneKeys, ...plan.mountPrunePaths.map(toResolvedPathKey)] : planPruneKeys);
+  const planRoots = searchesComputer ? [...plan.roots, ...plan.volumeRoots, ...cloudKnownFolders] : plan.roots.filter(isInsidePlanPrune);
+  const roots = toRoots({ locations, planRoots });
   const rootKeys = new Set(roots.map((root) => toResolvedPathKey(root.path)));
   const walkedRootKeys = new Set();
   const statuses = new Map();
@@ -98,17 +124,19 @@ const scanLocations = async ({
   const cloudChecks = [];
   let cloudCheckError = null;
 
+  const excludedKeySet = new Set(excludedKeys);
+
   const isExcluded = (key) => excludedKeys.some((excludedKey) => isSameOrInside(excludedKey, key));
 
-  const isSkippedFolder = (name, parentRealPath) => {
-    const childRealPath = path.join(parentRealPath, name);
+  const isSkippedFolder = (name, parentRealPath, childRealPath) => {
+    if (isPrunedFolderName(name, parentRealPath) || skippedMountPoints.has(childRealPath)) {
+      return true;
+    }
     const childKey = toPathKey(childRealPath);
-    return isPrunedFolderName(name, parentRealPath)
-      || skippedMountPoints.has(childRealPath)
-      || rootKeys.has(childKey)
+    return rootKeys.has(childKey)
       || prunedKeys.has(childKey)
       || syncFolderKeys.has(childKey)
-      || isExcluded(childKey);
+      || excludedKeySet.has(childKey);
   };
 
   const setRootStatus = ({ locationId, reportsStatus }, status) => {
@@ -136,7 +164,7 @@ const scanLocations = async ({
       return;
     }
     walkedRootKeys.add(realKey);
-    jobs.push({ folderPath: rootPath, realPath, isRoot: true, locationId, reportsStatus });
+    jobs.push({ folderPath: rootPath, realPath, isRoot: true, depth: toFolderDepth(realPath), locationId, reportsStatus });
   };
 
   const report = async ({ row, folderPath, name }) => {
@@ -195,7 +223,7 @@ const scanLocations = async ({
   };
 
   const visitFolder = async (job) => {
-    const { folderPath, realPath, isRoot, locationId } = job;
+    const { folderPath, realPath, isRoot, depth, locationId } = job;
     let entries;
     try {
       entries = await fs.readdir(folderPath, { withFileTypes: true });
@@ -205,19 +233,21 @@ const scanLocations = async ({
       }
       return;
     }
-    const manifestNames = entries.filter(isCollectionManifest).map((entry) => entry.name);
-    if (manifestNames.length > 0) {
-      await emitWalkedCollection(job, manifestNames);
+    if (hasCollectionConfig(entries)) {
+      await emitWalkedCollection(job, entries.filter(isCollectionManifest).map((entry) => entry.name));
       return;
     }
-    if (toFolderDepth(realPath) >= MAX_FOLDER_DEPTH) {
+    if (depth >= MAX_FOLDER_DEPTH) {
       return;
     }
-    const candidates = entries.filter((entry) => !isSkippedFolder(entry.name, realPath));
-    const isFolder = await Promise.all(candidates.map((entry) => isRealFolder(entry, path.join(folderPath, entry.name))));
+    const folderPrefix = withTrailingSeparator(folderPath);
+    const realPrefix = withTrailingSeparator(realPath);
+    const candidates = entries.filter((entry) =>
+      (entry.isDirectory() || entry.isSymbolicLink()) && !isSkippedFolder(entry.name, realPath, `${realPrefix}${entry.name}`));
+    const isFolder = await Promise.all(candidates.map((entry) => entry.isDirectory() || isRealFolder(entry, `${folderPrefix}${entry.name}`)));
     candidates.forEach((entry, index) => {
       if (isFolder[index]) {
-        jobs.push({ folderPath: path.join(folderPath, entry.name), realPath: path.join(realPath, entry.name), locationId });
+        jobs.push({ folderPath: `${folderPrefix}${entry.name}`, realPath: `${realPrefix}${entry.name}`, depth: depth + 1, locationId });
       }
     });
   };

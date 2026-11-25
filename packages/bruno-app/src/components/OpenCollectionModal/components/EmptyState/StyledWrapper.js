@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import spinnerStyles from '../SpinnerStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;
@@ -15,6 +16,11 @@ const StyledWrapper = styled.div`
     align-items: center;
     gap: 0.625rem;
     text-align: center;
+  }
+
+  .empty-state-spinner {
+    color: ${(props) => props.theme.colors.text.muted};
+    ${spinnerStyles}
   }
 
   .empty-state-icon {

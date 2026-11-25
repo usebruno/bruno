@@ -31,7 +31,7 @@ const StyledWrapper = styled.div`
   }
 
   .drop-zone-text {
-    font-size: 0.78125rem;
+    font-size: ${(props) => props.theme.font.size.base};
     color: ${(props) => props.theme.colors.text.muted};
   }
 
@@ -43,7 +43,7 @@ const StyledWrapper = styled.div`
 
   code {
     font-family: var(--font-family-mono);
-    font-size: 0.71875rem;
+    font-size: ${(props) => props.theme.font.size.sm};
   }
 `;
 

@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import iconButtonStyles from '../../../components/IconButtonStyles';
 
 const StyledWrapper = styled.div`
   position: relative;
@@ -37,9 +36,6 @@ const StyledWrapper = styled.div`
     position: absolute;
     top: 0.375rem;
     right: 0.375rem;
-    width: 1.375rem;
-    height: 1.375rem;
-    ${iconButtonStyles}
   }
 `;
 

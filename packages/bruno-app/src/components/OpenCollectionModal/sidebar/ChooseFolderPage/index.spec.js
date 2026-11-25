@@ -142,7 +142,7 @@ describe('ChooseFolderPage', () => {
 
     fireEvent.click(screen.getByTestId('choose-folder-open-selected'));
 
-    expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, recordRecent: true });
+    expect(openMultipleCollections).toHaveBeenCalledWith(['/work/api'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
   });
 
   it('puts focus on the choose folders link when nothing else has it', () => {

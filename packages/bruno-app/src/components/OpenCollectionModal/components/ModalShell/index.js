@@ -208,7 +208,7 @@ const ModalShell = () => {
               onBack={page.parent ? goBack : undefined}
               onClose={close}
             />
-            {note ? (
+            {note && (
               <Note
                 tone={note.tone}
                 action={getNoteAction()}
@@ -216,7 +216,7 @@ const ModalShell = () => {
               >
                 {note.text}
               </Note>
-            ) : null}
+            )}
             <div className="modal-page" data-testid={`open-collection-page-${page.id}`}>
               <div className="modal-page-content" inert={isOpening}>
                 {visitedPageIds.map((visitedPageId) => {
@@ -236,10 +236,10 @@ const ModalShell = () => {
                 })}
                 {hostPage !== page && <Page />}
               </div>
-              {isOpening ? <BusyOverlay>Opening…</BusyOverlay> : null}
+              {isOpening && <BusyOverlay>Opening…</BusyOverlay>}
             </div>
           </div>
-          {showDropOverlay && !isOpening ? <DropOverlay /> : null}
+          {showDropOverlay && !isOpening && <DropOverlay />}
         </div>
       </StyledWrapper>
     </Portal>

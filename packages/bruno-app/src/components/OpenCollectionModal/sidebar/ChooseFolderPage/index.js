@@ -70,11 +70,11 @@ const ChooseFolderPage = () => {
         )}
       </div>
 
-      {isSearching ? (
+      {isSearching && (
         <BusyOverlay onCancel={() => dispatch(cancelCollectionSearch())}>
           Looking for collections in {searchLabel}…
         </BusyOverlay>
-      ) : null}
+      )}
     </StyledWrapper>
   );
 };

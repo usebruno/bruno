@@ -2,9 +2,10 @@ import { getFolderSearchOutcome } from './folder-results';
 
 const folder = (path, status, collectionPaths = [], importableFiles = []) => ({ path, status, collectionPaths, importableFiles });
 
-const searchResult = ({ folders, collections = [], unreadableFolderCount = 0, stoppedEarly = false }) => ({
+const searchResult = ({ folders, collections = [], brokenCollectionPaths = [], unreadableFolderCount = 0, stoppedEarly = false }) => ({
   folders,
   collections,
+  brokenCollectionPaths,
   unreadableFolderCount,
   stoppedEarly
 });
@@ -22,7 +23,8 @@ describe('getFolderSearchOutcome with one folder', () => {
     ['not-found', 'api doesn’t exist anymore.'],
     ['no-access', 'Bruno can’t read api. Check its permissions.'],
     ['not-a-folder', 'api isn’t a folder.'],
-    ['unreadable', 'Bruno couldn’t read api.']
+    ['unreadable', 'Bruno couldn’t read api.'],
+    ['broken-collection', 'Bruno can’t open api because its config can’t be read. Check its bruno.json or opencollection.yml.']
   ])('explains a %s folder', (status, text) => {
     const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/api', status)] }), nothingOpen);
 
@@ -138,6 +140,44 @@ describe('getFolderSearchOutcome with one folder', () => {
     });
   });
 
+  it('says how many collections inside cannot be opened when none of them can', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder')], brokenCollectionPaths: ['/work/api', '/work/billing'] }),
+      nothingOpen
+    );
+
+    expect(outcome).toEqual({
+      type: 'message',
+      note: { tone: 'warning', text: 'work has no collections Bruno can open. 2 collections were skipped because their config can’t be read.' }
+    });
+  });
+
+  it('lists the collections that can be opened and counts the one that cannot', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder', [billing.path])], collections: [billing], brokenCollectionPaths: [api.path] }),
+      nothingOpen
+    );
+
+    expect(outcome.collections).toEqual([billing]);
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. 1 collection was skipped because its config can’t be read.'
+    });
+  });
+
+  it('lists what it found and warns about the folders inside it could not read', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder', [api.path])], collections: [api], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome.collections).toEqual([api]);
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 1 folder inside it.'
+    });
+  });
+
   it('warns that collections may be missing when the search stopped early', () => {
     const empty = getFolderSearchOutcome(searchResult({ folders: [folder('/', 'folder')], stoppedEarly: true }), nothingOpen);
     const listed = getFolderSearchOutcome(
@@ -227,6 +267,19 @@ describe('getFolderSearchOutcome with several folders', () => {
     });
   });
 
+  it('says how many picked collections cannot be opened when it opens the rest', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({
+        folders: [folder(api.path, 'collection', [api.path]), folder(billing.path, 'broken-collection')],
+        collections: [api],
+        brokenCollectionPaths: [billing.path]
+      }),
+      nothingOpen
+    );
+
+    expect(outcome).toEqual({ type: 'open', paths: [api.path], skippedText: '1 collection was skipped because its config can’t be read.' });
+  });
+
   it('uses the singular when one picked folder is not a collection', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({ folders: [folder(api.path, 'collection', [api.path]), folder('/work/docs', 'folder')], collections: [api] }),
@@ -278,7 +331,7 @@ describe('getFolderSearchOutcome with several folders', () => {
     expect(outcome).toEqual({
       type: 'list',
       collections: [orders, api, billing],
-      folders: ['/work'],
+      folders: ['/work', orders.path],
       preselect: [orders.path],
       note: {
         tone: 'info',
@@ -325,7 +378,7 @@ describe('getFolderSearchOutcome with several folders', () => {
     );
 
     expect(outcome.collections).toEqual([orders, api, billing]);
-    expect(outcome.folders).toEqual(['/work']);
+    expect(outcome.folders).toEqual(['/work', orders.path]);
   });
 
   it('says the same thing when every collection found is already open', () => {
@@ -359,6 +412,18 @@ describe('getFolderSearchOutcome with several folders', () => {
     expect(outcome).toEqual({ type: 'message', note: { tone: 'info', text: `None of those folders is a Bruno collection. ${HINT}` } });
   });
 
+  it('warns when the only collections among the folders cannot be opened', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder(billing.path, 'broken-collection'), folder('/work/docs', 'folder')], brokenCollectionPaths: [billing.path] }),
+      nothingOpen
+    );
+
+    expect(outcome).toEqual({
+      type: 'message',
+      note: { tone: 'warning', text: 'None of those folders has a collection Bruno can open. 1 collection was skipped because its config can’t be read.' }
+    });
+  });
+
   it('warns when some of the folders could not be read and none is a collection', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({ folders: [folder('/work/docs', 'folder'), folder('/work/secrets', 'no-access')], unreadableFolderCount: 2 }),
@@ -381,6 +446,31 @@ describe('getFolderSearchOutcome with several folders', () => {
       type: 'message',
       note: { tone: 'warning', text: 'gone doesn’t exist anymore. Bruno can’t read secrets. Check its permissions.' }
     });
+  });
+
+  it('says how many folders inside the picks it could not read when it lists what it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({
+        folders: [folder(api.path, 'collection', [api.path]), folder('/work', 'folder', [billing.path])],
+        collections: [api, billing],
+        unreadableFolderCount: 2
+      }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 2 folders inside them.'
+    });
+  });
+
+  it('says how many folders inside the picks it could not read when it opens the picked collections', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder(api.path, 'collection', [api.path]), folder('/work/docs', 'folder')], collections: [api], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome.skippedText).toBe('docs isn’t a collection, so it was skipped. Bruno couldn’t read 1 folder inside them.');
   });
 
   it('adds the stopped-early warning to the skipped text when it opens the picked collections', () => {

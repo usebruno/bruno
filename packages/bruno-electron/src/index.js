@@ -42,11 +42,10 @@ if (isBenchmarkEnabled()) {
 }
 
 const menuTemplate = require('./app/menu-template');
-const { openCollectionFromRecentMenu } = require('./app/collections');
+const { openCollectionFromRecentMenu, setRecentCollectionsWindow } = require('./app/recent-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const { registerCollectionSearchIpc } = require('./ipc/collection-search');
-const { setRecentCollectionsWindow } = require('./ipc/recent-collections');
 const { registerCollectionScanIpc, stopCollectionScan } = require('./ipc/collection-scan');
 const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');

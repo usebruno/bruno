@@ -4,7 +4,6 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import { waitForReadyPage } from '../../utils';
 import {
   openWorkspaceFromDialog,
-  buildCommonLocators,
   buildMockServerLocators,
   openCreateMockServerModal,
   openMockServerSettings
@@ -23,16 +22,12 @@ const EMPTY_WORKSPACE_YML = [
   ''
 ].join('\n');
 
-// The Mock Servers sidebar section is behind a beta flag, so it has to be enabled for the
-// create-mock-server button and the mock server rows to exist at all.
+// add a feature check
 const PREFERENCES = JSON.stringify({
   preferences: {
     onboarding: {
       hasLaunchedBefore: true,
       hasSeenWelcomeModal: true
-    },
-    beta: {
-      'mock-server': true
     }
   }
 }, null, 2);

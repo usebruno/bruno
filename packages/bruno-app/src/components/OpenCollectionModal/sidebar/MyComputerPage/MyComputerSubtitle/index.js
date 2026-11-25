@@ -1,5 +1,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { IconRefresh } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import { openCollectionModal, scanMyComputer } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
 import { OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
@@ -37,8 +38,9 @@ const MyComputerSubtitle = () => {
       >
         Manage
       </button>
-      <button
+      <ActionIcon
         type="button"
+        size="xs"
         className="subtitle-rescan"
         aria-label="Rescan locations"
         title="Rescan locations"
@@ -47,7 +49,7 @@ const MyComputerSubtitle = () => {
         data-testid="my-computer-rescan"
       >
         <IconRefresh size={12} strokeWidth={2} className={isScanning ? 'is-spinning' : undefined} />
-      </button>
+      </ActionIcon>
     </StyledWrapper>
   );
 };

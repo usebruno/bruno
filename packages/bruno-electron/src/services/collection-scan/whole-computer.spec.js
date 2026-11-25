@@ -22,21 +22,24 @@ describe('planWholeComputer', () => {
     ];
 
     it('walks /, /usr/local, /Applications and every volume under /Volumes', () => {
-      expect(planWholeComputer({ platform: 'darwin', mounts, env: {} }).roots).toEqual([
-        '/', '/usr/local', '/Applications', '/Volumes/USB', '/Volumes/Projects'
-      ]);
+      const { roots, volumeRoots } = planWholeComputer({ platform: 'darwin', mounts, env: {} });
+
+      expect(roots).toEqual(['/', '/usr/local', '/Applications']);
+      expect(volumeRoots).toEqual(['/Volumes/USB', '/Volumes/Projects']);
     });
 
     it('prunes the system folders, every mount it does not walk, and the OS folders at the top of each volume', () => {
-      const { prunePaths } = planWholeComputer({ platform: 'darwin', mounts, env: {} });
+      const { prunePaths, mountPrunePaths } = planWholeComputer({ platform: 'darwin', mounts, env: {} });
 
       expect(prunePaths).toEqual(expect.arrayContaining([
         '/System', '/private/etc', '/private/var', '/dev', '/usr', '/Volumes',
-        '/System/Volumes/Data', '/System/Volumes/Data/home', '/Users/me/gdrive', '/Volumes/share', '/Volumes/.timemachine/backup',
         ...sampleVolumeOsFolders('/Volumes/USB', '/'),
         ...sampleVolumeOsFolders('/Volumes/Projects', '/')
       ]));
-      expect(prunePaths).not.toContain('/Users/me/code');
+      expect(mountPrunePaths).toEqual(expect.arrayContaining([
+        '/dev', '/System/Volumes/Data', '/System/Volumes/Data/home', '/Users/me/gdrive', '/Volumes/share', '/Volumes/.timemachine/backup'
+      ]));
+      expect([...prunePaths, ...mountPrunePaths]).not.toContain('/Users/me/code');
     });
 
     it('still stays out of /System and /dev when the mount table could not be read', () => {
@@ -72,32 +75,38 @@ describe('planWholeComputer', () => {
     ];
 
     it('walks /, /usr/local and every removable mount', () => {
-      expect(planWholeComputer({ platform: 'linux', mounts, env: {} }).roots).toEqual([
-        '/', '/usr/local', '/media/me/USB', '/run/media/me/Backup', '/mnt/data'
-      ]);
+      const { roots, volumeRoots } = planWholeComputer({ platform: 'linux', mounts, env: {} });
+
+      expect(roots).toEqual(['/', '/usr/local']);
+      expect(volumeRoots).toEqual(['/media/me/USB', '/run/media/me/Backup', '/mnt/data']);
     });
 
     it('prunes the system folders, every mount it does not walk, and the OS folders at the top of each removable root', () => {
-      const { prunePaths } = planWholeComputer({ platform: 'linux', mounts, env: {} });
+      const { prunePaths, mountPrunePaths } = planWholeComputer({ platform: 'linux', mounts, env: {} });
 
       expect(prunePaths).toEqual(expect.arrayContaining([
         '/run', '/boot', '/snap', '/nix', '/gnu', '/sysroot', '/usr', '/etc', '/var/lib', '/var/log', '/media', '/mnt',
-        '/proc', '/snap/core22/1234', '/home/me/nfs', '/home/me/gdrive', '/home/me/projects', '/mnt/nas',
         ...sampleVolumeOsFolders('/media/me/USB', '/'),
         ...sampleVolumeOsFolders('/run/media/me/Backup', '/'),
         ...sampleVolumeOsFolders('/mnt/data', '/')
       ]));
+      expect(mountPrunePaths).toEqual(expect.arrayContaining([
+        '/proc', '/snap/core22/1234', '/home/me/nfs', '/home/me/gdrive', '/home/me/projects', '/mnt/nas'
+      ]));
     });
 
     it('walks a disk mounted straight at /mnt or /media as a volume', () => {
-      const { roots, prunePaths } = planWholeComputer({ platform: 'linux', mounts: [mount('/', 'local'), mount('/mnt', 'removable'), mount('/media', 'removable')], env: {} });
+      const { roots, volumeRoots, prunePaths } = planWholeComputer({ platform: 'linux', mounts: [mount('/', 'local'), mount('/mnt', 'removable'), mount('/media', 'removable')], env: {} });
 
-      expect(roots).toEqual(['/', '/usr/local', '/mnt', '/media']);
+      expect(roots).toEqual(['/', '/usr/local']);
+      expect(volumeRoots).toEqual(['/mnt', '/media']);
       expect(prunePaths).toEqual(expect.arrayContaining(['/mnt/Windows', '/media/System']));
+      expect(prunePaths).not.toContain('/mnt');
+      expect(prunePaths).not.toContain('/media');
     });
 
     it('prunes the copy of a bind mount inside the wider mount of the same disk, but never the bind mount itself', () => {
-      const { prunePaths } = planWholeComputer({
+      const { prunePaths, mountPrunePaths } = planWholeComputer({
         platform: 'linux',
         mounts: [
           mount('/', 'local', '259:2', '/'),
@@ -110,10 +119,25 @@ describe('planWholeComputer', () => {
         env: {}
       });
 
-      expect(prunePaths).toEqual(expect.arrayContaining(['/mnt/storage/home', '/mnt/storage/home/me/www', '/home/me/www']));
-      expect(prunePaths).not.toContain('/srv');
-      expect(prunePaths).not.toContain('/mnt/storage');
-      expect(prunePaths).not.toContain('/home');
+      expect(mountPrunePaths).toEqual(expect.arrayContaining(['/home/me/backup', '/mnt/storage/home', '/mnt/storage/home/me/www', '/home/me/www']));
+      ['/srv', '/mnt/storage', '/home'].forEach((folderPath) => {
+        expect(mountPrunePaths).not.toContain(folderPath);
+        expect(prunePaths).not.toContain(folderPath);
+      });
+    });
+
+    it.each([
+      ['a network mount', [mount('/', 'local'), mount('/usr/local', 'network')]],
+      ['inside a network mount of /usr', [mount('/', 'local'), mount('/usr', 'network')]]
+    ])('does not walk /usr/local when it is %s, and prunes the mount', (_label, mountsWithNetworkUsr) => {
+      const { roots, mountPrunePaths } = planWholeComputer({ platform: 'linux', mounts: mountsWithNetworkUsr, env: {} });
+
+      expect(roots).toEqual(['/']);
+      expect(mountPrunePaths).toEqual(mountsWithNetworkUsr.filter((drive) => drive.kind === 'network').map((drive) => drive.path));
+    });
+
+    it('still walks /usr/local when / itself is a mount it does not walk', () => {
+      expect(planWholeComputer({ platform: 'linux', mounts: [mount('/', 'system')], env: {} }).roots).toEqual(['/', '/usr/local']);
     });
 
     it('keeps /home, /opt, /srv, /var/www, /data, the temp folders and other top-level folders walked', () => {
@@ -130,12 +154,12 @@ describe('planWholeComputer', () => {
     ['Linux', 'linux', [mount('/', 'local'), mount('/media/me/USB', 'usb'), mount('/data', 'usb'), mount('/mnt/disk', 'removable')], '/media/me/USB', '/mnt/disk'],
     ['Windows', 'win32', [mount('C:\\', 'local'), mount('E:\\', 'usb'), mount('D:\\', 'local')], 'E:\\', 'D:\\']
   ])('on %s neither walks nor enters a USB drive, but walks other disks', (_label, platform, mounts, usbDrive, otherDisk) => {
-    const { roots, prunePaths } = planWholeComputer({ platform, mounts, env: {} });
+    const { roots, volumeRoots, mountPrunePaths } = planWholeComputer({ platform, mounts, env: {} });
 
-    expect(roots).not.toContain(usbDrive);
-    expect(roots).toContain(otherDisk);
+    expect([...roots, ...volumeRoots]).not.toContain(usbDrive);
+    expect([...roots, ...volumeRoots]).toContain(otherDisk);
     if (platform !== 'win32') {
-      expect(prunePaths).toEqual(expect.arrayContaining(mounts.filter((drive) => drive.kind === 'usb').map((drive) => drive.path)));
+      expect(mountPrunePaths).toEqual(expect.arrayContaining(mounts.filter((drive) => drive.kind === 'usb').map((drive) => drive.path)));
     }
   });
 
@@ -185,6 +209,6 @@ describe('planWholeComputer', () => {
   });
 
   it('plans nothing on other platforms', () => {
-    expect(planWholeComputer({ platform: 'freebsd', mounts: [mount('/', 'local')], env: {} })).toEqual({ roots: [], prunePaths: [] });
+    expect(planWholeComputer({ platform: 'freebsd', mounts: [mount('/', 'local')], env: {} })).toEqual({ roots: [], volumeRoots: [], prunePaths: [], mountPrunePaths: [] });
   });
 });

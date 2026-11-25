@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import classnames from 'classnames';
 import { Virtuoso } from 'react-virtuoso';
 import { IconFolder, IconSearch, IconX } from '@tabler/icons';
+import ActionIcon from 'ui/ActionIcon';
 import Button from 'ui/Button';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
@@ -25,9 +26,23 @@ const Scroller = ({ tabIndex, context, ...props }) => <div {...props} />;
 
 const ListEmpty = ({ context }) => context.empty;
 
+const ListFooter = ({ context }) => context.footer;
+
+const CHOOSE_FOLDER_TITLE = 'Choose a collection folder to open it in place';
+
+const NO_PATH_KEYS = new Set();
+
+const describeHiddenCollections = (hiddenCount, showHidden) => {
+  if (showHidden) {
+    return 'Showing collections already open in this workspace.';
+  }
+  return `${countOf(hiddenCount, 'collection')} already open in this workspace ${hiddenCount === 1 ? 'isn’t' : 'aren’t'} shown.`;
+};
+
 const CollectionList = ({
   collections,
   openPathKeys,
+  hiddenPathKeys = NO_PATH_KEYS,
   getMeta,
   searchPlaceholder = 'Search collections',
   banner = null,
@@ -41,19 +56,28 @@ const CollectionList = ({
 }) => {
   const [searchText, setSearchText] = useState('');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [showHidden, setShowHidden] = useState(false);
   const searchInput = useRef(null);
   const virtuoso = useRef(null);
   const rowsElement = useRef(null);
   const rangeAnchorKey = useRef(null);
   const chooseFolderShortcut = useKeybindingDisplayText()('openCollection');
+  const chooseFolderTitle = chooseFolderShortcut ? `${CHOOSE_FOLDER_TITLE} (${chooseFolderShortcut})` : CHOOSE_FOLDER_TITLE;
 
-  const isOpen = useCallback((collection) => openPathKeys.has(toPathKey(collection.path)), [openPathKeys]);
+  const isOpen = (collection) => openPathKeys.has(toPathKey(collection.path));
+  const isHidden = useCallback((collection) => hiddenPathKeys.has(toPathKey(collection.path)), [hiddenPathKeys]);
   const query = searchText.trim().toLowerCase();
 
-  const rows = useMemo(() => {
-    const matches = query ? collections.filter((collection) => matchesSearch(collection, query)) : collections;
-    return [...matches.filter((collection) => !isOpen(collection)), ...matches.filter(isOpen)];
-  }, [collections, query, isOpen]);
+  const matches = useMemo(
+    () => (query ? collections.filter((collection) => matchesSearch(collection, query)) : collections),
+    [collections, query]
+  );
+  const hiddenCount = matches.filter(isHidden).length;
+  const rows = useMemo(
+    () => (showHidden ? matches : matches.filter((collection) => !isHidden(collection))),
+    [matches, showHidden, isHidden]
+  );
+  const hasNoMatch = query !== '' && rows.length === 0;
 
   const selectedPaths = collections
     .filter((collection) => selectedKeys.has(toPathKey(collection.path)) && !isOpen(collection))
@@ -73,7 +97,10 @@ const CollectionList = ({
     rangeAnchorKey.current = key;
 
     if (event.shiftKey && anchorIndex !== -1 && anchorIndex !== index) {
-      const rangeKeys = rowKeys.slice(Math.min(anchorIndex, index), Math.max(anchorIndex, index) + 1);
+      const rangeKeys = rows
+        .slice(Math.min(anchorIndex, index), Math.max(anchorIndex, index) + 1)
+        .filter((row) => !isOpen(row))
+        .map((row) => toPathKey(row.path));
       setSelectedKeys((previous) => new Set([...previous, ...rangeKeys]));
       return;
     }
@@ -104,25 +131,11 @@ const CollectionList = ({
     searchInput.current.focus();
   };
 
-  const renderChooseFolderButton = (color, testId) => (
-    <Button
-      size="sm"
-      color={color}
-      className="collection-list-choose-folder"
-      icon={<IconFolder size={14} strokeWidth={1.75} />}
-      title={`Choose a collection folder to open it in place${chooseFolderShortcut ? ` (${chooseFolderShortcut})` : ''}`}
-      onClick={onChooseFolder}
-      data-testid={testId}
-    >
-      Choose folder…
-    </Button>
-  );
-
   return (
     <StyledWrapper>
       <div className="collection-list-search-row">
         <div className="collection-list-search">
-          <IconSearch size={15} strokeWidth={1.75} aria-hidden="true" />
+          <IconSearch size={14} strokeWidth={1.5} aria-hidden="true" />
           <input
             ref={searchInput}
             type="text"
@@ -130,24 +143,37 @@ const CollectionList = ({
             aria-label="Search collections"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
             autoFocus
             data-focus-on-show
             data-testid={`${testIdPrefix}-search`}
           />
           {searchText && (
-            <button
+            <ActionIcon
               type="button"
+              size="sm"
               className="collection-list-search-clear"
               aria-label="Clear search"
               onClick={clearSearch}
               data-testid={`${testIdPrefix}-search-clear`}
             >
-              <IconX size={12} strokeWidth={2.2} />
-            </button>
+              <IconX size={14} strokeWidth={1.5} />
+            </ActionIcon>
           )}
         </div>
         <span className="collection-list-search-or">or</span>
-        {renderChooseFolderButton('secondary', `${testIdPrefix}-choose-folder`)}
+        <Button
+          size="sm"
+          color="secondary"
+          className="collection-list-choose-folder"
+          icon={<IconFolder size={14} strokeWidth={1.75} />}
+          title={chooseFolderTitle}
+          onClick={onChooseFolder}
+          data-testid={`${testIdPrefix}-choose-folder`}
+        >
+          Choose folder…
+        </Button>
       </div>
 
       {banner}
@@ -163,7 +189,18 @@ const CollectionList = ({
             empty: query ? (
               <NoMatch
                 query={searchText.trim()}
-                action={renderChooseFolderButton('primary', `${testIdPrefix}-no-match-choose-folder`)}
+                action={(
+                  <Button
+                    variant="outline"
+                    color="secondary"
+                    icon={<IconFolder size={15} strokeWidth={1.75} />}
+                    title={chooseFolderTitle}
+                    onClick={onChooseFolder}
+                    data-testid={`${testIdPrefix}-no-match-choose-folder`}
+                  >
+                    Choose folder…
+                  </Button>
+                )}
                 data-testid={`${testIdPrefix}-no-match`}
               >
                 {noMatchText}
@@ -172,10 +209,23 @@ const CollectionList = ({
               <p className="collection-list-empty" data-testid={`${testIdPrefix}-list-empty`}>
                 {emptyText}
               </p>
-            )
+            ),
+            footer: hiddenCount > 0 ? (
+              <p className="collection-list-open-line" data-testid={`${testIdPrefix}-open-line`}>
+                {describeHiddenCollections(hiddenCount, showHidden)}{' '}
+                <button
+                  type="button"
+                  className="collection-list-open-toggle"
+                  onClick={() => setShowHidden(!showHidden)}
+                  data-testid={`${testIdPrefix}-open-toggle`}
+                >
+                  {showHidden ? 'Hide' : 'Show'}
+                </button>
+              </p>
+            ) : null
           }}
           computeItemKey={(_index, collection) => toPathKey(collection.path)}
-          components={{ Scroller, Item: ListItem, EmptyPlaceholder: ListEmpty }}
+          components={{ Scroller, Item: ListItem, EmptyPlaceholder: ListEmpty, Footer: ListFooter }}
           itemContent={(index, collection) => (
             <CollectionListRow
               collection={collection}
@@ -194,7 +244,7 @@ const CollectionList = ({
         />
       </div>
 
-      {selectedPaths.length > 0 && (
+      {selectedPaths.length > 0 && !hasNoMatch && (
         <div ref={focusSearchWhenRemovedWithFocus} className="collection-list-footer">
           <Button variant="ghost" color="secondary" onClick={onCancel} data-testid={`${testIdPrefix}-cancel`}>
             Cancel
