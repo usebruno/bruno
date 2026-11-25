@@ -60,7 +60,7 @@ const fileErrors: { title: string; files: (tmpDir: string) => string[]; message:
   }
 ];
 
-const textErrors: { title: string; text: (serverUrl: string) => string; message: string }[] = [
+const textErrors: { title: string; text: (serverUrl: string) => string; message: string | RegExp }[] = [
   {
     title: 'a URL that cannot be parsed',
     text: () => 'http://',
@@ -69,7 +69,7 @@ const textErrors: { title: string; text: (serverUrl: string) => string; message:
   {
     title: 'a URL that answers 404',
     text: (serverUrl) => `${serverUrl}/missing.json`,
-    message: 'URL import failed. Please check the URL and try again.'
+    message: /responded with 404\./
   },
   {
     title: 'a URL whose JSON is in no collection format',
@@ -77,14 +77,9 @@ const textErrors: { title: string; text: (serverUrl: string) => string; message:
     message: 'Unsupported collection format'
   },
   {
-    title: 'text that is neither JSON nor YAML',
+    title: 'text that is not a URL',
     text: () => 'just some words',
-    message: 'Could not parse the text as JSON or YAML'
-  },
-  {
-    title: 'JSON text in no collection format',
-    text: () => '{"hello":"world"}',
-    message: 'Unsupported collection format'
+    message: 'Please enter a valid URL'
   }
 ];
 

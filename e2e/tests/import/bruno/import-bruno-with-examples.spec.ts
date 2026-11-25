@@ -5,7 +5,7 @@ import { buildImportPageLocators } from '../../../pages/open-collection-modal/im
 import { showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
 
 test.describe('Import Bruno Collection with Examples', () => {
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 

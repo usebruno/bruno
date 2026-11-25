@@ -142,17 +142,13 @@ test.describe('Open collection modal: importing text and URLs', () => {
     });
   });
 
-  test('raw JSON is described as text and Enter loads it', async ({ pageWithUserData: page }) => {
+  test('Enter in the text field loads the URL', async ({ pageWithUserData: page }) => {
     const { import: importLocators } = buildCommonLocators(page);
     const importPage = buildImportPageLocators(page);
 
-    await test.step('Enter a Postman collection as one line of JSON on the Import page', async () => {
+    await test.step('Enter the URL of a Postman collection on the Import page', async () => {
       await showOpenCollectionModal(page, 'import');
-      await importPage.textInput().fill(JSON.stringify(JSON.parse(postmanCollection)));
-    });
-
-    await test.step('Verify the hint reads it as raw text', async () => {
-      await expect(importPage.hint()).toHaveText('Raw text · Bruno detects the format');
+      await importPage.textInput().fill(`${server.url}/postman.json`);
     });
 
     await test.step('Press Enter in the text field', async () => {
@@ -161,19 +157,6 @@ test.describe('Open collection modal: importing text and URLs', () => {
 
     await test.step('Verify the location modal opens for the collection', async () => {
       await expect(importLocators.locationModal()).toContainText('Sample Postman Collection');
-    });
-  });
-
-  test('pasted multi-line YAML keeps its line breaks and loads the OpenAPI spec', async ({ pageWithUserData: page }) => {
-    const { import: importLocators } = buildCommonLocators(page);
-
-    await test.step('Paste an OpenAPI spec as YAML on the Import page and load it', async () => {
-      await loadImportText(page, openApiSpec);
-    });
-
-    await test.step('Verify the location modal opens for the spec', async () => {
-      await expect(importLocators.locationModal()).toContainText('Sample API');
-      await expect(importLocators.groupingDropdown()).toBeVisible();
     });
   });
 

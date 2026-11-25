@@ -20,18 +20,10 @@ export const selectImportFiles = async (page: Page, filePaths: string[]) => {
 };
 
 export const loadImportText = async (page: Page, text: string) => {
-  await test.step('Load a URL or text on the Import page', async () => {
+  await test.step('Load a URL on the Import page', async () => {
     const importPage = buildImportPageLocators(page);
     await showOpenCollectionModal(page, 'import');
-    if (text.includes('\n')) {
-      await importPage.textInput().evaluate((input, value) => {
-        const clipboardData = new DataTransfer();
-        clipboardData.setData('text/plain', value);
-        input.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
-      }, text);
-    } else {
-      await importPage.textInput().fill(text);
-    }
+    await importPage.textInput().fill(text);
     await importPage.loadButton().click();
   });
 };

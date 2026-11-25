@@ -23,7 +23,6 @@ const StyledWrapper = styled.div`
     margin: 0;
     font-size: ${(props) => props.theme.font.size.sm};
     line-height: 1.5;
-    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .banner-action {
