@@ -91,6 +91,7 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
         await expect.poll(() => listener.requests.length, { timeout: 15000 }).toBeGreaterThan(0);
         await expect(approval.banner()).toBeHidden();
         await expect(approval.headerDot()).toBeHidden();
+        await expect(approval.tabDot()).toBeHidden();
         await expect(openApi.sync.checkUpdatesButton()).toBeVisible();
       });
     } finally {
