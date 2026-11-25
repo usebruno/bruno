@@ -81,6 +81,7 @@ const Select = ({
   required = false,
   size = 'md',
   className,
+  'aria-label': ariaLabel,
   'data-testid': testId
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -308,6 +309,7 @@ const Select = ({
       role="combobox"
       aria-expanded={isOpen}
       aria-haspopup="listbox"
+      aria-label={ariaLabel}
       aria-labelledby={labelId}
       aria-describedby={describedBy}
       aria-required={required || undefined}

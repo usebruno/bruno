@@ -61,6 +61,7 @@ const SourceApprovalBanner = ({ sourceState, isBusy, onApprove, onDismiss }) => 
               onChange={(value) => value && setAutoCheckInterval(value)}
               allowDeselect={false}
               size="sm"
+              aria-label="Automatic check interval"
             />
           </div>
         )}
