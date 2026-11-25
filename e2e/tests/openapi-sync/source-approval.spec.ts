@@ -55,10 +55,11 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
   test('is not contacted until the user approves it, then syncs', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(90000);
     const listener = await startListener();
-    const { userDataPath, workspacePath } = await seedSharedCollection(createTmpDir, listener.sourceUrl);
-    const app = await launchElectronApp({ userDataPath });
+    let app;
 
     try {
+      const { userDataPath, workspacePath } = await seedSharedCollection(createTmpDir, listener.sourceUrl);
+      app = await launchElectronApp({ userDataPath });
       const page = await waitForReadyPage(app);
       const { titleBar, openApi } = buildCommonLocators(page);
       const approval = openApi.sync.sourceApproval;
@@ -95,7 +96,9 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
         await expect(openApi.sync.checkUpdatesButton()).toBeVisible();
       });
     } finally {
-      await closeElectronApp(app);
+      if (app) {
+        await closeElectronApp(app);
+      }
       await listener.close();
     }
   });
@@ -103,10 +106,11 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
   test('dismissing keeps the source off and clears the review dot', async ({ launchElectronApp, createTmpDir }) => {
     test.setTimeout(60000);
     const listener = await startListener();
-    const { userDataPath, workspacePath } = await seedSharedCollection(createTmpDir, listener.sourceUrl);
-    const app = await launchElectronApp({ userDataPath });
+    let app;
 
     try {
+      const { userDataPath, workspacePath } = await seedSharedCollection(createTmpDir, listener.sourceUrl);
+      app = await launchElectronApp({ userDataPath });
       const page = await waitForReadyPage(app);
       const { titleBar, openApi } = buildCommonLocators(page);
       const approval = openApi.sync.sourceApproval;
@@ -127,7 +131,9 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
         expect(listener.requests).toEqual([]);
       });
     } finally {
-      await closeElectronApp(app);
+      if (app) {
+        await closeElectronApp(app);
+      }
       await listener.close();
     }
   });
