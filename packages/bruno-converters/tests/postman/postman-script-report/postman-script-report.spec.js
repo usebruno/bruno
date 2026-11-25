@@ -1,16 +1,29 @@
 import {
-  aggregateScriptUsage,
-  buildPreservedScriptsReport,
-  buildScriptUsage,
+  buildScriptTranslationReport,
   countPmApiUsages,
   mergeScriptTranslationReports
 } from '../../../src/postman/postman-script-report';
 
 const scan = (script) => countPmApiUsages(script);
 
-// One measured block, as the translator emits it.
-const translated = (source, output) => buildScriptUsage({ source, translated: output ?? source, fellBackToRegex: false });
-const fellBack = (source) => buildScriptUsage({ source, translated: source, fellBackToRegex: true });
+/**
+ * One `[postmanSource, brunoOutput]` pair per request, so a test states only
+ * what the translator did with each script. Omitting the output means the
+ * translator left it untouched.
+ */
+const reportFor = (blocks, preserveScripts = false) =>
+  buildScriptTranslationReport({
+    postmanCollection: {
+      item: blocks.map(([source], index) => ({
+        name: `request-${index}`,
+        event: [{ listen: 'test', script: { exec: [source] } }]
+      }))
+    },
+    brunoCollection: {
+      items: blocks.map(([source, output]) => ({ request: { script: { res: output ?? source } } }))
+    },
+    preserveScripts
+  });
 
 describe('countPmApiUsages', () => {
   describe('call-site counting', () => {
@@ -181,76 +194,43 @@ describe('parser behaviour', () => {
   });
 });
 
-describe('buildScriptUsage', () => {
-  it('treats an empty or whitespace-only script as absent', () => {
-    expect(translated('')).toBeNull();
-    expect(translated('   \n  ')).toBeNull();
+describe('buildScriptTranslationReport', () => {
+  const EMPTY = {
+    preserveScripts: false,
+    fullyTranslated: true,
+    apiUsagesTotal: 0,
+    apiUsagesUntranslated: 0,
+    untranslatedApis: {},
+    scriptsUsingRegexFallback: 0
+  };
+
+  it('reports only the flag when scripts are preserved, since translation never ran', () => {
+    expect(reportFor([['pm.vault.get("k");']], true)).toEqual({ preserveScripts: true });
   });
 
-  it('carries counts only, never the script text', () => {
-    const usage = translated('pm.environment.set("k", "secret-value");', 'bru.setEnvVar("k", "secret-value");');
-
-    expect(Object.keys(usage).sort()).toEqual([
-      'apiUsagesTotal', 'apiUsagesUntranslated', 'fellBackToRegex', 'untranslatedApis'
-    ]);
-    expect(JSON.stringify(usage)).not.toContain('secret-value');
-  });
-
-  it('returns null rather than throwing when a block is unparseable', () => {
-    expect(buildScriptUsage({ source: 'pm.test("x");', translated: 'function (', fellBackToRegex: false })).toBeNull();
-  });
-
-  it('reports an unmeasurable block the same way whether or not it mentions a Postman root', () => {
-    expect(
-      buildScriptUsage({ source: 'pm.test("x");', translated: 'pm.test("x"); function (', fellBackToRegex: false })
-    ).toBeNull();
-  });
-});
-
-describe('buildPreservedScriptsReport', () => {
-  it('reports only the flag, since translation never ran', () => {
-    expect(buildPreservedScriptsReport()).toEqual({ preserveScripts: true });
-  });
-});
-
-describe('aggregateScriptUsage', () => {
   // Omitting it would be indistinguishable from an import that was never measured.
-  it('reports zeroes when nothing was measured', () => {
-    const empty = {
-      preserveScripts: false,
-      fullyTranslated: true,
-      apiUsagesTotal: 0,
-      apiUsagesUntranslated: 0,
-      untranslatedApis: {},
-      scriptsUsingRegexFallback: 0
-    };
+  it('reports zeroes for a collection with no script at all', () => {
+    expect(reportFor([])).toEqual(EMPTY);
+    expect(buildScriptTranslationReport({ postmanCollection: {}, brunoCollection: {} })).toEqual(EMPTY);
+  });
 
-    expect(aggregateScriptUsage([])).toEqual(empty);
-    expect(aggregateScriptUsage(undefined)).toEqual(empty);
-    expect(aggregateScriptUsage([null, null])).toEqual(empty);
+  it('ignores an empty or whitespace-only script', () => {
+    expect(reportFor([[''], ['   \n  ']])).toEqual(EMPTY);
   });
 
   it('reports a fully translated import', () => {
-    const report = aggregateScriptUsage([
-      translated('pm.environment.set("k", "v");', 'bru.setEnvVar("k", "v");')
-    ]);
-
-    expect(report).toEqual({
-      preserveScripts: false,
-      fullyTranslated: true,
-      apiUsagesTotal: 1,
-      apiUsagesUntranslated: 0,
-      untranslatedApis: {},
-      scriptsUsingRegexFallback: 0
+    expect(reportFor([['pm.environment.set("k", "v");', 'bru.setEnvVar("k", "v");']])).toEqual({
+      ...EMPTY,
+      apiUsagesTotal: 1
     });
   });
 
   it('attributes surviving pm.* calls as untranslated', () => {
-    const report = aggregateScriptUsage([
-      translated(
+    const report = reportFor([
+      [
         'pm.environment.set("k", "v");\npm.vault.get("secret-name");',
         'bru.setEnvVar("k", "v");\npm.vault.get("secret-name");'
-      )
+      ]
     ]);
 
     expect(report.apiUsagesTotal).toBe(2);
@@ -259,8 +239,8 @@ describe('aggregateScriptUsage', () => {
     expect(report.fullyTranslated).toBe(false);
   });
 
-  it('counts a fallback separately and excludes it from both sides of the ratio', () => {
-    const report = aggregateScriptUsage([fellBack('pm.vault.get("k");\npm.test("broken", function() { ')]);
+  it('counts a source that will not parse as a fallback, and excludes it from both sides of the ratio', () => {
+    const report = reportFor([['pm.vault.get("k");\npm.test("broken", function() { ']]);
 
     expect(report.scriptsUsingRegexFallback).toBe(1);
     expect(report.apiUsagesTotal).toBe(0);
@@ -269,9 +249,9 @@ describe('aggregateScriptUsage', () => {
   });
 
   it('is not fully translated when a script fell back, even with nothing untranslated', () => {
-    const report = aggregateScriptUsage([
-      translated('pm.environment.get("a");', 'bru.getEnvVar("a");'),
-      fellBack('pm.test("x", function() { ')
+    const report = reportFor([
+      ['pm.environment.get("a");', 'bru.getEnvVar("a");'],
+      ['pm.test("x", function() { ']
     ]);
 
     expect(report.apiUsagesUntranslated).toBe(0);
@@ -279,12 +259,8 @@ describe('aggregateScriptUsage', () => {
     expect(report.fullyTranslated).toBe(false);
   });
 
-  it('sums across every block, whatever level it came from', () => {
-    const report = aggregateScriptUsage([
-      translated('pm.vault.get("a");'),
-      translated('pm.vault.get("b");'),
-      translated('pm.vault.get("c");')
-    ]);
+  it('sums across every script in the collection', () => {
+    const report = reportFor([['pm.vault.get("a");'], ['pm.vault.get("b");'], ['pm.vault.get("c");']]);
 
     expect(report.apiUsagesTotal).toBe(3);
     expect(report.untranslatedApis).toEqual({ 'pm.vault.get': 3 });
@@ -292,11 +268,91 @@ describe('aggregateScriptUsage', () => {
 
   it('reports every distinct API, with counts that sum to the untranslated total', () => {
     const many = Array.from({ length: 60 }, (_, i) => `pm.unmappedApi${i}();`).join('\n');
-    const report = aggregateScriptUsage([translated(many)]);
+    const report = reportFor([[many]]);
 
     expect(Object.keys(report.untranslatedApis)).toHaveLength(60);
     const sum = Object.values(report.untranslatedApis).reduce((a, b) => a + b, 0);
     expect(sum).toBe(report.apiUsagesUntranslated);
+  });
+
+  it('carries counts only, never the script text', () => {
+    const report = reportFor([['pm.vault.get("secret-value");']]);
+
+    expect(Object.keys(report).sort()).toEqual([
+      'apiUsagesTotal',
+      'apiUsagesUntranslated',
+      'fullyTranslated',
+      'preserveScripts',
+      'scriptsUsingRegexFallback',
+      'untranslatedApis'
+    ]);
+    expect(JSON.stringify(report)).not.toContain('secret-value');
+  });
+
+  // The translator normalizes `postman` to `pm`, so the output alone can't say
+  // which root the user wrote.
+  it('names a surviving legacy call under the root the source used', () => {
+    const report = reportFor([['postman.someUnknownApi.legacyThing();', 'pm.someUnknownApi.legacyThing();']]);
+
+    expect(report.untranslatedApis).toEqual({ 'postman.someUnknownApi.legacyThing': 1 });
+  });
+
+  it('measures scripts at every level on both sides', () => {
+    const report = buildScriptTranslationReport({
+      postmanCollection: {
+        event: [{ listen: 'prerequest', script: { exec: ['pm.vault.get("collection");'] } }],
+        item: [
+          {
+            name: 'folder',
+            event: [{ listen: 'test', script: { exec: ['pm.vault.get("folder");'] } }],
+            item: [
+              {
+                name: 'request',
+                event: [{ listen: 'test', script: { exec: ['pm.vault.get("request");'] } }]
+              }
+            ]
+          }
+        ]
+      },
+      brunoCollection: {
+        root: { request: { script: { req: 'pm.vault.get("collection");' } } },
+        items: [
+          {
+            type: 'folder',
+            root: { request: { script: { res: 'pm.vault.get("folder");' } } },
+            items: [{ request: { script: { res: 'pm.vault.get("request");' } } }]
+          }
+        ]
+      }
+    });
+
+    expect(report.apiUsagesTotal).toBe(3);
+    expect(report.apiUsagesUntranslated).toBe(3);
+    expect(report.untranslatedApis).toEqual({ 'pm.vault.get': 3 });
+  });
+
+  // `tests` sits on the request rather than under `script`, so a walk that only
+  // knows about `script.req`/`script.res` silently misses it.
+  it('measures the tests slot, not just script.req and script.res', () => {
+    const report = buildScriptTranslationReport({
+      postmanCollection: {
+        item: [{ name: 'r', event: [{ listen: 'test', script: { exec: ['pm.vault.get("k");'] } }] }]
+      },
+      brunoCollection: { items: [{ request: { tests: 'pm.vault.get("k");' } }] }
+    });
+
+    expect(report.apiUsagesUntranslated).toBe(1);
+    expect(report.untranslatedApis).toEqual({ 'pm.vault.get': 1 });
+  });
+
+  // Postman only translates these two; counting the rest would inflate the total.
+  it('skips an event the importer never translates', () => {
+    const report = buildScriptTranslationReport({
+      postmanCollection: { event: [{ listen: 'beforeRequest', script: { exec: ['pm.vault.get("k");'] } }] },
+      brunoCollection: {}
+    });
+
+    expect(report).toEqual(EMPTY);
   });
 });
 
