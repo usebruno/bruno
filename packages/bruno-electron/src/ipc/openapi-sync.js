@@ -23,7 +23,7 @@ const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
-const { isSourceApproved, approveSource, forgetSource } = require('../services/openapi-sync-sources');
+const { isSourceApproved, forgetSource } = require('../services/openapi-sync-sources');
 const jsyaml = require('js-yaml');
 
 /**
@@ -1977,14 +1977,6 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];
       brunoConfig.openapi = [existingEntry ? { ...existingEntry, ...sanitizedConfig } : sanitizedConfig];
-
-      // Only the UI calls this, on a user action, so it approves the source.
-      approveSource({
-        collectionPath,
-        sourceKey: toSourceKey(collectionPath, sanitizedConfig.sourceUrl),
-        autoCheck: config.autoCheck,
-        autoCheckInterval: config.autoCheckInterval
-      });
 
       // Save updated config
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);

@@ -288,9 +288,7 @@ const useOpenAPISync = (collection) => {
         collectionPath: collection.pathname,
         config: {
           sourceUrl: trimmedUrl,
-          groupBy: 'tags',
-          autoCheck: true,
-          autoCheckInterval: 5
+          groupBy: 'tags'
         }
       });
 
@@ -399,13 +397,10 @@ const useOpenAPISync = (collection) => {
     try {
       const { ipcRenderer } = window;
 
+      await dispatch(approveSyncSource(collection, { sourceUrl: newUrl, autoCheck, autoCheckInterval }));
       await ipcRenderer.invoke('renderer:update-openapi-sync-config', {
         collectionPath: collection.pathname,
-        config: {
-          sourceUrl: newUrl,
-          autoCheck,
-          autoCheckInterval
-        }
+        config: { sourceUrl: newUrl }
       });
       setSourceUrl(newUrl);
       setFileNotFound(false);
