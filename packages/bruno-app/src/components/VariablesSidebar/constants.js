@@ -13,6 +13,11 @@ import {
 export const OBJECT_CELL_MAX_HEIGHT = '120px';
 
 export const COPY_FEEDBACK_MS = 1200;
+export const SCROLL_SAVE_DEBOUNCE_MS = 200;
+export const SCROLL_RESTORE_MAX_MS = 2000;
+export const SCROLL_RESTORE_STABLE_FRAMES = 20;
+export const SCROLL_TOP_EPSILON = 5;
+export const SCROLL_ZERO_ACCEPT_DELAY_MS = 75;
 
 export const JSON_MODE = 'application/ld+json';
 

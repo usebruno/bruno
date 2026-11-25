@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconX } from '@tabler/icons';
 import { closeVariablesSidebar } from 'providers/ReduxStore/slices/app';
@@ -23,6 +23,7 @@ import ScopeSection from './ScopeSection';
 import ScopeTable from './ScopeTable';
 import ObjectView from './ObjectView';
 import useVariableActions from './useVariableActions';
+import useSidebarScroll from './useSidebarScroll';
 import { ADD_TO_SCOPE_ORDER, SCOPE_ICONS, SCOPES } from './constants';
 import { countRows, getSidebarSections, getUsedSections, isObjectOrArray, secretRevealKey } from './utils';
 import StyledWrapper from './StyledWrapper';
@@ -138,6 +139,9 @@ const VariablesSidebar = ({ collection }) => {
     && isObjectOrArray(objectRow.value)
     && (!objectRow.secret || isSecretRevealed(objectSection, objectRow.name));
 
+  const scrollRef = useRef(null);
+  useSidebarScroll(scrollRef, view, !showObjectView);
+
   const viewTabs = [
     ...(requestItem
       ? [{ key: 'used', label: 'Used in request', indicator: <sup className="font-medium">{countRows(usedSections)}</sup> }]
@@ -160,7 +164,7 @@ const VariablesSidebar = ({ collection }) => {
   const renderSections = () => {
     if (sections.length === 0) {
       return (
-        <div className="empty-note">
+        <div className="empty-note" data-testid="variables-sidebar-empty">
           {view === 'used' ? 'This request does not use any variables' : 'No variables available'}
         </div>
       );
@@ -234,7 +238,7 @@ const VariablesSidebar = ({ collection }) => {
               onBack={() => setObjectSelection(null)}
             />
           ) : (
-            <div className="variables-sidebar-scroll" data-testid={`variables-sidebar-${view}`}>
+            <div ref={scrollRef} className="variables-sidebar-scroll" data-testid={`variables-sidebar-${view}`}>
               {renderSections()}
             </div>
           )}

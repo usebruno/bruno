@@ -68,6 +68,7 @@ const VariableValue = ({
           containOverscroll
           docKey={docKey}
           persistenceScope={persistenceScope}
+          skipAncestorScrollRestore
         />
       ) : (
         <SingleLineEditor {...editorProps} />

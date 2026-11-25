@@ -1,0 +1,387 @@
+opencollection: "1.0.0"
+info:
+  name: variables-sidebar-scroll
+
+request:
+  variables:
+    - name: long_object
+      value:
+        type: object
+        data: |-
+          {
+            "key_00": "value_00",
+            "key_01": "value_01",
+            "key_02": "value_02",
+            "key_03": "value_03",
+            "key_04": "value_04",
+            "key_05": "value_05",
+            "key_06": "value_06",
+            "key_07": "value_07",
+            "key_08": "value_08",
+            "key_09": "value_09",
+            "key_10": "value_10",
+            "key_11": "value_11",
+            "key_12": "value_12",
+            "key_13": "value_13",
+            "key_14": "value_14",
+            "key_15": "value_15",
+            "key_16": "value_16",
+            "key_17": "value_17",
+            "key_18": "value_18",
+            "key_19": "value_19",
+            "key_20": "value_20",
+            "key_21": "value_21",
+            "key_22": "value_22",
+            "key_23": "value_23",
+            "key_24": "value_24",
+            "key_25": "value_25",
+            "key_26": "value_26",
+            "key_27": "value_27",
+            "key_28": "value_28",
+            "key_29": "value_29"
+          }
+    - name: var_000
+      value: value_0
+    - name: var_001
+      value: value_1
+    - name: var_002
+      value: value_2
+    - name: var_003
+      value: value_3
+    - name: var_004
+      value:
+        type: object
+        data: |-
+          {
+            "id": 4,
+            "name": "object_4",
+            "enabled": true
+          }
+    - name: var_005
+      value: value_5
+    - name: var_006
+      value: value_6
+    - name: var_007
+      value: value_7
+    - name: var_008
+      value: value_8
+    - name: var_009
+      value: value_9
+    - name: var_010
+      value: value_10
+    - name: var_011
+      value: value_11
+    - name: var_012
+      value:
+        type: object
+        data: |-
+          {
+            "id": 12,
+            "name": "object_12",
+            "enabled": true
+          }
+    - name: var_013
+      value: value_13
+    - name: var_014
+      value: value_14
+    - name: var_015
+      value: value_15
+    - name: var_016
+      value: value_16
+    - name: var_017
+      value: value_17
+    - name: var_018
+      value: value_18
+    - name: var_019
+      value: value_19
+    - name: var_020
+      value:
+        type: object
+        data: |-
+          {
+            "id": 20,
+            "name": "object_20",
+            "enabled": true
+          }
+    - name: var_021
+      value: value_21
+    - name: var_022
+      value: value_22
+    - name: var_023
+      value: value_23
+    - name: var_024
+      value: value_24
+    - name: var_025
+      value: value_25
+    - name: var_026
+      value: value_26
+    - name: var_027
+      value: value_27
+    - name: var_028
+      value:
+        type: object
+        data: |-
+          {
+            "id": 28,
+            "name": "object_28",
+            "enabled": true
+          }
+    - name: var_029
+      value: value_29
+    - name: var_030
+      value: value_30
+    - name: var_031
+      value: value_31
+    - name: var_032
+      value: value_32
+    - name: var_033
+      value: value_33
+    - name: var_034
+      value: value_34
+    - name: var_035
+      value: value_35
+    - name: var_036
+      value:
+        type: object
+        data: |-
+          {
+            "id": 36,
+            "name": "object_36",
+            "enabled": true
+          }
+    - name: var_037
+      value: value_37
+    - name: var_038
+      value: value_38
+    - name: var_039
+      value: value_39
+    - name: var_040
+      value: value_40
+    - name: var_041
+      value: value_41
+    - name: var_042
+      value: value_42
+    - name: var_043
+      value: value_43
+    - name: var_044
+      value:
+        type: object
+        data: |-
+          {
+            "id": 44,
+            "name": "object_44",
+            "enabled": true
+          }
+    - name: var_045
+      value: value_45
+    - name: var_046
+      value: value_46
+    - name: var_047
+      value: value_47
+    - name: var_048
+      value: value_48
+    - name: var_049
+      value: value_49
+    - name: var_050
+      value: value_50
+    - name: var_051
+      value: value_51
+    - name: var_052
+      value:
+        type: object
+        data: |-
+          {
+            "id": 52,
+            "name": "object_52",
+            "enabled": true
+          }
+    - name: var_053
+      value: value_53
+    - name: var_054
+      value: value_54
+    - name: var_055
+      value: value_55
+    - name: var_056
+      value: value_56
+    - name: var_057
+      value: value_57
+    - name: var_058
+      value: value_58
+    - name: var_059
+      value: value_59
+    - name: var_060
+      value:
+        type: object
+        data: |-
+          {
+            "id": 60,
+            "name": "object_60",
+            "enabled": true
+          }
+    - name: var_061
+      value: value_61
+    - name: var_062
+      value: value_62
+    - name: var_063
+      value: value_63
+    - name: var_064
+      value: value_64
+    - name: var_065
+      value: value_65
+    - name: var_066
+      value: value_66
+    - name: var_067
+      value: value_67
+    - name: var_068
+      value:
+        type: object
+        data: |-
+          {
+            "id": 68,
+            "name": "object_68",
+            "enabled": true
+          }
+    - name: var_069
+      value: value_69
+    - name: var_070
+      value: value_70
+    - name: var_071
+      value: value_71
+    - name: var_072
+      value: value_72
+    - name: var_073
+      value: value_73
+    - name: var_074
+      value: value_74
+    - name: var_075
+      value: value_75
+    - name: var_076
+      value:
+        type: object
+        data: |-
+          {
+            "id": 76,
+            "name": "object_76",
+            "enabled": true
+          }
+    - name: var_077
+      value: value_77
+    - name: var_078
+      value: value_78
+    - name: var_079
+      value: value_79
+    - name: var_080
+      value: value_80
+    - name: var_081
+      value: value_81
+    - name: var_082
+      value: value_82
+    - name: var_083
+      value: value_83
+    - name: var_084
+      value:
+        type: object
+        data: |-
+          {
+            "id": 84,
+            "name": "object_84",
+            "enabled": true
+          }
+    - name: var_085
+      value: value_85
+    - name: var_086
+      value: value_86
+    - name: var_087
+      value: value_87
+    - name: var_088
+      value: value_88
+    - name: var_089
+      value: value_89
+    - name: var_090
+      value: value_90
+    - name: var_091
+      value: value_91
+    - name: var_092
+      value:
+        type: object
+        data: |-
+          {
+            "id": 92,
+            "name": "object_92",
+            "enabled": true
+          }
+    - name: var_093
+      value: value_93
+    - name: var_094
+      value: value_94
+    - name: var_095
+      value: value_95
+    - name: var_096
+      value: value_96
+    - name: var_097
+      value: value_97
+    - name: var_098
+      value: value_98
+    - name: var_099
+      value: value_99
+    - name: var_100
+      value:
+        type: object
+        data: |-
+          {
+            "id": 100,
+            "name": "object_100",
+            "enabled": true
+          }
+    - name: var_101
+      value: value_101
+    - name: var_102
+      value: value_102
+    - name: var_103
+      value: value_103
+    - name: var_104
+      value: value_104
+    - name: var_105
+      value: value_105
+    - name: var_106
+      value: value_106
+    - name: var_107
+      value: value_107
+    - name: var_108
+      value:
+        type: object
+        data: |-
+          {
+            "id": 108,
+            "name": "object_108",
+            "enabled": true
+          }
+    - name: var_109
+      value: value_109
+    - name: var_110
+      value: value_110
+    - name: var_111
+      value: value_111
+    - name: var_112
+      value: value_112
+    - name: var_113
+      value: value_113
+    - name: var_114
+      value: value_114
+    - name: var_115
+      value: value_115
+    - name: var_116
+      value:
+        type: object
+        data: |-
+          {
+            "id": 116,
+            "name": "object_116",
+            "enabled": true
+          }
+    - name: var_117
+      value: value_117
+    - name: var_118
+      value: value_118
+    - name: var_119
+      value: value_119

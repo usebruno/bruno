@@ -1,0 +1,18 @@
+info:
+  name: seed
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{host}}/ping"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar('auth_token', 'runtime-token-1');
+        bru.setVar('retry_count', 3);
+        bru.setVar('service_config', { region: 'us-east-1', replicas: 2 });
+        bru.setEnvVar('api_token', 'sk-live-9f3a');
+        bru.setEnvVar('secret_profile', { role: 'admin' });

@@ -1,0 +1,129 @@
+info:
+  name: many-variables
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "http://localhost:8081/ping"
+  headers:
+    - name: X-Header-0
+      value: "{{var_000}}"
+    - name: X-Header-1
+      value: "{{var_001}}"
+    - name: X-Header-2
+      value: "{{var_002}}"
+    - name: X-Header-3
+      value: "{{var_003}}"
+    - name: X-Header-4
+      value: "{{var_004}}"
+    - name: X-Header-5
+      value: "{{var_005}}"
+    - name: X-Header-6
+      value: "{{var_006}}"
+    - name: X-Header-7
+      value: "{{var_007}}"
+    - name: X-Header-8
+      value: "{{var_008}}"
+    - name: X-Header-9
+      value: "{{var_009}}"
+    - name: X-Header-10
+      value: "{{var_010}}"
+    - name: X-Header-11
+      value: "{{var_011}}"
+    - name: X-Header-12
+      value: "{{var_012}}"
+    - name: X-Header-13
+      value: "{{var_013}}"
+    - name: X-Header-14
+      value: "{{var_014}}"
+    - name: X-Header-15
+      value: "{{var_015}}"
+    - name: X-Header-16
+      value: "{{var_016}}"
+    - name: X-Header-17
+      value: "{{var_017}}"
+    - name: X-Header-18
+      value: "{{var_018}}"
+    - name: X-Header-19
+      value: "{{var_019}}"
+    - name: X-Header-20
+      value: "{{var_020}}"
+    - name: X-Header-21
+      value: "{{var_021}}"
+    - name: X-Header-22
+      value: "{{var_022}}"
+    - name: X-Header-23
+      value: "{{var_023}}"
+    - name: X-Header-24
+      value: "{{var_024}}"
+    - name: X-Header-25
+      value: "{{var_025}}"
+    - name: X-Header-26
+      value: "{{var_026}}"
+    - name: X-Header-27
+      value: "{{var_027}}"
+    - name: X-Header-28
+      value: "{{var_028}}"
+    - name: X-Header-29
+      value: "{{var_029}}"
+    - name: X-Header-30
+      value: "{{var_030}}"
+    - name: X-Header-31
+      value: "{{var_031}}"
+    - name: X-Header-32
+      value: "{{var_032}}"
+    - name: X-Header-33
+      value: "{{var_033}}"
+    - name: X-Header-34
+      value: "{{var_034}}"
+    - name: X-Header-35
+      value: "{{var_035}}"
+    - name: X-Header-36
+      value: "{{var_036}}"
+    - name: X-Header-37
+      value: "{{var_037}}"
+    - name: X-Header-38
+      value: "{{var_038}}"
+    - name: X-Header-39
+      value: "{{var_039}}"
+    - name: X-Header-40
+      value: "{{var_040}}"
+    - name: X-Header-41
+      value: "{{var_041}}"
+    - name: X-Header-42
+      value: "{{var_042}}"
+    - name: X-Header-43
+      value: "{{var_043}}"
+    - name: X-Header-44
+      value: "{{var_044}}"
+    - name: X-Header-45
+      value: "{{var_045}}"
+    - name: X-Header-46
+      value: "{{var_046}}"
+    - name: X-Header-47
+      value: "{{var_047}}"
+    - name: X-Header-48
+      value: "{{var_048}}"
+    - name: X-Header-49
+      value: "{{var_049}}"
+    - name: X-Header-50
+      value: "{{var_050}}"
+    - name: X-Header-51
+      value: "{{var_051}}"
+    - name: X-Header-52
+      value: "{{var_052}}"
+    - name: X-Header-53
+      value: "{{var_053}}"
+    - name: X-Header-54
+      value: "{{var_054}}"
+    - name: X-Header-55
+      value: "{{var_055}}"
+    - name: X-Header-56
+      value: "{{var_056}}"
+    - name: X-Header-57
+      value: "{{var_057}}"
+    - name: X-Header-58
+      value: "{{var_058}}"
+    - name: X-Header-59
+      value: "{{var_059}}"

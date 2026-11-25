@@ -1,0 +1,152 @@
+name: Local
+variables:
+  - name: env_000
+    value: env_value_0
+  - name: env_001
+    value:
+      type: object
+      data: |-
+        {
+          "id": 1,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_002
+    value: env_value_2
+  - name: env_003
+    value: env_value_3
+  - name: env_004
+    value: env_value_4
+  - name: env_005
+    value:
+      type: object
+      data: |-
+        {
+          "id": 5,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_006
+    value: env_value_6
+  - name: env_007
+    value: env_value_7
+  - name: env_008
+    value: env_value_8
+  - name: env_009
+    value:
+      type: object
+      data: |-
+        {
+          "id": 9,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_010
+    value: env_value_10
+  - name: env_011
+    value: env_value_11
+  - name: env_012
+    value: env_value_12
+  - name: env_013
+    value:
+      type: object
+      data: |-
+        {
+          "id": 13,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_014
+    value: env_value_14
+  - name: env_015
+    value: env_value_15
+  - name: env_016
+    value: env_value_16
+  - name: env_017
+    value:
+      type: object
+      data: |-
+        {
+          "id": 17,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_018
+    value: env_value_18
+  - name: env_019
+    value: env_value_19
+  - name: env_020
+    value: env_value_20
+  - name: env_021
+    value:
+      type: object
+      data: |-
+        {
+          "id": 21,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_022
+    value: env_value_22
+  - name: env_023
+    value: env_value_23
+  - name: env_024
+    value: env_value_24
+  - name: env_025
+    value:
+      type: object
+      data: |-
+        {
+          "id": 25,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_026
+    value: env_value_26
+  - name: env_027
+    value: env_value_27
+  - name: env_028
+    value: env_value_28
+  - name: env_029
+    value:
+      type: object
+      data: |-
+        {
+          "id": 29,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_030
+    value: env_value_30
+  - name: env_031
+    value: env_value_31
+  - name: env_032
+    value: env_value_32
+  - name: env_033
+    value:
+      type: object
+      data: |-
+        {
+          "id": 33,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_034
+    value: env_value_34
+  - name: env_035
+    value: env_value_35
+  - name: env_036
+    value: env_value_36
+  - name: env_037
+    value:
+      type: object
+      data: |-
+        {
+          "id": 37,
+          "scope": "env",
+          "enabled": true
+        }
+  - name: env_038
+    value: env_value_38
+  - name: env_039
+    value: env_value_39

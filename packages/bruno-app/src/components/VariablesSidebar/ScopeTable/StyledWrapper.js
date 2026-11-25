@@ -8,6 +8,10 @@ const StyledWrapper = styled.div`
     min-height: 0;
   }
 
+  .table-container thead {
+    position: static !important;
+  }
+
   .table-container tbody tr:hover .row-action-btn {
     opacity: 1;
     pointer-events: auto;

@@ -71,13 +71,15 @@ class MultiLineEditor extends Component {
   _applyPersistedViewState = () => {
     if (!this.editor || !this._currentDocKey) return;
 
+    const persistedState = readPersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey });
+    if (this.props.skipAncestorScrollRestore) {
+      applyEditorState(this.editor, persistedState, this.cachedValue);
+      return;
+    }
+
     const wrapper = this.editor.getWrapperElement();
     const ancestorScrolls = snapshotAncestorScrolls(wrapper);
-    applyEditorState(
-      this.editor,
-      readPersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey }),
-      this.cachedValue
-    );
+    applyEditorState(this.editor, persistedState, this.cachedValue);
     restoreAncestorScrolls(ancestorScrolls);
     // CodeMirror/browser may adjust ancestors on a later frame after scrollTo.
     if (this._restoreAncestorRaf) cancelAnimationFrame(this._restoreAncestorRaf);
