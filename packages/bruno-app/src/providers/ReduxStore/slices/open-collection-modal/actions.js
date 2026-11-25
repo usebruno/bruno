@@ -9,6 +9,7 @@ import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { browseDirectories, browseDirectory, mountCollection, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { openWorkspaceAtPath } from 'providers/ReduxStore/slices/workspaces/actions';
 import {
   showOpenCollectionModal,
   showOpenCollectionPage,
@@ -113,6 +114,25 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
   if (result.opened.length > 0) {
     dispatch(closeOpenCollectionModal());
   }
+};
+
+export const openWorkspaceFromModal = (workspacePath) => async (dispatch, getState) => {
+  if (getState().openCollectionModal.openingId) {
+    return;
+  }
+  const openingId = uuid();
+  dispatch(collectionsOpeningStarted(openingId));
+
+  try {
+    await dispatch(openWorkspaceAtPath(workspacePath));
+  } catch (error) {
+    dispatch(collectionsOpeningEnded(openingId));
+    toast.error(formatIpcError(error) || 'Could not open the workspace');
+    return;
+  }
+
+  dispatch(collectionsOpeningEnded(openingId));
+  dispatch(closeOpenCollectionModal());
 };
 
 export const findCollectionsInFolders = (folderPaths, droppedFileCount = 0) => async (dispatch, getState) => {

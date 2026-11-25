@@ -270,6 +270,29 @@ export const openWorkspaceDialog = () => {
   };
 };
 
+export const openWorkspaceAtPath = (workspacePath) => {
+  return async (dispatch, getState) => {
+    const { workspaces, activeWorkspaceUid } = getState().workspaces;
+    const openWorkspace = workspaces.find((workspace) => workspace.pathname && normalizePath(workspace.pathname) === normalizePath(workspacePath));
+    if (openWorkspace) {
+      if (openWorkspace.uid !== activeWorkspaceUid) {
+        await dispatch(switchWorkspace(openWorkspace.uid));
+      }
+      return;
+    }
+
+    const { workspaceConfig, workspaceUid } = await ipcRenderer.invoke('renderer:open-workspace', workspacePath);
+
+    dispatch(createWorkspace({
+      uid: workspaceUid,
+      pathname: workspacePath,
+      ...workspaceConfig
+    }));
+
+    await dispatch(switchWorkspace(workspaceUid));
+  };
+};
+
 export const connectCollectionToGit = ({ workspaceUid, collectionPath, remoteUrl }) => {
   return async (dispatch, getState) => {
     try {

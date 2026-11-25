@@ -789,6 +789,7 @@ module.exports = {
   safeWriteFile,
   safeWriteFileSync,
   removePath,
+  isGitMetadataName,
   removeGitMetadata,
   moveCollectionDirectory,
   getPaths,

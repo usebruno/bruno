@@ -12,6 +12,12 @@ const insomnia = { _type: 'export', __export_format: 4, resources: [] };
 const openCollection = { opencollection: '1.0.0', info: { name: 'Orders' } };
 const wsdl = '<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"><wsdl:types/></wsdl:definitions>';
 const openApiYaml = 'openapi: 3.0.0\ninfo:\n  title: Orders\n  version: "1"\npaths: {}\n';
+const workspace = { opencollection: '1.0.0', info: { name: 'Petstore', type: 'workspace' }, collections: [], specs: [], docs: '' };
+const WORKSPACE_FILE = 'This is a Bruno workspace file, not a collection. Choose its folder to open the workspace.';
+const zipKinds = (kinds) => callIpc.mockImplementation((channel) => Promise.resolve(
+  (channel === 'renderer:is-bruno-workspace-zip' && kinds.includes('workspace'))
+  || (channel === 'renderer:is-bruno-collection-zip' && kinds.includes('collection'))
+));
 
 const file = (name, content = '') => ({
   name,
@@ -87,7 +93,7 @@ describe('import sources', () => {
     });
 
     it('accepts a Bruno ZIP, whatever the case of its extension', async () => {
-      callIpc.mockResolvedValue(true);
+      zipKinds(['collection']);
 
       await expect(readImportFiles([file('Orders.ZIP')])).resolves.toEqual({
         rawData: { zipFilePath: '/files/Orders.ZIP', collectionName: 'Orders' },
@@ -100,6 +106,30 @@ describe('import sources', () => {
       callIpc.mockResolvedValue(false);
 
       await expect(readImportFiles([file('other.zip')])).rejects.toThrow('The ZIP file is not a valid Bruno collection');
+    });
+
+    it('hands a workspace export ZIP over to the workspace import, before checking for a collection', async () => {
+      zipKinds(['workspace', 'collection']);
+
+      await expect(readImportFiles([file('Petstore.zip')])).resolves.toEqual({
+        type: 'workspace-zip',
+        file: { name: 'Petstore.zip', path: '/files/Petstore.zip' }
+      });
+      expect(callIpc).toHaveBeenCalledWith('renderer:is-bruno-workspace-zip', '/files/Petstore.zip');
+      expect(callIpc).not.toHaveBeenCalledWith('renderer:is-bruno-collection-zip', expect.anything());
+    });
+
+    it.each([
+      ['YAML', 'workspace.yml', 'opencollection: 1.0.0\ninfo:\n  name: Petstore\n  type: workspace\n'],
+      ['JSON', 'workspace.json', JSON.stringify(workspace)]
+    ])('says a %s workspace file is not a collection', async (_format, name, text) => {
+      await expect(readImportFiles([file(name, text)])).rejects.toThrow(WORKSPACE_FILE);
+    });
+
+    it('skips a workspace file when several files are picked', async () => {
+      const result = await readImportFiles([file('orders.json', postman), file('workspace.json', workspace)]);
+
+      expect(result).toMatchObject({ type: 'multiple', skippedFileNames: ['workspace.json'] });
     });
 
     it('refuses a ZIP mixed with other files', async () => {
@@ -180,6 +210,16 @@ describe('import sources', () => {
       await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
+    it('says a fetched workspace file is not a collection', async () => {
+      fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: workspace, specType: 'unknown', rawContent: 'raw' });
+
+      await expect(readImportText(url)).rejects.toThrow(WORKSPACE_FILE);
+    });
+
+    it('says pasted workspace text is not a collection', async () => {
+      await expect(readImportText(JSON.stringify(workspace))).rejects.toThrow(WORKSPACE_FILE);
+    });
+
     it('recognises a fetched OpenCollection document', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openCollection, specType: 'unknown', rawContent: 'raw' });
 
@@ -242,11 +282,20 @@ describe('import sources', () => {
     });
 
     it('hands a ZIP over by its path', async () => {
-      callIpc.mockResolvedValue(true);
+      zipKinds(['collection']);
 
       await expect(readImportableFiles([{ path: '/work/orders.zip', name: 'orders.zip' }])).resolves.toEqual({
         rawData: { zipFilePath: '/work/orders.zip', collectionName: 'orders' },
         type: 'bruno-zip'
+      });
+    });
+
+    it('hands a workspace export ZIP found in a folder over to the workspace import', async () => {
+      zipKinds(['workspace']);
+
+      await expect(readImportableFiles([{ path: '/work/petstore.zip', name: 'petstore.zip' }])).resolves.toEqual({
+        type: 'workspace-zip',
+        file: { name: 'petstore.zip', path: '/work/petstore.zip' }
       });
     });
 

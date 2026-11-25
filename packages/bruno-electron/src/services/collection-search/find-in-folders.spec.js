@@ -55,6 +55,25 @@ describe('findCollectionsInFolders', () => {
     importableFiles
   });
 
+  const makeWorkspace = (collectionEntries, ...segments) => {
+    const folderPath = makeFolder(...segments);
+    const collections = collectionEntries.map(({ name, path: collectionPath, remote }) =>
+      `  - name: ${name}\n    path: ${JSON.stringify(collectionPath)}${remote ? `\n    remote: ${remote}` : ''}`);
+    fs.writeFileSync(
+      path.join(folderPath, 'workspace.yml'),
+      `opencollection: 1.0.0\ninfo:\n  name: Petstore\n  type: workspace\ncollections:${collections.length > 0 ? `\n${collections.join('\n')}` : ' []'}\n`
+    );
+    return folderPath;
+  };
+
+  const workspaceSummary = (folderPath, collectionPaths, missingCollectionCount = 0) => ({
+    path: folderPath,
+    status: 'folder',
+    collectionPaths,
+    workspace: { missingCollectionCount },
+    importableFiles: []
+  });
+
   it('reports a picked collection with the name from its config', async () => {
     const bru = makeBruCollection('Payments', 'payments');
     const yml = makeYmlCollection('Orders', 'orders');
@@ -192,6 +211,80 @@ describe('findCollectionsInFolders', () => {
         { path: path.join(exports, 'Orders.postman_collection.json'), name: 'Orders.postman_collection.json', format: 'postman' }
       ])
     ]);
+  });
+
+  describe('a picked Bruno workspace', () => {
+    it('lists the collections its workspace.yml names, inside or outside its folder, and nothing else', async () => {
+      const outside = makeYmlCollection('Auth', 'shared', 'auth');
+      const workspace = makeWorkspace([
+        { name: 'Orders', path: 'collections/orders' },
+        { name: 'Auth', path: outside }
+      ], 'petstore');
+      const orders = makeYmlCollection('Orders', 'petstore', 'collections', 'orders');
+      makeYmlCollection('Billing copy', 'petstore', 'old', 'billing-copy');
+
+      const result = await findCollectionsInFolders([workspace]);
+
+      expect(result).toEqual({
+        folders: [workspaceSummary(workspace, [orders, outside])],
+        collections: [{ path: orders, name: 'Orders' }, { path: outside, name: 'Auth' }],
+        brokenCollectionPaths: [],
+        unreadableFolderCount: 0,
+        stoppedEarly: false
+      });
+    });
+
+    it('counts the collections that are not on this computer, including ones only in a git remote', async () => {
+      const workspace = makeWorkspace([
+        { name: 'Orders', path: 'collections/orders' },
+        { name: 'Gone', path: 'collections/gone' },
+        { name: 'Remote', path: 'collections/remote', remote: 'https://example.com/remote.git' }
+      ], 'petstore');
+      const orders = makeYmlCollection('Orders', 'petstore', 'collections', 'orders');
+
+      const result = await findCollectionsInFolders([workspace]);
+
+      expect(result.folders).toEqual([workspaceSummary(workspace, [orders], 2)]);
+    });
+
+    it('reports a listed collection whose config cannot be read as one that cannot be opened', async () => {
+      const workspace = makeWorkspace([{ name: 'Broken', path: 'collections/broken' }], 'petstore');
+      const broken = makeBrokenCollection('petstore', 'collections', 'broken');
+
+      const result = await findCollectionsInFolders([workspace]);
+
+      expect(result.folders).toEqual([workspaceSummary(workspace, [])]);
+      expect(result.brokenCollectionPaths).toEqual([broken]);
+    });
+
+    it('does not look for importable files in a workspace', async () => {
+      const workspace = makeWorkspace([], 'petstore');
+      fs.writeFileSync(path.join(workspace, 'openapi.yaml'), 'openapi: 3.0.0\n');
+
+      const result = await findCollectionsInFolders([workspace]);
+
+      expect(result.folders).toEqual([workspaceSummary(workspace, [])]);
+    });
+
+    it('searches a folder whose workspace.yml belongs to another tool like any folder', async () => {
+      const folderPath = makeFolder('build');
+      fs.writeFileSync(path.join(folderPath, 'workspace.yml'), 'name: build\nsteps: []\n');
+      const collection = makeBruCollection('Api', 'build', 'api');
+
+      const result = await findCollectionsInFolders([folderPath]);
+
+      expect(result.folders).toEqual([folderSummary(folderPath, 'folder', [collection])]);
+    });
+
+    it('searches a workspace like any folder when several folders are picked', async () => {
+      const workspace = makeWorkspace([], 'petstore');
+      const inside = makeYmlCollection('Orders', 'petstore', 'collections', 'orders');
+      const collection = makeBruCollection('Api', 'api');
+
+      const result = await findCollectionsInFolders([workspace, collection]);
+
+      expect(result.folders).toEqual([folderSummary(workspace, 'folder', [inside]), folderSummary(collection, 'collection', [collection])]);
+    });
   });
 
   it('does not look for importable files when several folders are picked', async () => {

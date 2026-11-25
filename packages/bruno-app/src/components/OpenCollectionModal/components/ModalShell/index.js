@@ -8,7 +8,8 @@ import {
   closeOpenCollectionModal,
   loadImportableFiles,
   openCollectionModal,
-  openDroppedItems
+  openDroppedItems,
+  openWorkspaceFromModal
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { findOpenCollectionPage } from '../../sidebar/pages';
@@ -51,6 +52,7 @@ const ModalShell = () => {
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
   const note = useSelector((state) => state.openCollectionModal.chooseFolder.result?.note);
+  const isNoteOverList = useSelector((state) => state.openCollectionModal.chooseFolder.result?.type === 'list');
   const foldersToAdd = useSelector((state) => {
     const { result } = state.openCollectionModal.chooseFolder;
     return result?.addedToSearch ? undefined : result?.folders;
@@ -104,6 +106,12 @@ const ModalShell = () => {
   const getNoteAction = () => {
     if (note.importFile) {
       return { label: 'Import it', onClick: () => importFrom(loadImportableFiles([note.importFile])) };
+    }
+    if (note.workspacePath) {
+      return {
+        label: isNoteOverList ? 'Open as workspace' : 'Open workspace',
+        onClick: () => dispatch(openWorkspaceFromModal(note.workspacePath))
+      };
     }
     if (foldersToAdd) {
       return { label: 'Add to search locations', onClick: addFoldersToSearch };

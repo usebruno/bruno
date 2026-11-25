@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const { CollectionWalker, getRealPath, toPathKey, isSameOrInside } = require('./walk');
 const { getSkippedMountPoints } = require('./mount-points');
+const { readWorkspaceCollections } = require('../../utils/workspace-detection');
 const { findImportableFiles } = require('./importable-files');
 const { readCollectionConfig } = require('./collection-name');
 
@@ -62,7 +63,34 @@ const summarizeFolder = async (folder, collections, isOnlyFolder) => {
   };
 };
 
+const summarizeWorkspace = async (workspacePath, { collectionPaths, missingCollectionCount }, signal) => {
+  const collections = await mapInBatches(
+    collectionPaths,
+    async (collectionPath) => ({ path: collectionPath, ...(await readCollectionConfig(collectionPath)) }),
+    signal
+  );
+  const openableCollections = collections.filter((collection) => !collection.isBroken);
+  return {
+    folders: [{
+      path: workspacePath,
+      status: 'folder',
+      collectionPaths: openableCollections.map((collection) => collection.path),
+      workspace: { missingCollectionCount },
+      importableFiles: []
+    }],
+    collections: openableCollections.map(({ path, name }) => ({ path, name })),
+    brokenCollectionPaths: collections.filter((collection) => collection.isBroken).map((collection) => collection.path),
+    unreadableFolderCount: 0,
+    stoppedEarly: false
+  };
+};
+
 const findCollectionsInFolders = async (folderPaths, { signal, maxFolders = MAX_FOLDERS, excludedFolders = [] } = {}) => {
+  const workspace = folderPaths.length === 1 ? await readWorkspaceCollections(folderPaths[0]) : null;
+  if (workspace) {
+    return summarizeWorkspace(folderPaths[0], workspace, signal);
+  }
+
   const excludedKeys = await Promise.all(
     excludedFolders.map(async (folderPath) => toPathKey(await getRealPath(folderPath).catch(() => folderPath)))
   );

@@ -11,10 +11,13 @@ import { isPostmanCollection } from './postman-collection';
 import { isWSDLCollection } from './wsdl-collection';
 
 const UNSUPPORTED_FORMAT = 'Unsupported collection format';
+const WORKSPACE_FILE = 'This is a Bruno workspace file, not a collection. Choose its folder to open the workspace.';
 const ZIP_FILE = /\.zip$/i;
 export const HTTP_URL = /^https?:\/\//i;
 
-const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false;
+const isWorkspaceFile = (data) => data?.info?.type === 'workspace';
+
+const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false && !isWorkspaceFile(data);
 
 const IMPORT_FORMATS = [
   ['openapi', isOpenApiSpec],
@@ -27,11 +30,16 @@ const IMPORT_FORMATS = [
 
 const detectImportFormat = (data) => IMPORT_FORMATS.find(([, matches]) => matches(data))?.[0];
 
+const unsupportedFormatError = (data) => new Error(isWorkspaceFile(data) ? WORKSPACE_FILE : UNSUPPORTED_FORMAT);
+
 const readImportableText = (filePath) => callIpc('renderer:collection-search:read-importable-file', { path: filePath });
 
 const describeFileOnDisk = (name) => ({ name, type: /\.json$/i.test(name) ? 'application/json' : '' });
 
-const readBrunoZip = async (zipFilePath, fileName) => {
+const readZip = async (zipFilePath, fileName) => {
+  if (await callIpc('renderer:is-bruno-workspace-zip', zipFilePath)) {
+    return { type: 'workspace-zip', file: { name: fileName, path: zipFilePath } };
+  }
   if (!(await callIpc('renderer:is-bruno-collection-zip', zipFilePath))) {
     throw new Error('The ZIP file is not a valid Bruno collection');
   }
@@ -45,7 +53,7 @@ const parseImportFile = (text, file, filePath) => {
   }
   const type = detectImportFormat(data);
   if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
+    throw unsupportedFormatError(data);
   }
   if (type === 'openapi') {
     return { rawData: data, type, filePath, rawContent: text };
@@ -87,7 +95,7 @@ export const readImportFiles = async (files) => {
     throw new Error('Multiple ZIP files selected. Please select only one ZIP file at a time for import.');
   }
   if (zipFiles.length === 1) {
-    return readBrunoZip(window.ipcRenderer.getFilePath(zipFiles[0]), zipFiles[0].name);
+    return readZip(window.ipcRenderer.getFilePath(zipFiles[0]), zipFiles[0].name);
   }
   if (files.length > 1) {
     return readSeveralFiles(files, async (file) => parseFileForBulkImport(await file.text(), file, window.ipcRenderer.getFilePath(file)));
@@ -98,7 +106,7 @@ export const readImportFiles = async (files) => {
 
 const readImportableFile = async ({ path, name }) => {
   if (ZIP_FILE.test(name)) {
-    return readBrunoZip(path, name);
+    return readZip(path, name);
   }
   return parseImportFile(await readImportableText(path), describeFileOnDisk(name), path);
 };
@@ -122,7 +130,7 @@ const readImportUrl = async (url) => {
   }
   const type = fetched.data !== null && typeof fetched.data === 'object' && detectImportFormat(fetched.data);
   if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
+    throw unsupportedFormatError(fetched.data);
   }
   return { rawData: fetched.data, type, sourceUrl: url, rawContent: fetched.rawContent };
 };
@@ -148,7 +156,7 @@ const readRawText = async (text) => {
   const data = parseRawText(text);
   const type = detectImportFormat(data);
   if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
+    throw unsupportedFormatError(data);
   }
   return { rawData: data, type };
 };

@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const AdmZip = require('adm-zip');
+const { isWorkspaceExport } = require('../../utils/workspace-detection');
 const { readFileStart } = require('./read-file-start');
 const { isRealFile } = require('./entry-kind');
 
@@ -8,14 +9,14 @@ const SNIFF_BYTES = 64 * 1024;
 const MAX_ZIP_BYTES = 20 * 1024 * 1024;
 const COLLECTION_ZIP_ENTRY = /^(?:[^/]+\/)?(?:bruno\.json|opencollection\.yml)$/;
 
-const isCollectionZip = async (filePath) => {
+const isImportableZip = async (filePath) => {
   try {
     const { size } = await fs.stat(filePath);
     if (size > MAX_ZIP_BYTES) {
       return false;
     }
     const zip = new AdmZip(await fs.readFile(filePath));
-    return zip.getEntries().some((entry) => COLLECTION_ZIP_ENTRY.test(entry.entryName));
+    return zip.getEntries().some((entry) => COLLECTION_ZIP_ENTRY.test(entry.entryName)) || isWorkspaceExport(zip);
   } catch (error) {
     return false;
   }
@@ -48,7 +49,7 @@ const detectYamlFormat = (fileStart) => {
 const detectFormat = async (filePath, name) => {
   const lowerName = name.toLowerCase();
   if (lowerName.endsWith('.zip')) {
-    return await isCollectionZip(filePath) ? 'zip' : null;
+    return await isImportableZip(filePath) ? 'zip' : null;
   }
   if (lowerName.endsWith('.postman_collection.json')) {
     return 'postman';

@@ -13,6 +13,7 @@ const { globalEnvironmentsManager } = require('../store/workspace-environments')
 const { globalEnvironmentsStore } = require('../store/global-environments');
 const { resolveLastOpenedWorkspacePaths } = require('../utils/workspace-startup');
 const { forgetRecentCollections } = require('../app/recent-collections');
+const { isWorkspaceZip } = require('../utils/workspace-detection');
 
 const {
   createWorkspaceConfig,
@@ -345,6 +346,8 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       throw error;
     }
   });
+
+  ipcMain.handle('renderer:is-bruno-workspace-zip', (event, zipFilePath) => isWorkspaceZip(zipFilePath));
 
   ipcMain.handle('renderer:import-workspace', async (event, zipFilePath, extractLocation) => {
     try {

@@ -44,6 +44,15 @@ jest.mock('components/Sidebar/BulkImportCollectionLocation', () => ({
   __esModule: true,
   default: ({ importData }) => <div data-testid="bulk-modal">{importData.filesData.length}</div>
 }));
+jest.mock('components/WorkspaceSidebar/ImportWorkspace', () => ({
+  __esModule: true,
+  default: ({ initialFile, onClose }) => (
+    <div data-testid="import-workspace-modal">
+      <span data-testid="import-workspace-file">{JSON.stringify(initialFile)}</span>
+      <button onClick={onClose}>Close workspace import</button>
+    </div>
+  )
+}));
 jest.mock('components/Sidebar/PostmanPackageReport', () => ({
   __esModule: true,
   default: ({ collectionPath }) => <div data-testid="postman-prompt">{collectionPath}</div>
@@ -123,6 +132,20 @@ describe('ImportHandoff', () => {
     expect(store.getState().openCollectionModal.importRequest).toBeNull();
     expect(isModalOpen(store)).toBe(false);
     expect(screen.getByTestId('location-modal')).toBeInTheDocument();
+  });
+
+  it('closes the Open collection modal and hands a workspace export to the workspace import with the file selected', async () => {
+    const store = renderHandoff({ type: 'workspace-zip', file: { name: 'Petstore.zip', path: '/work/Petstore.zip' } });
+
+    await click('Start');
+
+    expect(isModalOpen(store)).toBe(false);
+    expect(JSON.parse(screen.getByTestId('import-workspace-file').textContent)).toEqual({ name: 'Petstore.zip', path: '/work/Petstore.zip' });
+    expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
+
+    await click('Close workspace import');
+
+    expect(screen.queryByTestId('import-workspace-modal')).not.toBeInTheDocument();
   });
 
   it('stays out of the way when nothing was loaded', async () => {

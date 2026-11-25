@@ -13,6 +13,7 @@ import openCollectionModalReducer, {
   myComputerScanFinished
 } from './index';
 import { readImportableFiles, readImportFiles, readImportText } from 'utils/importers/import-sources';
+import { openWorkspaceAtPath } from 'providers/ReduxStore/slices/workspaces/actions';
 import {
   addFolderResultToSearch,
   addSearchFolders,
@@ -27,6 +28,7 @@ import {
   openCollectionModalOnLastPage,
   openCollectionsFromModal,
   openDroppedItems,
+  openWorkspaceFromModal,
   pickCollectionFolders,
   pickSearchFolder,
   recentCollectionsChangedEvent,
@@ -52,6 +54,7 @@ jest.mock('utils/importers/import-sources', () => ({
   readImportText: jest.fn(),
   readImportableFiles: jest.fn()
 }));
+jest.mock('providers/ReduxStore/slices/workspaces/actions', () => ({ openWorkspaceAtPath: jest.fn() }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectories: jest.fn(),
   browseDirectory: jest.fn(),
@@ -761,6 +764,52 @@ describe('open collection modal actions', () => {
 
       expect(callIpc).not.toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.anything());
       expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.RECENTS);
+    });
+  });
+
+  describe('openWorkspaceFromModal', () => {
+    const workspacePath = '/work/petstore';
+
+    it('opens the workspace, then closes the modal', async () => {
+      const opening = deferred();
+      openWorkspaceAtPath.mockReturnValue(() => opening.promise);
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      const finished = store.dispatch(openWorkspaceFromModal(workspacePath));
+      expect(modalState(store).openingId).toEqual(expect.any(String));
+      opening.resolve();
+      await finished;
+
+      expect(openWorkspaceAtPath).toHaveBeenCalledWith(workspacePath);
+      expect(modalState(store)).toMatchObject({ isOpen: false, openingId: null });
+    });
+
+    it('shows why the workspace could not be opened and keeps the modal open', async () => {
+      openWorkspaceAtPath.mockReturnValue(() => Promise.reject(new Error('Error invoking remote method \'renderer:open-workspace\': Error: Invalid workspace: workspace.yml is malformed')));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      await store.dispatch(openWorkspaceFromModal(workspacePath));
+
+      expect(toast.error).toHaveBeenCalledWith('Invalid workspace: workspace.yml is malformed');
+      expect(modalState(store)).toMatchObject({ isOpen: true, openingId: null });
+    });
+
+    it('falls back to a general message when the error says nothing', async () => {
+      openWorkspaceAtPath.mockReturnValue(() => Promise.reject(new Error('')));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) });
+
+      await store.dispatch(openWorkspaceFromModal(workspacePath));
+
+      expect(toast.error).toHaveBeenCalledWith('Could not open the workspace');
+    });
+
+    it('does nothing while something is already opening', async () => {
+      const { store } = createStore({ modal: { ...openOn(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER), openingId: 'opening-1' } });
+
+      await store.dispatch(openWorkspaceFromModal(workspacePath));
+
+      expect(openWorkspaceAtPath).not.toHaveBeenCalled();
+      expect(modalState(store)).toMatchObject({ isOpen: true, openingId: 'opening-1' });
     });
   });
 

@@ -12,11 +12,11 @@ import { formatIpcError } from 'utils/common/error';
 import { multiLineMsg } from 'utils/common/index';
 import Help from 'components/Help';
 
-const ImportWorkspace = ({ onClose }) => {
+const ImportWorkspace = ({ onClose, initialFile = null }) => {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.app.preferences);
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(initialFile);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
   const locationInputRef = useRef(null);

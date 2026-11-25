@@ -13,6 +13,7 @@ import openCollectionModalReducer, {
   showOpenCollectionModal
 } from 'providers/ReduxStore/slices/open-collection-modal';
 import { openCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { openWorkspaceAtPath } from 'providers/ReduxStore/slices/workspaces/actions';
 import OpenCollectionModal from 'components/OpenCollectionModal';
 import { OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 import { ImportHandoffContext } from '../ImportHandoff/context';
@@ -22,6 +23,7 @@ jest.mock('nanoid', () => {
   let count = 0;
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
+jest.mock('providers/ReduxStore/slices/workspaces/actions', () => ({ openWorkspaceAtPath: jest.fn(() => () => Promise.resolve()) }));
 jest.mock('../../sidebar/ChooseFolderPage', () => ({
   __esModule: true,
   default: () => (
@@ -336,6 +338,20 @@ describe('ModalShell', () => {
 
     expect(store.getState().openCollectionModal.page).toBe(OPEN_COLLECTION_PAGE.IMPORT);
     await waitFor(() => expect(store.getState().openCollectionModal.importLoadId).toBeNull());
+  });
+
+  it.each([
+    ['Open as workspace', { type: 'list', collections: [{ path: '/work/petstore/orders', name: 'Orders' }], folders: ['/work/petstore'], preselect: [] }],
+    ['Open workspace', { type: 'message' }]
+  ])('offers "%s" for the workspace a note names and opens it', async (label, outcome) => {
+    const result = { id: 'search-1', ...outcome, note: { tone: 'info', text: 'Part of a workspace.', workspacePath: '/work/petstore' } };
+    const store = createStore({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, chooseFolder: { ...closedState.chooseFolder, result } });
+    renderWithStore(<ModalShell />, store);
+
+    fireEvent.click(screen.getByRole('button', { name: label }));
+
+    expect(openWorkspaceAtPath).toHaveBeenCalledWith('/work/petstore');
+    await waitFor(() => expect(store.getState().openCollectionModal.isOpen).toBe(false));
   });
 
   it('leaves the note without an action when it names no file', () => {

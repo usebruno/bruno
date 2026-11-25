@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { importRequestTaken } from 'providers/ReduxStore/slices/open-collection-modal';
@@ -71,23 +72,33 @@ const ImportHandoff = ({ children }) => {
       });
   };
 
+  const renderImportDialog = () => {
+    if (!importData) {
+      return null;
+    }
+    if (importData.type === 'multiple') {
+      return <BulkImportCollectionLocation importData={importData} onClose={closeImport} handleSubmit={importToLocation} />;
+    }
+    if (importData.type === 'workspace-zip') {
+      return <ImportWorkspace initialFile={importData.file} onClose={closeImport} />;
+    }
+    return (
+      <ImportCollectionLocation
+        rawData={importData.rawData}
+        format={importData.type}
+        sourceUrl={importData.sourceUrl}
+        filePath={importData.filePath}
+        rawContent={importData.rawContent}
+        onClose={closeImport}
+        handleSubmit={importToLocation}
+      />
+    );
+  };
+
   return (
     <ImportHandoffContext.Provider value={importFrom}>
       {children}
-      {importData?.type === 'multiple' ? (
-        <BulkImportCollectionLocation importData={importData} onClose={closeImport} handleSubmit={importToLocation} />
-      ) : null}
-      {importData && importData.type !== 'multiple' ? (
-        <ImportCollectionLocation
-          rawData={importData.rawData}
-          format={importData.type}
-          sourceUrl={importData.sourceUrl}
-          filePath={importData.filePath}
-          rawContent={importData.rawContent}
-          onClose={closeImport}
-          handleSubmit={importToLocation}
-        />
-      ) : null}
+      {renderImportDialog()}
       {postmanPackagePrompt ? (
         <PostmanPackageReport
           key={postmanPackagePrompt.collectionPath}

@@ -49,6 +49,81 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(outcome).toEqual({ type: 'switch', path: api.path, name: 'API', skippedText: '' });
   });
 
+  describe('a picked Bruno workspace', () => {
+    const orders = { path: '/work/petstore/orders', name: 'Orders' };
+    const workspace = (folderPath, collectionPaths = [], missingCollectionCount = 0) => ({
+      ...folder(folderPath, 'folder', collectionPaths),
+      workspace: { missingCollectionCount }
+    });
+
+    it('lists the collections inside it and offers to open it as a workspace', () => {
+      const outcome = getFolderSearchOutcome(
+        searchResult({ folders: [workspace('/work/petstore', [orders.path])], collections: [orders] }),
+        nothingOpen
+      );
+
+      expect(outcome).toEqual({
+        type: 'list',
+        collections: [orders],
+        folders: ['/work/petstore'],
+        preselect: [],
+        note: { tone: 'info', text: 'These collections are part of the petstore workspace.', workspacePath: '/work/petstore' }
+      });
+    });
+
+    it('does not repeat "workspace" when the folder name already ends with it', () => {
+      const folderPath = '/work/Petstore Workspace';
+      const outcome = getFolderSearchOutcome(
+        searchResult({ folders: [workspace(folderPath, [orders.path])], collections: [orders] }),
+        nothingOpen
+      );
+
+      expect(outcome.note.text).toBe('These collections are part of the Petstore Workspace.');
+    });
+
+    it('says a workspace without collections is not a collection and offers to open it', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore')] }), nothingOpen);
+
+      expect(outcome).toEqual({
+        type: 'message',
+        note: { tone: 'info', text: 'petstore is a Bruno workspace, not a collection.', workspacePath: '/work/petstore' }
+      });
+    });
+
+    it('warns about the collections that are not on this computer or cannot be read', () => {
+      const outcome = getFolderSearchOutcome(
+        searchResult({
+          folders: [workspace('/work/petstore', [orders.path], 2)],
+          collections: [orders],
+          brokenCollectionPaths: ['/work/petstore/billing']
+        }),
+        nothingOpen
+      );
+
+      expect(outcome.note).toEqual({
+        tone: 'warning',
+        text: 'These collections are part of the petstore workspace. 2 of its collections aren’t on this computer. 1 collection was skipped because its config can’t be read.',
+        workspacePath: '/work/petstore'
+      });
+    });
+
+    it('says when the one collection of a workspace is not on this computer', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore', [], 1)] }), nothingOpen);
+
+      expect(outcome.note).toEqual({
+        tone: 'warning',
+        text: 'petstore is a Bruno workspace, not a collection. 1 of its collections isn’t on this computer.',
+        workspacePath: '/work/petstore'
+      });
+    });
+
+    it('says files dropped with a workspace were left out', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore')] }), nothingOpen, 1);
+
+      expect(outcome.note.text).toBe('petstore is a Bruno workspace, not a collection. 1 dropped file wasn’t opened. Use Import file or URL to import it.');
+    });
+  });
+
   it('lists the collections inside a plain folder', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({ folders: [folder('/work', 'folder', [billing.path, api.path])], collections: [billing, api] }),
