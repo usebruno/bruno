@@ -311,7 +311,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       workspaceWatcher.removeWatcher(workspacePath);
     }
 
-    await fsExtra.remove(workspacePath);
+    await fs.promises.rm(workspacePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     return { success: true };
   });
 

@@ -366,14 +366,14 @@ describe('getWorkspaceCollectionPathsInsideFolder', () => {
   };
 
   const writeYml = (collectionPaths) => {
-    const lines = ['opencollection: 1.0.0', 'info:', '  name: "Test"', '  type: workspace', 'collections:'];
-    collectionPaths.forEach((collectionPath, index) => {
-      lines.push(`  - name: "c${index}"`);
-      lines.push(`    path: "${collectionPath}"`);
-    });
-    lines.push('specs: []');
-    lines.push('docs: \'\'');
-    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), lines.join('\n'));
+    const config = {
+      opencollection: '1.0.0',
+      info: { name: 'Test', type: 'workspace' },
+      collections: collectionPaths.map((collectionPath, index) => ({ name: `c${index}`, path: collectionPath })),
+      specs: [],
+      docs: ''
+    };
+    fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), yaml.dump(config));
   };
 
   beforeEach(() => {
@@ -383,7 +383,7 @@ describe('getWorkspaceCollectionPathsInsideFolder', () => {
   });
 
   afterEach(() => {
-    fs.rmSync(rootPath, { recursive: true, force: true });
+    fs.rmSync(rootPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 
   it('returns only the collections stored inside the workspace folder', () => {
