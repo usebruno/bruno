@@ -23,6 +23,7 @@ const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
+const { approveSource, forgetSource } = require('../services/openapi-sync-sources');
 const jsyaml = require('js-yaml');
 
 /**
@@ -287,6 +288,25 @@ const loadBrunoConfig = (collectionPath) => {
   return { format, brunoConfig, collectionRoot };
 };
 
+const toSourceKey = (collectionPath, sourceUrl) =>
+  (typeof sourceUrl === 'string' && sourceUrl.trim() ? resolveSourceUrl(collectionPath, sourceUrl.trim()) : null);
+
+// The sync config and last synced source feed the one-time migration of sources synced here before.
+const sourceApprovalArgs = (collectionPath, sourceUrl) => {
+  let syncConfig = null;
+  try {
+    syncConfig = loadBrunoConfig(collectionPath).brunoConfig?.openapi?.[0] || null;
+  } catch {
+    syncConfig = null;
+  }
+  return {
+    collectionPath,
+    sourceKey: toSourceKey(collectionPath, sourceUrl),
+    syncConfig,
+    syncedSourceKey: getSpecEntryForUrl(collectionPath)?.sourceUrl
+  };
+};
+
 /**
  * Save bruno config to disk (bruno.json or opencollection.yml).
  */
@@ -445,6 +465,7 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
     delete meta[collectionPath];
     saveSpecMetadata(meta);
   }
+  forgetSource(collectionPath);
 };
 
 /**
@@ -1925,7 +1946,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
       // Merge new config into existing entry (allowlist keys only)
-      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
+      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash'];
       const sanitizedConfig = {};
       for (const key of allowedKeys) {
         if (key in config) {
@@ -1948,13 +1969,15 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];
-      if (existingEntry) {
-        brunoConfig.openapi = [{ ...existingEntry, ...sanitizedConfig }];
-      } else {
-        if (!('autoCheck' in sanitizedConfig)) sanitizedConfig.autoCheck = true;
-        if (!('autoCheckInterval' in sanitizedConfig)) sanitizedConfig.autoCheckInterval = 5;
-        brunoConfig.openapi = [sanitizedConfig];
-      }
+      brunoConfig.openapi = [existingEntry ? { ...existingEntry, ...sanitizedConfig } : sanitizedConfig];
+
+      // Only the UI calls this, on a user action, so it approves the source.
+      approveSource({
+        collectionPath,
+        sourceKey: toSourceKey(collectionPath, sanitizedConfig.sourceUrl),
+        autoCheck: config.autoCheck,
+        autoCheckInterval: config.autoCheckInterval
+      });
 
       // Save updated config
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
@@ -2027,6 +2050,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
       delete meta[collectionPath];
       saveSpecMetadata(meta);
+      forgetSource(collectionPath);
 
       return { success: true };
     } catch (error) {
@@ -2134,6 +2158,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 module.exports = registerOpenAPISyncIpc;
 module.exports.saveSpecAndUpdateMetadata = saveSpecAndUpdateMetadata;
 module.exports.cleanupSpecFilesForCollection = cleanupSpecFilesForCollection;
+module.exports.sourceApprovalArgs = sourceApprovalArgs;
+module.exports.loadBrunoConfig = loadBrunoConfig;
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV === 'test') {

@@ -91,7 +91,7 @@ const swagger2Spec = {
 const postmanFile = { file: { name: 'postman.json' }, type: 'postman', data: { info: { name: 'Postman Collection' } } };
 const openCollectionFile = { file: { name: 'orders.yml' }, type: 'opencollection', data: { opencollection: '1.0.0', info: { name: 'Orders' } } };
 
-const syncEntry = (sourceUrl, settings = {}) => [{ sourceUrl, groupBy: 'tags', authPlacement: 'request', requestNameSource: 'summary', ...settings, autoCheck: true, autoCheckInterval: 5 }];
+const syncEntry = (sourceUrl, settings = {}) => [{ sourceUrl, groupBy: 'tags', authPlacement: 'request', requestNameSource: 'summary', ...settings }];
 
 const renderBulkImport = (filesData, { collections = [] } = {}) => {
   const store = configureStore({
