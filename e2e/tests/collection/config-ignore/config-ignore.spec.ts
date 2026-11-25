@@ -172,9 +172,6 @@ get {
             file: {
               enabled: true
             }
-          },
-          openCollection: {
-            autoOpenFolderPicker: false
           }
         }
       })
@@ -218,9 +215,6 @@ get {
             file: {
               enabled: true
             }
-          },
-          openCollection: {
-            autoOpenFolderPicker: false
           }
         }
       })

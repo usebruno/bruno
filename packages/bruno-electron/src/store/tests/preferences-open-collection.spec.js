@@ -11,7 +11,7 @@ jest.mock('electron-store', () => {
   }));
 });
 
-const { getPreferences, savePreferences, saveAutoOpenFolderPicker, saveSearchFolders, saveSearchWholeComputer } = require('../preferences');
+const { getPreferences, savePreferences, saveSearchFolders, saveSearchWholeComputer } = require('../preferences');
 
 const apiFolder = path.resolve('/work/api');
 const webFolder = path.resolve('/work/web');
@@ -30,58 +30,18 @@ describe('open collection preferences', () => {
     Object.keys(mockPreferencesFile).forEach((key) => delete mockPreferencesFile[key]);
   });
 
-  it('opens the folder picker by default when the setting was never saved', () => {
+  it('has no search folders and leaves the whole computer search off by default', () => {
     mockPreferencesFile.preferences = { general: { defaultLocation: '/collections' } };
 
-    expect(getPreferences().openCollection).toEqual({ autoOpenFolderPicker: true, searchFolders: [], searchWholeComputer: false });
+    expect(getPreferences().openCollection).toEqual({ searchFolders: [], searchWholeComputer: false });
   });
 
-  it('saves only the folder picker setting and leaves the rest of the file as it was', async () => {
-    const storedPreferences = {
-      general: { defaultLocation: '/collections' },
-      mockServer: { instances: [{ uid: 'legacy', name: 'Legacy', sourceType: 'collection', port: 4000, globalDelay: 0 }] },
-      openCollection: { autoOpenFolderPicker: true }
-    };
-    mockPreferencesFile.lastOpenedCollections = ['/collections/api'];
-    mockPreferencesFile.preferences = JSON.parse(JSON.stringify(storedPreferences));
-
-    await saveAutoOpenFolderPicker(false);
-
-    expect(mockPreferencesFile.preferences).toEqual({ ...storedPreferences, openCollection: { autoOpenFolderPicker: false } });
-    expect(mockPreferencesFile.lastOpenedCollections).toEqual(['/collections/api']);
-  });
-
-  it('saves the new-user defaults with the setting on a profile that never saved preferences', async () => {
-    mockPreferencesFile.lastOpenedCollections = [];
-
-    await saveAutoOpenFolderPicker(false);
-
-    const preferences = getPreferences();
-    expect(preferences.openCollection).toEqual({ autoOpenFolderPicker: false, searchFolders: [], searchWholeComputer: false });
-    expect(preferences.proxy).toMatchObject({ source: 'inherit' });
-    expect(preferences.proxy.disabled).toBeUndefined();
-    expect(preferences.onboarding.hasLaunchedBefore).toBe(false);
-    expect(mockPreferencesFile.lastOpenedCollections).toEqual([]);
-  });
-
-  it.each([
-    ['text', 'false'],
-    ['a number', 0],
-    ['nothing', undefined]
-  ])('refuses %s as the setting and changes nothing', async (_label, value) => {
-    mockPreferencesFile.preferences = { general: { defaultLocation: '/collections' } };
-
-    await expect(saveAutoOpenFolderPicker(value)).rejects.toThrow('The folder picker setting must be true or false');
-    expect(mockPreferencesFile.preferences).toEqual({ general: { defaultLocation: '/collections' } });
-  });
-
-  it('keeps the setting through a full save from another preferences screen', async () => {
+  it('still reads and saves a profile that kept the old folder picker setting', async () => {
     mockPreferencesFile.preferences = { openCollection: { autoOpenFolderPicker: false } };
     const preferences = getPreferences();
 
-    await savePreferences({ ...preferences, display: { zoomPercentage: 120 } });
-
-    expect(getPreferences().openCollection).toEqual({ autoOpenFolderPicker: false, searchFolders: [], searchWholeComputer: false });
+    await expect(savePreferences({ ...preferences, display: { zoomPercentage: 120 } })).resolves.toBeUndefined();
+    expect(getPreferences().display).toMatchObject({ zoomPercentage: 120 });
   });
 
   describe('search settings', () => {
@@ -93,14 +53,14 @@ describe('open collection preferences', () => {
       const storedPreferences = {
         general: { defaultLocation: '/collections' },
         mockServer: { instances: [{ uid: 'legacy', name: 'Legacy', sourceType: 'collection', port: 4000, globalDelay: 0 }] },
-        openCollection: { autoOpenFolderPicker: false }
+        openCollection: { searchWholeComputer: false }
       };
       mockPreferencesFile.workspaces = { lastOpenedWorkspaces: ['/workspaces/team'] };
       mockPreferencesFile.preferences = JSON.parse(JSON.stringify(storedPreferences));
 
       await save();
 
-      expect(mockPreferencesFile.preferences).toEqual({ ...storedPreferences, openCollection: { autoOpenFolderPicker: false, ...setting } });
+      expect(mockPreferencesFile.preferences).toEqual({ ...storedPreferences, openCollection: { searchWholeComputer: false, ...setting } });
       expect(mockPreferencesFile.workspaces).toEqual({ lastOpenedWorkspaces: ['/workspaces/team'] });
     });
 
@@ -108,7 +68,7 @@ describe('open collection preferences', () => {
       await save();
 
       const preferences = getPreferences();
-      expect(preferences.openCollection).toEqual({ autoOpenFolderPicker: true, searchFolders: [], searchWholeComputer: false, ...setting });
+      expect(preferences.openCollection).toEqual({ searchFolders: [], searchWholeComputer: false, ...setting });
       expect(preferences.proxy).toMatchObject({ source: 'inherit' });
       expect(preferences.proxy.disabled).toBeUndefined();
       expect(preferences.onboarding.hasLaunchedBefore).toBe(false);
@@ -154,7 +114,7 @@ describe('open collection preferences', () => {
 
       await savePreferences({ ...preferences, display: { zoomPercentage: 120 } });
 
-      expect(getPreferences().openCollection).toEqual({ autoOpenFolderPicker: true, searchFolders: [apiFolder, webFolder], searchWholeComputer: true });
+      expect(getPreferences().openCollection).toEqual({ searchFolders: [apiFolder, webFolder], searchWholeComputer: true });
     });
 
     it.each([

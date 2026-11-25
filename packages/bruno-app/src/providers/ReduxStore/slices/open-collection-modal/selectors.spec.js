@@ -42,7 +42,7 @@ describe('selectSearchWholeComputer', () => {
     [true, { openCollection: { searchWholeComputer: true } }],
     [false, { openCollection: { searchWholeComputer: false } }],
     [false, { openCollection: { searchWholeComputer: 'yes' } }],
-    [false, { openCollection: { autoOpenFolderPicker: true } }],
+    [false, { openCollection: { searchFolders: ['/work'] } }],
     [false, {}]
   ])('is %s for the preferences %j', (expected, preferences) => {
     expect(selectSearchWholeComputer({ app: { preferences } })).toBe(expected);

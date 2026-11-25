@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import useKeybinding from 'hooks/useKeybinding';
@@ -58,20 +58,32 @@ const ModalShell = () => {
   const page = findOpenCollectionPage(pageId);
   const hostPage = page.parent ? findOpenCollectionPage(page.parent) : page;
   const Page = page.component;
-  const HostPage = hostPage.component;
   const Subtitle = page.subtitle;
   const [showDropOverlay, setShowDropOverlay] = useState(false);
+  const [visitedPageIds, setVisitedPageIds] = useState(() => [hostPage.id]);
+  if (!visitedPageIds.includes(hostPage.id)) {
+    setVisitedPageIds([...visitedPageIds, hostPage.id]);
+  }
+
+  useEffect(() => {
+    const focusTarget = hostSlot.current.querySelector('[data-focus-on-show]');
+    if (focusTarget) {
+      focusTarget.focus();
+    } else {
+      focusWhenFocusIsLost(getTabbableElements(hostSlot.current)[0]);
+    }
+  }, [hostPage.id]);
 
   const close = () => dispatch(closeOpenCollectionModal());
 
-  const showPageFromShortcut = (pageId) => {
-    dispatch(openCollectionModal(pageId));
+  const showPageFromShortcut = (pageId, options) => {
+    dispatch(openCollectionModal(pageId, options));
     queueMicrotask(() => focusWhenFocusIsLost(getTabbableElements(hostSlot.current)[0]));
     return false;
   };
 
   useKeybinding('importCollection', () => showPageFromShortcut(OPEN_COLLECTION_PAGE.IMPORT), { scopeRef: dialogRef });
-  useKeybinding('openCollection', () => showPageFromShortcut(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER), { scopeRef: dialogRef });
+  useKeybinding('openCollection', () => showPageFromShortcut(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }), { scopeRef: dialogRef });
 
   const goBack = () => {
     dispatch(openCollectionModal(page.parent));
@@ -207,9 +219,21 @@ const ModalShell = () => {
             ) : null}
             <div className="modal-page" data-testid={`open-collection-page-${page.id}`}>
               <div className="modal-page-content" inert={isOpening}>
-                <div ref={hostSlot} key={hostPage.id} className="modal-page-slot" hidden={hostPage !== page}>
-                  <HostPage />
-                </div>
+                {visitedPageIds.map((visitedPageId) => {
+                  const visitedPage = findOpenCollectionPage(visitedPageId);
+                  const VisitedPage = visitedPage.component;
+                  const isHostPage = visitedPage === hostPage;
+                  return (
+                    <div
+                      key={visitedPage.id}
+                      ref={isHostPage ? hostSlot : undefined}
+                      className="modal-page-slot"
+                      hidden={!isHostPage || hostPage !== page}
+                    >
+                      <VisitedPage />
+                    </div>
+                  );
+                })}
                 {hostPage !== page && <Page />}
               </div>
               {isOpening ? <BusyOverlay>Opening…</BusyOverlay> : null}

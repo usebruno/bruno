@@ -19,7 +19,6 @@ const StyledWrapper = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
     padding: 0.25rem 1.25rem 1.25rem;
   }
 
@@ -27,26 +26,6 @@ const StyledWrapper = styled.div`
     margin-left: 0.5rem;
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
-  }
-
-  .choose-folder-auto-open {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    align-self: flex-start;
-    font-size: 0.78125rem;
-    color: ${(props) => props.theme.colors.text.muted};
-    cursor: pointer;
-    user-select: none;
-
-    input {
-      margin: 0;
-      cursor: pointer;
-    }
-
-    &:hover {
-      color: ${(props) => props.theme.text};
-    }
   }
 `;
 

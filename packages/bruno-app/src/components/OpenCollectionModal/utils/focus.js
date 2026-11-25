@@ -12,7 +12,8 @@ const isTabbable = (element) => element.tabIndex >= 0 && !element.closest('[iner
 export const getTabbableElements = (container) => Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(isTabbable);
 
 export const focusWhenFocusIsLost = (element) => {
-  if (element && document.activeElement === document.body) {
+  const focused = document.activeElement;
+  if (element && (focused === document.body || focused.closest('[hidden]'))) {
     element.focus();
   }
 };

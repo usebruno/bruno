@@ -40,7 +40,7 @@ jest.mock('../../sidebar/RecentsPage', () => ({
 
 jest.mock('../../sidebar/MyComputerPage', () => ({
   __esModule: true,
-  default: () => <input aria-label="Search my computer" />
+  default: () => <input aria-label="Search my computer" data-focus-on-show />
 }));
 
 jest.mock('../../sidebar/MyComputerPage/MyComputerSubtitle', () => ({
@@ -93,7 +93,7 @@ describe('ModalShell', () => {
     renderShell(OPEN_COLLECTION_PAGE.RECENTS);
 
     expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Recents');
-    expect(screen.getByText('Collections you opened recently, including ones you closed')).toBeInTheDocument();
+    expect(screen.getByText('Collections you recently closed or opened')).toBeInTheDocument();
     expect(screen.getByTestId('open-collection-page-recents')).toBeInTheDocument();
   });
 
@@ -110,6 +110,22 @@ describe('ModalShell', () => {
     const title = screen.getByTestId('open-collection-page-title');
     expect(title).toHaveTextContent('My computer');
     expect(title.parentElement).toContainElement(screen.getByTestId('my-computer-subtitle'));
+  });
+
+  it('keeps a page and what was typed in it when you leave and come back, putting focus in its search box', async () => {
+    const store = createStore({ isOpen: true, page: OPEN_COLLECTION_PAGE.MY_COMPUTER, myComputer: { ...closedState.myComputer, status: 'done', locations: [] } });
+    renderWithStore(<ModalShell />, store);
+    const search = screen.getByRole('textbox', { name: 'Search my computer' });
+    fireEvent.change(search, { target: { value: 'orders' } });
+
+    fireEvent.click(screen.getByTestId('open-collection-menu-item-recents'));
+    expect(search).not.toBeVisible();
+
+    fireEvent.click(screen.getByTestId('open-collection-menu-item-my-computer'));
+
+    expect(search).toBeVisible();
+    expect(search).toHaveValue('orders');
+    await waitFor(() => expect(search).toHaveFocus());
   });
 
   describe('Locations, a page under My computer', () => {
@@ -168,13 +184,14 @@ describe('ModalShell', () => {
       expect(menuItem).toHaveFocus();
     });
 
-    it('drops the hidden My computer page when another page is chosen from Locations', () => {
+    it('keeps My computer hidden behind another page chosen from Locations', () => {
       renderMyComputer(OPEN_COLLECTION_SUB_PAGE.LOCATIONS);
 
       fireEvent.click(screen.getByTestId('open-collection-menu-item-recents'));
 
-      expect(screen.getByRole('textbox', { name: 'Search recents' })).toBeInTheDocument();
-      expect(screen.queryByRole('textbox', { name: 'Search my computer', hidden: true })).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Search recents' })).toBeVisible();
+      expect(screen.queryByTestId('locations-page')).not.toBeInTheDocument();
+      expect(myComputerSearch()).not.toBeVisible();
     });
   });
 
@@ -191,7 +208,7 @@ describe('ModalShell', () => {
     const store = createStore({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, openingId: 'opening-1' });
     renderWithStore(<ModalShell />, store);
     const close = screen.getByTestId('open-collection-close');
-    const firstItem = screen.getByTestId('open-collection-menu-item-choose-folder');
+    const firstItem = screen.getByTestId('open-collection-menu-item-recents');
     close.focus();
 
     fireEvent.keyDown(close, { key: 'Tab' });
@@ -505,12 +522,12 @@ describe('ModalShell', () => {
 
     fireEvent.keyDown(checkbox, { key: 'Tab' });
 
-    expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveFocus();
+    expect(screen.getByTestId('open-collection-menu-item-recents')).toHaveFocus();
   });
 
   it('wraps Shift+Tab from the first tabbable element to the last', () => {
     renderShell();
-    const first = screen.getByTestId('open-collection-menu-item-choose-folder');
+    const first = screen.getByTestId('open-collection-menu-item-recents');
     first.focus();
 
     fireEvent.keyDown(first, { key: 'Tab', shiftKey: true });
@@ -536,7 +553,7 @@ describe('ModalShell', () => {
 
     fireEvent.keyDown(dialog, { key: 'Tab' });
 
-    expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveFocus();
+    expect(screen.getByTestId('open-collection-menu-item-recents')).toHaveFocus();
   });
 
   it('moves Shift+Tab from the dialog itself to its last tabbable element', () => {
@@ -555,7 +572,7 @@ describe('ModalShell', () => {
 
     fireEvent.keyDown(document.body, { key: 'Tab' });
 
-    expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveFocus();
+    expect(screen.getByTestId('open-collection-menu-item-recents')).toHaveFocus();
   });
 
   it('takes focus back when a control behind it grabs focus', () => {
@@ -690,7 +707,7 @@ describe('ModalShell', () => {
             page: OPEN_COLLECTION_PAGE.MY_COMPUTER,
             myComputer: { ...closedState.myComputer, status: 'done', locations: [] }
           },
-          app: { ...initialApp, preferences: { ...initialApp.preferences, openCollection: { autoOpenFolderPicker: false }, ...preferences } }
+          app: { ...initialApp, preferences: { ...initialApp.preferences, ...preferences } }
         }
       });
       renderWithStore(<ModalShell />, store);
@@ -699,12 +716,13 @@ describe('ModalShell', () => {
       return { store, search };
     };
 
-    it('goes to Choose folder when its shortcut is pressed in a search box, putting focus on the page', async () => {
+    it('goes to Choose folder and opens the folder picker when its shortcut is pressed in a search box, putting focus on the page', async () => {
       const { store, search } = renderOnMyComputer();
 
       pressO(search, { ...shortcutModifier, shiftKey: true });
 
       expect(currentPage(store)).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+      expect(store.getState().openCollectionModal.chooseFolder.status).toBe('picking');
       await waitFor(() => expect(screen.getByTestId('page-link')).toHaveFocus());
     });
 

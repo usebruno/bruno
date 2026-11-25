@@ -27,7 +27,6 @@ const defaultPreferences = {
       enabled: false
     },
     openCollection: {
-      autoOpenFolderPicker: false,
       searchFolders: [],
       searchWholeComputer: false
     }

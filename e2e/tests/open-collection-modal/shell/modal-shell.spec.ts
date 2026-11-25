@@ -20,22 +20,22 @@ type MenuPage = {
 
 const MENU_PAGES: MenuPage[] = [
   {
+    id: 'recents',
+    label: 'Recents',
+    title: 'Recents',
+    description: 'Collections you recently closed or opened'
+  },
+  {
     id: 'choose-folder',
     label: 'Choose folder…',
     title: 'Choose folder',
-    description: 'Pick one or more collection folders to open them in the current workspace.'
+    description: 'Collections from any folder you pick or drop here'
   },
   {
     id: 'import',
     label: 'Import file or URL',
     title: 'Import',
-    description: 'From Postman, Insomnia, OpenAPI, WSDL or a Bruno export file'
-  },
-  {
-    id: 'recents',
-    label: 'Recents',
-    title: 'Recents',
-    description: 'Collections you opened recently, including ones you closed'
+    description: 'Collections from export files and URLs'
   },
   {
     id: 'my-computer',
@@ -52,11 +52,9 @@ const MENU_PAGES: MenuPage[] = [
     id: 'api-catalog',
     label: 'API Catalog',
     title: 'API Catalog',
-    description: 'Every public Bruno collection indexed from GitHub'
+    description: 'Collections from public GitHub repos, indexed by Bruno'
   }
 ];
-
-const CHOOSE_FOLDER_SHORTCUT = process.platform === 'darwin' ? '⇧ ⌘ O' : 'Ctrl+Shift+O';
 
 test.describe('Open collection modal shell', () => {
   test.beforeAll(async ({ pageWithUserData, reuseOrLaunchElectronApp, createTmpDir }, testInfo) => {
@@ -93,9 +91,8 @@ test.describe('Open collection modal shell', () => {
       await showOpenCollectionModal(page, 'import');
     });
 
-    await test.step('Verify the menu lists the pages in order', async () => {
-      await expect(openCollectionModal.menuItems()).toHaveCount(MENU_PAGES.length);
-      await expect(openCollectionModal.menuItems()).toContainText(MENU_PAGES.map(({ label }) => label));
+    await test.step('Verify the menu lists the pages in order, Recents first, with no shortcut next to them', async () => {
+      await expect(openCollectionModal.menuItems()).toHaveText(MENU_PAGES.map(({ label }) => label));
     });
 
     await test.step('Verify My computer, Registry and API Catalog sit in the Sources group', async () => {
@@ -130,24 +127,6 @@ test.describe('Open collection modal shell', () => {
         await expect(openCollectionModal.menuItem(menuPage.id)).toHaveAttribute('aria-current', 'page');
         await expect(openCollectionModal.menuItem(previousPage.id)).not.toHaveAttribute('aria-current');
       });
-    });
-  });
-
-  test('shows a shortcut on Choose folder only', async ({ pageWithUserData: page }) => {
-    const openCollectionModal = buildOpenCollectionModalLocators(page);
-
-    await test.step('Show the Import page', async () => {
-      await showOpenCollectionModal(page, 'import');
-    });
-
-    await test.step('Verify Choose folder shows its shortcut', async () => {
-      await expect(openCollectionModal.menuItemShortcut('choose-folder')).toHaveText(CHOOSE_FOLDER_SHORTCUT);
-    });
-
-    await test.step('Verify no other menu item shows a shortcut', async () => {
-      for (const { id } of MENU_PAGES.filter((menuPage) => menuPage.id !== 'choose-folder')) {
-        await expect(openCollectionModal.menuItemShortcut(id)).toHaveCount(0);
-      }
     });
   });
 

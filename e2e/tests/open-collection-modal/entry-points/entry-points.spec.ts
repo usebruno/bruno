@@ -1,5 +1,5 @@
 import { test, expect, ElectronApplication } from '../../../playwright';
-import { buildCommonLocators } from '../../../pages';
+import { buildCommonLocators, mockBrowseFiles } from '../../../pages';
 import { restoreDocumentsPath, stubDocumentsPath } from '../../../utils';
 import { clickApplicationMenuItem, clickTitleBarMenuItem } from '../../../pages/app-shell/title-bar';
 import {
@@ -36,6 +36,10 @@ test.describe('Open collection modal entry points', () => {
 
   test('opens on Choose folder with Cmd/Ctrl+Shift+O', async ({ pageWithUserData: page }) => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
+
+    await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+      await mockBrowseFiles(electronApp, []);
+    });
 
     await pressOpenCollectionShortcut(page, 'choose-folder');
 

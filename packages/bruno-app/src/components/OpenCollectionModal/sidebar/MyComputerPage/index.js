@@ -42,6 +42,7 @@ const MyComputerPage = () => {
   const recentsByKey = useMemo(() => new Map(recentItems.map((item) => [toPathKey(item.path), item])), [recentItems]);
 
   const showPage = (page) => dispatch(openCollectionModal(page));
+  const chooseFolders = () => dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
 
   const getMeta = (collection) => {
     const recent = recentsByKey.get(toPathKey(collection.path));
@@ -52,7 +53,7 @@ const MyComputerPage = () => {
   };
 
   const openFolderButton = (
-    <Button color="primary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)} data-testid="my-computer-open-folder">
+    <Button color="primary" fullWidth onClick={chooseFolders} data-testid="my-computer-open-folder">
       Open a collection folder…
     </Button>
   );
@@ -130,7 +131,7 @@ const MyComputerPage = () => {
       emptyText="Looking for collections…"
       noMatchText="Bruno may not search the folder it lives in. Choose its folder to open it, or add the folder to your search locations."
       testIdPrefix="my-computer"
-      onChooseFolder={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)}
+      onChooseFolder={chooseFolders}
       onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
       onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}
       onCancel={() => dispatch(closeOpenCollectionModal())}

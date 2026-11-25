@@ -131,6 +131,7 @@ const CollectionList = ({
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             autoFocus
+            data-focus-on-show
             data-testid={`${testIdPrefix}-search`}
           />
           {searchText && (

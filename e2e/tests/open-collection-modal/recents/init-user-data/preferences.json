@@ -2,9 +2,6 @@
   "preferences": {
     "general": {
       "defaultLocation": "{{collectionPath}}/default-location"
-    },
-    "openCollection": {
-      "autoOpenFolderPicker": false
     }
   }
 }

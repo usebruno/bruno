@@ -4,7 +4,6 @@ import { buildCommonLocators, closeAllCollections, dismissModalIfOpen, mockBrows
 import {
   buildOpenCollectionModalLocators,
   closeOpenCollectionModal,
-  pressOpenCollectionShortcut,
   showOpenCollectionModal
 } from '../../../pages/open-collection-modal/shell';
 import {
@@ -32,7 +31,7 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('shows the start page and lists the folder picked from its choose link', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('shows the start page from its menu item and lists the folder picked from its choose link', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
     const chooseFolder = buildChooseFolderLocators(page);
 
@@ -40,16 +39,14 @@ test.describe('Choose folder', () => {
       await mockBrowseFiles(electronApp, [path.join(collectionFixturePath!, 'parent')]);
     });
 
-    await pressOpenCollectionShortcut(page, 'choose-folder');
+    await showOpenCollectionModal(page, 'choose-folder');
 
-    await test.step('Verify the start page', async () => {
+    await test.step('Verify the start page, with the folder picker still closed', async () => {
       await expect(openCollectionModal.pageTitle()).toHaveText('Choose folder');
       await expect(chooseFolder.dropZone()).toContainText('Drop Bruno collection folders here');
       await expect(chooseFolder.dropZone()).toContainText('Bruno Collection folder has opencollection.yml or bruno.json at the root');
       await expect(chooseFolder.chooseLink()).toHaveText('choose folders');
       await expect(chooseFolder.shortcut()).toHaveText(chooseFolderShortcut);
-      await expect(chooseFolder.autoOpenPickerCheckbox()).toHaveAccessibleName('Open the folder picker when this tab opens');
-      await expect(chooseFolder.autoOpenPickerCheckbox()).not.toBeChecked();
       await expect(chooseFolder.list()).toHaveCount(0);
       await expect(openCollectionModal.note()).toHaveCount(0);
     });
@@ -403,14 +400,15 @@ test.describe('Choose folder', () => {
     });
   });
 
-  test('clears the list when you leave Choose folder and come back', async ({ pageWithUserData: page, collectionFixturePath }) => {
+  test('keeps the list and what was ticked when you leave Choose folder and come back', async ({ pageWithUserData: page, collectionFixturePath }) => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
     const chooseFolder = buildChooseFolderLocators(page);
 
     await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'parent')]);
 
-    await test.step('Verify the parent folder is listed', async () => {
+    await test.step('Verify the parent folder is listed and tick Parent Alpha', async () => {
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
+      await chooseFolder.rowCheckbox('Parent Alpha').check();
     });
 
     await test.step('Go to Import and back to Choose folder', async () => {
@@ -418,10 +416,10 @@ test.describe('Choose folder', () => {
       await showOpenCollectionModal(page, 'choose-folder');
     });
 
-    await test.step('Verify Choose folder is back on its start page', async () => {
-      await expect(chooseFolder.list()).toHaveCount(0);
+    await test.step('Verify the list is still there with Parent Alpha ticked, without the note', async () => {
+      await expect(chooseFolder.rowNames()).toHaveText(['Parent Alpha', 'Parent Beta']);
+      await expect(chooseFolder.rowCheckbox('Parent Alpha')).toBeChecked();
       await expect(openCollectionModal.note()).toHaveCount(0);
-      await expect(chooseFolder.dropZone()).toBeVisible();
     });
   });
 

@@ -63,24 +63,15 @@ const StyledWrapper = styled.nav`
     }
   }
 
+  .menu-item + .menu-item {
+    margin-top: 0.0625rem;
+  }
+
   .menu-item-label {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .menu-item-shortcut {
-    flex: none;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
-    opacity: 0;
-    transition: opacity 0.12s ease;
-  }
-
-  .menu-item:hover .menu-item-shortcut,
-  .menu-item:focus-visible .menu-item-shortcut {
-    opacity: 1;
   }
 `;
 

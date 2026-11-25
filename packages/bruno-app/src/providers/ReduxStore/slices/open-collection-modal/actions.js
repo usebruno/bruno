@@ -18,7 +18,6 @@ import {
   folderSearchFinished,
   folderPickEnded,
   folderResultAddedToSearch,
-  folderResultCleared,
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
@@ -235,21 +234,6 @@ export const pickCollectionFolders = () => async (dispatch, getState) => {
   await dispatch(findCollectionsInFolders(folderPaths));
 };
 
-export const saveAutoOpenFolderPicker = (enabled) => async (dispatch, getState) => {
-  const previous = getState().app.preferences;
-  const updated = { ...previous, openCollection: { ...previous.openCollection, autoOpenFolderPicker: enabled } };
-  dispatch(updatePreferences(updated));
-
-  try {
-    await callIpc('renderer:save-auto-open-folder-picker', enabled);
-  } catch (error) {
-    if (getState().app.preferences === updated) {
-      dispatch(updatePreferences(previous));
-    }
-    toast.error('Failed to save preferences');
-  }
-};
-
 export const loadRecentCollections = () => async (dispatch) => {
   const loadId = uuid();
   dispatch(recentsLoadStarted(loadId));
@@ -351,8 +335,8 @@ export const addFolderResultToSearch = () => async (dispatch, getState) => {
   }
 };
 
-export const openCollectionModal = (page) => (dispatch, getState) => {
-  const { isOpen, openingId, chooseFolder, myComputer } = getState().openCollectionModal;
+export const openCollectionModal = (page, { pickFolders = false } = {}) => (dispatch, getState) => {
+  const { isOpen, myComputer } = getState().openCollectionModal;
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
   if (page === OPEN_COLLECTION_PAGE.RECENTS) {
     dispatch(loadRecentCollections());
@@ -361,14 +345,7 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
     dispatch(loadRecentCollections());
     dispatch(scanMyComputer());
   }
-
-  if (page !== OPEN_COLLECTION_PAGE.CHOOSE_FOLDER || openingId) {
-    return;
-  }
-  if (chooseFolder.result) {
-    dispatch(folderResultCleared());
-  }
-  if (get(getState().app.preferences, 'openCollection.autoOpenFolderPicker', true)) {
+  if (pickFolders && page === OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) {
     dispatch(pickCollectionFolders());
   }
 };

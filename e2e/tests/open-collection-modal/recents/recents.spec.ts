@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect, closeElectronApp, ElectronApplication, Page } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections, openCollectionFromDialog, removeCollection } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, mockBrowseFiles, openCollectionFromDialog, removeCollection } from '../../../pages';
 import { buildOpenCollectionModalLocators, closeOpenCollectionModal, showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
 import {
   buildRecentsLocators,
@@ -69,6 +69,10 @@ test.describe('Recents', () => {
       const recents = buildRecentsLocators(page);
 
       await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+        await mockBrowseFiles(app, []);
+      });
 
       await test.step('Click "Open a collection folder…"', async () => {
         await recents.openFolderButton().click();
@@ -217,6 +221,10 @@ test.describe('Recents', () => {
 
       await test.step(`Search for "${NO_MATCH_QUERY}"`, async () => {
         await recents.searchInput().fill(NO_MATCH_QUERY);
+      });
+
+      await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+        await mockBrowseFiles(app, []);
       });
 
       await test.step('Click "Choose folder…" in the no-match message', async () => {

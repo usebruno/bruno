@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect, closeElectronApp, ElectronApplication, Page } from '../../../playwright';
-import { buildCommonLocators, closeAllCollections } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, mockBrowseFiles } from '../../../pages';
 import { initBruCollection, restoreDocumentsPath, stubDocumentsPath, waitForReadyPage } from '../../../utils';
 import { buildOpenCollectionModalLocators, closeOpenCollectionModal, pressOpenCollectionShortcut } from '../../../pages/open-collection-modal/shell';
 import { buildImportPageLocators } from '../../../pages/open-collection-modal/import-page';
@@ -128,6 +128,10 @@ test.describe('My computer', () => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
 
     await showMyComputer(page);
+
+    await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+      await mockBrowseFiles(electronApp, []);
+    });
 
     await test.step('Search for "zzz" and click Choose folder in the no-match message', async () => {
       await myComputer.searchInput().fill('zzz');
@@ -399,6 +403,10 @@ test.describe('My computer without collections', () => {
     const openCollectionModal = buildOpenCollectionModalLocators(page);
 
     await showMyComputer(page);
+
+    await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+      await mockBrowseFiles(electronApp, []);
+    });
 
     await test.step('Click Open a collection folder…', async () => {
       await myComputer.openFolderButton().click();

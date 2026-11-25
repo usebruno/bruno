@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
-import get from 'lodash/get';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { IconFolder } from '@tabler/icons';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
   openCollectionsFromModal,
-  pickCollectionFolders,
-  saveAutoOpenFolderPicker
+  pickCollectionFolders
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { selectOpenCollectionPathKeys } from 'providers/ReduxStore/slices/open-collection-modal/selectors';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
@@ -19,7 +17,6 @@ import StyledWrapper from './StyledWrapper';
 
 const ChooseFolderPage = () => {
   const dispatch = useDispatch();
-  const autoOpenFolderPicker = useSelector((state) => get(state.app.preferences, 'openCollection.autoOpenFolderPicker', true));
   const { status, searchLabel, result } = useSelector((state) => state.openCollectionModal.chooseFolder);
   const openPathKeyList = useSelector(selectOpenCollectionPathKeys, shallowEqual);
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
@@ -69,15 +66,6 @@ const ChooseFolderPage = () => {
                 <span className="choose-folder-shortcut" data-testid="choose-folder-shortcut">{chooseFolderShortcut}</span>
               ) : null}
             </DropZone>
-            <label className="choose-folder-auto-open">
-              <input
-                type="checkbox"
-                checked={autoOpenFolderPicker}
-                onChange={(event) => dispatch(saveAutoOpenFolderPicker(event.target.checked))}
-                data-testid="choose-folder-auto-open-picker"
-              />
-              Open the folder picker when this tab opens
-            </label>
           </div>
         )}
       </div>

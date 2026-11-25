@@ -9,7 +9,6 @@ export const buildChooseFolderLocators = (page: Page) => ({
   dropZone: () => page.getByTestId('choose-folder-drop-zone'),
   chooseLink: () => page.getByTestId('choose-folder-choose-link'),
   shortcut: () => page.getByTestId('choose-folder-shortcut'),
-  autoOpenPickerCheckbox: () => page.getByTestId('choose-folder-auto-open-picker'),
   chooseOtherLink: () => page.getByTestId('choose-folder-choose-other'),
   summary: () => buildOpenCollectionModalLocators(page).pageView('choose-folder').getByRole('strong')
 });

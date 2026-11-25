@@ -10,7 +10,7 @@ const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
 const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
 const mockServer = require('../app/mock-server/mock-server');
-const { saveAutoOpenFolderPicker, saveSearchFolders, saveSearchWholeComputer } = require('../store/preferences');
+const { saveSearchFolders, saveSearchWholeComputer } = require('../store/preferences');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -73,7 +73,6 @@ const registerPreferencesIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:save-auto-open-folder-picker', (event, enabled) => saveAutoOpenFolderPicker(enabled));
   ipcMain.handle('renderer:save-search-folders', (event, folders) => saveSearchFolders(folders));
   ipcMain.handle('renderer:save-search-whole-computer', (event, enabled) => saveSearchWholeComputer(enabled));
 

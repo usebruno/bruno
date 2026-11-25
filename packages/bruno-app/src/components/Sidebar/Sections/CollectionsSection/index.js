@@ -58,7 +58,7 @@ const CollectionsSection = () => {
     return false;
   });
   useKeybinding('openCollection', () => {
-    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
+    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
     return false;
   });
   const getKeybindingDisplayText = useKeybindingDisplayText();

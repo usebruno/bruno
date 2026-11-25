@@ -31,7 +31,6 @@ import {
   pickSearchFolder,
   recentCollectionsChangedEvent,
   removeSearchFolder,
-  saveAutoOpenFolderPicker,
   saveSearchWholeComputer,
   scanMyComputer,
   switchToCollection
@@ -183,50 +182,37 @@ describe('open collection modal actions', () => {
   });
 
   describe('openCollectionModal', () => {
-    it('opens on Choose folder and opens the folder picker', async () => {
-      pickerReturns(Promise.resolve([]));
+    it('opens on Choose folder without the folder picker', () => {
       const { store } = createStore();
 
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
+
+      expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER });
+      expect(browseDirectories).not.toHaveBeenCalled();
+    });
+
+    it('opens on Choose folder and opens the folder picker when asked to pick folders', async () => {
+      pickerReturns(Promise.resolve([]));
+      const { store } = createStore();
+
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
       await flushPromises();
 
       expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER });
       expect(browseDirectories).toHaveBeenCalledTimes(1);
-    });
-
-    it('leaves the folder picker closed when the setting is off', () => {
-      const { store } = createStore({ preferences: { openCollection: { autoOpenFolderPicker: false } } });
-
-      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
-
-      expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
-      expect(browseDirectories).not.toHaveBeenCalled();
     });
 
     it('opens other pages without the folder picker', () => {
       const { store } = createStore();
 
-      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS));
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.RECENTS, { pickFolders: true }));
 
       expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.RECENTS });
       expect(browseDirectories).not.toHaveBeenCalled();
     });
 
-    it('starts Choose folder afresh and picks again when it was showing found collections', async () => {
-      pickerReturns(Promise.resolve([]));
+    it('keeps the found collections when Choose folder is shown again', () => {
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.RECENTS, { ...closedModal.chooseFolder, result: listResult }) });
-
-      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
-      await flushPromises();
-
-      expect(modalState(store)).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER });
-      expect(modalState(store).chooseFolder.result).toBeNull();
-      expect(browseDirectories).toHaveBeenCalledTimes(1);
-    });
-
-    it('keeps the found collections and leaves the folder picker closed while collections are opening', () => {
-      const chooseFolder = { ...closedModal.chooseFolder, result: listResult };
-      const { store } = createStore({ modal: { ...openOn(OPEN_COLLECTION_PAGE.RECENTS, chooseFolder), openingId: 'opening-1' } });
 
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
 
@@ -235,16 +221,35 @@ describe('open collection modal actions', () => {
       expect(browseDirectories).not.toHaveBeenCalled();
     });
 
-    it('starts Choose folder afresh instead of showing an earlier message', async () => {
+    it('opens the folder picker over the found collections and keeps them when the pick is cancelled', async () => {
       pickerReturns(Promise.resolve([]));
+      const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.RECENTS, { ...closedModal.chooseFolder, result: listResult }) });
+
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
+      await flushPromises();
+
+      expect(browseDirectories).toHaveBeenCalledTimes(1);
+      expect(modalState(store).chooseFolder).toMatchObject({ status: 'idle', result: { ...listResult, note: null } });
+    });
+
+    it('leaves the folder picker closed while collections are opening', () => {
+      const chooseFolder = { ...closedModal.chooseFolder, result: listResult };
+      const { store } = createStore({ modal: { ...openOn(OPEN_COLLECTION_PAGE.RECENTS, chooseFolder), openingId: 'opening-1' } });
+
+      store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
+
+      expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+      expect(browseDirectories).not.toHaveBeenCalled();
+    });
+
+    it('drops the note of an earlier message when Choose folder is shown again', () => {
       const messageResult = { id: 'search-0', type: 'message', note: { tone: 'info', text: 'notes isn’t a Bruno collection.' } };
       const { store } = createStore({ modal: openOn(OPEN_COLLECTION_PAGE.RECENTS, { ...closedModal.chooseFolder, result: messageResult }) });
 
       store.dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
-      await flushPromises();
 
-      expect(modalState(store).chooseFolder.result).toBeNull();
-      expect(browseDirectories).toHaveBeenCalledTimes(1);
+      expect(modalState(store).chooseFolder.result).toEqual({ ...messageResult, note: null });
+      expect(browseDirectories).not.toHaveBeenCalled();
     });
   });
 
@@ -257,15 +262,13 @@ describe('open collection modal actions', () => {
       return store;
     };
 
-    it('opens on the default page and opens the folder picker the first time', async () => {
-      pickerReturns(Promise.resolve([]));
+    it('opens on the default page the first time, without the folder picker', () => {
       const { store } = createStore();
 
       store.dispatch(openCollectionModalOnLastPage());
-      await flushPromises();
 
       expect(modalState(store)).toMatchObject({ isOpen: true, page: DEFAULT_OPEN_COLLECTION_PAGE });
-      expect(browseDirectories).toHaveBeenCalledTimes(1);
+      expect(browseDirectories).not.toHaveBeenCalled();
     });
 
     it('opens again on the menu page shown last and loads Recents without the folder picker', () => {
@@ -300,7 +303,6 @@ describe('open collection modal actions', () => {
 
     it('starts on the default page again once Bruno restarts', () => {
       showPagesAndClose(OPEN_COLLECTION_PAGE.RECENTS);
-      pickerReturns(Promise.resolve([]));
       const { store } = createStore();
 
       store.dispatch(openCollectionModalOnLastPage());
@@ -778,44 +780,6 @@ describe('open collection modal actions', () => {
     });
   });
 
-  describe('saveAutoOpenFolderPicker', () => {
-    it('shows the new setting at once and saves only that setting', async () => {
-      const { store } = createStore({ preferences: { general: { defaultLocation: '/collections' } } });
-
-      await store.dispatch(saveAutoOpenFolderPicker(false));
-
-      expect(store.getState().app.preferences).toEqual({
-        general: { defaultLocation: '/collections' },
-        openCollection: { autoOpenFolderPicker: false }
-      });
-      expect(callIpc).toHaveBeenCalledWith('renderer:save-auto-open-folder-picker', false);
-    });
-
-    it('puts the setting back and says so when saving fails', async () => {
-      callIpc.mockRejectedValue(new Error('disk full'));
-      const preferences = { openCollection: { autoOpenFolderPicker: true } };
-      const { store } = createStore({ preferences });
-
-      await store.dispatch(saveAutoOpenFolderPicker(false));
-
-      expect(store.getState().app.preferences).toEqual(preferences);
-      expect(toast.error).toHaveBeenCalledWith('Failed to save preferences');
-    });
-
-    it('keeps newer preferences when an older save fails', async () => {
-      const save = deferred();
-      callIpc.mockReturnValue(save.promise);
-      const { store } = createStore();
-
-      const saving = store.dispatch(saveAutoOpenFolderPicker(false));
-      store.dispatch(updatePreferences({ display: { zoomPercentage: 120 } }));
-      save.reject(new Error('disk full'));
-      await saving;
-
-      expect(store.getState().app.preferences).toEqual({ display: { zoomPercentage: 120 } });
-    });
-  });
-
   describe('My computer scan', () => {
     it.each([
       ['still running', () => [], 'scanning'],
@@ -916,14 +880,14 @@ describe('open collection modal actions', () => {
   describe('saveSearchWholeComputer', () => {
     it('shows the new setting at once and saves only that setting', async () => {
       const { store } = createStore({
-        preferences: { general: { defaultLocation: '/collections' }, openCollection: { autoOpenFolderPicker: false } }
+        preferences: { general: { defaultLocation: '/collections' }, openCollection: { searchFolders: ['/work'] } }
       });
 
       const saving = store.dispatch(saveSearchWholeComputer(true));
 
       expect(store.getState().app.preferences).toEqual({
         general: { defaultLocation: '/collections' },
-        openCollection: { autoOpenFolderPicker: false, searchWholeComputer: true }
+        openCollection: { searchFolders: ['/work'], searchWholeComputer: true }
       });
       await expect(saving).resolves.toBe(true);
       expect(callIpc).toHaveBeenCalledWith(SAVE_SEARCH_WHOLE_COMPUTER, true);

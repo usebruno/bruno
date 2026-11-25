@@ -67,8 +67,6 @@ const renderPage = ({ preferences = {}, chooseFolder = {} } = {}) => {
   return store;
 };
 
-const autoOpenCheckbox = () => screen.getByTestId('choose-folder-auto-open-picker');
-
 describe('ChooseFolderPage', () => {
   beforeEach(() => {
     window.ipcRenderer = { invoke: jest.fn().mockResolvedValue(undefined), send: jest.fn() };
@@ -80,11 +78,12 @@ describe('ChooseFolderPage', () => {
     delete window.ipcRenderer;
   });
 
-  it('shows the drop zone with the folder picker setting on by default', () => {
+  it('shows the drop zone without opening the folder picker', () => {
     renderPage();
 
     expect(screen.getByTestId('choose-folder-drop-zone')).toHaveTextContent('Drop Bruno collection folders here');
-    expect(autoOpenCheckbox()).toBeChecked();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(browseDirectories).not.toHaveBeenCalled();
   });
 
   it('shows the open folder shortcut next to the choose folders link', () => {
@@ -99,12 +98,6 @@ describe('ChooseFolderPage', () => {
     expect(screen.queryByTestId('choose-folder-shortcut')).not.toBeInTheDocument();
   });
 
-  it('shows the saved folder picker setting', () => {
-    renderPage({ preferences: { openCollection: { autoOpenFolderPicker: false } } });
-
-    expect(autoOpenCheckbox()).not.toBeChecked();
-  });
-
   it('opens the folder picker from the choose folders link', async () => {
     renderPage();
 
@@ -113,27 +106,6 @@ describe('ChooseFolderPage', () => {
     });
 
     expect(browseDirectories).toHaveBeenCalledTimes(1);
-  });
-
-  it('saves only the setting and does not open the folder picker', async () => {
-    renderPage({ preferences: { general: { defaultLocation: '/collections' } } });
-
-    fireEvent.click(autoOpenCheckbox());
-
-    await waitFor(() => expect(callIpc).toHaveBeenCalledWith('renderer:save-auto-open-folder-picker', false));
-    expect(autoOpenCheckbox()).not.toBeChecked();
-    expect(window.ipcRenderer.invoke).not.toHaveBeenCalledWith('renderer:save-preferences', expect.anything());
-    expect(browseDirectories).not.toHaveBeenCalled();
-  });
-
-  it('puts the setting back and says so when saving fails', async () => {
-    callIpc.mockRejectedValue(new Error('disk full'));
-    renderPage();
-
-    fireEvent.click(autoOpenCheckbox());
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to save preferences'));
-    expect(autoOpenCheckbox()).toBeChecked();
   });
 
   it('shows the collections found and leaves the note to the modal', () => {

@@ -22,9 +22,10 @@ const RecentsPage = () => {
   const openPathKeys = useMemo(() => new Set(openPathKeyList), [openPathKeyList]);
 
   const showPage = (page) => dispatch(openCollectionModal(page));
+  const chooseFolders = () => dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
 
   const openFolderButton = (
-    <Button color="primary" fullWidth onClick={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)} data-testid="recents-open-folder">
+    <Button color="primary" fullWidth onClick={chooseFolders} data-testid="recents-open-folder">
       Open a collection folder…
     </Button>
   );
@@ -99,7 +100,7 @@ const RecentsPage = () => {
       getMeta={describeLastUse}
       noMatchText="Recents only lists collections you have opened before. If it lives somewhere else, choose its folder."
       testIdPrefix="recents"
-      onChooseFolder={() => showPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)}
+      onChooseFolder={chooseFolders}
       onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
       onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}
       onCancel={() => dispatch(closeOpenCollectionModal())}

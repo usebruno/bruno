@@ -19,7 +19,6 @@ export const buildOpenCollectionModalLocators = (page: Page) => {
     menuItems: () => page.getByTestId(/^open-collection-menu-item-/),
     menuSourceItems: () => menu().getByRole('group', { name: 'Sources', exact: true }).getByTestId(/^open-collection-menu-item-/),
     menuItem: (pageId: OpenCollectionPageId) => page.getByTestId(`open-collection-menu-item-${pageId}`),
-    menuItemShortcut: (pageId: OpenCollectionPageId) => page.getByTestId(`open-collection-menu-shortcut-${pageId}`),
     note: () => page.getByTestId('open-collection-note'),
     noteActionButton: () => page.getByTestId('open-collection-note-action'),
     noteDismissButton: () => page.getByTestId('open-collection-note-dismiss'),

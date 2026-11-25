@@ -26,7 +26,6 @@ import ApiCatalogPage from './ApiCatalogPage';
  * @property {string} [description] - Page header description.
  * @property {React.ComponentType} [subtitle] - Shown in the page header instead of the description. It takes no props.
  * @property {React.ComponentType} icon - Tabler icon shown in the menu.
- * @property {string} [shortcut] - Keybinding action whose shortcut the menu item shows.
  * @property {'sources'} [group] - Pages in the group are listed under the Sources heading.
  * @property {React.ComponentType} component - Page body. It takes no props.
  */
@@ -34,29 +33,28 @@ import ApiCatalogPage from './ApiCatalogPage';
 /** @type {OpenCollectionPage[]} */
 export const OPEN_COLLECTION_PAGES = [
   {
+    id: OPEN_COLLECTION_PAGE.RECENTS,
+    label: 'Recents',
+    title: 'Recents',
+    description: 'Collections you recently closed or opened',
+    icon: IconClock,
+    component: RecentsPage
+  },
+  {
     id: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
     label: 'Choose folder…',
     title: 'Choose folder',
-    description: 'Pick one or more collection folders to open them in the current workspace.',
+    description: 'Collections from any folder you pick or drop here',
     icon: IconFolder,
-    shortcut: 'openCollection',
     component: ChooseFolderPage
   },
   {
     id: OPEN_COLLECTION_PAGE.IMPORT,
     label: 'Import file or URL',
     title: 'Import',
-    description: 'From Postman, Insomnia, OpenAPI, WSDL or a Bruno export file',
+    description: 'Collections from export files and URLs',
     icon: IconDownload,
     component: ImportPage
-  },
-  {
-    id: OPEN_COLLECTION_PAGE.RECENTS,
-    label: 'Recents',
-    title: 'Recents',
-    description: 'Collections you opened recently, including ones you closed',
-    icon: IconClock,
-    component: RecentsPage
   },
   {
     id: OPEN_COLLECTION_PAGE.MY_COMPUTER,
@@ -80,7 +78,7 @@ export const OPEN_COLLECTION_PAGES = [
     id: OPEN_COLLECTION_PAGE.API_CATALOG,
     label: 'API Catalog',
     title: 'API Catalog',
-    description: 'Every public Bruno collection indexed from GitHub',
+    description: 'Collections from public GitHub repos, indexed by Bruno',
     icon: IconBrandSafari,
     group: 'sources',
     component: ApiCatalogPage

@@ -14,12 +14,11 @@ jest.mock('nanoid', () => {
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
 
-const renderMenu = (activePageId = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, preferences = {}) => {
+const renderMenu = (activePageId = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
     preloadedState: {
-      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId },
-      app: { ...appReducer(undefined, { type: 'init' }), preferences }
+      openCollectionModal: { ...openCollectionModalReducer(undefined, { type: 'init' }), isOpen: true, page: activePageId }
     }
   });
   render(
@@ -41,20 +40,19 @@ describe('ModalMenu', () => {
     expect(menuItems().map((item) => item.querySelector('.menu-item-label').textContent)).toEqual(OPEN_COLLECTION_PAGES.map((page) => page.label));
   });
 
-  it('shows the open folder shortcut only next to Choose folder', () => {
+  it('lists Recents first, then Choose folder and Import, each without a shortcut', () => {
     renderMenu();
 
-    expect(screen.getAllByTestId(/^open-collection-menu-shortcut-/)).toEqual([
-      screen.getByTestId(`open-collection-menu-shortcut-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)
-    ]);
-    expect(screen.getByTestId(`open-collection-menu-shortcut-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)).toHaveTextContent(/(Shift|⇧).*O$/);
-    expect(screen.getByTestId(`open-collection-menu-item-${OPEN_COLLECTION_PAGE.CHOOSE_FOLDER}`)).toHaveAccessibleName('Choose folder…');
+    expect(menuItems().slice(0, 3).map((item) => item.textContent)).toEqual(['Recents', 'Choose folder…', 'Import file or URL']);
   });
 
-  it('shows no shortcut when keyboard shortcuts are turned off', () => {
-    renderMenu(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { keybindingsEnabled: false });
+  it('shows Choose folder without opening the folder picker when its item is clicked', () => {
+    const store = renderMenu(OPEN_COLLECTION_PAGE.RECENTS);
 
-    expect(screen.queryByTestId(/^open-collection-menu-shortcut-/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('open-collection-menu-item-choose-folder'));
+
+    expect(store.getState().openCollectionModal.page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+    expect(store.getState().openCollectionModal.chooseFolder.status).toBe('idle');
   });
 
   it('lists the source pages under Sources', () => {
