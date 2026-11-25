@@ -10,7 +10,6 @@ type ServeGitRepositoryOptions = {
   holdResponses?: boolean;
 };
 
-// Serves a bare copy of a local repository over git's dumb HTTP protocol, so ls-remote and clone need no network
 export const serveGitRepository = async ({ sourceRepoPath, servedRoot, owner = 'acme', holdResponses = false }: ServeGitRepositoryOptions) => {
   const repoName = `${path.basename(sourceRepoPath)}.git`;
   const barePath = path.join(servedRoot, owner, repoName);

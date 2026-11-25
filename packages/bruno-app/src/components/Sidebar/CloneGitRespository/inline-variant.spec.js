@@ -4,7 +4,7 @@ jest.mock('nanoid', () => ({
 
 import '@testing-library/jest-dom';
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
@@ -106,6 +106,15 @@ describe('CloneGitRepository variants', () => {
     expect(screen.getByLabelText('Clone to location')).toHaveClass('textbox');
     expect(screen.getByLabelText('Clone to location').parentElement).not.toHaveClass('icon-input-field');
     expect(getComputedStyle(screen.getByTestId('clone-git-repository-branch-select')).height).not.toBe('2rem');
+  });
+
+  it('does not check a fixed repository URL again in the modal', async () => {
+    renderFlow({ collectionRepositoryUrl: 'file:///tmp/acme/api.git' });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clone' }));
+    });
+
+    expect(screen.queryByText('Please enter a valid git repository URL')).toBeNull();
   });
 
   it('lets the clone form fill the inline layout body', () => {

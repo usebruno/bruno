@@ -18,7 +18,6 @@ const GitUrlTab = ({ params, closeModal }) => {
   }, []);
 
   const handleBusyChange = (busy) => {
-    // A clone that ends after this tab closed must not clear a newer clone's busy state
     if (!busy && !mountedRef.current) {
       return;
     }

@@ -146,7 +146,9 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
       branch: ''
     },
     validationSchema: Yup.object({
-      repositoryUrl: Yup.string().required('Repository URL is required'),
+      repositoryUrl: Yup.string()
+        .required('Repository URL is required')
+        .test('is-git-url', 'Please enter a valid git repository URL', (value) => Boolean(collectionRepositoryUrl) || isGitRepositoryUrl(value)),
       collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required')
     }),
     onSubmit: async (values) => {
@@ -358,7 +360,7 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
                       </>
                     )}
                 {formik.touched.repositoryUrl && formik.errors.repositoryUrl && (
-                  <div className="text-red-500">{formik.errors.repositoryUrl}</div>
+                  <div className="text-red-500" data-testid="clone-git-repository-url-error">{formik.errors.repositoryUrl}</div>
                 )}
                 <label htmlFor="collection-location" className="block font-semibold mt-3">
                   Clone to location
@@ -387,7 +389,6 @@ const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange
                     Browse
                   </span>
                 </div>
-                {/* the branch list is attached to document.body, so it would stay on screen while this page is hidden */}
                 {isHidden ? null : (
                   <Select
                     className="branch-select mt-5"

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
   waitForReadyPage,
@@ -54,6 +53,7 @@ test.describe('Git page', () => {
       repoPath,
       Array.from({ length: COLLECTION_COUNT }, (_, index) => validCollectionEntry(`c${String(index + 1).padStart(2, '0')}`))
     );
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
     const { app, cloneTarget } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
 
     try {
@@ -66,7 +66,7 @@ test.describe('Git page', () => {
       });
 
       await test.step('Clone the local repository', async () => {
-        await gitPage.urlInput().fill(url.pathToFileURL(repoPath).href);
+        await gitPage.urlInput().fill(server.url);
         await expect.poll(async () => toPosix(await gitPage.locationInput().inputValue())).toBe(cloneTarget);
         await gitPage.confirmButton().click();
         await gitPage.collectionList().waitFor({ state: 'visible' });
@@ -93,12 +93,14 @@ test.describe('Git page', () => {
       });
     } finally {
       await closeElectronApp(app);
+      server.close();
     }
   });
 
   test('warns about collections the scan skipped', async ({ launchElectronApp, createTmpDir }) => {
     const repoPath = path.join(await createTmpDir('skipped-collections-repo'), 'skipped-collections');
     await createGitRepository(repoPath, [validCollectionEntry('valid'), { folder: 'broken', brunoJson: '{ not json' }]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
     const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
 
     try {
@@ -106,7 +108,7 @@ test.describe('Git page', () => {
       const gitPage = buildGitPageLocators(page);
       await openGitPage(page);
 
-      await gitPage.urlInput().fill(url.pathToFileURL(repoPath).href);
+      await gitPage.urlInput().fill(server.url);
       await gitPage.confirmButton().click();
 
       await expect(gitPage.collectionRow('valid')).toBeVisible();
@@ -120,6 +122,7 @@ test.describe('Git page', () => {
       await expect(gitPage.skippedPath('broken')).toBeVisible();
     } finally {
       await closeElectronApp(app);
+      server.close();
     }
   });
 
@@ -228,6 +231,7 @@ test.describe('Git page', () => {
       validCollectionEntry('Build', 'build/out'),
       validCollectionEntry('Should not show', 'node_modules/pkg')
     ]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
     const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
 
     try {
@@ -236,7 +240,7 @@ test.describe('Git page', () => {
       await openGitPage(page);
 
       await test.step('Clone the repository', async () => {
-        await gitPage.urlInput().fill(url.pathToFileURL(repoPath).href);
+        await gitPage.urlInput().fill(server.url);
         await gitPage.confirmButton().click();
       });
 
@@ -248,6 +252,7 @@ test.describe('Git page', () => {
       });
     } finally {
       await closeElectronApp(app);
+      server.close();
     }
   });
 
@@ -282,6 +287,7 @@ test.describe('Git page', () => {
   test('opens a picked collection from the clone result in the sidebar', async ({ launchElectronApp, createTmpDir }) => {
     const repoPath = path.join(await createTmpDir('open-picked-repo'), 'open-picked');
     await createGitRepository(repoPath, [validCollectionEntry('picked'), validCollectionEntry('left out')]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
     const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
 
     try {
@@ -292,7 +298,7 @@ test.describe('Git page', () => {
       await openGitPage(page);
 
       await test.step('Clone the repository', async () => {
-        await gitPage.urlInput().fill(url.pathToFileURL(repoPath).href);
+        await gitPage.urlInput().fill(server.url);
         await gitPage.confirmButton().click();
         await expect(gitPage.collectionRow('picked')).toBeVisible();
       });
@@ -310,6 +316,26 @@ test.describe('Git page', () => {
       });
 
       await closeAllCollections(page);
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
+  test('says the URL is not valid and stays on the form', async ({ launchElectronApp, createTmpDir }) => {
+    const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      await openGitPage(page);
+
+      await gitPage.urlInput().fill('github.com/acme/api');
+      await gitPage.confirmButton().click();
+
+      await expect(gitPage.urlError()).toHaveText('Please enter a valid git repository URL');
+      await expect(gitPage.urlInput()).toBeVisible();
+      await expect(gitPage.confirmButton()).toHaveText('Clone');
     } finally {
       await closeElectronApp(app);
     }

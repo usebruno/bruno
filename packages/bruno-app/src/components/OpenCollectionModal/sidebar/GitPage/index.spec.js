@@ -211,6 +211,18 @@ describe('GitPage', () => {
     expect(screen.queryByTestId('clone-git-repository-branch-select-listbox')).toBeNull();
   });
 
+  it('says the URL is not valid and does not clone it', async () => {
+    cloneGitRepository.mockClear();
+    renderPage();
+    fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: 'github.com/acme/api' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+
+    expect(screen.getByTestId('clone-git-repository-url-error')).toHaveTextContent('Please enter a valid git repository URL');
+    expect(cloneGitRepository).not.toHaveBeenCalled();
+  });
+
   it('passes params to the tab opened with openTab', async () => {
     mockTabs.current = twoTabs();
     renderPage();

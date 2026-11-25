@@ -12,9 +12,9 @@ export const buildGitPageLocators = (page: Page) => {
     panel,
     urlInput: (): Locator => panel().getByTestId('clone-git-repository-url'),
     urlHint: (): Locator => panel().getByTestId('clone-git-repository-url-hint'),
+    urlError: (): Locator => panel().getByTestId('clone-git-repository-url-error'),
     locationInput: (): Locator => panel().getByLabel('Clone to location', { exact: true }),
     branchSelect: (): Locator => panel().getByTestId('clone-git-repository-branch-select'),
-    // The branch list is attached to document.body, outside the panel
     branchList: (): Locator => page.getByTestId('clone-git-repository-branch-select-listbox'),
     inlineBody: (): Locator => panel().getByTestId('clone-git-inline-body'),
     inlineFooter: (): Locator => panel().getByTestId('clone-git-inline-footer'),
