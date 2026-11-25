@@ -6,7 +6,7 @@ import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import { expandCollection } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import openCollectionModalReducer from './index';
-import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
+import { readImportableFile, readImportFiles, readImportUrl } from 'utils/importers/import-sources';
 import {
   cancelCollectionSearch,
   closeOpenCollectionModal,
@@ -33,7 +33,7 @@ jest.mock('react-hot-toast', () => {
   return { __esModule: true, default: mockToast };
 });
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
-jest.mock('./import-sources', () => ({
+jest.mock('utils/importers/import-sources', () => ({
   readImportFiles: jest.fn(),
   readImportUrl: jest.fn(),
   readImportableFile: jest.fn()

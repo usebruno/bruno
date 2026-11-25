@@ -1,13 +1,13 @@
 import { callIpc } from 'utils/common/ipc';
-import { isBrunoCollection } from 'utils/importers/bruno-collection';
-import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
-import { parseFileText } from 'utils/importers/file-reader';
-import { isInsomniaCollection } from 'utils/importers/insomnia-collection';
-import { isOpenCollection } from 'utils/importers/opencollection';
-import { isOpenApiSpec, isSwagger2Spec } from 'utils/importers/openapi-collection';
-import { isPostmanCollection } from 'utils/importers/postman-collection';
-import { isWSDLCollection } from 'utils/importers/wsdl-collection';
 import { isValidUrl } from 'utils/url/index';
+import { isBrunoCollection } from './bruno-collection';
+import { fetchAndValidateApiSpecFromUrl } from './common';
+import { parseFileText } from './file-reader';
+import { isInsomniaCollection } from './insomnia-collection';
+import { isOpenCollection } from './opencollection';
+import { isOpenApiSpec, isSwagger2Spec } from './openapi-collection';
+import { isPostmanCollection } from './postman-collection';
+import { isWSDLCollection } from './wsdl-collection';
 
 const UNSUPPORTED_FORMAT = 'Unsupported collection format';
 const ZIP_FILE = /\.zip$/i;

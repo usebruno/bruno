@@ -1,9 +1,9 @@
 import { callIpc } from 'utils/common/ipc';
-import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
+import { fetchAndValidateApiSpecFromUrl } from './common';
 import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
-jest.mock('utils/importers/common', () => ({ fetchAndValidateApiSpecFromUrl: jest.fn() }));
+jest.mock('./common', () => ({ fetchAndValidateApiSpecFromUrl: jest.fn() }));
 
 const openApi = { openapi: '3.0.0', info: { title: 'Orders', version: '1' }, paths: {} };
 const swagger = { swagger: '2.0', info: { title: 'Orders', version: '1' }, paths: {} };

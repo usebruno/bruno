@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
-import { readImportFiles, readImportUrl } from 'providers/ReduxStore/slices/open-collection-modal/import-sources';
+import { readImportFiles, readImportUrl } from 'utils/importers/import-sources';
 import { ImportHandoffContext } from '../../components/ImportHandoff/context';
 import ImportPage from './index';
 
@@ -14,8 +14,8 @@ jest.mock('nanoid', () => {
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
-jest.mock('providers/ReduxStore/slices/open-collection-modal/import-sources', () => ({
-  ...jest.requireActual('providers/ReduxStore/slices/open-collection-modal/import-sources'),
+jest.mock('utils/importers/import-sources', () => ({
+  ...jest.requireActual('utils/importers/import-sources'),
   readImportFiles: jest.fn(),
   readImportUrl: jest.fn()
 }));

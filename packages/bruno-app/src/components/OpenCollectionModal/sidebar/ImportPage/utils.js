@@ -1,4 +1,4 @@
-import { HTTP_URL } from 'providers/ReduxStore/slices/open-collection-modal/import-sources';
+import { HTTP_URL } from 'utils/importers/import-sources';
 
 export const describeImportText = (text) => {
   if (!HTTP_URL.test(text)) {
