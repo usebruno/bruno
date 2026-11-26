@@ -15,6 +15,6 @@ runtime:
         const wsResponse = await bru.runRequest('realtime/ws-request');
 
         test('bru.runRequest skips gRPC and WebSocket requests', function () {
-          expect(grpcResponse).to.equal(undefined);
-          expect(wsResponse).to.equal(undefined);
+          expect(grpcResponse.status).to.equal('skipped');
+          expect(wsResponse.status).to.equal('skipped');
         });

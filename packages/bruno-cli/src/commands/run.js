@@ -825,7 +825,7 @@ const handler = async function (argv) {
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
           if (isUnsupportedRequest(requestItem)) {
-            resolve();
+            resolve({ status: 'skipped' });
             return;
           }
 
