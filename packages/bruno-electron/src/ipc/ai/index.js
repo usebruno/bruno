@@ -74,13 +74,14 @@ const buildStatus = () => {
   };
 };
 
-const resolveModel = (modelId) => {
+const resolveModel = (modelId, { apiFormatOverride } = {}) => {
   if (!isEnabled()) {
     throw new Error('AI features are disabled. Enable them in Preferences > AI.');
   }
   return getModel(modelId, {
     aiPreferences: getAiPrefs(),
-    getApiKey: getProviderKey
+    getApiKey: getProviderKey,
+    apiFormatOverride
   });
 };
 
