@@ -12,6 +12,28 @@ jest.mock('@ai-sdk/anthropic', () => ({
   createAnthropic: jest.fn()
 }));
 
+jest.mock('electron', () => ({
+  app: { getVersion: () => '0.0.0' },
+  ipcMain: { handle: jest.fn(), on: jest.fn() }
+}));
+
+const mockCopilotSession = {
+  apiEndpoint: 'https://api.githubcopilot.com',
+  models: [
+    { modelId: 'claude-like', label: 'Claude-like', multiplier: 1, apiFormat: 'chat-completions' },
+    { modelId: 'gpt-responses-only', label: 'GPT Responses-only', multiplier: 1, apiFormat: 'responses' },
+    { modelId: 'stale-entry', label: 'Stale entry', multiplier: 1 }
+  ]
+};
+
+jest.mock('../../store/ai-copilot', () => ({
+  aiCopilotStore: { getSession: () => mockCopilotSession, getAuthSource: () => null }
+}));
+
+jest.mock('../../store/ai-keys', () => ({
+  aiKeyStore: { getKey: () => null }
+}));
+
 /** A callable sdk mock that also exposes .chat / .responses, like the real vercel-ai sdk. */
 const makeMockSdk = () => {
   const sdk = jest.fn((modelId) => ({ via: 'default', modelId }));
@@ -152,6 +174,54 @@ describe('ipc/ai/providers', () => {
       expect(() => {
         getModel('custom-chat', { aiPreferences: noBaseUrlPreferences, getApiKey });
       }).toThrow(/missing a Base URL/);
+    });
+  });
+
+  describe('getModel — GitHub Copilot', () => {
+    const copilotPreferences = { providers: { 'github-copilot': { enabled: true } } };
+    const getApiKey = () => 'gho_test';
+
+    it('uses Chat Completions for models that offer it', () => {
+      const sdk = makeMockSdk();
+      createOpenAI.mockReturnValue(sdk);
+
+      const result = getModel('github-copilot:claude-like', { aiPreferences: copilotPreferences, getApiKey });
+
+      expect(sdk.chat).toHaveBeenCalledWith('claude-like');
+      expect(sdk.responses).not.toHaveBeenCalled();
+      expect(sdk).not.toHaveBeenCalled();
+      expect(result).toEqual({ via: 'chat', modelId: 'claude-like' });
+    });
+
+    it('uses Chat Completions for catalog entries saved before apiFormat existed', () => {
+      const sdk = makeMockSdk();
+      createOpenAI.mockReturnValue(sdk);
+
+      getModel('github-copilot:stale-entry', { aiPreferences: copilotPreferences, getApiKey });
+
+      expect(sdk.chat).toHaveBeenCalledWith('stale-entry');
+      expect(sdk.responses).not.toHaveBeenCalled();
+    });
+
+    it('uses the Responses API for responses-only models', () => {
+      const sdk = makeMockSdk();
+      createOpenAI.mockReturnValue(sdk);
+
+      const result = getModel('github-copilot:gpt-responses-only', { aiPreferences: copilotPreferences, getApiKey });
+
+      expect(sdk.responses).toHaveBeenCalledWith('gpt-responses-only');
+      expect(sdk.chat).not.toHaveBeenCalled();
+      expect(result.modelId).toBe('gpt-responses-only');
+    });
+
+    it('ignores apiFormatOverride, which only applies to custom endpoints', () => {
+      const sdk = makeMockSdk();
+      createOpenAI.mockReturnValue(sdk);
+
+      getModel('github-copilot:claude-like', { aiPreferences: copilotPreferences, getApiKey, apiFormatOverride: 'responses' });
+
+      expect(sdk.chat).toHaveBeenCalledWith('claude-like');
+      expect(sdk.responses).not.toHaveBeenCalled();
     });
   });
 });

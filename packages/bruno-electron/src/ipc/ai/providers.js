@@ -8,10 +8,13 @@ const {
   copilotBrunoModelId,
   getCopilotCatalog,
   findCopilotModel,
-  createCopilotSdk
+  createCopilotSdk,
+  createCopilotLanguageModel
 } = require('./copilot');
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
+
+const API_FORMATS = ['chat-completions', 'responses'];
 
 const isOpenAiCompatibleProviderId = (id) =>
   typeof id === 'string' && id.startsWith(OPENAI_COMPATIBLE_PREFIX);
@@ -213,7 +216,8 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
       providerId: COPILOT_PROVIDER_ID,
       sdkModelId: copilotModel.modelId,
       label: copilotModel.label,
-      baseURL: getCopilotCatalog().apiEndpoint
+      baseURL: getCopilotCatalog().apiEndpoint,
+      apiFormat: copilotModel.apiFormat
     };
   }
 
@@ -279,7 +283,7 @@ const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
 
-  if (isCopilot) return sdk.chat(def.sdkModelId);
+  if (isCopilot) return createCopilotLanguageModel(sdk, { modelId: def.sdkModelId, apiFormat: def.apiFormat });
 
   // Built-in providers keep the SDK default; only custom (OpenAI-compatible)
   // endpoints let the user pick between Chat Completions and the Responses API.
@@ -348,6 +352,7 @@ module.exports = {
   PROVIDERS,
   MODEL_DEFINITIONS,
   OPENAI_COMPATIBLE_PREFIX,
+  API_FORMATS,
   listProviders,
   listModels,
   getModel,
