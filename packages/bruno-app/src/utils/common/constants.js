@@ -8,6 +8,21 @@ export const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 export const DEFAULT_SIDEBAR_WIDTH = 250;
 export const DEFAULT_SIDEBAR_COLLAPSED = false;
 
+export const OPEN_COLLECTION_PAGE = {
+  CHOOSE_FOLDER: 'choose-folder',
+  IMPORT: 'import',
+  RECENTS: 'recents',
+  MY_COMPUTER: 'my-computer',
+  REGISTRY: 'registry',
+  API_CATALOG: 'api-catalog'
+};
+
+export const OPEN_COLLECTION_SUB_PAGE = {
+  LOCATIONS: 'locations'
+};
+
+export const DEFAULT_OPEN_COLLECTION_PAGE = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER;
+
 export const PRESET_REQUEST_TYPES = {
   HTTP: 'http',
   GRAPHQL: 'graphql',

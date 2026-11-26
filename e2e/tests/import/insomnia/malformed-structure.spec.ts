@@ -1,25 +1,29 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { buildCommonLocators } from '../../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Invalid Insomnia Collection - Malformed Structure', () => {
+  test.afterEach(async ({ page }) => {
+    await closeOpenCollectionModal(page);
+  });
+
   test('Handle malformed Insomnia collection structure', async ({ page }) => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-malformed.json');
+    const { toast, import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const parseError = toast.byMessage('Failed to parse the file');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select the malformed Insomnia file on the Import page', async () => {
+      await expect(parseError).toHaveCount(0);
+      await selectImportFiles(page, [insomniaFile]);
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    await page.setInputFiles('input[type="file"]', insomniaFile);
-
-    // Check for error message - this should fail during JSON parsing
-    // Use auto-retrying assertion instead of snapshot isVisible() check
-    await expect(page.getByText('Failed to parse the file').first()).toBeVisible();
-
-    // Cleanup: close any open modals
-    await page.getByTestId('modal-close-button').click();
+    await test.step('Verify it is rejected as unparseable', async () => {
+      await expect(parseError).toBeVisible();
+      await expect(openCollectionModal.pageView('import')).toBeVisible();
+      await expect(importLocators.locationModal()).toBeHidden();
+    });
   });
 });

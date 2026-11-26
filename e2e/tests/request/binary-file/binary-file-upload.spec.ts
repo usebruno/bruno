@@ -79,20 +79,10 @@ test.describe.serial('File / Binary body upload', () => {
       });
     }
 
-    // openCollectionFromDialog leaves its mock in place, and electronApp is worker-scoped.
-    await electronApp.evaluate(({ dialog }) => {
-      (dialog as any).__originalShowOpenDialog = dialog.showOpenDialog;
-    });
     await openCollectionFromDialog(page, electronApp, collectionFixturePath!);
   });
 
-  test.afterAll(async ({ page, electronApp }) => {
-    await electronApp.evaluate(({ dialog }) => {
-      if ((dialog as any).__originalShowOpenDialog) {
-        dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
-        delete (dialog as any).__originalShowOpenDialog;
-      }
-    });
+  test.afterAll(async ({ page }) => {
     await closeAllCollections(page);
   });
 

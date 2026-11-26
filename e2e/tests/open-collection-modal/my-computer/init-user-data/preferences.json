@@ -1,0 +1,10 @@
+{
+  "preferences": {
+    "general": {
+      "defaultLocation": "{{collectionPath}}/default-location"
+    },
+    "openCollection": {
+      "searchFolders": ["{{collectionPath}}/search-a"]
+    }
+  }
+}

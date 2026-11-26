@@ -53,6 +53,15 @@ describe('findImportableFiles', () => {
     });
   });
 
+  it('recognises a Bruno workspace export zip', async () => {
+    const zip = new AdmZip();
+    zip.addFile('Petstore/workspace.yml', Buffer.from('opencollection: 1.0.0\ninfo:\n  name: Petstore\n  type: workspace\n'));
+    zip.writeZip(path.join(tempDir, 'petstore.zip'));
+    writeZip('other.zip', ['workspace.yml']);
+
+    expect(await formatsByName()).toEqual({ 'petstore.zip': 'zip' });
+  });
+
   it('recognises a collection zip whose files sit in one top folder', async () => {
     writeZip('orders.zip', ['orders/opencollection.yml', 'orders/ping.yml']);
 

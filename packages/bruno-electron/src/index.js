@@ -42,10 +42,11 @@ if (isBenchmarkEnabled()) {
 }
 
 const menuTemplate = require('./app/menu-template');
-const { openCollection } = require('./app/collections');
+const { openCollectionFromRecentMenu, setRecentCollectionsWindow } = require('./app/recent-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const { registerCollectionSearchIpc } = require('./ipc/collection-search');
+const { registerCollectionScanIpc, stopCollectionScan } = require('./ipc/collection-scan');
 const { registerYmlMigrationIpc } = require('./ipc/yml-migration');
 const registerFilesystemIpc = require('./ipc/filesystem');
 const registerPreferencesIpc = require('./ipc/preferences');
@@ -574,6 +575,8 @@ app.on('ready', async () => {
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
   registerCollectionSearchIpc();
+  setRecentCollectionsWindow(mainWindow);
+  registerCollectionScanIpc(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -594,6 +597,8 @@ app.on('before-quit', (event) => {
   event.preventDefault();
 
   (async () => {
+    stopCollectionScan();
+
     try {
       await stopBenchmark();
     } catch (err) {
@@ -642,7 +647,7 @@ app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
-  openCollection(mainWindow, collectionWatcher, path);
+  openCollectionFromRecentMenu(mainWindow, collectionWatcher, path);
 });
 
 // Register the global shortcuts

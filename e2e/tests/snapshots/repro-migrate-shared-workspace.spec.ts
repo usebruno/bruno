@@ -7,6 +7,7 @@ import {
   createCollection,
   createRequest,
   openCollection,
+  openCollectionFromDialog,
   openMigrateToYmlModalFromOverview,
   openRequest,
   openWorkspaceFromDialog,
@@ -69,15 +70,7 @@ test('migration clears stale tabs for the same collection in another workspace',
     await openWorkspaceFromDialog(app, page, workspaceBPath);
     await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB');
 
-    await app.evaluate(
-      ({ dialog }, targetPath: string) => {
-        (dialog as any).showOpenDialog = () =>
-          Promise.resolve({ canceled: false, filePaths: [targetPath] });
-      },
-      sharedCollectionPath
-    );
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
+    await openCollectionFromDialog(page, app, sharedCollectionPath);
 
     await expect(locators.sidebar.collection('SharedCol')).toBeVisible();
     await openCollection(page, 'SharedCol');

@@ -10,6 +10,7 @@ const LastOpenedCollections = require('../store/last-opened-collections');
 const WindowStateStore = require('../store/window-state');
 const { clearAgentCache, clearPacCache } = require('@usebruno/requests');
 const mockServer = require('../app/mock-server/mock-server');
+const { saveSearchFolders, saveSearchWholeComputer } = require('../store/preferences');
 
 const registerPreferencesIpc = (mainWindow) => {
   const lastOpenedCollections = new LastOpenedCollections();
@@ -71,6 +72,9 @@ const registerPreferencesIpc = (mainWindow) => {
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:save-search-folders', (event, folders) => saveSearchFolders(folders));
+  ipcMain.handle('renderer:save-search-whole-computer', (event, enabled) => saveSearchWholeComputer(enabled));
 
   ipcMain.handle('renderer:refresh-pac-cache', async () => {
     try {

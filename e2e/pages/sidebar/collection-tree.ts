@@ -5,7 +5,6 @@ import {
   test
 } from '../../playwright';
 import { buildRequestTabsLocators } from '../app-shell/tabs';
-import { buildOpenCollectionPickerLocators } from '../collection/open-collection-picker';
 import { buildToastLocators } from '../app-shell/toast';
 import { buildCodeMirrorLocators } from '../shared-ui/code-editor';
 import { collectionSlug } from '../../../packages/bruno-app/src/utils/collections/collectionSlug';
@@ -24,6 +23,8 @@ export const buildSidebarLocators = (page: Page) => {
   const item = (name: string) => page.locator('.collection-item-name').filter({ hasText: name });
 
   const collectionScope = (name: string) => page.locator(`[data-collection-id="${collectionSlug(name)}"]`);
+  const itemRowIn = (collectionName: string, name: string): Locator =>
+    collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) });
   const folderScope = (folderName: string) => page.locator(`[data-parent-name="${folderName}"]`);
   const inlineCollectionCreatorRoot = () => page.getByTestId('inline-collection-creator');
 
@@ -48,12 +49,17 @@ export const buildSidebarLocators = (page: Page) => {
     },
     collectionsActionsMenu: () => page.getByTestId('collections-header-actions-menu'),
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
+    newCollectionButton: () => page.getByTestId('collections-header-new'),
+    openCollectionButton: () => page.getByTestId('collections-header-open'),
+    headerTooltip: (text: string) => page.getByRole('tooltip', { name: text, exact: true }),
     // Shown in place of the collections tree when no collection is open.
     noCollectionsMessage: () => page.getByTestId('collections').getByText('No collections found.', { exact: true }),
     noCollectionsCreateLink: () => page.getByTestId('collections').getByText('Create', { exact: true }),
     noCollectionsOpenLink: () => page.getByTestId('collections').getByText('Open', { exact: true }),
     collectionRow,
     collectionRows: () => page.getByTestId('sidebar-collection-row'),
+    gitRemoteRow: (name: string) =>
+      page.getByTestId('sidebar-git-collection-row').filter({ has: page.getByText(name, { exact: true }) }),
     invalidFilesBadge: (name: string) => collectionRow(name).getByTestId('invalid-files-badge'),
     invalidFilesTooltip: () => page.getByTestId('invalid-files-tooltip'),
     invalidFilesSeeHere: () => page.getByTestId('invalid-files-see-here'),
@@ -63,8 +69,7 @@ export const buildSidebarLocators = (page: Page) => {
     itemByName,
     itemsIn: (collectionName: string, name: string): Locator =>
       collectionScope(collectionName).locator('.item-name').and(page.getByTitle(name, { exact: true })),
-    itemRowIn: (collectionName: string, name: string): Locator =>
-      collectionScope(collectionName).getByTestId('sidebar-collection-item-row').filter({ has: itemByName(name) }),
+    itemRowIn,
     collectionItemNames: (collectionName: string): Locator =>
       collectionScope(collectionName).locator('.item-name'),
     folderItemNames: (collectionName: string, folderName: string): Locator =>
@@ -90,7 +95,11 @@ export const buildSidebarLocators = (page: Page) => {
     },
     requestExamplesToggle: (requestName: string) =>
       page.getByTestId('sidebar-collection-item-row').filter({ hasText: requestName }).getByTestId('request-item-chevron'),
+    requestExamplesToggleIn: (collectionName: string, requestName: string): Locator =>
+      itemRowIn(collectionName, requestName).getByTestId('request-item-chevron'),
     example: (name: string) => page.getByTestId('sidebar-response-example-item').filter({ hasText: name }),
+    exampleIn: (collectionName: string, exampleName: string): Locator =>
+      collectionScope(collectionName).getByTestId('sidebar-response-example-item').filter({ has: page.getByText(exampleName, { exact: true }) }),
     collectionScope,
     collectionScopeByUid: (collectionUid: string) => page.locator(`[data-collection-uid="${collectionUid}"]`),
     folderScope,
@@ -259,8 +268,7 @@ export const buildFolderLocators = (page: Page) => ({
 const buildLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   folder: buildFolderLocators(page),
-  tabs: buildRequestTabsLocators(page),
-  openCollectionPicker: buildOpenCollectionPickerLocators(page)
+  tabs: buildRequestTabsLocators(page)
 });
 
 /**
@@ -287,12 +295,6 @@ export const revealCollectionsTop = async (page: Page) => {
   await scroller.evaluate((el) => el.scrollTo({ top: 0 }));
 };
 
-export const toggleOpenCollectionItem = async (page: Page, name: string) => {
-  await test.step(`Toggle open collection checkbox for "${name}"`, async () => {
-    await buildLocators(page).openCollectionPicker.itemCheckbox(name).click();
-  });
-};
-
 /**
  * Expand a folder in the sidebar so its child requests/subfolders become visible.
  * No-op if the folder is already expanded.
@@ -301,6 +303,15 @@ export const expandFolder = async (page: Page, folderName: string) => {
   await test.step(`Expand folder "${folderName}"`, async () => {
     const locators = buildLocators(page);
     const chevron = locators.folder.chevron(folderName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (!isExpanded) await chevron.click();
+  });
+};
+
+export const expandFolderIn = async (page: Page, collectionName: string, folderName: string) => {
+  await test.step(`Expand folder "${folderName}" in "${collectionName}"`, async () => {
+    const chevron = buildSidebarLocators(page).itemRowIn(collectionName, folderName).getByTestId('folder-chevron');
     await chevron.waitFor({ state: 'visible', timeout: 5000 });
     const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
     if (!isExpanded) await chevron.click();
@@ -411,6 +422,15 @@ export const toggleRequestExamples = async (page: Page, requestName: string, exp
   await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}"`, async () => {
     const locators = buildLocators(page);
     const chevron = locators.sidebar.requestExamplesToggle(requestName);
+    await chevron.waitFor({ state: 'visible', timeout: 5000 });
+    const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
+    if (isExpanded !== expand) await chevron.click();
+  });
+};
+
+export const toggleRequestExamplesIn = async (page: Page, collectionName: string, requestName: string, expand: boolean) => {
+  await test.step(`${expand ? 'Expand' : 'Collapse'} examples of request "${requestName}" in "${collectionName}"`, async () => {
+    const chevron = buildSidebarLocators(page).requestExamplesToggleIn(collectionName, requestName);
     await chevron.waitFor({ state: 'visible', timeout: 5000 });
     const isExpanded = await chevron.evaluate((el: HTMLElement) => el.classList.contains('rotate-90'));
     if (isExpanded !== expand) await chevron.click();

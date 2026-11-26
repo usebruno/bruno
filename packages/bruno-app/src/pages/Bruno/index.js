@@ -7,7 +7,6 @@ import AppPreviewKeepAlive from 'components/AppPreviewKeepAlive';
 import AiChatSidebar from 'components/AiChatSidebar';
 import AiChatPopout from 'components/AiChatSidebar/Popout';
 import Sidebar from 'components/Sidebar';
-import OpenCollection from 'components/Sidebar/OpenCollection';
 import OpenCollectionModal from 'components/OpenCollectionModal';
 import StatusBar from 'components/StatusBar';
 import AppTitleBar from 'components/AppTitleBar';
@@ -147,7 +146,6 @@ export default function Main() {
       <Devtools mainSectionRef={mainSectionRef} />
       <StatusBar />
       <TransientRequestModalsRenderer modals={saveTransientRequestModals} />
-      <OpenCollection />
       <OpenCollectionModal />
     </div>
     // </ErrorCapture>

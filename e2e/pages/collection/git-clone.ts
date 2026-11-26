@@ -1,11 +1,5 @@
-import { Locator, Page, expect } from '../../playwright';
-import { buildCollectionsPlusMenuLocators } from './manage';
-import { buildImportCollectionLocators } from './import';
-
-const buildLocators = (page: Page) => ({
-  plusMenu: buildCollectionsPlusMenuLocators(page),
-  import: buildImportCollectionLocators(page)
-});
+import { Locator, Page, test } from '../../playwright';
+import { buildSidebarLocators } from '../sidebar/collection-tree';
 
 // Locators and actions for the Clone Git Repository dialog
 export const buildCloneGitRepositoryLocators = (page: Page) => {
@@ -36,20 +30,10 @@ export const buildCloneGitRepositoryLocators = (page: Page) => {
   };
 };
 
-export const openCloneDialogFromImport = async (page: Page, repositoryUrl: string) => {
-  const locators = buildLocators(page);
-  const { modal } = buildCloneGitRepositoryLocators(page);
-
-  await locators.plusMenu.button().click();
-  await locators.plusMenu.importCollection().click();
-
-  const importModal = locators.import.modal();
-  await importModal.waitFor({ state: 'visible', timeout: 10000 });
-
-  await locators.import.gitRepositoryTab().click();
-  await locators.import.gitUrlInput().fill(repositoryUrl);
-  await locators.import.cloneGitButton().click();
-
-  await modal().waitFor({ state: 'visible', timeout: 10000 });
-  await expect(modal()).toContainText(repositoryUrl);
+export const openCloneDialogFromGitRemoteRow = async (page: Page, collectionName: string) => {
+  await test.step(`Open the Clone Git Repository dialog from the "${collectionName}" git row`, async () => {
+    const { modal } = buildCloneGitRepositoryLocators(page);
+    await buildSidebarLocators(page).gitRemoteRow(collectionName).click();
+    await modal().waitFor({ state: 'visible' });
+  });
 };

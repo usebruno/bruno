@@ -6,22 +6,15 @@ import {
 } from '../../playwright';
 import { buildDropdownLocators } from '../shared-ui/dropdown';
 import { buildModalLocators } from '../shared-ui/modal';
-import { revealCollectionsTop } from '../sidebar/collection-tree';
-
-/**
- * Locators for the "+" menu in the sidebar Collections header (open / create / import).
- */
-export const buildCollectionsPlusMenuLocators = (page: Page) => ({
-  button: () => page.getByTestId('collections-header-add-menu'),
-  createCollection: () => page.getByTestId('collections-header-add-menu-create'),
-  importCollection: () => page.getByTestId('collections-header-add-menu-import'),
-  openCollection: () => page.getByTestId('collections-header-add-menu-open')
-});
+import { buildSidebarLocators, revealCollectionsTop } from '../sidebar/collection-tree';
+import { buildOpenCollectionModalLocators } from '../open-collection-modal/shell';
+import { chooseFolders } from '../open-collection-modal/choose-folder';
 
 const buildLocators = (page: Page) => ({
   dropdown: buildDropdownLocators(page),
   modal: buildModalLocators(page),
-  plusMenu: buildCollectionsPlusMenuLocators(page)
+  sidebar: buildSidebarLocators(page),
+  openCollectionModal: buildOpenCollectionModalLocators(page)
 });
 
 export type CollectionFormat = 'bru' | 'yml';
@@ -88,10 +81,11 @@ export const openCollection = async (page: Page, collectionName: string) => {
 };
 
 /**
- * Open a collection living at an arbitrary filesystem path via the native "Open Collection"
- * flow — mocks `dialog.showOpenDialog` to return `collectionPath` directly (no real file
- * picker), then drives the "+" menu's "Open collection" item. Useful for loading a committed
- * fixture collection copied to a tmp dir (e.g. via the `collectionFixturePath` fixture).
+ * Open a collection living at an arbitrary filesystem path through Choose folder in the Open
+ * collection modal. Mocks `dialog.showOpenDialog` once to return `collectionPath` directly (no real
+ * file picker), then waits for the modal to close, so every picked folder must open directly (it is
+ * a collection, or already open). Useful for loading a committed fixture collection copied to a tmp
+ * dir (e.g. via the `collectionFixturePath` fixture).
  * @param page - The page object
  * @param electronApp - The Electron application object
  * @param collectionPath - Absolute path (or paths) to the collection folder(s) to open
@@ -104,40 +98,8 @@ export const openCollectionFromDialog = async (
 ) => {
   const dirs = Array.isArray(collectionPath) ? collectionPath : [collectionPath];
   await test.step(`Open collection from dialog at "${dirs.join('", "')}"`, async () => {
-    await electronApp.evaluate(({ dialog }, filePaths) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths });
-    }, dirs);
-
-    const locators = buildLocators(page);
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.openCollection().click();
-  });
-};
-
-/**
- * Snapshot the main process's real `dialog.showOpenDialog` so a spec that stubs the folder
- * picker can put it back. `electronApp` is worker-scoped, so an un-restored stub leaks into
- * every later spec in the same worker — pair this with `restoreOpenDialog` in `afterAll`.
- * @param electronApp - The Electron application object
- * @returns void
- */
-export const stashOpenDialog = async (electronApp: ElectronApplication) => {
-  await electronApp.evaluate(({ dialog }) => {
-    (global as any).__origShowOpenDialog = dialog.showOpenDialog;
-  });
-};
-
-/**
- * Restore the `dialog.showOpenDialog` snapshot taken by `stashOpenDialog`.
- * @param electronApp - The Electron application object
- * @returns void
- */
-export const restoreOpenDialog = async (electronApp: ElectronApplication) => {
-  await electronApp.evaluate(({ dialog }) => {
-    const original = (global as any).__origShowOpenDialog;
-    if (original) {
-      dialog.showOpenDialog = original;
-    }
+    await chooseFolders(page, electronApp, dirs);
+    await buildLocators(page).openCollectionModal.root().waitFor({ state: 'hidden' });
   });
 };
 
@@ -157,8 +119,7 @@ export const createCollection = async (
   format: CollectionFormat = 'yml'
 ) => {
   await test.step(`Create ${format} collection "${collectionName}"`, async () => {
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Create collection' }).click();
+    await buildLocators(page).sidebar.newCollectionButton().click();
 
     // Wait for inline creator to appear, then click the cog button to open advanced modal
     const inlineCreator = page.locator('.inline-collection-creator');
@@ -261,14 +222,6 @@ export const deleteCollectionFromOverview = async (page: Page, collectionName: s
 
     // Wait for modal to close
     await deleteModal.waitFor({ state: 'hidden', timeout: 10000 });
-  });
-};
-
-export const closeOpenCollectionModal = async (page: Page) => {
-  await test.step('Close the Open Collection modal', async () => {
-    const locators = buildLocators(page);
-    await locators.modal.closeButton().click();
-    await locators.modal.byTitle('Open Collection').waitFor({ state: 'hidden' });
   });
 };
 

@@ -3,16 +3,28 @@ import reducer, {
   showOpenCollectionPage,
   importLoadStarted,
   importLoadEnded,
+  importRequested,
+  importRequestTaken,
   hideOpenCollectionModal,
   folderPickStarted,
   folderSearchStarted,
   folderSearchFinished,
   folderPickEnded,
   folderNoteDismissed,
+  folderResultAddedToSearch,
   folderResultCleared,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  recentsLoadStarted,
+  recentsLoadFinished,
+  recentsLoadFailed,
+  myComputerScanStarted,
+  myComputerLocationsReceived,
+  myComputerCollectionsFound,
+  myComputerScanFinished,
+  myComputerScanFailed
 } from 'providers/ReduxStore/slices/open-collection-modal';
+import { DEFAULT_OPEN_COLLECTION_PAGE, OPEN_COLLECTION_PAGE, OPEN_COLLECTION_SUB_PAGE } from 'utils/common/constants';
 
 const initialState = reducer(undefined, { type: 'init' });
 
@@ -27,40 +39,64 @@ const listResult = {
 const applyActions = (actions) => actions.reduce(reducer, initialState);
 
 describe('openCollectionModal slice', () => {
-  it('starts closed with no page and nothing in progress', () => {
+  it('starts closed with no page and nothing in progress, ready to open on the default page', () => {
     expect(initialState).toEqual({
       isOpen: false,
       page: null,
+      lastPage: DEFAULT_OPEN_COLLECTION_PAGE,
       openingId: null,
       importLoadId: null,
-      chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
+      importRequest: null,
+      chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null },
+      recents: { status: 'idle', loadId: null, items: [], error: null },
+      myComputer: { status: 'idle', scanId: null, locations: null, collections: [], previousCollections: [], error: null }
     });
   });
 
   it('showOpenCollectionModal opens the modal on the given page', () => {
-    expect(reducer(initialState, showOpenCollectionModal('import'))).toMatchObject({ isOpen: true, page: 'import' });
+    expect(reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT))).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT });
   });
 
   it('showOpenCollectionModal switches the page when the modal is already open', () => {
-    const open = reducer(initialState, showOpenCollectionModal('choose-folder'));
+    const open = reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
 
-    expect(reducer(open, showOpenCollectionModal('recents'))).toMatchObject({ isOpen: true, page: 'recents' });
+    expect(reducer(open, showOpenCollectionModal(OPEN_COLLECTION_PAGE.RECENTS))).toMatchObject({ isOpen: true, page: OPEN_COLLECTION_PAGE.RECENTS });
   });
 
   it('showOpenCollectionPage changes the page', () => {
-    const open = reducer(initialState, showOpenCollectionModal('choose-folder'));
+    const open = reducer(initialState, showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER));
 
-    expect(reducer(open, showOpenCollectionPage('my-computer'))).toEqual({ ...open, page: 'my-computer' });
+    expect(reducer(open, showOpenCollectionPage(OPEN_COLLECTION_PAGE.MY_COMPUTER))).toEqual({
+      ...open,
+      page: OPEN_COLLECTION_PAGE.MY_COMPUTER,
+      lastPage: OPEN_COLLECTION_PAGE.MY_COMPUTER
+    });
+  });
+
+  it.each(Object.values(OPEN_COLLECTION_PAGE))('remembers the menu page %s and keeps it when the modal closes', (page) => {
+    const closed = applyActions([showOpenCollectionModal(page), hideOpenCollectionModal()]);
+
+    expect(closed).toEqual({ ...initialState, lastPage: page });
+  });
+
+  it('keeps the menu page a sub page was opened from, never the sub page', () => {
+    const closed = applyActions([
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER),
+      showOpenCollectionPage(OPEN_COLLECTION_SUB_PAGE.LOCATIONS),
+      hideOpenCollectionModal()
+    ]);
+
+    expect(closed.lastPage).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
   });
 
   it('showOpenCollectionPage drops the note and keeps the rest of the result', () => {
     const found = applyActions([
-      showOpenCollectionModal('choose-folder'),
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER),
       folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' }),
       folderSearchFinished({ searchId: 'search-1', result: listResult })
     ]);
 
-    expect(reducer(found, showOpenCollectionPage('choose-folder')).chooseFolder.result).toEqual({ ...listResult, note: null });
+    expect(reducer(found, showOpenCollectionPage(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER)).chooseFolder.result).toEqual({ ...listResult, note: null });
   });
 
   it('tracks a folder pick and search, then keeps the result', () => {
@@ -105,6 +141,33 @@ describe('openCollectionModal slice', () => {
     expect(reducer(initialState, folderNoteDismissed())).toEqual(initialState);
   });
 
+  describe('folderResultAddedToSearch', () => {
+    const found = [
+      folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' }),
+      folderSearchFinished({ searchId: 'search-1', result: listResult })
+    ];
+    const addedText = 'Bruno now also searches work. Its collections show up in My computer too.';
+
+    it('swaps the note of that result and marks its folders as added', () => {
+      const added = applyActions([...found, folderResultAddedToSearch({ resultId: 'search-1', text: addedText })]);
+
+      expect(added.chooseFolder.result).toEqual({ ...listResult, note: { tone: 'info', text: addedText }, addedToSearch: true });
+    });
+
+    it('leaves a newer result alone, and does nothing without a result', () => {
+      const newer = applyActions(found);
+
+      expect(reducer(newer, folderResultAddedToSearch({ resultId: 'search-0', text: addedText }))).toBe(newer);
+      expect(reducer(initialState, folderResultAddedToSearch({ resultId: 'search-1', text: addedText }))).toBe(initialState);
+    });
+
+    it('keeps a note the user dismissed in the meantime dismissed', () => {
+      const dismissed = applyActions([...found, folderNoteDismissed()]);
+
+      expect(reducer(dismissed, folderResultAddedToSearch({ resultId: 'search-1', text: addedText }))).toBe(dismissed);
+    });
+  });
+
   it('folderResultCleared drops the result', () => {
     const found = applyActions([
       folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' }),
@@ -123,7 +186,7 @@ describe('openCollectionModal slice', () => {
   });
 
   describe('importLoadId', () => {
-    const importLoadId = (actions) => applyActions([showOpenCollectionModal('import'), ...actions]).importLoadId;
+    const importLoadId = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT), ...actions]).importLoadId;
 
     it('tracks the load that is running', () => {
       expect(importLoadId([importLoadStarted('load-1')])).toBe('load-1');
@@ -133,14 +196,236 @@ describe('openCollectionModal slice', () => {
     it('forgets the load when the page changes but not when the same page is shown again', () => {
       const loading = [importLoadStarted('load-1')];
 
-      expect(importLoadId([...loading, showOpenCollectionPage('import')])).toBe('load-1');
-      expect(importLoadId([...loading, showOpenCollectionPage('recents')])).toBeNull();
+      expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.IMPORT)])).toBe('load-1');
+      expect(importLoadId([...loading, showOpenCollectionPage(OPEN_COLLECTION_PAGE.RECENTS)])).toBeNull();
+    });
+  });
+
+  describe('importRequest', () => {
+    const files = [{ path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' }];
+    const importRequest = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.IMPORT), ...actions]).importRequest;
+
+    it('holds the files to import until the request is taken', () => {
+      expect(importRequest([importRequested({ files })])).toEqual({ files });
+      expect(importRequest([importRequested({ files }), importRequestTaken()])).toBeNull();
+    });
+
+    it('drops the request when the modal closes', () => {
+      expect(importRequest([importRequested({ files }), hideOpenCollectionModal()])).toBeNull();
+    });
+  });
+
+  describe('recents', () => {
+    const items = [{ path: '/work/api', name: 'API', usedAt: 1700000000000, lastEvent: 'closed' }];
+    const recents = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.RECENTS), ...actions]).recents;
+    const loaded = [recentsLoadStarted('load-1'), recentsLoadFinished({ loadId: 'load-1', items })];
+    const failed = [recentsLoadStarted('load-1'), recentsLoadFailed({ loadId: 'load-1', error: 'disk failure' })];
+
+    it('shows the first load as loading, then keeps the collections it read', () => {
+      expect(recents([recentsLoadStarted('load-1')])).toEqual({ status: 'loading', loadId: 'load-1', items: [], error: null });
+      expect(recents(loaded)).toEqual({ status: 'ready', loadId: null, items, error: null });
+    });
+
+    it('keeps showing the last answer while it loads again', () => {
+      expect(recents([...loaded, recentsLoadStarted('load-2')])).toEqual({ status: 'ready', loadId: 'load-2', items, error: null });
+      expect(recents([...failed, recentsLoadStarted('load-2')])).toEqual({ status: 'error', loadId: 'load-2', items: [], error: 'disk failure' });
+    });
+
+    it('keeps why a load failed until a later load succeeds', () => {
+      expect(recents(failed)).toEqual({ status: 'error', loadId: null, items: [], error: 'disk failure' });
+      expect(recents([...failed, recentsLoadStarted('load-2'), recentsLoadFinished({ loadId: 'load-2', items })]))
+        .toEqual({ status: 'ready', loadId: null, items, error: null });
+    });
+
+    it('ignores the answer of a load that is no longer the current one', () => {
+      const reloading = applyActions([recentsLoadStarted('load-1'), recentsLoadStarted('load-2')]);
+
+      expect(reducer(reloading, recentsLoadFinished({ loadId: 'load-1', items }))).toBe(reloading);
+      expect(reducer(reloading, recentsLoadFailed({ loadId: 'load-1', error: 'disk failure' }))).toBe(reloading);
+    });
+
+    it('forgets the collections when the modal closes', () => {
+      expect(reducer(applyActions(loaded), hideOpenCollectionModal()).recents).toEqual(initialState.recents);
+    });
+  });
+
+  describe('myComputer', () => {
+    const workLocation = { id: '/work', path: '/work', kind: 'user' };
+    const shopLocation = { id: '/shop', path: '/shop', kind: 'default-location' };
+    const withStatus = (status, found = 0) => (location) => ({ ...location, status, found });
+    const doneLocations = [withStatus('done', 1)(workLocation), withStatus('done', 1)(shopLocation)];
+
+    const api = { path: '/work/api', name: 'API', mtime: 1700000000000, locationId: '/work' };
+    const orders = { path: '/shop/orders', name: 'Orders', mtime: 1700000001000, locationId: '/shop' };
+    const notes = { path: '/elsewhere/notes', name: 'Notes', mtime: 1700000002000, locationId: 'recents' };
+
+    const firstScan = [
+      myComputerScanStarted('scan-1'),
+      myComputerLocationsReceived({ scanId: 'scan-1', locations: [workLocation, shopLocation] }),
+      myComputerCollectionsFound({ scanId: 'scan-1', collections: [api, orders, notes] }),
+      myComputerScanFinished({ scanId: 'scan-1', locations: doneLocations, error: null })
+    ];
+    const secondScanStarted = [...firstScan, myComputerScanStarted('scan-2')];
+
+    const scannedModal = (actions) => applyActions([showOpenCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER), ...actions]);
+    const myComputer = (actions) => scannedModal(actions).myComputer;
+
+    it('shows a first scan as scanning with no locations until the main process answers', () => {
+      expect(myComputer([myComputerScanStarted('scan-1')])).toEqual({
+        status: 'scanning',
+        scanId: 'scan-1',
+        locations: null,
+        collections: [],
+        previousCollections: [],
+        error: null
+      });
+    });
+
+    it('marks every location of the answer as scanning', () => {
+      const answered = myComputer([
+        myComputerScanStarted('scan-1'),
+        myComputerLocationsReceived({ scanId: 'scan-1', locations: [workLocation, shopLocation] })
+      ]);
+
+      expect(answered.locations).toEqual([withStatus('scanning')(workLocation), withStatus('scanning')(shopLocation)]);
+    });
+
+    it('keeps the rows and locations on screen when a new scan starts, and starts its own rows empty', () => {
+      expect(myComputer(secondScanStarted)).toEqual({
+        status: 'scanning',
+        scanId: 'scan-2',
+        locations: doneLocations,
+        collections: [],
+        previousCollections: [api, orders, notes],
+        error: null
+      });
+    });
+
+    it('moves the rows of a scan that was restarted midway over the rows on screen', () => {
+      const renamedApi = { ...api, name: 'Public API' };
+      const restartedMidway = myComputer([
+        ...secondScanStarted,
+        myComputerCollectionsFound({ scanId: 'scan-2', collections: [renamedApi] }),
+        myComputerScanStarted('scan-3')
+      ]);
+
+      expect(restartedMidway).toMatchObject({ scanId: 'scan-3', collections: [], previousCollections: [renamedApi, orders, notes] });
+    });
+
+    it('drops the rows of a location the new answer no longer has, and keeps Recents rows', () => {
+      const withoutShop = myComputer([
+        ...secondScanStarted,
+        myComputerLocationsReceived({ scanId: 'scan-2', locations: [workLocation] })
+      ]);
+
+      expect(withoutShop.previousCollections).toEqual([api, notes]);
+      expect(withoutShop.locations).toEqual([withStatus('scanning')(workLocation)]);
+    });
+
+    it('ignores the answer of a replaced scan, and an answer that arrives after its scan is done', () => {
+      const restarted = scannedModal(secondScanStarted);
+      const finishedFirst = scannedModal([
+        myComputerScanStarted('scan-1'),
+        myComputerScanFinished({ scanId: 'scan-1', locations: doneLocations, error: null })
+      ]);
+
+      expect(reducer(restarted, myComputerLocationsReceived({ scanId: 'scan-1', locations: [workLocation] }))).toBe(restarted);
+      expect(reducer(finishedFirst, myComputerLocationsReceived({ scanId: 'scan-1', locations: [workLocation] }))).toBe(finishedFirst);
+    });
+
+    it('adds found collections in the order they arrive and updates a row with the same path in place', () => {
+      const recentApi = { ...api, name: 'api', locationId: 'recents' };
+      const scanning = myComputer([
+        myComputerScanStarted('scan-1'),
+        myComputerCollectionsFound({ scanId: 'scan-1', collections: [recentApi, notes] }),
+        myComputerCollectionsFound({ scanId: 'scan-1', collections: [orders, api] })
+      ]);
+
+      expect(scanning.collections).toEqual([api, notes, orders]);
+    });
+
+    it('ignores collections from a scan that is no longer the current one', () => {
+      const restarted = scannedModal(secondScanStarted);
+
+      expect(reducer(restarted, myComputerCollectionsFound({ scanId: 'scan-1', collections: [api] }))).toBe(restarted);
+      expect(reducer(initialState, myComputerCollectionsFound({ scanId: 'scan-1', collections: [api] }))).toBe(initialState);
+    });
+
+    it('shows the final locations and only the rows of this scan once it is done', () => {
+      const finalLocations = [withStatus('done', 1)(workLocation), withStatus('denied')(shopLocation)];
+      const done = myComputer([
+        ...secondScanStarted,
+        myComputerLocationsReceived({ scanId: 'scan-2', locations: [workLocation, shopLocation] }),
+        myComputerCollectionsFound({ scanId: 'scan-2', collections: [api] }),
+        myComputerScanFinished({ scanId: 'scan-2', locations: finalLocations, error: null })
+      ]);
+
+      expect(done).toEqual({
+        status: 'done',
+        scanId: 'scan-2',
+        locations: finalLocations,
+        collections: [api],
+        previousCollections: [],
+        error: null
+      });
+    });
+
+    it('keeps the rows on screen and says why when the scan ends with an error', () => {
+      const idleLocations = [withStatus('idle')(workLocation), withStatus('idle')(shopLocation)];
+      const failed = myComputer([
+        ...secondScanStarted,
+        myComputerCollectionsFound({ scanId: 'scan-2', collections: [api] }),
+        myComputerScanFinished({ scanId: 'scan-2', locations: idleLocations, error: 'The collection scan stopped unexpectedly.' })
+      ]);
+
+      expect(failed).toEqual({
+        status: 'error',
+        scanId: 'scan-2',
+        locations: idleLocations,
+        collections: [api],
+        previousCollections: [api, orders, notes],
+        error: 'The collection scan stopped unexpectedly.'
+      });
+    });
+
+    it('ignores the end of a scan that is no longer the current one', () => {
+      const restarted = scannedModal(secondScanStarted);
+
+      expect(reducer(restarted, myComputerScanFinished({ scanId: 'scan-1', locations: doneLocations, error: null }))).toBe(restarted);
+      expect(reducer(restarted, myComputerScanFailed({ scanId: 'scan-1', error: 'Could not start the scan' }))).toBe(restarted);
+    });
+
+    it('keeps what was on screen and says why when a scan cannot start', () => {
+      const failedStart = myComputer([...secondScanStarted, myComputerScanFailed({ scanId: 'scan-2', error: 'Could not start the scan' })]);
+
+      expect(failedStart).toEqual({
+        status: 'error',
+        scanId: 'scan-2',
+        locations: doneLocations,
+        collections: [],
+        previousCollections: [api, orders, notes],
+        error: 'Could not start the scan'
+      });
+    });
+
+    it('clears the error when the next scan starts', () => {
+      const retried = myComputer([
+        myComputerScanStarted('scan-1'),
+        myComputerScanFailed({ scanId: 'scan-1', error: 'Could not start the scan' }),
+        myComputerScanStarted('scan-2')
+      ]);
+
+      expect(retried).toMatchObject({ status: 'scanning', scanId: 'scan-2', error: null });
+    });
+
+    it('forgets the scan when the modal closes', () => {
+      expect(reducer(scannedModal(secondScanStarted), hideOpenCollectionModal()).myComputer).toEqual(initialState.myComputer);
     });
   });
 
   it('hideOpenCollectionModal resets everything so the next open starts fresh', () => {
     const busy = applyActions([
-      showOpenCollectionModal('choose-folder'),
+      showOpenCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER),
       collectionsOpeningStarted('opening-1'),
       folderSearchStarted({ searchId: 'search-1', searchLabel: 'work' })
     ]);

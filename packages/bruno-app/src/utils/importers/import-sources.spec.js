@@ -1,6 +1,6 @@
 import { callIpc } from 'utils/common/ipc';
 import { fetchAndValidateApiSpecFromUrl } from './common';
-import { readImportableFile, readImportFiles, readImportUrl } from './import-sources';
+import { readImportableFiles, readImportFiles, readImportText } from './import-sources';
 
 jest.mock('utils/common/ipc', () => ({ callIpc: jest.fn() }));
 jest.mock('./common', () => ({ ...jest.requireActual('./common'), fetchAndValidateApiSpecFromUrl: jest.fn() }));
@@ -11,6 +11,13 @@ const postman = { info: { name: 'Orders', schema: 'https://schema.getpostman.com
 const insomnia = { _type: 'export', __export_format: 4, resources: [] };
 const openCollection = { opencollection: '1.0.0', info: { name: 'Orders' } };
 const wsdl = '<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"><wsdl:types/></wsdl:definitions>';
+const openApiYaml = 'openapi: 3.0.0\ninfo:\n  title: Orders\n  version: "1"\npaths: {}\n';
+const workspace = { opencollection: '1.0.0', info: { name: 'Petstore', type: 'workspace' }, collections: [], specs: [], docs: '' };
+const WORKSPACE_FILE = 'This is a Bruno workspace file, not a collection. Choose its folder to open the workspace.';
+const zipKinds = (kinds) => callIpc.mockImplementation((channel) => Promise.resolve(
+  (channel === 'renderer:is-bruno-workspace-zip' && kinds.includes('workspace'))
+  || (channel === 'renderer:is-bruno-collection-zip' && kinds.includes('collection'))
+));
 
 const file = (name, content = '') => ({
   name,
@@ -86,7 +93,7 @@ describe('import sources', () => {
     });
 
     it('accepts a Bruno ZIP, whatever the case of its extension', async () => {
-      callIpc.mockResolvedValue(true);
+      zipKinds(['collection']);
 
       await expect(readImportFiles([file('Orders.ZIP')])).resolves.toEqual({
         rawData: { zipFilePath: '/files/Orders.ZIP', collectionName: 'Orders' },
@@ -99,6 +106,30 @@ describe('import sources', () => {
       callIpc.mockResolvedValue(false);
 
       await expect(readImportFiles([file('other.zip')])).rejects.toThrow('The ZIP file is not a valid Bruno collection');
+    });
+
+    it('hands a workspace export ZIP over to the workspace import, before checking for a collection', async () => {
+      zipKinds(['workspace', 'collection']);
+
+      await expect(readImportFiles([file('Petstore.zip')])).resolves.toEqual({
+        type: 'workspace-zip',
+        file: { name: 'Petstore.zip', path: '/files/Petstore.zip' }
+      });
+      expect(callIpc).toHaveBeenCalledWith('renderer:is-bruno-workspace-zip', '/files/Petstore.zip');
+      expect(callIpc).not.toHaveBeenCalledWith('renderer:is-bruno-collection-zip', expect.anything());
+    });
+
+    it.each([
+      ['YAML', 'workspace.yml', 'opencollection: 1.0.0\ninfo:\n  name: Petstore\n  type: workspace\n'],
+      ['JSON', 'workspace.json', JSON.stringify(workspace)]
+    ])('says a %s workspace file is not a collection', async (_format, name, text) => {
+      await expect(readImportFiles([file(name, text)])).rejects.toThrow(WORKSPACE_FILE);
+    });
+
+    it('skips a workspace file when several files are picked', async () => {
+      const result = await readImportFiles([file('orders.json', postman), file('workspace.json', workspace)]);
+
+      expect(result).toMatchObject({ type: 'multiple', skippedFileNames: ['workspace.json'] });
     });
 
     it('refuses a ZIP mixed with other files', async () => {
@@ -136,21 +167,18 @@ describe('import sources', () => {
     });
   });
 
-  describe('readImportUrl', () => {
+  describe('readImportText', () => {
     const url = 'https://example.com/openapi.yaml';
 
     it('fetches a URL and keeps where it came from', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openApi, specType: 'openapi', rawContent: 'raw' });
 
-      await expect(readImportUrl(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
+      await expect(readImportText(`  ${url}  `)).resolves.toEqual({ rawData: openApi, type: 'openapi', sourceUrl: url, rawContent: 'raw' });
       expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledWith({ url });
     });
 
-    it.each([
-      ['a malformed URL', 'http://'],
-      ['pasted file content', 'openapi: 3.0.0\ninfo:\n  title: Orders']
-    ])('refuses %s without fetching', async (_description, text) => {
-      await expect(readImportUrl(text)).rejects.toThrow('Please enter a valid URL');
+    it('refuses a malformed URL without fetching', async () => {
+      await expect(readImportText('http://')).rejects.toThrow('Please enter a valid URL');
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
     });
 
@@ -161,40 +189,73 @@ describe('import sources', () => {
     ])('says why the fetch failed when %s', async (_description, cause, message) => {
       fetchAndValidateApiSpecFromUrl.mockRejectedValue(new Error(`Failed to fetch API specification: ${cause}`));
 
-      await expect(readImportUrl(url)).rejects.toThrow(message);
+      await expect(readImportText(url)).rejects.toThrow(message);
     });
 
     it('says when a fetched document is in no format it knows', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: { hello: 'world' }, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('does not mistake a fetched web page for WSDL', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: '<html>definitions</html>', specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
     });
 
     it('says when a fetched document is empty', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: null, specType: 'unknown', rawContent: '~' });
 
-      await expect(readImportUrl(url)).rejects.toThrow('Unsupported collection format');
+      await expect(readImportText(url)).rejects.toThrow('Unsupported collection format');
+    });
+
+    it('says a fetched workspace file is not a collection', async () => {
+      fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: workspace, specType: 'unknown', rawContent: 'raw' });
+
+      await expect(readImportText(url)).rejects.toThrow(WORKSPACE_FILE);
+    });
+
+    it('says pasted workspace text is not a collection', async () => {
+      await expect(readImportText(JSON.stringify(workspace))).rejects.toThrow(WORKSPACE_FILE);
     });
 
     it('recognises a fetched OpenCollection document', async () => {
       fetchAndValidateApiSpecFromUrl.mockResolvedValue({ data: openCollection, specType: 'unknown', rawContent: 'raw' });
 
-      await expect(readImportUrl(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
+      await expect(readImportText(url)).resolves.toMatchObject({ type: 'opencollection', sourceUrl: url });
+    });
+
+    it.each([
+      ['JSON', JSON.stringify(postman), postman, 'postman'],
+      ['YAML', openApiYaml, openApi, 'openapi']
+    ])('reads raw %s text without fetching', async (_description, text, data, type) => {
+      await expect(readImportText(`\n${text}\n`)).resolves.toEqual({ rawData: data, type });
+      expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['plain words', 'just some words'],
+      ['broken YAML', 'info: [Orders'],
+      ['JSON null', 'null']
+    ])('says when raw text is not JSON or YAML: %s', async (_description, text) => {
+      await expect(readImportText(text)).rejects.toThrow('Could not parse the text as JSON or YAML');
+    });
+
+    it('says when raw text is in no format it knows', async () => {
+      await expect(readImportText('{"hello":"world"}')).rejects.toThrow('Unsupported collection format');
     });
   });
 
-  describe('readImportableFile', () => {
-    it('reads a file by its path', async () => {
+  describe('readImportableFiles', () => {
+    const readFiles = (texts) => callIpc.mockImplementation((_channel, { path }) =>
+      path in texts ? Promise.resolve(texts[path]) : Promise.reject(new Error(`${path} isn’t a file Bruno can import`)));
+
+    it('reads one file by its path', async () => {
       const text = JSON.stringify(openApi);
       callIpc.mockResolvedValue(text);
 
-      await expect(readImportableFile({ path: '/work/openapi.json', name: 'openapi.json' })).resolves.toEqual({
+      await expect(readImportableFiles([{ path: '/work/openapi.json', name: 'openapi.json' }])).resolves.toEqual({
         rawData: openApi,
         type: 'openapi',
         filePath: '/work/openapi.json',
@@ -206,16 +267,69 @@ describe('import sources', () => {
     it('reads a file with an upper case .JSON extension as JSON', async () => {
       callIpc.mockResolvedValue('{"openapi":"3.0.0","info":{"title":"A","title":"B","version":"1"},"paths":{}}');
 
-      await expect(readImportableFile({ path: '/work/OPENAPI.JSON', name: 'OPENAPI.JSON' })).resolves.toMatchObject({ type: 'openapi' });
+      await expect(readImportableFiles([{ path: '/work/OPENAPI.JSON', name: 'OPENAPI.JSON' }])).resolves.toMatchObject({ type: 'openapi' });
+    });
+
+    it('keeps the path of one YAML file', async () => {
+      callIpc.mockResolvedValue(openApiYaml);
+
+      await expect(readImportableFiles([{ path: '/work/openapi.yaml', name: 'openapi.yaml' }])).resolves.toEqual({
+        rawData: openApi,
+        type: 'openapi',
+        filePath: '/work/openapi.yaml',
+        rawContent: openApiYaml
+      });
     });
 
     it('hands a ZIP over by its path', async () => {
-      callIpc.mockResolvedValue(true);
+      zipKinds(['collection']);
 
-      await expect(readImportableFile({ path: '/work/orders.zip', name: 'orders.zip' })).resolves.toEqual({
+      await expect(readImportableFiles([{ path: '/work/orders.zip', name: 'orders.zip' }])).resolves.toEqual({
         rawData: { zipFilePath: '/work/orders.zip', collectionName: 'orders' },
         type: 'bruno-zip'
       });
+    });
+
+    it('hands a workspace export ZIP found in a folder over to the workspace import', async () => {
+      zipKinds(['workspace']);
+
+      await expect(readImportableFiles([{ path: '/work/petstore.zip', name: 'petstore.zip' }])).resolves.toEqual({
+        type: 'workspace-zip',
+        file: { name: 'petstore.zip', path: '/work/petstore.zip' }
+      });
+    });
+
+    it('reads several files by their paths and skips the ones it cannot use', async () => {
+      readFiles({
+        '/work/openapi.yaml': openApiYaml,
+        '/work/orders.json': JSON.stringify(postman),
+        '/work/notes.json': '{"hello":"world"}'
+      });
+
+      const result = await readImportableFiles([
+        { path: '/work/openapi.yaml', name: 'openapi.yaml' },
+        { path: '/work/notes.json', name: 'notes.json' },
+        { path: '/work/gone.json', name: 'gone.json' },
+        { path: '/work/orders.json', name: 'orders.json' }
+      ]);
+
+      expect(result).toEqual({
+        type: 'multiple',
+        filesData: [
+          { file: { name: 'openapi.yaml', type: '' }, data: openApi, type: 'openapi', filePath: '/work/openapi.yaml', rawContent: openApiYaml },
+          { file: { name: 'orders.json', type: 'application/json' }, data: postman, type: 'postman', filePath: '/work/orders.json', rawContent: undefined }
+        ],
+        skippedFileNames: ['notes.json', 'gone.json']
+      });
+    });
+
+    it('says when none of several files can be used', async () => {
+      readFiles({ '/work/a.json': '{}' });
+
+      await expect(readImportableFiles([
+        { path: '/work/a.json', name: 'a.json' },
+        { path: '/work/b.json', name: 'b.json' }
+      ])).rejects.toThrow('No valid collections found');
     });
   });
 });

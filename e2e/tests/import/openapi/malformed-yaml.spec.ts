@@ -1,27 +1,29 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
+import { buildCommonLocators } from '../../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { selectImportFiles } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Invalid OpenAPI - Malformed YAML', () => {
+  test.afterEach(async ({ page }) => {
+    await closeOpenCollectionModal(page);
+  });
+
   test('Handle malformed OpenAPI YAML structure', async ({ page }) => {
+    const { toast, import: importLocators } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
+    const parseErrorToast = toast.byMessage('Failed to parse the file – ensure it is valid JSON or YAML');
     const openApiFile = path.resolve(__dirname, 'fixtures', 'openapi-malformed.yaml');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select the malformed OpenAPI file on the Import page', async () => {
+      await expect(parseErrorToast).toHaveCount(0);
+      await selectImportFiles(page, [openApiFile]);
+    });
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    await page.setInputFiles('input[type="file"]', openApiFile);
-
-    const parseError = page.getByText('Failed to parse the file');
-    const importError = page.getByText('Import collection failed');
-
-    // Wait for at least one error message to be visible
-    await expect(parseError.or(importError)).toBeVisible({ timeout: 10000 });
-
-    // Cleanup: close any open modals
-    await page.getByTestId('modal-close-button').click();
+    await test.step('Verify the parse error toast and that the Import page stays open', async () => {
+      await expect(parseErrorToast).toBeVisible();
+      await expect(openCollectionModal.pageView('import')).toBeVisible();
+      await expect(importLocators.locationModal()).toBeHidden();
+    });
   });
 });

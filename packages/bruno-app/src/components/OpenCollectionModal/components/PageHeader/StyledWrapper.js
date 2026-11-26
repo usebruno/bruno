@@ -8,6 +8,10 @@ const StyledWrapper = styled.div`
   min-height: 3.625rem;
   padding: 0.75rem 0.75rem 0.75rem 1.25rem;
 
+  .back-button {
+    margin-left: -0.5rem;
+  }
+
   .page-header-text {
     flex: 1;
     min-width: 0;

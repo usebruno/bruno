@@ -1,0 +1,346 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { test, expect, closeElectronApp, ElectronApplication, Page } from '../../../playwright';
+import { buildCommonLocators, closeAllCollections, mockBrowseFiles, openCollectionFromDialog, removeCollection } from '../../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal, showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import {
+  buildRecentsLocators,
+  openRecentCollection,
+  selectRecentCollections,
+  switchToRecentCollection
+} from '../../../pages/open-collection-modal/recents';
+import { restoreDocumentsPath, stubDocumentsPath, waitForReadyPage } from '../../../utils';
+
+const INIT_USER_DATA_PATH = path.join(__dirname, 'init-user-data');
+const ALPHA = 'Recent Alpha';
+const BETA = 'Recent Beta';
+const GAMMA = 'Recent Gamma';
+const NO_MATCH_QUERY = 'no-such-collection';
+const CLOSED_RECENTLY = /^Closed (just now|\d+m ago)$/;
+const OPENED_RECENTLY = /^Opened (just now|\d+m ago)$/;
+
+const recordRecentsHistory = async (page: Page, app: ElectronApplication, root: string) => {
+  await test.step('Open Recent Beta and Recent Gamma, close Recent Beta, open Recent Alpha, then close Recent Gamma', async () => {
+    await openCollectionFromDialog(page, app, [path.join(root, 'recent-beta'), path.join(root, 'recent-gamma')]);
+    await removeCollection(page, BETA);
+    await openCollectionFromDialog(page, app, path.join(root, 'recent-alpha'));
+    await removeCollection(page, GAMMA);
+  });
+
+  await test.step('Wait for the toasts from opening and closing them to disappear', async () => {
+    await expect(buildCommonLocators(page).toast.all()).toHaveCount(0);
+  });
+};
+
+test.describe('Recents', () => {
+  test.describe('before any collection is opened', () => {
+    test.describe.configure({ mode: 'default' });
+
+    let app: ElectronApplication;
+    let page: Page;
+
+    test.beforeAll(async ({ launchElectronApp, collectionFixturePath, createTmpDir }) => {
+      app = await launchElectronApp({ initUserDataPath: INIT_USER_DATA_PATH, templateVars: { collectionPath: collectionFixturePath! } });
+      page = await waitForReadyPage(app);
+      await stubDocumentsPath(app, await createTmpDir('recents-documents'));
+    });
+
+    test.afterEach(async () => {
+      await closeOpenCollectionModal(page);
+    });
+
+    test.afterAll(async () => {
+      await restoreDocumentsPath(app);
+      await closeElectronApp(app);
+    });
+
+    test('shows that no collection was opened yet', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Verify the empty state', async () => {
+        await expect(recents.emptyStateTitle()).toHaveText('No Recent collections here..');
+        await expect(recents.emptyState()).toContainText('Start with a sample collection');
+        await expect(recents.openFolderButton()).toHaveText('Browse folder');
+      });
+    });
+
+    test('Browse folder leads to the Browse folder page', async () => {
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+        await mockBrowseFiles(app, []);
+      });
+
+      await test.step('Click "Browse folder"', async () => {
+        await recents.openFolderButton().click();
+      });
+
+      await test.step('Verify the Browse folder page is shown', async () => {
+        await expect(openCollectionModal.pageView('choose-folder')).toBeVisible();
+      });
+    });
+  });
+
+  test.describe('after collections were opened and closed', () => {
+    test.describe.configure({ mode: 'default' });
+
+    let app: ElectronApplication;
+    let page: Page;
+
+    test.beforeAll(async ({ launchElectronApp, collectionFixturePath }) => {
+      app = await launchElectronApp({ initUserDataPath: INIT_USER_DATA_PATH, templateVars: { collectionPath: collectionFixturePath! } });
+      page = await waitForReadyPage(app);
+      await recordRecentsHistory(page, app, collectionFixturePath!);
+    });
+
+    test.afterEach(async () => {
+      await closeOpenCollectionModal(page);
+    });
+
+    test.afterAll(async () => {
+      await closeAllCollections(page);
+      await closeElectronApp(app);
+    });
+
+    test('lists collections by when they were last opened or closed, newest first', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Verify the order of the rows', async () => {
+        await expect(recents.rowNames()).toHaveText([GAMMA, ALPHA, BETA]);
+      });
+    });
+
+    test('marks each collection as closed or open', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Verify the closed collections say when they were closed and offer Reopen', async () => {
+        await expect(recents.rowMeta(GAMMA)).toHaveText(CLOSED_RECENTLY);
+        await expect(recents.rowOpenButton(GAMMA)).toHaveText('Reopen');
+        await expect(recents.rowMeta(BETA)).toHaveText(CLOSED_RECENTLY);
+        await expect(recents.rowOpenButton(BETA)).toHaveText('Reopen');
+      });
+
+      await test.step('Verify the open collection says when it was opened and offers Go to', async () => {
+        await expect(recents.rowMeta(ALPHA)).toHaveText(OPENED_RECENTLY);
+        await expect(recents.rowSwitchButton(ALPHA)).toHaveText('Go to');
+      });
+    });
+
+    test('narrows the list to the collections matching the search', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Search for "alpha"', async () => {
+        await recents.searchInput().fill('alpha');
+      });
+
+      await test.step('Verify only Recent Alpha is listed', async () => {
+        await expect(recents.rowNames()).toHaveText([ALPHA]);
+      });
+    });
+
+    test('lists every collection again when the search is cleared', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Search for "alpha"', async () => {
+        await recents.searchInput().fill('alpha');
+        await expect(recents.rowNames()).toHaveText([ALPHA]);
+      });
+
+      await test.step('Clear the search', async () => {
+        await recents.searchClear().click();
+      });
+
+      await test.step('Verify the search is empty and every collection is listed', async () => {
+        await expect(recents.searchInput()).toHaveValue('');
+        await expect(recents.rowNames()).toHaveText([GAMMA, ALPHA, BETA]);
+      });
+    });
+
+    test('explains when no collection matches the search', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step(`Search for "${NO_MATCH_QUERY}"`, async () => {
+        await recents.searchInput().fill(NO_MATCH_QUERY);
+      });
+
+      await test.step('Verify no row is listed and the no-match message is shown', async () => {
+        await expect(recents.rows()).toHaveCount(0);
+        await expect(recents.noMatch()).toContainText(`No collection matches “${NO_MATCH_QUERY}”`);
+        await expect(recents.noMatch()).toContainText('Recents only lists collections you have opened before. If it lives somewhere else, choose its folder.');
+      });
+    });
+
+    test('Choose folder in the no-match message leads to Choose folder', async () => {
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step(`Search for "${NO_MATCH_QUERY}"`, async () => {
+        await recents.searchInput().fill(NO_MATCH_QUERY);
+      });
+
+      await test.step('Make the folder picker pick nothing, as if it was cancelled', async () => {
+        await mockBrowseFiles(app, []);
+      });
+
+      await test.step('Click "Choose folder…" in the no-match message', async () => {
+        await recents.noMatchChooseFolderButton().click();
+      });
+
+      await test.step('Verify the Choose folder page is shown', async () => {
+        await expect(openCollectionModal.pageView('choose-folder')).toBeVisible();
+      });
+    });
+
+    test('ticks the clicked collections and offers to reopen them together', async () => {
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await selectRecentCollections(page, [GAMMA, BETA]);
+
+      await test.step('Verify both rows are ticked and the footer offers to reopen 2 collections', async () => {
+        await expect(recents.rowCheckbox(GAMMA)).toBeChecked();
+        await expect(recents.rowCheckbox(BETA)).toBeChecked();
+        await expect(recents.openSelectedButton()).toHaveText('Reopen 2 collections');
+      });
+    });
+
+    test('Cancel in the selection footer closes the modal without opening anything', async () => {
+      const { sidebar } = buildCommonLocators(page);
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await selectRecentCollections(page, [BETA]);
+
+      await test.step('Click "Cancel" in the selection footer', async () => {
+        await recents.cancelButton().click();
+      });
+
+      await test.step('Verify the modal closes and Recent Beta stays closed', async () => {
+        await expect(openCollectionModal.root()).toBeHidden();
+        await expect(sidebar.collection(BETA)).toHaveCount(0);
+      });
+    });
+  });
+
+  test.describe('opening collections from Recents', () => {
+    test.describe.configure({ timeout: 60_000 });
+
+    let app: ElectronApplication;
+    let page: Page;
+
+    test.beforeEach(async ({ launchElectronApp, collectionFixturePath }) => {
+      app = await launchElectronApp({ initUserDataPath: INIT_USER_DATA_PATH, templateVars: { collectionPath: collectionFixturePath! } });
+      page = await waitForReadyPage(app);
+      await recordRecentsHistory(page, app, collectionFixturePath!);
+    });
+
+    test.afterEach(async () => {
+      await closeOpenCollectionModal(page);
+      await closeAllCollections(page);
+      await closeElectronApp(app);
+    });
+
+    test('Reopen adds a closed collection to the workspace and closes the modal', async () => {
+      const { sidebar, toast } = buildCommonLocators(page);
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await openRecentCollection(page, BETA);
+
+      await test.step('Verify Recent Beta opens in the sidebar and the modal closes', async () => {
+        await expect(toast.byMessage('Collection added to workspace')).toBeVisible();
+        await expect(openCollectionModal.root()).toBeHidden();
+        await expect(sidebar.collection(BETA)).toBeVisible();
+      });
+    });
+
+    test('lists a collection opened from Recents as open', async () => {
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await openRecentCollection(page, BETA);
+      await test.step('Wait for the modal to close', async () => {
+        await expect(openCollectionModal.root()).toBeHidden();
+      });
+
+      await showOpenCollectionModal(page, 'recents');
+
+      await test.step('Verify Recent Beta says it was opened and offers Go to', async () => {
+        await expect(recents.rowMeta(BETA)).toHaveText(OPENED_RECENTLY);
+        await expect(recents.rowSwitchButton(BETA)).toHaveText('Go to');
+      });
+    });
+
+    test('opens every ticked collection from the selection footer', async () => {
+      const { sidebar, toast } = buildCommonLocators(page);
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await selectRecentCollections(page, [GAMMA, BETA]);
+
+      await test.step('Click "Reopen 2 collections"', async () => {
+        await recents.openSelectedButton().click();
+      });
+
+      await test.step('Verify both collections open in the sidebar and the modal closes', async () => {
+        await expect(toast.byMessage('Collections added to workspace')).toBeVisible();
+        await expect(openCollectionModal.root()).toBeHidden();
+        await expect(sidebar.collection(GAMMA)).toBeVisible();
+        await expect(sidebar.collection(BETA)).toBeVisible();
+      });
+    });
+
+    test('Go to reveals an open collection and shows its settings', async () => {
+      const { sidebar, tabs } = buildCommonLocators(page);
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+
+      await showOpenCollectionModal(page, 'recents');
+      await switchToRecentCollection(page, ALPHA);
+
+      await test.step('Verify the modal closes on the settings of Recent Alpha', async () => {
+        await expect(openCollectionModal.root()).toBeHidden();
+        await expect(tabs.activeRequestTab()).toContainText('Collection');
+        await expect(sidebar.emptyStateCta(ALPHA)).toBeVisible();
+      });
+    });
+
+    test('a collection whose folder is gone fails to open and leaves Recents', async ({ collectionFixturePath }) => {
+      const { toast } = buildCommonLocators(page);
+      const openCollectionModal = buildOpenCollectionModalLocators(page);
+      const recents = buildRecentsLocators(page);
+
+      await test.step('Delete the folder of Recent Gamma', async () => {
+        await fs.promises.rm(path.join(collectionFixturePath!, 'recent-gamma'), { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+      });
+
+      await showOpenCollectionModal(page, 'recents');
+      await openRecentCollection(page, GAMMA);
+
+      await test.step('Verify opening fails, the modal stays on Recents and Recent Gamma leaves the list', async () => {
+        await expect(toast.byMessage('Failed to open recent-gamma. The folder doesn’t exist anymore.')).toBeVisible();
+        await expect(openCollectionModal.pageView('recents')).toBeVisible();
+        await expect(recents.rowNames()).toHaveText([ALPHA, BETA]);
+      });
+    });
+  });
+});

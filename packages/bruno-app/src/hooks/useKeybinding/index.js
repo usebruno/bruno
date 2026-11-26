@@ -3,6 +3,9 @@ import Mousetrap from 'mousetrap';
 import { useSelector } from 'react-redux';
 import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
 
+const isTextField = (element) =>
+  element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA' || element.isContentEditable;
+
 /**
  * Hook for binding a customizable keyboard shortcut to a handler.
  * Reads merged keybindings (defaults + user overrides) and binds via Mousetrap.
@@ -15,8 +18,9 @@ import { getKeyBindingsForActionAllOS } from 'providers/Hotkeys/keyMappings';
  * @param {Object} [options]
  * @param {boolean} [options.enabled=true] - Whether the binding is active. Pass false to skip binding.
  * @param {Array} [options.deps=[]] - Additional dependencies that should trigger rebinding.
+ * @param {Object} [options.scopeRef] - Ref to an element to bind inside instead of the document. Inside it, shortcuts with Ctrl or Cmd also fire from text fields.
  */
-function useKeybinding(action, handler, { enabled = true, deps = [] } = {}) {
+function useKeybinding(action, handler, { enabled = true, deps = [], scopeRef } = {}) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
 
@@ -29,14 +33,20 @@ function useKeybinding(action, handler, { enabled = true, deps = [] } = {}) {
     const combos = getKeyBindingsForActionAllOS(action, userKeyBindings);
     if (!combos) return;
 
-    Mousetrap.bind(combos, (e) => {
+    let mousetrap = Mousetrap;
+    if (scopeRef) {
+      if (!scopeRef.current) return;
+      mousetrap = new Mousetrap(scopeRef.current);
+      mousetrap.stopCallback = (e, element) => isTextField(element) && !e.ctrlKey && !e.metaKey;
+    }
+    mousetrap.bind(combos, (e) => {
       return handlerRef.current(e);
     });
 
     return () => {
-      Mousetrap.unbind(combos);
+      mousetrap.unbind(combos);
     };
-  }, [action, enabled, keybindingsEnabled, userKeyBindings, ...deps]);
+  }, [action, enabled, keybindingsEnabled, userKeyBindings, scopeRef, ...deps]);
 }
 
 export default useKeybinding;

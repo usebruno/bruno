@@ -1,0 +1,7 @@
+{
+  "preferences": {
+    "general": {
+      "defaultLocation": "{{collectionPath}}/default-location"
+    }
+  }
+}

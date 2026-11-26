@@ -1,7 +1,7 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { closeAllCollections } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, openBulkImportModal } from '../../../pages';
 
 const getCollectionName = (index: number) => `Select All Collection ${String(index).padStart(2, '0')}`;
 
@@ -16,6 +16,7 @@ test.describe('Bulk Import - Select all', () => {
     page,
     createTmpDir
   }) => {
+    const { import: importLocators, modal } = buildCommonLocators(page);
     const sourceFile = path.join(testDataDir, 'sample-postman.json');
     const tempDir = await createTmpDir('bulk-import-select-all');
     const sourceContent = JSON.parse(await fs.readFile(sourceFile, 'utf-8'));
@@ -36,28 +37,17 @@ test.describe('Bulk Import - Select all', () => {
       importFiles.push(filePath);
     }
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    const itemCheckboxes = importLocators.bulkCollectionCheckboxes();
+    const selectAllToggle = importLocators.bulkSelectAllCollectionsToggle();
+    const selectAllCheckbox = importLocators.bulkSelectAllCollectionsCheckbox();
 
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+    await test.step('Select the files and verify the Bulk Import modal lists every collection', async () => {
+      await openBulkImportModal(page, importFiles);
 
-    await page.setInputFiles('input[type="file"]', importFiles);
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
-
-    const bulkImportModal = page.getByRole('dialog');
-    await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
-
-    const collectionsSection = bulkImportModal.getByTestId('selection-section-collections');
-    await expect(collectionsSection.getByTestId('selection-count')).toHaveText(String(totalCollections));
-
-    const collectionList = collectionsSection.getByTestId('selection-list');
-    const itemCheckboxes = collectionList.locator('.selection-item input[type="checkbox"]');
-    const selectAllToggle = collectionsSection.getByTestId('selection-select-all-toggle');
-    const selectAllCheckbox = selectAllToggle.locator('input[type="checkbox"]');
-
-    await expect(itemCheckboxes).toHaveCount(totalCollections);
+      await expect(modal.title('Bulk Import')).toBeVisible();
+      await expect(importLocators.bulkCollectionsCount()).toHaveText(String(totalCollections));
+      await expect(itemCheckboxes).toHaveCount(totalCollections);
+    });
 
     await test.step('Bulk import opens with every collection pre-selected', async () => {
       await expect(selectAllCheckbox).toBeChecked();
@@ -83,7 +73,7 @@ test.describe('Bulk Import - Select all', () => {
     });
 
     await test.step('Unchecking a single collection puts Select all into the indeterminate state', async () => {
-      await collectionList.locator('.selection-item').first().click();
+      await itemCheckboxes.first().click();
       const checkedCount = await itemCheckboxes.evaluateAll(
         (nodes) => nodes.filter((node) => (node as HTMLInputElement).checked).length
       );
@@ -110,7 +100,7 @@ test.describe('Bulk Import - Select all', () => {
       await selectAllToggle.click();
       await expect(selectAllCheckbox).not.toBeChecked();
 
-      const searchInput = collectionsSection.getByTestId('selection-search-input');
+      const searchInput = importLocators.bulkCollectionsSearchInput();
       await searchInput.fill('01');
 
       const visibleCount = await itemCheckboxes.count();
@@ -131,7 +121,10 @@ test.describe('Bulk Import - Select all', () => {
       expect(isIndeterminate).toBe(true);
     });
 
-    await page.getByTestId('modal-close-button').click();
-    await expect(page.locator('.bruno-modal-backdrop')).toHaveCount(0);
+    await test.step('Close the Bulk Import modal', async () => {
+      await modal.closeButton().click();
+
+      await expect(modal.backdrop()).toHaveCount(0);
+    });
   });
 });

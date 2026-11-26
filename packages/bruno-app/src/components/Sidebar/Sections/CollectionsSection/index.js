@@ -5,8 +5,6 @@ import { useDispatch, useSelector, useStore } from 'react-redux';
 import {
   IconArrowsSort,
   IconDotsVertical,
-  IconDownload,
-  IconFolder,
   IconPlus,
   IconSearch,
   IconSortAscendingLetters,
@@ -16,24 +14,22 @@ import {
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { openCollectionModal, openCollectionModalOnLastPage } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import filter from 'lodash/filter';
 
 import MenuDropdown from 'ui/MenuDropdown';
 import ActionIcon from 'ui/ActionIcon';
-import ImportCollection from 'components/Sidebar/ImportCollection';
-import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
-import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
-import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
+import IconFolderDown from 'components/Icons/IconFolderDown';
+import ToolHint from 'components/ToolHint';
 import RemoveCollections from 'components/Sidebar/Collections/Collection/RemoveCollections/index';
 import CreateCollection from 'components/Sidebar/CreateCollection';
-import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
-import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import WelcomeModal from 'components/WelcomeModal';
 import Collections from 'components/Sidebar/Collections';
 import SidebarSection from 'components/Sidebar/SidebarSection';
@@ -53,21 +49,21 @@ const CollectionsSection = () => {
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
-  const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [advancedCreateName, setAdvancedCreateName] = useState('');
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
-  const [showCloneGitModal, setShowCloneGitModal] = useState(false);
-  const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
-  const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
   // Import collection shortcut
   useKeybinding('importCollection', () => {
-    setImportCollectionModalOpen(true);
+    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.IMPORT));
+    return false;
+  });
+  useKeybinding('openCollection', () => {
+    dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
     return false;
   });
   const getKeybindingDisplayText = useKeybindingDisplayText();
+  const importShortcut = getKeybindingDisplayText('importCollection');
 
   // Default to true (don't show modal) so that:
   // 1. Existing users who upgrade (no hasSeenWelcomeModal in their prefs) don't see it
@@ -96,37 +92,6 @@ const CollectionsSection = () => {
       workspaces: state.workspaces.workspaces,
       activeWorkspace
     });
-  };
-
-  const handleImportCollection = ({ rawData, type, repositoryUrl, ...rest }) => {
-    setImportCollectionModalOpen(false);
-
-    if (type === 'git-repository') {
-      setGitRepositoryUrl(repositoryUrl);
-      setShowCloneGitModal(true);
-      return;
-    }
-
-    setImportData({ rawData, type, ...rest });
-    setImportCollectionLocationModalOpen(true);
-  };
-
-  const handleImportCollectionLocation = (convertedCollection, collectionLocation, options = {}) => {
-    const importAction = options.isZipImport
-      ? importCollectionFromZip(convertedCollection.zipFilePath, collectionLocation)
-      : importCollection(convertedCollection, collectionLocation, options);
-
-    dispatch(importAction)
-      .then((importedItem) => {
-        setImportCollectionLocationModalOpen(false);
-        setImportData(null);
-        handleImportResolved(convertedCollection, importedItem);
-      });
-  };
-
-  const handleCloseGitModal = () => {
-    setShowCloneGitModal(false);
-    setGitRepositoryUrl(null);
   };
 
   const handleToggleSearch = () => {
@@ -182,10 +147,6 @@ const CollectionsSection = () => {
     setCollectionsToClose([]);
   };
 
-  const handleOpenCollection = () => {
-    dispatch(setIsOpeningCollection(true));
-  };
-
   const handleStartRequest = () => {
     const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
     if (!scratchCollectionUid) {
@@ -236,34 +197,6 @@ const CollectionsSection = () => {
     setCreateCollectionModalOpen(true);
   };
 
-  const addDropdownItems = [
-    {
-      id: 'create',
-      leftSection: IconPlus,
-      label: 'Create collection',
-      onClick: () => {
-        dispatch(setIsCreatingCollection(true));
-      }
-    },
-    {
-      id: 'open',
-      leftSection: IconFolder,
-      label: 'Open collection',
-      onClick: () => {
-        handleOpenCollection();
-      }
-    },
-    {
-      id: 'import',
-      leftSection: IconDownload,
-      label: 'Import collection',
-      shortcut: getKeybindingDisplayText('importCollection'),
-      onClick: () => {
-        setImportCollectionModalOpen(true);
-      }
-    }
-  ];
-
   const actionsDropdownItems = [
     {
       id: 'sort',
@@ -293,37 +226,62 @@ const CollectionsSection = () => {
 
   const sectionActions = (
     <>
-      <ActionIcon
-        onClick={handleToggleSearch}
-        label="Search requests"
-        data-testid="sidebar-search-toggle"
-      >
-        <IconSearch size={14} stroke={1.5} aria-hidden="true" />
-      </ActionIcon>
-
-      <MenuDropdown
-        data-testid="collections-header-add-menu"
-        items={addDropdownItems}
-        placement="bottom-end"
-      >
+      <ToolHint text="Search requests" toolhintId="CollectionsHeaderSearchToolhintId" place="bottom" positionStrategy="fixed" className="flex">
         <ActionIcon
-          label="Add new collection"
+          onClick={handleToggleSearch}
+          aria-label="Search requests"
+          data-testid="sidebar-search-toggle"
+        >
+          <IconSearch size={14} stroke={1.5} aria-hidden="true" />
+        </ActionIcon>
+      </ToolHint>
+
+      <ToolHint text="New collection" toolhintId="CollectionsHeaderNewToolhintId" place="bottom" positionStrategy="fixed" className="flex">
+        <ActionIcon
+          onClick={() => dispatch(setIsCreatingCollection(true))}
+          aria-label="New collection"
+          data-testid="collections-header-new"
         >
           <IconPlus size={14} stroke={1.5} aria-hidden="true" />
         </ActionIcon>
-      </MenuDropdown>
+      </ToolHint>
 
-      <MenuDropdown
-        data-testid="collections-header-actions-menu"
-        items={actionsDropdownItems}
-        placement="bottom-end"
+      <ToolHint
+        text={importShortcut ? `Open or import collection (${importShortcut})` : 'Open or import collection'}
+        toolhintId="CollectionsHeaderOpenToolhintId"
+        place="bottom"
+        positionStrategy="fixed"
+        className="flex"
       >
         <ActionIcon
-          label="More actions"
+          onClick={() => dispatch(openCollectionModalOnLastPage())}
+          aria-label="Open or import collection"
+          data-testid="collections-header-open"
         >
-          <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
+          <IconFolderDown size={14} strokeWidth={1.5} aria-hidden="true" />
         </ActionIcon>
-      </MenuDropdown>
+      </ToolHint>
+
+      <ToolHint
+        text="More actions"
+        toolhintId="CollectionsHeaderMoreToolhintId"
+        place="bottom"
+        positionStrategy="fixed"
+        className="flex"
+        hidden={isActionsMenuOpen}
+      >
+        <MenuDropdown
+          data-testid="collections-header-actions-menu"
+          items={actionsDropdownItems}
+          placement="bottom-end"
+          opened={isActionsMenuOpen}
+          onChange={setIsActionsMenuOpen}
+        >
+          <ActionIcon aria-label="More actions">
+            <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
+          </ActionIcon>
+        </MenuDropdown>
+      </ToolHint>
 
       {collectionsToClose.length > 0 && (
         <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
@@ -338,7 +296,7 @@ const CollectionsSection = () => {
           onDismiss={handleDismissWelcomeModal}
           onImportCollection={() => {
             handleDismissWelcomeModal();
-            setImportCollectionModalOpen(true);
+            dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.IMPORT));
           }}
           onCreateCollection={() => {
             handleDismissWelcomeModal();
@@ -346,7 +304,7 @@ const CollectionsSection = () => {
           }}
           onOpenCollection={() => {
             handleDismissWelcomeModal();
-            handleOpenCollection();
+            dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.MY_COMPUTER));
           }}
           onStartRequest={() => {
             handleDismissWelcomeModal();
@@ -361,45 +319,6 @@ const CollectionsSection = () => {
             setAdvancedCreateName('');
           }}
           initialCollectionName={advancedCreateName}
-        />
-      )}
-      {importCollectionModalOpen && (
-        <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
-          handleSubmit={handleImportCollection}
-        />
-      )}
-      {importCollectionLocationModalOpen && importData && (importData.type !== 'multiple' && importData.type !== 'bulk') && (
-        <ImportCollectionLocation
-          rawData={importData.rawData}
-          format={importData.type}
-          sourceUrl={importData.sourceUrl}
-          filePath={importData.filePath}
-          rawContent={importData.rawContent}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {importCollectionLocationModalOpen && importData && (importData.type === 'multiple' || importData.type === 'bulk') && (
-        <BulkImportCollectionLocation
-          importData={importData}
-          onClose={() => setImportCollectionLocationModalOpen(false)}
-          handleSubmit={handleImportCollectionLocation}
-        />
-      )}
-      {showCloneGitModal && (
-        <CloneGitRepository
-          onClose={handleCloseGitModal}
-          onFinish={handleCloseGitModal}
-          collectionRepositoryUrl={gitRepositoryUrl}
-        />
-      )}
-      {postmanPackagePrompt && (
-        <PostmanPackageReport
-          key={postmanPackagePrompt.collectionPath}
-          report={postmanPackagePrompt.report}
-          collectionPath={postmanPackagePrompt.collectionPath}
-          onClose={clearPostmanPackagePrompt}
         />
       )}
       <SidebarSection

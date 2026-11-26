@@ -19,21 +19,7 @@ const StyledWrapper = styled.div`
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
     padding: 0.25rem 1.25rem 1.25rem;
-  }
-
-  .choose-folder-auto-open {
-    align-self: flex-start;
-    user-select: none;
-
-    .checkbox-label {
-      color: ${(props) => props.theme.colors.text.muted};
-    }
-
-    &:hover .checkbox-label {
-      color: ${(props) => props.theme.text};
-    }
   }
 `;
 

@@ -161,7 +161,7 @@ test.describe('Sidebar auto-reveal', () => {
       });
 
       await test.step('Filter the collection out of the sidebar entirely', async () => {
-        await page.getByTitle('Search requests').click();
+        await locators.sidebar.searchToggle().click();
         await searchInput.fill('no-such-request');
         await expect(locators.sidebar.collection(COLLECTION_NAME)).toHaveCount(0);
       });

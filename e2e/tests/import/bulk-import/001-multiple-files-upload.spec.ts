@@ -1,7 +1,9 @@
 import { test, expect } from '../../../playwright';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { buildCommonLocators, closeAllCollections, openCollection } from '../../../pages';
+import { buildCommonLocators, closeAllCollections, openBulkImportModal, openCollection } from '../../../pages';
+import { buildImportPageLocators } from '../../../pages/open-collection-modal/import-page';
+import { showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
 
 test.describe('Multiple Files Upload', () => {
   const testDataDir = path.join(__dirname, '../test-data');
@@ -12,49 +14,37 @@ test.describe('Multiple Files Upload', () => {
   });
 
   test('Multiple files can be uploaded together', async ({ page, createTmpDir }) => {
+    const { import: importLocators, modal, sidebar } = buildCommonLocators(page);
+    const bulkImportModal = importLocators.bulkModal();
     const postmanFile = path.join(testDataDir, 'sample-postman.json');
     const insomniaFile = path.join(testDataDir, 'sample-insomnia.json');
 
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
+    await test.step('Select both files and verify the Bulk Import modal lists both collections', async () => {
+      await openBulkImportModal(page, [postmanFile, insomniaFile]);
 
-    // Wait for import collection modal to be ready
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
+      await expect(modal.title('Bulk Import')).toBeVisible();
+      await expect(importLocators.bulkCollectionsCount()).toHaveText('2');
+      await expect(importLocators.bulkCollectionTitle('Sample Postman Collection')).toBeVisible();
+      await expect(importLocators.bulkCollectionTitle('Sample Insomnia Collection')).toBeVisible();
+    });
 
-    await page.setInputFiles('input[type="file"]', [postmanFile, insomniaFile]);
+    await test.step('Select a location and import', async () => {
+      await importLocators.bulkLocationInput().fill(await createTmpDir('multiple-files-test'));
+      await importLocators.bulkSubmitButton().click();
 
-    // Wait for the loader to disappear
-    await page.locator('#import-collection-loader').waitFor({ state: 'hidden' });
+      await expect(importLocators.bulkSubmitButton()).toHaveText('Close');
+    });
 
-    // Verify that the Bulk Import modal is now displayed
-    const bulkImportModal = page.getByRole('dialog');
-    await expect(bulkImportModal.locator('.bruno-modal-header-title')).toContainText('Bulk Import');
+    await test.step('Close the summary modal', async () => {
+      await importLocators.bulkSubmitButton().click();
 
-    // Check that the Collections count shows 2 collections in the Bulk Import modal
-    const collectionsHeading = bulkImportModal.getByTestId('selection-heading').filter({ hasText: 'Collections' });
-    await expect(collectionsHeading).toBeVisible();
-    await expect(collectionsHeading.getByTestId('selection-count')).toHaveText('2');
+      await expect(bulkImportModal).toBeHidden();
+    });
 
-    // Verify collection names are displayed
-    await expect(bulkImportModal.getByText('Sample Postman Collection')).toBeVisible();
-    await expect(bulkImportModal.getByText('Sample Insomnia Collection')).toBeVisible();
-
-    // Select a location and import
-    await page.locator('#collection-location').fill(await createTmpDir('multiple-files-test'));
-    await bulkImportModal.getByRole('button', { name: 'Import' }).click();
-
-    // Wait for import to complete (summary modal shows with "Close" button)
-    await expect(bulkImportModal.getByRole('button', { name: 'Close' })).toBeVisible();
-
-    // Close the summary modal
-    await bulkImportModal.getByRole('button', { name: 'Close' }).click();
-    await bulkImportModal.waitFor({ state: 'hidden' });
-
-    // Verify collections were imported successfully
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample Postman Collection')).toBeVisible();
-    await expect(page.locator('#sidebar-collection-name').getByText('Sample Insomnia Collection')).toBeVisible();
+    await test.step('Verify collections were imported successfully', async () => {
+      await expect(sidebar.collection('Sample Postman Collection')).toBeVisible();
+      await expect(sidebar.collection('Sample Insomnia Collection')).toBeVisible();
+    });
   });
 
   test('TC-109: Imports multiple Postman collections from JSON files', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
@@ -73,24 +63,21 @@ test.describe('Multiple Files Upload', () => {
       importFiles.push(filePath);
     }
 
-    const { plusMenu, import: importLocators, request, sidebar, tabs, modal } = buildCommonLocators(page);
+    const { import: importLocators, request, sidebar, tabs, modal } = buildCommonLocators(page);
+    const importPage = buildImportPageLocators(page);
     const bulkModal = importLocators.bulkModal();
     const collectionTempDir = await createTmpDir('multiple-postman-import');
 
-    await test.step('Open the plus menu and choose import collection', async () => {
-      await plusMenu.button().click();
-      await plusMenu.importCollection().waitFor({ state: 'visible' });
-      await plusMenu.importCollection().click();
-      await importLocators.modal().waitFor({ state: 'visible' });
+    await test.step('Open the Import page of the Open collection modal', async () => {
+      await showOpenCollectionModal(page, 'import');
     });
 
-    await test.step('Verify that import dialog shows File', async () => {
-      await expect(importLocators.fileTab()).toContainText('File');
+    await test.step('Verify that the Import page offers to select files', async () => {
+      await expect(importPage.selectFilesLink()).toBeVisible();
     });
 
     await test.step('Choose multiple Postman JSON files', async () => {
-      await expect(importLocators.chooseFilesButton()).toBeVisible();
-      await importLocators.fileInput().setInputFiles(importFiles);
+      await importPage.fileInput().setInputFiles(importFiles);
       await bulkModal.waitFor({ state: 'visible' });
       await expect(importLocators.bulkCollectionName(collectionNames[0])).toBeVisible();
       await expect(importLocators.bulkCollectionName(collectionNames[1])).toBeVisible();

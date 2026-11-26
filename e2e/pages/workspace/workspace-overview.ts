@@ -7,6 +7,7 @@ export const buildWorkspaceOverviewLocators = (page: Page) => {
   return {
     collectionCard,
     collectionCardMenu: (collectionName: string) => collectionCard(collectionName).locator('.collection-menu'),
-    collectionCardMenuItems: (collectionName: string) => collectionCard(collectionName).locator('.dropdown-item')
+    collectionCardMenuItems: (collectionName: string) => collectionCard(collectionName).locator('.dropdown-item'),
+    quickAction: (name: string) => page.getByRole('button', { name, exact: true })
   };
 };

@@ -49,6 +49,81 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(outcome).toEqual({ type: 'switch', path: api.path, name: 'API', skippedText: '' });
   });
 
+  describe('a picked Bruno workspace', () => {
+    const orders = { path: '/work/petstore/orders', name: 'Orders' };
+    const workspace = (folderPath, collectionPaths = [], missingCollectionCount = 0) => ({
+      ...folder(folderPath, 'folder', collectionPaths),
+      workspace: { missingCollectionCount }
+    });
+
+    it('lists the collections inside it and offers to open it as a workspace', () => {
+      const outcome = getFolderSearchOutcome(
+        searchResult({ folders: [workspace('/work/petstore', [orders.path])], collections: [orders] }),
+        nothingOpen
+      );
+
+      expect(outcome).toEqual({
+        type: 'list',
+        collections: [orders],
+        folders: ['/work/petstore'],
+        preselect: [],
+        note: { tone: 'info', text: 'These collections are part of the petstore workspace.', workspacePath: '/work/petstore' }
+      });
+    });
+
+    it('does not repeat "workspace" when the folder name already ends with it', () => {
+      const folderPath = '/work/Petstore Workspace';
+      const outcome = getFolderSearchOutcome(
+        searchResult({ folders: [workspace(folderPath, [orders.path])], collections: [orders] }),
+        nothingOpen
+      );
+
+      expect(outcome.note.text).toBe('These collections are part of the Petstore Workspace.');
+    });
+
+    it('says a workspace without collections is not a collection and offers to open it', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore')] }), nothingOpen);
+
+      expect(outcome).toEqual({
+        type: 'message',
+        note: { tone: 'info', text: 'petstore is a Bruno workspace, not a collection.', workspacePath: '/work/petstore' }
+      });
+    });
+
+    it('warns about the collections that are not on this computer or cannot be read', () => {
+      const outcome = getFolderSearchOutcome(
+        searchResult({
+          folders: [workspace('/work/petstore', [orders.path], 2)],
+          collections: [orders],
+          brokenCollectionPaths: ['/work/petstore/billing']
+        }),
+        nothingOpen
+      );
+
+      expect(outcome.note).toEqual({
+        tone: 'warning',
+        text: 'These collections are part of the petstore workspace. 2 of its collections aren’t on this computer. 1 collection was skipped because its config can’t be read.',
+        workspacePath: '/work/petstore'
+      });
+    });
+
+    it('says when the one collection of a workspace is not on this computer', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore', [], 1)] }), nothingOpen);
+
+      expect(outcome.note).toEqual({
+        tone: 'warning',
+        text: 'petstore is a Bruno workspace, not a collection. 1 of its collections isn’t on this computer.',
+        workspacePath: '/work/petstore'
+      });
+    });
+
+    it('says files dropped with a workspace were left out', () => {
+      const outcome = getFolderSearchOutcome(searchResult({ folders: [workspace('/work/petstore')] }), nothingOpen, 1);
+
+      expect(outcome.note.text).toBe('petstore is a Bruno workspace, not a collection. 1 dropped file wasn’t opened. Use Import file or URL to import it.');
+    });
+  });
+
   it('lists the collections inside a plain folder', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({ folders: [folder('/work', 'folder', [billing.path, api.path])], collections: [billing, api] }),
@@ -89,13 +164,45 @@ describe('getFolderSearchOutcome with one folder', () => {
   });
 
   it.each([
-    ['postman', 'Orders.postman_collection.json', 'a Postman export'],
-    ['insomnia', 'insomnia.json', 'an Insomnia export'],
-    ['openapi', 'openapi.yaml', 'an OpenAPI spec'],
-    ['zip', 'backup.zip', 'an importable file']
-  ])('says a folder with %s files needs importing', (format, name, label) => {
+    ['postman', 'Orders.postman_collection.json'],
+    ['insomnia', 'insomnia.json'],
+    ['openapi', 'openapi.yaml']
+  ])('imports a folder with a %s file straight away', (format, name) => {
+    const file = { path: `/work/exports/${name}`, name, format };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [file])] }), nothingOpen);
+
+    expect(outcome).toEqual({ type: 'import', files: [file], skippedText: '' });
+  });
+
+  it('imports every export file of a folder and leaves its ZIPs out', () => {
+    const postman = { path: '/work/exports/orders.json', name: 'orders.json', format: 'postman' };
+    const zip = { path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' };
+    const openApi = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [postman, zip, openApi])] }), nothingOpen);
+
+    expect(outcome).toEqual({ type: 'import', files: [postman, openApi], skippedText: '' });
+  });
+
+  it('says which folders inside could not be read when it imports a folder', () => {
+    const file = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
     const outcome = getFolderSearchOutcome(
-      searchResult({ folders: [folder('/work/exports', 'folder', [], [{ path: `/work/exports/${name}`, name, format }])] }),
+      searchResult({ folders: [folder('/work/exports', 'folder', [], [file])], unreadableFolderCount: 1 }),
+      nothingOpen
+    );
+
+    expect(outcome).toEqual({ type: 'import', files: [file], skippedText: 'Bruno couldn’t read 1 folder inside exports.' });
+  });
+
+  it('says files dropped with a folder it imports were left out', () => {
+    const file = { path: '/work/exports/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+    const outcome = getFolderSearchOutcome(searchResult({ folders: [folder('/work/exports', 'folder', [], [file])] }), nothingOpen, 1);
+
+    expect(outcome.skippedText).toBe('1 dropped file wasn’t opened. Use Import file or URL to import it.');
+  });
+
+  it('says a folder with only a ZIP needs importing', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work/exports', 'folder', [], [{ path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' }])] }),
       nothingOpen
     );
 
@@ -103,18 +210,18 @@ describe('getFolderSearchOutcome with one folder', () => {
       type: 'message',
       note: {
         tone: 'info',
-        text: `exports isn’t a collection, but it has ${label} in it (${name}). That needs importing, not opening.`,
-        importFile: { path: `/work/exports/${name}`, name, format }
+        text: 'exports isn’t a collection, but it has an importable file in it (backup.zip). That needs importing, not opening.',
+        importFile: { path: '/work/exports/backup.zip', name: 'backup.zip', format: 'zip' }
       }
     });
   });
 
-  it('names the first importable file and warns when folders inside could not be read', () => {
+  it('names the first ZIP and warns when folders inside could not be read', () => {
     const outcome = getFolderSearchOutcome(
       searchResult({
         folders: [folder('/work/exports', 'folder', [], [
           { name: 'a.zip', format: 'zip' },
-          { name: 'openapi.yaml', format: 'openapi' }
+          { name: 'b.zip', format: 'zip' }
         ])],
         unreadableFolderCount: 1
       }),
@@ -188,6 +295,18 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(empty.note).toEqual({ tone: 'warning', text: `/ isn’t a Bruno collection. ${HINT} ${STOPPED_EARLY}` });
     expect(listed.note.tone).toBe('warning');
     expect(listed.note.text).toContain(STOPPED_EARLY);
+  });
+
+  it('warns that folders inside could not be read when it lists the collections it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({ folders: [folder('/work', 'folder', [api.path])], collections: [api], unreadableFolderCount: 2 }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 2 folders inside it.'
+    });
   });
 });
 
@@ -325,6 +444,22 @@ describe('getFolderSearchOutcome with several folders', () => {
         tone: 'info',
         text: 'Found 3 collections in the folders you picked. Pick the ones to open. docs isn’t a collection, so it was skipped.'
       }
+    });
+  });
+
+  it('warns that folders inside the picked folders could not be read when it lists the collections it found', () => {
+    const outcome = getFolderSearchOutcome(
+      searchResult({
+        folders: [folder(orders.path, 'collection', [orders.path]), folder('/work', 'folder', [api.path])],
+        collections: [orders, api],
+        unreadableFolderCount: 1
+      }),
+      nothingOpen
+    );
+
+    expect(outcome.note).toEqual({
+      tone: 'warning',
+      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 1 folder inside them.'
     });
   });
 

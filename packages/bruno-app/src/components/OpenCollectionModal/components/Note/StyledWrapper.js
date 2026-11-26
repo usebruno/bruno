@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
   flex: none;
   margin: 0 1.25rem 0.625rem;
@@ -14,6 +14,7 @@ const StyledWrapper = styled.div`
 
   .note-icon {
     flex: none;
+    align-self: flex-start;
     margin-top: 0.1875rem;
     color: ${(props) => props.theme.status[props.$tone].text};
   }

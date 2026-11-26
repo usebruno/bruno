@@ -1,3 +1,4 @@
+import jsyaml from 'js-yaml';
 import { callIpc } from 'utils/common/ipc';
 import { isValidUrl } from 'utils/url/index';
 import { isBrunoCollection } from './bruno-collection';
@@ -10,10 +11,13 @@ import { isPostmanCollection } from './postman-collection';
 import { isWSDLCollection } from './wsdl-collection';
 
 const UNSUPPORTED_FORMAT = 'Unsupported collection format';
+const WORKSPACE_FILE = 'This is a Bruno workspace file, not a collection. Choose its folder to open the workspace.';
 const ZIP_FILE = /\.zip$/i;
 export const HTTP_URL = /^https?:\/\//i;
 
-const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false;
+const isWorkspaceFile = (data) => data?.info?.type === 'workspace';
+
+const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false && !isWorkspaceFile(data);
 
 const IMPORT_FORMATS = [
   ['openapi', isOpenApiSpec],
@@ -26,7 +30,16 @@ const IMPORT_FORMATS = [
 
 const detectImportFormat = (data) => IMPORT_FORMATS.find(([, matches]) => matches(data))?.[0];
 
-const readBrunoZip = async (zipFilePath, fileName) => {
+const unsupportedFormatError = (data) => new Error(isWorkspaceFile(data) ? WORKSPACE_FILE : UNSUPPORTED_FORMAT);
+
+const readImportableText = (filePath) => callIpc('renderer:collection-search:read-importable-file', { path: filePath });
+
+const describeFileOnDisk = (name) => ({ name, type: /\.json$/i.test(name) ? 'application/json' : '' });
+
+const readZip = async (zipFilePath, fileName) => {
+  if (await callIpc('renderer:is-bruno-workspace-zip', zipFilePath)) {
+    return { type: 'workspace-zip', file: { name: fileName, path: zipFilePath } };
+  }
   if (!(await callIpc('renderer:is-bruno-collection-zip', zipFilePath))) {
     throw new Error('The ZIP file is not a valid Bruno collection');
   }
@@ -40,7 +53,7 @@ const parseImportFile = (text, file, filePath) => {
   }
   const type = detectImportFormat(data);
   if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
+    throw unsupportedFormatError(data);
   }
   if (type === 'openapi') {
     return { rawData: data, type, filePath, rawContent: text };
@@ -48,22 +61,23 @@ const parseImportFile = (text, file, filePath) => {
   return type === 'wsdl' ? { rawData: data, type, filePath } : { rawData: data, type };
 };
 
-const readFileForBulkImport = async (file) => {
-  try {
-    const text = await file.text();
-    const data = parseFileText(text, file);
-    const type = detectImportFormat(data);
-    return type
-      ? { file, data, type, filePath: window.ipcRenderer.getFilePath(file), rawContent: type === 'openapi' && !isSwagger2Spec(data) ? text : undefined }
-      : null;
-  } catch (error) {
-    console.warn(`Failed to process file ${file.name}:`, error);
-    return null;
-  }
+const parseFileForBulkImport = (text, file, filePath) => {
+  const data = parseFileText(text, file);
+  const type = detectImportFormat(data);
+  return type
+    ? { file, data, type, filePath, rawContent: type === 'openapi' && !isSwagger2Spec(data) ? text : undefined }
+    : null;
 };
 
-const readSeveralFiles = async (files) => {
-  const results = await Promise.all(files.map(readFileForBulkImport));
+const readSeveralFiles = async (files, readFileForBulkImport) => {
+  const results = await Promise.all(files.map(async (file) => {
+    try {
+      return await readFileForBulkImport(file);
+    } catch (error) {
+      console.warn(`Failed to process file ${file.name}:`, error);
+      return null;
+    }
+  }));
   const filesData = results.filter(Boolean);
   if (filesData.length === 0) {
     throw new Error('No valid collections found in the selected files');
@@ -81,26 +95,31 @@ export const readImportFiles = async (files) => {
     throw new Error('Multiple ZIP files selected. Please select only one ZIP file at a time for import.');
   }
   if (zipFiles.length === 1) {
-    return readBrunoZip(window.ipcRenderer.getFilePath(zipFiles[0]), zipFiles[0].name);
+    return readZip(window.ipcRenderer.getFilePath(zipFiles[0]), zipFiles[0].name);
   }
   if (files.length > 1) {
-    return readSeveralFiles(files);
+    return readSeveralFiles(files, async (file) => parseFileForBulkImport(await file.text(), file, window.ipcRenderer.getFilePath(file)));
   }
   const [file] = files;
   return parseImportFile(await file.text(), file, window.ipcRenderer.getFilePath(file));
 };
 
-export const readImportableFile = async ({ path, name }) => {
+const readImportableFile = async ({ path, name }) => {
   if (ZIP_FILE.test(name)) {
-    return readBrunoZip(path, name);
+    return readZip(path, name);
   }
-  const text = await callIpc('renderer:collection-search:read-importable-file', { path });
-  return parseImportFile(text, { name, type: /\.json$/i.test(name) ? 'application/json' : '' }, path);
+  return parseImportFile(await readImportableText(path), describeFileOnDisk(name), path);
 };
 
-export const readImportUrl = async (value) => {
-  const url = value.trim();
-  if (!HTTP_URL.test(url) || !isValidUrl(url)) {
+export const readImportableFiles = (files) => {
+  if (files.length === 1) {
+    return readImportableFile(files[0]);
+  }
+  return readSeveralFiles(files, async ({ path, name }) => parseFileForBulkImport(await readImportableText(path), describeFileOnDisk(name), path));
+};
+
+const readImportUrl = async (url) => {
+  if (!isValidUrl(url)) {
     throw new Error('Please enter a valid URL');
   }
   let fetched;
@@ -111,7 +130,38 @@ export const readImportUrl = async (value) => {
   }
   const type = fetched.data !== null && typeof fetched.data === 'object' && detectImportFormat(fetched.data);
   if (!type) {
-    throw new Error(UNSUPPORTED_FORMAT);
+    throw unsupportedFormatError(fetched.data);
   }
   return { rawData: fetched.data, type, sourceUrl: url, rawContent: fetched.rawContent };
+};
+
+const parseRawText = (text) => {
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch (jsonError) {
+    try {
+      data = jsyaml.load(text, { schema: jsyaml.JSON_SCHEMA });
+    } catch (yamlError) {
+      data = null;
+    }
+  }
+  if (!data || typeof data !== 'object') {
+    throw new Error('Could not parse the text as JSON or YAML');
+  }
+  return data;
+};
+
+const readRawText = async (text) => {
+  const data = parseRawText(text);
+  const type = detectImportFormat(data);
+  if (!type) {
+    throw unsupportedFormatError(data);
+  }
+  return { rawData: data, type };
+};
+
+export const readImportText = (value) => {
+  const text = value.trim();
+  return HTTP_URL.test(text) ? readImportUrl(text) : readRawText(text);
 };

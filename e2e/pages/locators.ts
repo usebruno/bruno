@@ -48,9 +48,7 @@ import { buildPaneTabsLocators } from './shared-ui/pane-tabs';
 import { buildTableLocator } from './shared-ui/table';
 import { buildAssertionsTableLocator } from './request/assertions';
 import { buildGrpcLocators } from './request/grpc';
-import { buildOpenCollectionPickerLocators } from './collection/open-collection-picker';
 import { buildDataTypeSelectorLocators } from './shared-ui/data-type-selector';
-import { buildCollectionsPlusMenuLocators } from './collection/manage';
 import { buildImportCollectionLocators } from './collection/import';
 import { buildExportCollectionLocators } from './collection/export';
 import { buildCollectionPresetsLocators } from './collection/settings';
@@ -110,7 +108,6 @@ export const buildCommonLocators = (page: Page) => ({
   aiAssist: buildAiAssistLocators(page),
   folder: buildFolderLocators(page),
   modal: buildModalLocators(page),
-  openCollectionPicker: buildOpenCollectionPickerLocators(page),
   codeMirror: buildCodeMirrorLocators(page),
   dataTypeSelector: buildDataTypeSelectorLocators(page),
   filePicker: buildFilePickerLocators(page),
@@ -123,7 +120,6 @@ export const buildCommonLocators = (page: Page) => ({
   runnerResults: buildRunnerResultsLocators(page),
   response: buildResponseLocators(page),
   timeline: buildTimelineLocators(page),
-  plusMenu: buildCollectionsPlusMenuLocators(page),
   import: buildImportCollectionLocators(page),
   export: buildExportCollectionLocators(page),
   /**

@@ -4,25 +4,19 @@ import {
   Page,
   Locator
 } from '../../playwright';
-import { buildCollectionsPlusMenuLocators, openCollection } from './manage';
+import { openCollection } from './manage';
+import { selectImportFiles } from '../open-collection-modal/import-page';
 
 /**
  * Locators for the Import Collection modals and the import-issues toast.
  */
 export const buildImportCollectionLocators = (page: Page) => ({
-  modal: () => page.locator('[data-testid="import-collection-modal"]'),
   locationModal: () => page.locator('[data-testid="import-collection-location-modal"]'),
   locationInput: () => page.locator('#collection-location'),
-  fileInput: () => page.locator('input[type="file"]'),
-  urlTab: () => page.getByTestId('url-tab'),
-  urlInput: () => page.getByTestId('url-input'),
-  urlImportButton: () => page.getByTestId('import-url-btn'),
-  loader: () => page.getByTestId('import-collection-loader'),
-  fileTab: () => page.getByTestId('file-tab'),
-  gitRepositoryTab: () => page.getByTestId('github-tab'),
-  gitUrlInput: () => page.getByTestId('git-url-input'),
-  cloneGitButton: () => page.getByTestId('clone-git-button'),
-  chooseFilesButton: () => page.getByTestId('choose-files-button'),
+  folderArrangementLabel: () => page.getByTestId('import-collection-location-modal').getByText('Folder arrangement', { exact: true }),
+  groupingDropdown: () => page.getByTestId('import-collection-location-modal').getByTestId('grouping-dropdown'),
+  groupingOption: (value: string) => page.getByTestId('import-collection-location-modal').getByTestId(`grouping-option-${value}`),
+  optionsMenuButton: () => page.getByTestId('import-collection-location-modal').getByTestId('show-advanced-options'),
   advancedOptionsToggle: () => page.getByTestId('show-advanced-options-toggle'),
   preserveScriptsToggle: () => page.getByTestId('preserve-scripts-toggle'),
   checkForSpecUpdatesToggle: () => page.getByTestId('check-for-spec-updates-toggle'),
@@ -35,6 +29,7 @@ export const buildImportCollectionLocators = (page: Page) => ({
   bulkLocationInput: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-collection-location-input'),
   bulkSubmitButton: () => page.getByTestId('bulk-import-collection-location-modal-submit-btn'),
   bulkOpenApiConfigurationToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByRole('button', { name: 'OpenAPI Import configuration' }),
+  bulkFolderArrangementLabel: () => page.getByTestId('bulk-import-collection-location-modal').getByText('Folder arrangement', { exact: true }),
   bulkGroupingDropdown: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('grouping-dropdown'),
   bulkGroupingOption: (value: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId(`grouping-option-${value}`),
   bulkSpecUpdatesToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-check-for-spec-updates'),
@@ -42,9 +37,20 @@ export const buildImportCollectionLocators = (page: Page) => ({
   bulkSwagger2SyncNote: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('bulk-import-swagger2-sync-note'),
   bulkSelectAllCollectionsToggle: () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByTestId('selection-select-all-toggle'),
   bulkCollectionCheckbox: (fileName: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(fileName, { exact: true }) }).getByRole('checkbox'),
+  ...(() => {
+    const bulkCollectionsSection = () => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections');
+    const bulkCollectionsList = () => bulkCollectionsSection().getByTestId('selection-list');
+    return {
+      bulkCollectionsCount: () => bulkCollectionsSection().getByTestId('selection-count'),
+      bulkCollectionsSearchInput: () => bulkCollectionsSection().getByTestId('selection-search-input'),
+      bulkSelectAllCollectionsCheckbox: () => bulkCollectionsSection().getByTestId('selection-select-all-toggle').getByRole('checkbox'),
+      bulkCollectionsList,
+      bulkCollectionCheckboxes: () => bulkCollectionsList().getByRole('checkbox'),
+      bulkCollectionTitle: (name: string) => bulkCollectionsList().getByText(name, { exact: true })
+    };
+  })(),
   bulkCollectionName: (name: string) => page.getByTestId('bulk-import-collection-location-modal').getByTestId('selection-section-collections').getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) }).getByTestId('selection-item-title'),
   envOption: (name: string) => page.locator('.dropdown-item').getByText(name, { exact: true }),
-  parsingError: () => page.getByTestId('import-error-message'),
   browseLink: (root?: Locator) => (root ?? page).getByTestId('import-collection-browse-link'),
   importButton: (root?: Locator) => (root ?? page).getByTestId('import-collection-location-modal-submit-btn'),
   formatSelect: (root?: Locator) => (root ?? page).locator('#format'),
@@ -63,8 +69,7 @@ export const buildImportCollectionLocators = (page: Page) => ({
 });
 
 const buildLocators = (page: Page) => ({
-  import: buildImportCollectionLocators(page),
-  plusMenu: buildCollectionsPlusMenuLocators(page)
+  import: buildImportCollectionLocators(page)
 });
 
 /**
@@ -99,6 +104,7 @@ export type ImportCollectionOptions = {
   checkForSpecUpdates?: boolean;
   authPlacement?: 'request' | 'collection';
   requestNameSource?: 'summary' | 'operationId' | 'description' | 'path';
+  groupBy?: 'tags' | 'path';
 };
 
 export const importCollection = async (
@@ -110,16 +116,7 @@ export const importCollection = async (
   await test.step(`Import collection from "${filePath}"`, async () => {
     const locators = buildLocators(page);
 
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.importCollection().click();
-
-    // Wait for import modal
-    const importModal = page.getByRole('dialog');
-    await importModal.waitFor({ state: 'visible' });
-    await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-    // Set the file
-    await page.setInputFiles('input[type="file"]', filePath);
+    await selectImportFiles(page, [filePath]);
 
     // Wait for location modal to appear
     const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
@@ -129,6 +126,11 @@ export const importCollection = async (
     // Verify expected collection name if provided
     if (options.expectedCollectionName) {
       await expect(locationModal.getByText(options.expectedCollectionName)).toBeVisible();
+    }
+
+    if (options.groupBy) {
+      await locators.import.groupingDropdown().click();
+      await locators.import.groupingOption(options.groupBy).click();
     }
 
     if (options.checkForSpecUpdates) {
@@ -189,11 +191,7 @@ export const openBulkImportModal = async (page: Page, filePaths: string[]) => {
   await test.step('Open the Bulk Import modal', async () => {
     const locators = buildLocators(page);
 
-    await locators.plusMenu.button().click();
-    await locators.plusMenu.importCollection().click();
-    await expect(locators.import.modal()).toBeVisible();
-
-    await locators.import.fileInput().setInputFiles(filePaths);
-    await expect(locators.import.bulkModal()).toBeVisible();
+    await selectImportFiles(page, filePaths);
+    await locators.import.bulkModal().waitFor({ state: 'visible' });
   });
 };

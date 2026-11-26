@@ -1,4 +1,5 @@
 import { test, expect } from '../../playwright';
+import { buildCommonLocators } from '../../pages';
 
 test.describe('Sidebar Section Auto-Expand', () => {
   test('Clicking action button on collapsed section should expand it', async ({ page }) => {
@@ -43,9 +44,9 @@ test.describe('Sidebar Section Auto-Expand', () => {
     const sectionContent = collectionsSection.locator('.section-content');
     await expect(sectionContent).toBeVisible();
 
-    // Click on the add button in the section-actions area
-    const addButton = page.getByTestId('collections-header-add-menu');
-    await addButton.click();
+    // Click on the actions menu in the section-actions area
+    const { sidebar } = buildCommonLocators(page);
+    await sidebar.collectionsActionsMenu().click();
 
     // Close the dropdown
     await page.keyboard.press('Escape');
@@ -67,9 +68,7 @@ test.describe('Sidebar Section Auto-Expand', () => {
     await expect(sectionContent).not.toBeVisible();
 
     // Now click on the search action button in the collapsed section
-    // The search button is in section-actions with title "Search requests"
-    const searchButton = collectionsSection.locator('.section-actions button[title="Search requests"]');
-    await searchButton.click();
+    await buildCommonLocators(page).sidebar.searchToggle().click();
 
     // The section should now be expanded
     await expect(collectionsSection).toHaveClass(/expanded/);

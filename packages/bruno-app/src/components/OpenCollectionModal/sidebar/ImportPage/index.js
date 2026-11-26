@@ -1,14 +1,13 @@
 import { useRef, useState } from 'react';
-import classnames from 'classnames';
 import { useSelector } from 'react-redux';
-import { IconAlertTriangle, IconCheck, IconLink, IconUpload } from '@tabler/icons';
-import Button from 'ui/Button';
-import { loadImportFiles, loadImportUrl } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { IconAlertTriangle, IconExternalLink, IconLink, IconLoader2, IconUpload } from '@tabler/icons';
+import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
-import { describeImportText } from './utils';
+import { isZipUrl } from './utils';
 
 const ACCEPTED_FILE_TYPES = [
   '.json',
@@ -25,22 +24,49 @@ const ACCEPTED_FILE_TYPES = [
   'application/xml'
 ].join(',');
 
+const DOCS_LINKS = [
+  {
+    label: 'Migrating from Postman?',
+    url: 'https://docs.usebruno.com/get-started/import-export-data/postman-migration',
+    testId: 'import-page-migrate-link'
+  },
+  {
+    label: 'Learn more about importing',
+    url: 'https://docs.usebruno.com/get-started/import-export-data/import-collections',
+    testId: 'import-page-docs-link'
+  }
+];
+
 const ImportPage = () => {
   const importFrom = useImportHandoff();
   const isLoading = useSelector((state) => state.openCollectionModal.importLoadId !== null);
   const [text, setText] = useState('');
   const [isDragOverZone, setIsDragOverZone] = useState(false);
   const fileInput = useRef(null);
+  const importShortcut = useKeybindingDisplayText()('importCollection');
 
   const trimmedText = text.trim();
-  const hint = trimmedText ? describeImportText(trimmedText) : null;
-  const isLoadDisabled = !trimmedText || Boolean(hint?.isWarning);
+  const isZipText = isZipUrl(trimmedText);
 
-  const loadText = (event) => {
-    event.preventDefault();
-    if (!isLoadDisabled && !isLoading) {
-      importFrom(loadImportUrl(trimmedText));
+  const loadText = (value) => {
+    if (value && !isZipUrl(value) && !isLoading) {
+      importFrom(loadImportText(value));
     }
+  };
+
+  const submitText = (event) => {
+    event.preventDefault();
+    loadText(trimmedText);
+  };
+
+  const pasteText = (event) => {
+    const pasted = event.clipboardData.getData('text').trim();
+    if (!pasted || isLoading) {
+      return;
+    }
+    event.preventDefault();
+    setText(pasted);
+    loadText(pasted);
   };
 
   const loadPickedFiles = (event) => {
@@ -50,37 +76,37 @@ const ImportPage = () => {
 
   return (
     <StyledWrapper>
-      <form className="import-url-row" onSubmit={loadText}>
-        <div className="import-url-field">
+      <form onSubmit={submitText}>
+        <div className="import-text-field">
           <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
           <input
             type="text"
             spellCheck={false}
-            placeholder="Paste a file URL, e.g. https://example.com/openapi.yaml"
-            aria-label="Paste a file URL"
+            placeholder="Paste a URL or raw JSON/YAML"
+            aria-label="Paste a URL or raw JSON/YAML"
             value={text}
             onChange={(event) => setText(event.target.value)}
+            onPaste={pasteText}
             readOnly={isLoading}
             data-testid="import-page-text"
           />
+          {isLoading ? (
+            <span className="import-text-status" role="status" aria-label="Loading" data-testid="import-page-loading">
+              <IconLoader2 size={14} strokeWidth={2} className="import-text-spinner" aria-hidden="true" />
+            </span>
+          ) : null}
         </div>
-        <Button
-          className="import-url-load"
-          type="submit"
-          size="sm"
-          color="secondary"
-          disabled={isLoadDisabled}
-          loading={isLoading}
-          data-testid="import-page-load"
-        >
-          Load
-        </Button>
       </form>
 
-      {hint ? (
-        <div className={classnames('import-message', hint.isWarning ? 'is-warning' : 'is-ok')} data-testid="import-page-hint">
-          {hint.isWarning ? <IconAlertTriangle size={14} strokeWidth={2} /> : <IconCheck size={14} strokeWidth={2} />}
-          <span>{hint.text}</span>
+      {isZipText ? (
+        <div className="import-zip-warning" data-testid="import-page-zip-warning">
+          <IconAlertTriangle size={14} strokeWidth={2} aria-hidden="true" />
+          <span>Bruno collection (.zip) from a URL · not supported yet. Download it and drop it here.</span>
+        </div>
+      ) : null}
+      {trimmedText && !isZipText && !isLoading ? (
+        <div className="import-enter-hint" data-testid="import-page-enter-hint">
+          <kbd>Enter</kbd> to import
         </div>
       ) : null}
 
@@ -94,7 +120,8 @@ const ImportPage = () => {
           onDrop: () => setIsDragOverZone(false)
         }}
         title="Drop anywhere to import"
-        hint="OpenCollection · Bruno · Postman · Insomnia · OpenAPI · WSDL"
+        hint="Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno"
+        shortcut={importShortcut}
         data-testid="import-page-drop-zone"
       >
         Or{' '}
@@ -116,6 +143,21 @@ const ImportPage = () => {
         onChange={loadPickedFiles}
         data-testid="import-page-file-input"
       />
+
+      <div className="import-docs-links">
+        {DOCS_LINKS.map(({ label, url, testId }) => (
+          <button
+            key={url}
+            type="button"
+            className="import-docs-link"
+            onClick={() => window.ipcRenderer.openExternal(url)}
+            data-testid={testId}
+          >
+            {label}
+            <IconExternalLink size={13} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
     </StyledWrapper>
   );
 };

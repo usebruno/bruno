@@ -158,5 +158,7 @@ module.exports = {
   CollectionWalker,
   getRealPath,
   toPathKey,
-  isSameOrInside
+  isSameOrInside,
+  isPrunedFolderName,
+  hasCollectionConfig
 };

@@ -63,6 +63,10 @@ const StyledWrapper = styled.nav`
     }
   }
 
+  .menu-item + .menu-item {
+    margin-top: 0.0625rem;
+  }
+
   .menu-item-label {
     flex: 1;
     white-space: nowrap;

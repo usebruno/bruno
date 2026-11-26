@@ -8,39 +8,30 @@ import {
   selectCollectionPaneTab,
   buildCommonLocators
 } from '../../../pages';
+import { loadImportText } from '../../../pages/open-collection-modal/import-page';
 
 test.describe('Postman URL import', () => {
   test.afterEach(async ({ page }) => {
     await closeAllCollections(page);
   });
 
-  test('TC-811: Imports a valid Postman collection from a URL via sidebar plus menu', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
+  test('TC-811: Imports a valid Postman collection from a URL via the Import page', { tag: '@sanity' }, async ({ page, createTmpDir }) => {
     // Fetches the collection over the network; the main-process axios timeout is 30s,
     // so a slow fetch is killed before it can fail or succeed. The collection is large,
     // so give the import more room than that fetch.
     test.setTimeout(60_000);
 
     const postmanUrl = 'https://raw.githubusercontent.com/usebruno/bruno/6f79765b9e92832910fadb8e1df5f83a876206c3/tests/import/postman/fixtures/postman-url-import-collection.json';
-    const { plusMenu, import: importLocators, request, sidebar, table, auth } = buildCommonLocators(page);
+    const { import: importLocators, request, sidebar, table, auth } = buildCommonLocators(page);
     const collectionName = 'Sunshine Conversations API';
     const locationModal = importLocators.locationModal();
     const collectionTempDir = await createTmpDir('sunshine-conversations');
 
-    await test.step('Open import collection modal and switch to URL tab', async () => {
-      await plusMenu.button().click();
-      await plusMenu.importCollection().click();
-      await importLocators.modal().waitFor({ state: 'visible' });
-      await importLocators.urlTab().click();
-    });
-
-    await test.step('Enter the Postman collection URL in the URL input text box', async () => {
-      await importLocators.urlInput().waitFor({ state: 'visible' });
-      await importLocators.urlInput().fill(postmanUrl);
+    await test.step('Load the Postman collection URL on the Import page', async () => {
+      await loadImportText(page, postmanUrl);
     });
 
     await test.step('Import the collection from the URL', async () => {
-      await importLocators.urlImportButton().click();
-      await importLocators.loader().waitFor({ state: 'hidden' });
       await locationModal.getByText(collectionName).waitFor({ state: 'visible' });
       await importLocators.locationInput().fill(collectionTempDir);
       await importLocators.importButton().click();

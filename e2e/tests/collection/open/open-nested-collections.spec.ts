@@ -1,14 +1,10 @@
 import { test, expect, ElectronApplication, Page } from '../../../playwright';
 import * as path from 'path';
-import {
-  buildCommonLocators,
-  closeAllCollections,
-  openCollectionFromDialog,
-  restoreOpenDialog,
-  stashOpenDialog
-} from '../../../pages';
+import { buildCommonLocators, closeAllCollections } from '../../../pages';
+import { buildOpenCollectionModalLocators, closeOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { buildChooseFolderLocators, chooseFolders } from '../../../pages/open-collection-modal/choose-folder';
 
-/** A collection the picker should discover: its name, and the location it reports relative to the picked folder. */
+/** A collection the picker should discover: its name, and its folder relative to the picked folder. */
 type DiscoveredCollection = { name: string; location: string };
 
 const openEveryCollectionUnder = async (
@@ -17,22 +13,24 @@ const openEveryCollectionUnder = async (
   root: string,
   expected: DiscoveredCollection[]
 ) => {
-  const { modal, openCollectionPicker, sidebar } = buildCommonLocators(page);
+  const { sidebar } = buildCommonLocators(page);
+  const openCollectionModal = buildOpenCollectionModalLocators(page);
+  const chooseFolder = buildChooseFolderLocators(page);
 
-  await openCollectionFromDialog(page, electronApp, root);
+  await chooseFolders(page, electronApp, [root]);
 
   await test.step('The modal lists every discovered collection at its nested location', async () => {
-    await expect(modal.byTitle('Open Collection')).toBeVisible();
-    await expect(openCollectionPicker.titles()).toHaveCount(expected.length);
+    await expect(chooseFolder.rows()).toHaveCount(expected.length);
     for (const { name, location } of expected) {
-      await expect(openCollectionPicker.itemDescription(name)).toHaveText(location);
+      await expect(chooseFolder.rowPath(name)).toHaveAttribute('title', path.join(root, location));
     }
   });
 
   await test.step('Select every collection and open them', async () => {
-    await openCollectionPicker.selectAllToggle().click();
-    await expect(modal.footer()).toContainText(`${expected.length} of ${expected.length} selected`);
-    await modal.button('Open').click();
+    await chooseFolder.selectAll().click();
+    await expect(chooseFolder.openSelectedButton()).toHaveText(`Open ${expected.length} collections`);
+    await chooseFolder.openSelectedButton().click();
+    await expect(openCollectionModal.root()).toBeHidden();
   });
 
   await test.step('Every selected collection is in the sidebar', async () => {
@@ -43,31 +41,27 @@ const openEveryCollectionUnder = async (
 };
 
 test.describe('Open nested collections', () => {
-  test.beforeAll(async ({ electronApp }) => {
-    await stashOpenDialog(electronApp);
-  });
-
-  test.afterAll(async ({ electronApp }) => {
-    await restoreOpenDialog(electronApp);
-  });
-
   test.afterEach(async ({ page }) => {
+    await closeOpenCollectionModal(page);
     await closeAllCollections(page);
   });
 
-  test('TC-4448: lists a collection folder alongside the sibling collections inside it and opens all of them', async ({
+  test('TC-4448: opens a picked collection folder directly and leaves the collections nested inside it closed', async ({
     page,
     electronApp,
     collectionFixturePath
   }) => {
-    const root = path.join(collectionFixturePath!, 'nested-siblings');
+    const { sidebar } = buildCommonLocators(page);
+    const openCollectionModal = buildOpenCollectionModalLocators(page);
 
-    await openEveryCollectionUnder(page, electronApp, root, [
-      // The picked folder is itself a collection, so it reports its own folder name.
-      { name: 'Parent Collection', location: 'nested-siblings' },
-      { name: 'Alpha Collection', location: 'alpha' },
-      { name: 'Beta Collection', location: 'beta' }
-    ]);
+    await chooseFolders(page, electronApp, [path.join(collectionFixturePath!, 'nested-siblings')]);
+
+    await test.step('The picked collection opens without a list and the nested ones stay closed', async () => {
+      await expect(openCollectionModal.root()).toBeHidden();
+      await expect(sidebar.collection('Parent Collection')).toBeVisible();
+      await expect(sidebar.collection('Alpha Collection')).toHaveCount(0);
+      await expect(sidebar.collection('Beta Collection')).toHaveCount(0);
+    });
   });
 
   test('TC-4449: discovers collections several folders below the picked root and opens all of them', async ({

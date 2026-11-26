@@ -244,3 +244,67 @@ describe('collections that fail to open on workspace switch', () => {
     expect(toast.error).toHaveBeenCalledWith('Failed to open 2 collections');
   });
 });
+
+describe('openWorkspaceAtPath', () => {
+  let openWorkspaceAtPath;
+
+  const PETSTORE_PATH = path.join(os.tmpdir(), 'petstore');
+  const WS_A_PATH = path.join(os.tmpdir(), 'ws-a');
+  const WS_B_PATH = path.join(os.tmpdir(), 'ws-b');
+  const opened = { workspaceUid: 'petstore', workspacePath: PETSTORE_PATH, workspaceConfig: { name: 'Petstore', type: 'workspace', collections: [] } };
+
+  beforeAll(async () => {
+    ({ openWorkspaceAtPath } = await import('./actions'));
+  });
+
+  beforeEach(() => {
+    window.ipcRenderer.invoke = jest.fn((channel) => (channel === 'renderer:open-workspace' ? Promise.resolve(opened) : mockIpcInvoke(channel)));
+  });
+
+  const storeWithPaths = () => {
+    const store = createStore();
+    store.dispatch(updateWorkspace({ uid: WS_A, pathname: WS_A_PATH }));
+    store.dispatch(updateWorkspace({ uid: WS_B, pathname: WS_B_PATH }));
+    return store;
+  };
+
+  const openWorkspaceCalls = () => window.ipcRenderer.invoke.mock.calls.filter(([channel]) => channel === 'renderer:open-workspace');
+
+  it('opens a workspace that is not open yet and switches to it', async () => {
+    const store = storeWithPaths();
+
+    await store.dispatch(openWorkspaceAtPath(PETSTORE_PATH));
+
+    expect(openWorkspaceCalls()).toEqual([['renderer:open-workspace', PETSTORE_PATH]]);
+    expect(store.getState().workspaces.workspaces).toContainEqual(expect.objectContaining({ uid: 'petstore', pathname: PETSTORE_PATH, name: 'Petstore' }));
+    expect(store.getState().workspaces.activeWorkspaceUid).toBe('petstore');
+  });
+
+  it('switches to a workspace that is already open instead of opening it again', async () => {
+    const store = storeWithPaths();
+
+    await store.dispatch(openWorkspaceAtPath(`${WS_B_PATH}/`));
+
+    expect(openWorkspaceCalls()).toEqual([]);
+    expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_B);
+  });
+
+  it('leaves the active workspace alone when it is the one asked for', async () => {
+    const store = storeWithPaths();
+
+    await store.dispatch(openWorkspaceAtPath(WS_A_PATH));
+
+    expect(window.ipcRenderer.invoke).not.toHaveBeenCalled();
+    expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_A);
+  });
+
+  it('passes on why a workspace could not be opened and keeps the active one', async () => {
+    window.ipcRenderer.invoke = jest.fn(() => Promise.reject(new Error('Invalid workspace: workspace.yml is malformed')));
+    const store = storeWithPaths();
+
+    await expect(store.dispatch(openWorkspaceAtPath(PETSTORE_PATH))).rejects.toThrow('Invalid workspace: workspace.yml is malformed');
+
+    expect(store.getState().workspaces.workspaces.map((workspace) => workspace.uid)).toEqual([WS_A, WS_B]);
+    expect(store.getState().workspaces.activeWorkspaceUid).toBe(WS_A);
+  });
+});

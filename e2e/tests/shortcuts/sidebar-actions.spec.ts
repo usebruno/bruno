@@ -32,7 +32,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await pressShortcut(page, modifier, 'KeyF');
 
         await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
-        await page.getByTitle('Search requests').click();
+        await page.getByTestId('sidebar-search-toggle').click();
       });
 
       test('Sidebar search customized (Alt+F)', async ({ pageWithUserData: page }) => {
@@ -52,7 +52,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await pressShortcut(page, 'Alt', 'KeyF');
 
         await expect(page.getByTestId('sidebar-search-input')).toBeVisible();
-        await page.getByTitle('Search requests').click();
+        await page.getByTestId('sidebar-search-toggle').click();
       });
     });
 

@@ -1,6 +1,8 @@
 import { test } from '../../../playwright';
 import { type ElectronApplication, type Page } from '@playwright/test';
-import { openCollection, closeAllCollections } from '../../../pages';
+import { openCollection, closeAllCollections, buildCommonLocators, mockBrowseFiles } from '../../../pages';
+import { showOpenCollectionModal } from '../../../pages/open-collection-modal/shell';
+import { buildChooseFolderLocators } from '../../../pages/open-collection-modal/choose-folder';
 import { summarize } from '../utils/stats';
 import { writeResults, buildResultEntry, type ResultEntry } from '../utils/results';
 import { startTimer } from '../utils/timing';
@@ -18,14 +20,6 @@ async function measureCollectionMount(
   collectionDir: string,
   collectionName: string
 ): Promise<number> {
-  await electronApp.evaluate(
-    ({ dialog }, { dir }) => {
-      (dialog as any).__originalShowOpenDialog ??= dialog.showOpenDialog;
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-    },
-    { dir: collectionDir }
-  );
-
   await page.evaluate(() => {
     (window as any).__benchMountDone = new Promise<void>((resolve) => {
       const off = (window as any).ipcRenderer.on('main:collection-loading-state-updated', (val: any) => {
@@ -36,22 +30,18 @@ async function measureCollectionMount(
     });
   });
 
+  await mockBrowseFiles(electronApp, [collectionDir]);
+  await showOpenCollectionModal(page, 'choose-folder');
+
   const timer = startTimer();
 
-  await page.getByTestId('collections-header-add-menu').click();
-  await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
-  await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible' });
+  await buildChooseFolderLocators(page).chooseLink().click();
+  await buildCommonLocators(page).sidebar.collection(collectionName).waitFor({ state: 'visible' });
 
   await openCollection(page, collectionName);
   await page.evaluate(() => (window as any).__benchMountDone);
 
   const elapsed = timer.elapsed();
-
-  await electronApp.evaluate(({ dialog }) => {
-    if ((dialog as any).__originalShowOpenDialog) {
-      dialog.showOpenDialog = (dialog as any).__originalShowOpenDialog;
-    }
-  });
 
   await closeAllCollections(page);
 

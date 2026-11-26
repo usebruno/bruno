@@ -1,6 +1,6 @@
 import { test, expect } from '../../../playwright';
 import * as path from 'path';
-import { openCollection, closeAllCollections } from '../../../pages';
+import { closeAllCollections, importCollection } from '../../../pages';
 
 test.describe('Import Insomnia v5 Collection - Environment Import', () => {
   test.afterEach(async ({ page }) => {
@@ -23,24 +23,9 @@ test.describe('Import Insomnia v5 Collection - Environment Import', () => {
     const insomniaFile = path.resolve(__dirname, 'fixtures', 'insomnia-v5-with-envs.yaml');
 
     await test.step('Import Insomnia v5 collection with environments', async () => {
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
-
-      const importModal = page.getByTestId('import-collection-modal');
-      await importModal.waitFor({ state: 'visible' });
-      await expect(importModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-
-      await page.setInputFiles('input[type="file"]', insomniaFile);
-
-      // Wait for location modal to appear after file processing
-      const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-      await locationModal.waitFor({ state: 'visible', timeout: 10000 });
-
-      await page.locator('#collection-location').fill(await createTmpDir('insomnia-v5-env-test'));
-      await locationModal.getByRole('button', { name: 'Import' }).click();
-      await locationModal.waitFor({ state: 'hidden' });
-
-      await openCollection(page, 'Test API Collection v5 with Environments');
+      await importCollection(page, insomniaFile, await createTmpDir('insomnia-v5-env-test'), {
+        expectedCollectionName: 'Test API Collection v5 with Environments'
+      });
     });
 
     await test.step('Open collection environments panel', async () => {

@@ -1,33 +1,16 @@
 import { test, expect } from '../../../playwright';
 import path from 'path';
-import { closeAllCollections } from '../../../pages';
+import { closeAllCollections, importCollection } from '../../../pages';
 
 test.describe('Global Environment Import Tests', () => {
   test('should import global environment from file', async ({ newPage: page, createTmpDir }) => {
-    const openApiFile = path.join(__dirname, 'fixtures', 'collection.json');
+    const collectionFile = path.join(__dirname, 'fixtures', 'collection.json');
     const globalEnvFile = path.join(__dirname, 'fixtures', 'global-env.json');
 
-    // Import test collection
-    await page.getByTestId('collections-header-add-menu').click();
-    await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Import collection' }).click();
-
-    const importModal = page.locator('[data-testid="import-collection-modal"]');
-    await importModal.waitFor({ state: 'visible' });
-
-    await page.setInputFiles('input[type="file"]', openApiFile);
-
-    const locationModal = page.locator('[data-testid="import-collection-location-modal"]');
-    await expect(locationModal.locator('.bruno-modal-header-title')).toContainText('Import Collection');
-    await expect(locationModal.getByText('Environment Test Collection')).toBeVisible();
-
-    await page.locator('#collection-location').fill(await createTmpDir('global-env-import-test'));
-    await locationModal.getByRole('button', { name: 'Import' }).click();
-
-    await expect(
-      page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' })).toBeVisible({ timeout: 10000 });
-
-    // Configure collection
-    await page.locator('#sidebar-collection-name').filter({ hasText: 'Environment Test Collection' }).click();
+    await importCollection(page, collectionFile, await createTmpDir('global-env-import-test'), {
+      expectedCollectionName: 'Environment Test Collection',
+      sidebarTimeout: 10000
+    });
 
     // Import global environment
     await page.getByTestId('environment-selector-trigger').click();

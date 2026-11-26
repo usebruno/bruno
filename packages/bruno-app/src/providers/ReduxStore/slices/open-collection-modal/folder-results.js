@@ -13,26 +13,24 @@ const FOLDER_PROBLEMS = {
   'broken-collection': (name) => `Bruno can’t open ${name} because its config can’t be read. Check its bruno.json or opencollection.yml.`
 };
 
-const IMPORTABLE_FILE_LABELS = {
-  postman: 'a Postman export',
-  insomnia: 'an Insomnia export',
-  openapi: 'an OpenAPI spec',
-  zip: 'an importable file'
-};
-
 export const countOf = (count, word) => `${count} ${pluralizeWord(word, count)}`;
 const unique = (values) => [...new Set(values)];
 const sentences = (...parts) => parts.filter(Boolean).join(' ');
 
-const showMessage = (tone, text, importFile) => ({ type: 'message', note: importFile ? { tone, text, importFile } : { tone, text } });
+const showMessage = (tone, text, actionTarget) => ({ type: 'message', note: { tone, text, ...actionTarget } });
 
-const showList = ({ collections, folders, preselect, tone, text }) => ({
+const showList = ({ collections, folders, preselect, tone, text, actionTarget }) => ({
   type: 'list',
   collections,
   folders,
   preselect,
-  note: { tone, text }
+  note: { tone, text, ...actionTarget }
 });
+
+const describeWorkspace = (name) => (/workspace$/i.test(name) ? name : `${name} workspace`);
+
+const describeCollectionsNotHere = (count) => count > 0
+  && `${count} of its collections ${count === 1 ? 'isn’t' : 'aren’t'} on this computer.`;
 
 const describeSkippedFolders = (folders) => {
   const namesOf = (matches) => folders.filter(matches).map((folder) => getFolderName(folder.path));
@@ -74,6 +72,21 @@ const decideOutcome = (searchResult, openPathKeys) => {
     const [folder] = folders;
     const name = getFolderName(folder.path);
 
+    if (folder.workspace) {
+      const hasCollections = folder.collectionPaths.length > 0;
+      const notHereText = describeCollectionsNotHere(folder.workspace.missingCollectionCount);
+      const tone = notHereText || brokenText ? 'warning' : 'info';
+      const text = sentences(
+        hasCollections ? `These collections are part of the ${describeWorkspace(name)}.` : `${name} is a Bruno workspace, not a collection.`,
+        notHereText,
+        brokenText
+      );
+      const workspaceTarget = { workspacePath: folder.path };
+      return hasCollections
+        ? showList({ collections: toRows(folder.collectionPaths), folders: [folder.path], preselect: [], tone, text, actionTarget: workspaceTarget })
+        : showMessage(tone, text, workspaceTarget);
+    }
+
     if (FOLDER_PROBLEMS[folder.status]) {
       return showMessage('warning', FOLDER_PROBLEMS[folder.status](name));
     }
@@ -88,13 +101,17 @@ const decideOutcome = (searchResult, openPathKeys) => {
       if (brokenText) {
         return showMessage('warning', sentences(`${name} has no collections Bruno can open.`, brokenText, missingText));
       }
+      const exportFiles = folder.importableFiles.filter((file) => file.format !== 'zip');
+      if (exportFiles.length > 0) {
+        return { type: 'import', files: exportFiles, skippedText: describeMissing(name) };
+      }
       const tone = missingText ? 'warning' : 'info';
       if (folder.importableFiles.length > 0) {
-        const [file] = folder.importableFiles;
+        const [zipFile] = folder.importableFiles;
         return showMessage(tone, sentences(
-          `${name} isn’t a collection, but it has ${IMPORTABLE_FILE_LABELS[file.format]} in it (${file.name}). That needs importing, not opening.`,
+          `${name} isn’t a collection, but it has an importable file in it (${zipFile.name}). That needs importing, not opening.`,
           missingText
-        ), file);
+        ), { importFile: zipFile });
       }
       return showMessage(tone, sentences(`${name} isn’t a Bruno collection.`, COLLECTION_FOLDER_HINT, missingText));
     }

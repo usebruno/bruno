@@ -14,7 +14,6 @@ export const buildModalLocators = (page: Page) => ({
   button: (name: string) => page.locator('.bruno-modal').getByRole('button', { name: name, exact: true }),
   closeButton: () => page.locator('.bruno-modal').getByTestId('modal-close-button'),
   card: () => page.locator('.bruno-modal-card'),
-  footer: () => page.locator('.bruno-modal-footer'),
   submitButton: () => page.locator('.bruno-modal-footer .submit'),
   newRequestMethodOption: (id: string) => page.getByTestId(`method-selector-${id.toLowerCase()}`),
   newRequestVariableToken: (name: string) =>

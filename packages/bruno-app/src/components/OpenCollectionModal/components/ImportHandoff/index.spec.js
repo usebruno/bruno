@@ -5,10 +5,16 @@ import { configureStore } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
 import { isDirectory } from 'utils/filesystem';
-import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import { readImportableFiles } from 'utils/importers/import-sources';
+import openCollectionModalReducer, { importRequested } from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { useImportHandoff } from './context';
 import ImportHandoff from './index';
 
+jest.mock('nanoid', () => {
+  let count = 0;
+  return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
+});
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   browseDirectories: jest.fn(),
@@ -18,6 +24,10 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   importCollectionFromZip: jest.fn()
 }));
 jest.mock('utils/filesystem', () => ({ isDirectory: jest.fn() }));
+jest.mock('utils/importers/import-sources', () => ({
+  ...jest.requireActual('utils/importers/import-sources'),
+  readImportableFiles: jest.fn()
+}));
 jest.mock('components/Sidebar/ImportCollectionLocation', () => ({
   __esModule: true,
   default: ({ rawData, format, sourceUrl, filePath, rawContent, onClose, handleSubmit }) => (
@@ -34,6 +44,15 @@ jest.mock('components/Sidebar/BulkImportCollectionLocation', () => ({
   __esModule: true,
   default: ({ importData }) => <div data-testid="bulk-modal">{importData.filesData.length}</div>
 }));
+jest.mock('components/WorkspaceSidebar/ImportWorkspace', () => ({
+  __esModule: true,
+  default: ({ initialFile, onClose }) => (
+    <div data-testid="import-workspace-modal">
+      <span data-testid="import-workspace-file">{JSON.stringify(initialFile)}</span>
+      <button onClick={onClose}>Close workspace import</button>
+    </div>
+  )
+}));
 jest.mock('components/Sidebar/PostmanPackageReport', () => ({
   __esModule: true,
   default: ({ collectionPath }) => <div data-testid="postman-prompt">{collectionPath}</div>
@@ -49,7 +68,7 @@ const Starter = ({ loaded }) => {
 const renderHandoff = (loaded) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
-    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: 'import' } }
+    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT } }
   });
   render(
     <Provider store={store}>
@@ -97,6 +116,36 @@ describe('ImportHandoff', () => {
 
     expect(screen.getByTestId('bulk-modal')).toHaveTextContent('2');
     expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
+  });
+
+  it('imports the files a folder search asked for', async () => {
+    readImportableFiles.mockResolvedValue(single);
+    const store = renderHandoff(null);
+    const files = [{ path: '/work/a.yaml', name: 'a.yaml', format: 'openapi' }];
+
+    await act(async () => {
+      store.dispatch(importRequested({ files }));
+    });
+
+    expect(readImportableFiles).toHaveBeenCalledTimes(1);
+    expect(readImportableFiles).toHaveBeenCalledWith(files);
+    expect(store.getState().openCollectionModal.importRequest).toBeNull();
+    expect(isModalOpen(store)).toBe(false);
+    expect(screen.getByTestId('location-modal')).toBeInTheDocument();
+  });
+
+  it('closes the Open collection modal and hands a workspace export to the workspace import with the file selected', async () => {
+    const store = renderHandoff({ type: 'workspace-zip', file: { name: 'Petstore.zip', path: '/work/Petstore.zip' } });
+
+    await click('Start');
+
+    expect(isModalOpen(store)).toBe(false);
+    expect(JSON.parse(screen.getByTestId('import-workspace-file').textContent)).toEqual({ name: 'Petstore.zip', path: '/work/Petstore.zip' });
+    expect(screen.queryByTestId('location-modal')).not.toBeInTheDocument();
+
+    await click('Close workspace import');
+
+    expect(screen.queryByTestId('import-workspace-modal')).not.toBeInTheDocument();
   });
 
   it('stays out of the way when nothing was loaded', async () => {

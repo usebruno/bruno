@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import PostmanPackageReport from 'components/Sidebar/PostmanPackageReport';
+import ImportWorkspace from 'components/WorkspaceSidebar/ImportWorkspace';
 import usePostmanPackagePrompt from 'hooks/usePostmanPackagePrompt';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
-import { closeOpenCollectionModal } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { importRequestTaken } from 'providers/ReduxStore/slices/open-collection-modal';
+import { closeOpenCollectionModal, loadImportableFiles } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import { formatIpcError } from 'utils/common/error';
 import { isDirectory } from 'utils/filesystem';
 import { ImportHandoffContext } from './context';
@@ -19,6 +21,7 @@ const reportFailedImport = async (collectionLocation) => {
 const ImportHandoff = ({ children }) => {
   const dispatch = useDispatch();
   const [importData, setImportData] = useState(null);
+  const importRequest = useSelector((state) => state.openCollectionModal.importRequest);
   const isImportingRef = useRef(false);
   const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
@@ -29,6 +32,13 @@ const ImportHandoff = ({ children }) => {
       dispatch(closeOpenCollectionModal());
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    if (importRequest) {
+      dispatch(importRequestTaken());
+      importFrom(loadImportableFiles(importRequest.files));
+    }
+  }, [importRequest, importFrom, dispatch]);
 
   useEffect(() => {
     if (importData) {
@@ -62,23 +72,33 @@ const ImportHandoff = ({ children }) => {
       });
   };
 
+  const renderImportDialog = () => {
+    if (!importData) {
+      return null;
+    }
+    if (importData.type === 'multiple') {
+      return <BulkImportCollectionLocation importData={importData} onClose={closeImport} handleSubmit={importToLocation} />;
+    }
+    if (importData.type === 'workspace-zip') {
+      return <ImportWorkspace initialFile={importData.file} onClose={closeImport} />;
+    }
+    return (
+      <ImportCollectionLocation
+        rawData={importData.rawData}
+        format={importData.type}
+        sourceUrl={importData.sourceUrl}
+        filePath={importData.filePath}
+        rawContent={importData.rawContent}
+        onClose={closeImport}
+        handleSubmit={importToLocation}
+      />
+    );
+  };
+
   return (
     <ImportHandoffContext.Provider value={importFrom}>
       {children}
-      {importData?.type === 'multiple' ? (
-        <BulkImportCollectionLocation importData={importData} onClose={closeImport} handleSubmit={importToLocation} />
-      ) : null}
-      {importData && importData.type !== 'multiple' ? (
-        <ImportCollectionLocation
-          rawData={importData.rawData}
-          format={importData.type}
-          sourceUrl={importData.sourceUrl}
-          filePath={importData.filePath}
-          rawContent={importData.rawContent}
-          onClose={closeImport}
-          handleSubmit={importToLocation}
-        />
-      ) : null}
+      {renderImportDialog()}
       {postmanPackagePrompt ? (
         <PostmanPackageReport
           key={postmanPackagePrompt.collectionPath}

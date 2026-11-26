@@ -4,6 +4,12 @@ info:
   type: workspace
 
 collections:
+  - name: "github-rest-api-collection"
+    path: "collections/github-rest-api-collection"
+    remote: "https://github.com/usebruno/github-rest-api-collection"
+  - name: "this-repo-does-not-exist"
+    path: "collections/this-repo-does-not-exist"
+    remote: "https://github.com/usebruno/this-repo-does-not-exist"
 
 specs:
 
