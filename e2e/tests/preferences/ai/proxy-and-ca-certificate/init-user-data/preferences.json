@@ -15,8 +15,11 @@
       }
     },
     "proxy": {
-      "source": "manual",
+      "source": "{{proxySource}}",
       "disabled": {{proxyDisabled}},
+      "pac": {
+        "source": "{{pacUrl}}"
+      },
       "config": {
         "protocol": "http",
         "hostname": "127.0.0.1",
@@ -39,7 +42,7 @@
         {
           "id": "private-gateway",
           "name": "Private gateway",
-          "baseURL": "https://localhost:{{endpointPort}}/v1",
+          "baseURL": "https://localhost:{{endpointPort}}{{endpointBasePath}}",
           "models": [
             {
               "id": "private-gateway:test-model",

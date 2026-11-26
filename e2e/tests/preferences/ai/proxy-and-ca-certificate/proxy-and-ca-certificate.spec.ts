@@ -3,12 +3,31 @@ import http from 'http';
 import https from 'https';
 import net from 'net';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { test, expect } from '../../../../playwright';
-import { buildCommonLocators, openAiPreferences, testCompatEndpointConnection } from '../../../../pages';
+import {
+  buildCommonLocators,
+  expandCopilotCard,
+  openAiPreferences,
+  testCompatEndpointConnection
+} from '../../../../pages';
 import { waitForReadyPage } from '../../../../utils';
 
 const ENDPOINT_ID = 'private-gateway';
+const MODEL_ID = 'test-model';
 const NO_PROXY_BYPASS = 'no-bypass.invalid';
+const UNUSED_PAC_URL = 'http://pac.invalid/proxy.pac';
+
+type ProxyMode = 'off' | 'manual' | 'pac' | 'system';
+
+type LaunchOptions = {
+  customCaEnabled?: boolean;
+  customCaFilePath?: string;
+  proxy?: ProxyMode;
+  proxyBypass?: string;
+  endpointBasePath?: string;
+  pacDir?: string;
+};
 
 test.describe('AI provider requests, the proxy and the custom CA certificate', () => {
   const certsDir = path.join(__dirname, '../../../request/post-quantum-key-exchange/certs');
@@ -17,10 +36,10 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
 
   let endpointServer: https.Server;
   let endpointPort: number;
-  let modelListRequests = 0;
   let proxy: http.Server;
   let proxyPort: number;
-  let tunnels = 0;
+  const requests = { modelList: 0 };
+  const proxyTunnels = { opened: [] as string[], refused: [] as string[] };
   const tunnelSockets = new Set<net.Socket>();
 
   test.beforeAll(async () => {
@@ -31,9 +50,14 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
       },
       (req, res) => {
         if (req.method === 'GET' && req.url === '/v1/models') {
-          modelListRequests++;
+          requests.modelList++;
           res.writeHead(200, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ object: 'list', data: [{ id: 'test-model', object: 'model' }] }));
+          res.end(JSON.stringify({ object: 'list', data: [{ id: MODEL_ID, object: 'model' }] }));
+          return;
+        }
+        if (req.method === 'GET' && req.url === '/moved/v1/models') {
+          res.writeHead(302, { location: '/v1/models' });
+          res.end();
           return;
         }
         res.writeHead(404);
@@ -43,15 +67,25 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
 
     proxy = http.createServer();
     proxy.on('connect', (req, clientSocket: net.Socket, head) => {
-      tunnels++;
-      const [host, port] = String(req.url).split(':');
+      const target = String(req.url);
+      const [host, port] = target.split(':');
+      tunnelSockets.add(clientSocket);
+      clientSocket.on('error', () => clientSocket.destroy());
+
+      if (Number(port) !== endpointPort) {
+        proxyTunnels.refused.push(target);
+        clientSocket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+        return;
+      }
+
+      proxyTunnels.opened.push(target);
       const upstream = net.connect(Number(port), host, () => {
         clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
         upstream.write(head);
         upstream.pipe(clientSocket);
         clientSocket.pipe(upstream);
       });
-      tunnelSockets.add(clientSocket).add(upstream);
+      tunnelSockets.add(upstream);
       upstream.on('error', () => clientSocket.destroy());
       clientSocket.on('error', () => upstream.destroy());
     });
@@ -74,134 +108,212 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
   });
 
   test.beforeEach(() => {
-    modelListRequests = 0;
-    tunnels = 0;
+    requests.modelList = 0;
+    proxyTunnels.opened.length = 0;
+    proxyTunnels.refused.length = 0;
   });
 
-  const openAiPreferencesWith = async (
+  const writePacFile = async (pacDir: string) => {
+    const pacFilePath = path.join(pacDir, 'proxy.pac');
+    await fs.promises.writeFile(
+      pacFilePath,
+      `function FindProxyForURL(url, host) { return 'PROXY 127.0.0.1:${proxyPort}'; }\n`
+    );
+    return pathToFileURL(pacFilePath).href;
+  };
+
+  const launchApp = async (
     launchElectronApp,
     {
-      customCaEnabled,
-      customCaFilePath,
-      useProxy = false,
-      proxyBypass = NO_PROXY_BYPASS
-    }: { customCaEnabled: boolean; customCaFilePath: string; useProxy?: boolean; proxyBypass?: string }
+      customCaEnabled = true,
+      customCaFilePath = selfSignedCertPath,
+      proxy: proxyMode = 'off',
+      proxyBypass = NO_PROXY_BYPASS,
+      endpointBasePath = '/v1',
+      pacDir
+    }: LaunchOptions
   ) => {
+    const proxyUrl = `http://127.0.0.1:${proxyPort}`;
+    const pacUrl = proxyMode === 'pac' && pacDir ? await writePacFile(pacDir) : UNUSED_PAC_URL;
+    const proxySource = { off: 'manual', manual: 'manual', pac: 'pac', system: 'inherit' }[proxyMode];
+
     const app = await launchElectronApp({
       initUserDataPath,
       templateVars: {
         customCaEnabled: String(customCaEnabled),
-        customCaFilePath,
+        customCaFilePath: customCaFilePath.split(path.sep).join('/'),
         endpointPort: String(endpointPort),
-        proxyDisabled: String(!useProxy),
+        endpointBasePath,
+        proxySource,
+        proxyDisabled: String(proxyMode === 'off'),
         proxyPort: String(proxyPort),
-        proxyBypass
-      }
+        proxyBypass,
+        pacUrl
+      },
+      dotEnv:
+        proxyMode === 'system'
+          ? {
+              HTTPS_PROXY: proxyUrl,
+              https_proxy: proxyUrl,
+              HTTP_PROXY: proxyUrl,
+              http_proxy: proxyUrl,
+              NO_PROXY: NO_PROXY_BYPASS,
+              no_proxy: NO_PROXY_BYPASS
+            }
+          : {}
     });
-    const page = await waitForReadyPage(app);
+    return waitForReadyPage(app);
+  };
+
+  const openAiPreferencesWith = async (launchElectronApp, options: LaunchOptions) => {
+    const page = await launchApp(launchElectronApp, options);
     await openAiPreferences(page);
     return page;
   };
 
-  test('trusts an endpoint signed by the custom CA certificate', async ({ launchElectronApp }) => {
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: true,
-      customCaFilePath: selfSignedCertPath
+  test.describe('Custom CA certificate', () => {
+    test('trusts an endpoint signed by the custom CA certificate', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { customCaEnabled: true });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds and the endpoint received the request', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(requests.modelList).toBe(1);
+        expect(proxyTunnels.opened).toHaveLength(0);
+      });
     });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
+    test('does not trust the endpoint when the custom CA certificate is off', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { customCaEnabled: false });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await test.step('The connection succeeds and the endpoint received the request', async () => {
-      await expect(feedback()).toHaveText('Connection successful');
-      expect(modelListRequests).toBe(1);
-      expect(tunnels).toBe(0);
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection fails before any request reaches the endpoint', async () => {
+        await expect(feedback()).toBeVisible();
+        await expect(feedback()).not.toHaveText('Connection successful');
+        expect(requests.modelList).toBe(0);
+      });
     });
-  });
 
-  test('sends the request through the proxy from the proxy preferences', async ({ launchElectronApp }) => {
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: true,
-      customCaFilePath: selfSignedCertPath,
-      useProxy: true
+    test('reports the file path when the custom CA certificate file is missing', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, {
+        customCaEnabled: true,
+        customCaFilePath: path.join(certsDir, 'missing-ca.crt')
+      });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The error names the missing file', async () => {
+        await expect(feedback()).toContainText('Invalid custom CA certificate path');
+        await expect(feedback()).toContainText('missing-ca.crt');
+        expect(requests.modelList).toBe(0);
+      });
     });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
+    test('reports a redirect instead of following it', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, {
+        customCaEnabled: true,
+        endpointBasePath: '/moved/v1'
+      });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await test.step('The connection succeeds through one proxy tunnel', async () => {
-      await expect(feedback()).toHaveText('Connection successful');
-      expect(tunnels).toBe(1);
-      expect(modelListRequests).toBe(1);
-    });
-  });
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
 
-  test('connects directly to a host on the proxy bypass list', async ({ launchElectronApp }) => {
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: true,
-      customCaFilePath: selfSignedCertPath,
-      useProxy: true,
-      proxyBypass: 'localhost'
-    });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
-
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
-
-    await test.step('The connection succeeds without using the proxy', async () => {
-      await expect(feedback()).toHaveText('Connection successful');
-      expect(tunnels).toBe(0);
-      expect(modelListRequests).toBe(1);
-    });
-  });
-
-  test('still requires the custom CA certificate when a proxy is used', async ({ launchElectronApp }) => {
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: false,
-      customCaFilePath: selfSignedCertPath,
-      useProxy: true
-    });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
-
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
-
-    await test.step('The request reaches the proxy but the endpoint certificate is rejected', async () => {
-      await expect(feedback()).toBeVisible();
-      await expect(feedback()).not.toHaveText('Connection successful');
-      expect(tunnels).toBe(1);
-      expect(modelListRequests).toBe(0);
+      await test.step('The error names the address the endpoint redirected to', async () => {
+        await expect(feedback()).toContainText('Redirects are not followed');
+        await expect(feedback()).toContainText(`https://localhost:${endpointPort}/v1/models`);
+        expect(requests.modelList).toBe(0);
+      });
     });
   });
 
-  test('does not trust the endpoint when the custom CA certificate is off', async ({ launchElectronApp }) => {
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: false,
-      customCaFilePath: selfSignedCertPath
+  test.describe('Proxy', () => {
+    test('sends the request through the proxy from the proxy preferences', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'manual' });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds through one proxy tunnel', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(proxyTunnels.opened).toEqual([`localhost:${endpointPort}`]);
+        expect(requests.modelList).toBe(1);
+      });
     });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
+    test('connects directly to a host on the proxy bypass list', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'manual', proxyBypass: 'localhost' });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await test.step('The connection fails before any request reaches the endpoint', async () => {
-      await expect(feedback()).toBeVisible();
-      await expect(feedback()).not.toHaveText('Connection successful');
-      expect(modelListRequests).toBe(0);
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds without using the proxy', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(proxyTunnels.opened).toHaveLength(0);
+        expect(requests.modelList).toBe(1);
+      });
     });
-  });
 
-  test('reports the file path when the custom CA certificate file is missing', async ({ launchElectronApp }) => {
-    const missingCertPath = path.join(certsDir, 'missing-ca.crt');
-    const page = await openAiPreferencesWith(launchElectronApp, {
-      customCaEnabled: true,
-      customCaFilePath: missingCertPath
+    test('still requires the custom CA certificate when a proxy is used', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'manual', customCaEnabled: false });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The request reaches the proxy but the endpoint certificate is rejected', async () => {
+        await expect(feedback()).toBeVisible();
+        await expect(feedback()).not.toHaveText('Connection successful');
+        expect(proxyTunnels.opened).toHaveLength(1);
+        expect(requests.modelList).toBe(0);
+      });
     });
-    const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await testCompatEndpointConnection(page, ENDPOINT_ID);
+    test('sends the request through the proxy chosen by the PAC file', async ({ launchElectronApp, createTmpDir }) => {
+      const pacDir = await createTmpDir('ai-proxy-pac');
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'pac', pacDir });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
-    await test.step('The error names the missing file', async () => {
-      await expect(feedback()).toContainText('Invalid custom CA certificate path');
-      await expect(feedback()).toContainText('missing-ca.crt');
-      expect(modelListRequests).toBe(0);
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds through one proxy tunnel', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(proxyTunnels.opened).toEqual([`localhost:${endpointPort}`]);
+        expect(requests.modelList).toBe(1);
+      });
+    });
+
+    test('sends the request through the system proxy', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'system' });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds through one proxy tunnel', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(proxyTunnels.opened).toEqual([`localhost:${endpointPort}`]);
+        expect(requests.modelList).toBe(1);
+      });
+    });
+
+    test('sends the GitHub Copilot sign-in through the proxy', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { proxy: 'manual' });
+      const { copilot } = buildCommonLocators(page).ai;
+
+      await expandCopilotCard(page);
+
+      await test.step('Click Sign in with GitHub', async () => {
+        await copilot.signInButton().click();
+      });
+
+      await test.step('The proxy received the sign-in request and the card shows the failure', async () => {
+        await expect(copilot.error()).toBeVisible();
+        expect(proxyTunnels.refused).toContain('github.com:443');
+        await expect(copilot.header()).toContainText('Not signed in');
+      });
     });
   });
 });
