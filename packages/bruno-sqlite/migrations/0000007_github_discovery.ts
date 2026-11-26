@@ -1,3 +1,4 @@
+// Owned by EE GitHub discovery: keep byte-identical with the EE copy. Times are epoch milliseconds.
 export const up = (): string => {
   return `
     CREATE TABLE IF NOT EXISTS gh_account (
@@ -5,7 +6,7 @@ export const up = (): string => {
       host TEXT NOT NULL,
       user_id INTEGER NOT NULL,
       login TEXT NOT NULL,
-      token_hash TEXT NOT NULL,
+      token_hash TEXT NOT NULL CHECK (length(token_hash) = 64),
       updated_at INTEGER NOT NULL
     );
 
@@ -33,7 +34,7 @@ export const up = (): string => {
 
     CREATE TABLE IF NOT EXISTS gh_repos (
       repo_id INTEGER PRIMARY KEY,
-      full_name TEXT NOT NULL,
+      full_name TEXT NOT NULL COLLATE NOCASE,
       owner TEXT NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
@@ -74,11 +75,13 @@ export const up = (): string => {
 
 export const down = (): string => {
   return `
+    PRAGMA secure_delete = ON;
     DROP TABLE IF EXISTS gh_names;
     DROP TABLE IF EXISTS gh_collections;
     DROP TABLE IF EXISTS gh_repos;
     DROP TABLE IF EXISTS gh_query_items;
     DROP TABLE IF EXISTS gh_queries;
     DROP TABLE IF EXISTS gh_account;
+    PRAGMA secure_delete = OFF;
   `;
 };

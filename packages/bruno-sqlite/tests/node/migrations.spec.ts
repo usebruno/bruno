@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Migration } from '../../src/shared/types';
+import { appliedSequences } from '../utils';
 
 const { DB } = require('../../src/node/db');
 
@@ -21,12 +22,6 @@ const m2: Migration = {
 
 const tableExists = (db: any, name: string): boolean =>
   db._db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`).get(name) !== undefined;
-
-const appliedSequences = (db: any): number[] =>
-  db._db
-    .prepare('SELECT sequence FROM _migrations ORDER BY sequence')
-    .all()
-    .map((row: { sequence: number }) => row.sequence);
 
 describe('DB migrations', () => {
   let dir: string;

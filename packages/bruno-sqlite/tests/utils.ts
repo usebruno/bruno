@@ -28,3 +28,15 @@ export const createTestDatabase = (options: CreateDatabaseOptions = {}): TestDat
     }
   };
 };
+
+export const tableNames = (db: any): string[] =>
+  db._db
+    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
+    .all()
+    .map((row: { name: string }) => row.name);
+
+export const appliedSequences = (db: any): number[] =>
+  db._db
+    .prepare('SELECT sequence FROM _migrations ORDER BY sequence')
+    .all()
+    .map((row: { sequence: number }) => row.sequence);
