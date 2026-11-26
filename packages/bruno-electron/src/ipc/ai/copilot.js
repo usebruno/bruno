@@ -4,7 +4,7 @@ const { aiCopilotStore } = require('../../store/ai-copilot');
 const { aiKeyStore } = require('../../store/ai-keys');
 const { requestDeviceCode, pollForToken } = require('../../utils/github-device-flow');
 const { readGitHubCliToken } = require('../../utils/github-cli');
-const { fetchWithCustomCa } = require('../../utils/fetch-with-custom-ca');
+const { fetchWithProxyAndCa } = require('../../utils/fetch-with-proxy-and-ca');
 
 const COPILOT_PROVIDER_ID = 'github-copilot';
 const COPILOT_PROVIDER_LABEL = 'GitHub Copilot';
@@ -84,7 +84,7 @@ const copilotHttpError = async (response, fallback) => {
 };
 
 const fetchAccount = async (token) => {
-  const response = await fetchWithCustomCa(`${GITHUB_API_URL}/user`, {
+  const response = await fetchWithProxyAndCa(`${GITHUB_API_URL}/user`, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json'
@@ -104,7 +104,7 @@ const fetchAccount = async (token) => {
 
 const discoverApiEndpoint = async (token) => {
   try {
-    const response = await fetchWithCustomCa(`${GITHUB_API_URL}/graphql`, {
+    const response = await fetchWithProxyAndCa(`${GITHUB_API_URL}/graphql`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -187,7 +187,7 @@ const normalizeModelCatalog = (rawModels) => {
 };
 
 const fetchModels = async (token, apiEndpoint) => {
-  const response = await fetchWithCustomCa(`${apiEndpoint}/models`, {
+  const response = await fetchWithProxyAndCa(`${apiEndpoint}/models`, {
     headers: {
       Authorization: `Bearer ${token}`,
       ...editorHeaders()
@@ -262,7 +262,7 @@ const copilotFetch = async (url, init = {}) => {
   if (!headers.has('X-Initiator')) {
     headers.set('X-Initiator', isUserInitiatedRequest(init.body) ? 'user' : 'agent');
   }
-  const response = await fetchWithCustomCa(url, { ...init, headers });
+  const response = await fetchWithProxyAndCa(url, { ...init, headers });
   if (response.status === 401) {
     throw new Error(SESSION_EXPIRED_MESSAGE);
   }

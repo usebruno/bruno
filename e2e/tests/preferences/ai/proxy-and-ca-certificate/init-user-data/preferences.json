@@ -14,6 +14,20 @@
         "enabled": true
       }
     },
+    "proxy": {
+      "source": "manual",
+      "disabled": {{proxyDisabled}},
+      "config": {
+        "protocol": "http",
+        "hostname": "127.0.0.1",
+        "port": {{proxyPort}},
+        "auth": {
+          "username": "",
+          "password": ""
+        },
+        "bypassProxy": "{{proxyBypass}}"
+      }
+    },
     "ai": {
       "enabled": true,
       "providers": {

@@ -352,7 +352,7 @@ const getCertsAndProxyConfig = ({
 
       if (!globalDisabled) {
         if (globalProxySource === 'pac') {
-          proxyConfig = { pac: get(appLevelProxyConfig, 'pac.source') };
+          proxyConfig = { pac: get(appLevelProxyConfig, 'pac') };
           proxyMode = 'pac';
         } else if (globalProxySource === 'inherit') {
           const { http_proxy, https_proxy, pac_url } = systemProxyConfig || {};
