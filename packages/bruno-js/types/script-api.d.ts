@@ -898,7 +898,7 @@ export interface Response {
    * @returns The header, body and total sizes.
    * @category Timing & size
    */
-  getSize(): { header: number; body: number; total: number; };
+  getSize(): ResponseSize;
   /**
    * Get the response body's raw bytes, as a Node.js `Buffer`.
    *
@@ -1725,6 +1725,26 @@ export interface ReadOnlyHeaderList {
    * @category Transform
    */
   toJSON(): Header[];
+}
+
+/**
+ * The size of a response, in bytes, from `res.getSize()`.
+ *
+ * @category Types
+ */
+export interface ResponseSize {
+  /**
+   * The size of the status line and headers.
+   */
+  header: number;
+  /**
+   * The size of the body.
+   */
+  body: number;
+  /**
+   * The header and body sizes added.
+   */
+  total: number;
 }
 
 /**
