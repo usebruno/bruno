@@ -79,6 +79,16 @@ export const openUrlVarTooltip = async (
   return tooltip;
 };
 
+/** Hover a variable in a request header after moving the pointer out of its editor. */
+export const openHeaderVarTooltip = async (page: Page, headerName: string, varName: string): Promise<Locator> => {
+  const { request, varInfoPopup } = buildLocators(page);
+  await page.mouse.move(0, 0);
+  await request.headerVariableToken(request.headers.requestRow(headerName), varName).hover();
+  const tooltip = varInfoPopup.all().first();
+  await tooltip.waitFor({ state: 'visible' });
+  return tooltip;
+};
+
 /**
  * Hover a `{{var}}` token inside another row's Value cell in the (collection or global)
  * environment table itself, and return its (visible) info tooltip. Use this for the

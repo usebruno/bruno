@@ -44,11 +44,12 @@ test.describe('Environment variables table - column resize', () => {
 
     await test.step('Dragging the Value divider resizes only Value and Description', async () => {
       const before = await getEnvironmentColumnWidths(page);
-      await dragEnvironmentColumnDivider(page, 'value', -50);
+      // Move away from the Value column's minimum on narrow windows.
+      await dragEnvironmentColumnDivider(page, 'value', 50);
       const after = await getEnvironmentColumnWidths(page);
 
-      expectClose(after.value, before.value - 50);
-      expectClose(after.description, before.description + 50);
+      expectClose(after.value, before.value + 50);
+      expectClose(after.description, before.description - 50);
       expectClose(after.name, before.name);
     });
 

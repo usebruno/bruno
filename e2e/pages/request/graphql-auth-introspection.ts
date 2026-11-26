@@ -1,5 +1,7 @@
-import { expect, test, type Page } from '../../playwright';
+import { test, type Page } from '../../playwright';
 import { authEditorByTestId, buildAuthLocators, writeAuthEditor } from './auth';
+import { selectRequestPaneTab } from './pane';
+
 const graphqlTabLabel = {
   query: 'Query',
   auth: 'Auth'
@@ -31,7 +33,6 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => {
   const auth = buildAuthLocators(page);
 
   return {
-    requestTab: (key: string) => requestPane(page).getByTestId(`responsive-tab-${key}`),
     authModeLabel: () => auth.modeLabel(),
     apiKeyModeOption: () => auth.dropdownItem('apikey'),
     authFieldEditor: (testId: string) => authEditorByTestId(page, testId),
@@ -50,12 +51,9 @@ export const buildGraphqlAuthIntrospectionLocators = (page: Page) => {
   };
 };
 
-/** Switch the open GraphQL request to its Query or Auth tab and check the tab is active. */
+/** Switch the open GraphQL request to its Query or Auth tab, including from the overflow menu. */
 export const selectGraphqlRequestTab = async (page: Page, key: keyof typeof graphqlTabLabel) => {
-  const tab = buildGraphqlAuthIntrospectionLocators(page).requestTab(key);
-
-  await tab.click();
-  await expect(tab).toHaveText(graphqlTabLabel[key]);
+  await selectRequestPaneTab(page, graphqlTabLabel[key]);
 };
 
 /**

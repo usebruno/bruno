@@ -106,6 +106,10 @@ test.describe.serial('Mock server CORS preflight', () => {
     await openMockServerTab(page, COLLECTION_NAME);
     await ms.tabLog().click();
 
+    // The newest GET entry opens its trace automatically, pushing older rows out of the rendered list.
+    await expect(ms.logCount()).toHaveText('5 requests');
+    await ms.expandedLogRow().click();
+
     const preflightRows = ms.logRows().filter({ hasText: 'CORS preflight' });
     const plainOptionsRows = ms.logRows().filter({ hasText: 'Automatic OPTIONS response' });
 

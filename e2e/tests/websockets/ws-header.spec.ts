@@ -102,8 +102,8 @@ test.describe('websocket sticky header dropdown overlap', () => {
       await websocket.message.bodyModeSelector(0).click();
       await expect(textItem).toBeVisible();
 
-      // Hover the last message's header — the one furthest under the open menu.
-      await websocket.message.header(total - 1).hover();
+      // Hover the exposed edge of the lower header while the menu covers its centre.
+      await websocket.message.header(total - 1).hover({ position: { x: 8, y: 12 } });
     });
 
     await test.step('Dropdown stays on top and is still clickable', async () => {
