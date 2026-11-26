@@ -1,6 +1,5 @@
 import { test, expect, Locator } from '../../playwright';
 import { closeAllCollections } from '../../pages';
-import { modifier } from '../shortcuts/helpers';
 import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Links', () => {
@@ -234,12 +233,11 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
       await prosemirror.click();
 
       // Go to the end of the document
-      await page.keyboard.down(modifier);
-      await page.keyboard.press('ArrowDown');
-      await page.keyboard.up(modifier);
+      await prosemirror.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Control+End');
 
       await page.keyboard.press('Enter');
       await page.keyboard.type('Bottom Link');
+      await expect(prosemirror).toHaveText(/Line 149\s*Bottom Link$/);
 
       // Select 'Bottom Link'
       await page.keyboard.down('Shift');
