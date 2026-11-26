@@ -29,7 +29,7 @@ test.describe('Response example request body', () => {
 
       expect(paneBox).not.toBeNull();
       expect(bodyBox).not.toBeNull();
-      expect(bodyBox!.y + bodyBox!.height).toBeGreaterThanOrEqual(paneBox!.y + paneBox!.height - 1);
+      expect(Math.abs(bodyBox!.y + bodyBox!.height - (paneBox!.y + paneBox!.height))).toBeLessThanOrEqual(1);
     });
   });
 });
