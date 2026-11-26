@@ -517,4 +517,59 @@ example {
       expect(jsonValueField.value).toContain('"key": "value"');
     });
   });
+
+  describe('Examples with multiline key-value values', () => {
+    const multilineValue = 'Hello,\nworld';
+
+    const buildRequest = (exampleRequest, exampleResponse = {}) => ({
+      meta: { name: 'Multiline Values', type: 'http', seq: 1 },
+      http: { method: 'post', url: 'https://api.example.com/messages' },
+      examples: [
+        {
+          name: 'Saved Example',
+          request: { url: 'https://api.example.com/messages', method: 'post', ...exampleRequest },
+          response: {
+            status: '200',
+            statusText: 'OK',
+            body: { type: 'json', content: '{"ok":true}' },
+            ...exampleResponse
+          }
+        }
+      ]
+    });
+
+    it('should round-trip multiline form-urlencoded values', () => {
+      const formUrlEncoded = [
+        { name: 'message', value: multilineValue, enabled: true },
+        { name: 'lang', value: 'en', enabled: true },
+        { name: 'draft', value: multilineValue, enabled: false }
+      ];
+      const jsonInput = buildRequest({ body: { mode: 'formUrlEncoded', formUrlEncoded } });
+
+      const parsed = bruToJson(jsonToBru(jsonInput));
+      const example = parsed.examples[0];
+
+      expect(example.error).toBeUndefined();
+      expect(example.request.body.formUrlEncoded).toEqual(formUrlEncoded);
+      expect(example.response.body.content).toBe('{"ok":true}');
+    });
+
+    it('should round-trip multiline header and param values', () => {
+      const headers = [{ name: 'X-Note', value: multilineValue, enabled: true }];
+      const params = [
+        { name: 'q', value: multilineValue, enabled: true, type: 'query' },
+        { name: 'id', value: multilineValue, enabled: true, type: 'path' }
+      ];
+      const responseHeaders = [{ name: 'X-Reply', value: multilineValue, enabled: true }];
+      const jsonInput = buildRequest({ headers, params }, { headers: responseHeaders });
+
+      const parsed = bruToJson(jsonToBru(jsonInput));
+      const example = parsed.examples[0];
+
+      expect(example.error).toBeUndefined();
+      expect(example.request.headers).toEqual(headers);
+      expect(example.request.params).toEqual(params);
+      expect(example.response.headers).toEqual(responseHeaders);
+    });
+  });
 });
