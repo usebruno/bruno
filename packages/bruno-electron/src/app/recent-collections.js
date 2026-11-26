@@ -38,6 +38,8 @@ const sendIfChanged = (hasChanged) => {
   }
 };
 
+// Only opens the user starts are recorded, so each such open path calls this itself.
+// Opens Bruno makes on its own are left out on purpose: restoring the last session, loading a workspace and the onboarding sample.
 const recordRecentCollections = (collections, lastEvent) => sendIfChanged(recentCollections.record(collections, lastEvent));
 
 const forgetRecentCollections = (paths) => sendIfChanged(recentCollections.forget(paths));
