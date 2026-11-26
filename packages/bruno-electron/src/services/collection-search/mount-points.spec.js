@@ -446,6 +446,21 @@ describe('mount points', () => {
       ]);
     });
 
+    it('skips every Linux mount the table calls network, including ceph, afs and virtiofs', async () => {
+      readFile.mockResolvedValue([
+        '26 1 259:2 / / rw,relatime shared:1 - ext4 /dev/nvme0n1p2 rw',
+        '50 26 0:50 / /home/me/ceph rw - ceph 10.0.0.1:/ rw',
+        '51 26 0:51 / /home/me/afs rw - afs AFS rw',
+        '52 26 0:52 / /home/me/shared rw - virtiofs shared rw'
+      ].join('\n'));
+
+      const mounts = await readMountTable({ platform: 'linux' });
+      const networkMountPoints = mounts.filter((mount) => mount.kind === 'network').map((mount) => mount.path);
+
+      expect(networkMountPoints).toHaveLength(3);
+      expect([...skippedMountPointsOf(mounts, 'linux')].sort()).toEqual(networkMountPoints.sort());
+    });
+
     it('skips nothing on Windows, whatever the drives are', async () => {
       answerCommand(WINDOWS_DRIVES);
 

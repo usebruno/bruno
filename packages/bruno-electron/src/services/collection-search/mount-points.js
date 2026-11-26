@@ -41,7 +41,7 @@ const isVolumeMountPoint = (mountPoint, prefixes) =>
 const isWalkableMount = (mount) => mount.kind === 'local' || mount.kind === 'removable';
 
 const isSkippedMount = ({ path: mountPoint, fileSystem, options }, removablePrefixes) =>
-  NETWORK_FILE_SYSTEMS.has(fileSystem)
+  LINUX_NETWORK_FILE_SYSTEMS.has(fileSystem)
   || fileSystem.includes('fuse')
   || options.includes('nobrowse')
   || (mountPoint !== '/' && isUnderAny(mountPoint, removablePrefixes));
