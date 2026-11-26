@@ -46,7 +46,7 @@ describe('OverviewSection', () => {
 
     fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
 
-    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
+    expect(getByText('Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.')).toBeInTheDocument();
   });
 
   it.each([
@@ -81,7 +81,7 @@ describe('OverviewSection', () => {
     const { getByText, getByTestId } = renderOverview(syncConfig);
 
     fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
-    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
+    expect(getByText('Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.')).toBeInTheDocument();
 
     fireEvent.mouseEnter(getByTestId('openapi-sync-detail-auth-placement-help'));
     expect(getByText('Authentication is set separately on each request.')).toBeInTheDocument();

@@ -125,7 +125,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     { label: 'Folder Grouping', value: capitalize(groupBy) },
     {
       label: 'Request Naming',
-      labelTooltip: 'Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.',
+      labelTooltip: 'Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.',
       value: requestNameSourceLabels[requestNameSource]
     },
     {
