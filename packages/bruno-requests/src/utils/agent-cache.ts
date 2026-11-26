@@ -3,6 +3,7 @@ import tls from 'node:tls';
 import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { withHybridKeyExchangeFallback, clearHybridKeyExchangeEndpoints, registerHybridSecureContext } from './hybrid-key-exchange';
+import { markAgentLenient } from '../network/content-length-with-transfer-encoding';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
 
 /**
@@ -298,6 +299,8 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
   } else {
     agent = new AgentClass(resolvedOptions);
   }
+
+  markAgentLenient(agent);
 
   if (!disableCache) {
     // Evict oldest entry if cache is full (LRU eviction)

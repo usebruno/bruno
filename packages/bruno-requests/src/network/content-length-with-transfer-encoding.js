@@ -1,11 +1,5 @@
-const http = require('node:http');
-const https = require('node:https');
-
-// Need to add test case for this
-
-// Property set on a ClientRequest to opt that one request in; read by the patched parser setup
-const ALLOW_BOTH_HEADERS_MARKER = '__allowContentLengthWithTransferEncoding';
-const TRANSPORT_WRAPPED_MARKER = '__contentLengthWithTransferEncodingTransport';
+// Agents whose responses may have both Content-Length and Transfer-Encoding
+const lenientAgents = new WeakSet();
 
 let isParserPatched = false;
 
@@ -43,7 +37,8 @@ const patchHttpParser = () => {
 
   const originalInitialize = HTTPParser.prototype.initialize;
   HTTPParser.prototype.initialize = function (type, resource, maxHeaderSize, lenientFlags, ...rest) {
-    const isMarkedRequest = resource?.req?.[ALLOW_BOTH_HEADERS_MARKER] === true;
+    // WeakSet.has returns false for a missing agent, so requests without one stay strict
+    const isMarkedRequest = lenientAgents.has(resource?.req?.agent);
     // Marked requests also accept Content-Length with Transfer-Encoding; every other flag is unchanged
     const flagsForRequest = isMarkedRequest && typeof lenientFlags === 'number'
       ? lenientFlags | HTTPParser.kLenientChunkedLength
@@ -55,21 +50,10 @@ const patchHttpParser = () => {
   return true;
 };
 
-// Node's strict parser rejects a response with both headers (#1680); curl reads it using Transfer-Encoding, so opt this request into that
-export const allowContentLengthWithTransferEncoding = (config) => {
-  if (!patchHttpParser() || config.transport?.[TRANSPORT_WRAPPED_MARKER]) {
-    return;
+// Node's strict parser rejects a response with both headers (#1680); curl reads it using Transfer-Encoding, so we do too.
+// agent-cache calls this for every agent it builds.
+export const markAgentLenient = (agent) => {
+  if (agent && patchHttpParser()) {
+    lenientAgents.add(agent);
   }
-
-  // Wraps the existing transport so it composes with omit-connection
-  const existingTransport = config.transport;
-  config.transport = {
-    [TRANSPORT_WRAPPED_MARKER]: true,
-    request(options, callback) {
-      const nodeTransport = options?.protocol === 'https:' ? https : http;
-      const clientRequest = (existingTransport || nodeTransport).request(options, callback);
-      clientRequest[ALLOW_BOTH_HEADERS_MARKER] = true;
-      return clientRequest;
-    }
-  };
 };

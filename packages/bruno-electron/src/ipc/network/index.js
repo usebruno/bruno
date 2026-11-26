@@ -173,8 +173,7 @@ const configureRequest = async (
     httpsAgentRequestFields,
     interpolationOptions,
     followRedirects,
-    forwardAuthorizationHeader,
-    acceptContentLengthWithTransferEncoding: true
+    forwardAuthorizationHeader
   });
 
   if (request.ntlmConfig) {
