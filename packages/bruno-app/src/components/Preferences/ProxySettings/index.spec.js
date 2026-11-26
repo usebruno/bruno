@@ -195,4 +195,27 @@ describe('Preferences ProxySettings - targetProtocols', () => {
     expect(mockSavePreferences).toHaveBeenCalled();
     unmount();
   });
+
+  it('allows switching to Off mode and saving after both targetProtocols are unchecked', async () => {
+    const user = userEvent.setup();
+    const { store, unmount } = renderProxySettings({
+      config: {
+        targetProtocols: { http: true, https: false }
+      }
+    });
+
+    await user.click(screen.getByTestId('preferences-proxy-protocol-http'));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Select at least one protocol to proxy');
+    });
+
+    await user.click(screen.getByTestId('off-proxy-mode'));
+
+    await waitFor(() => {
+      expect(mockSavePreferences).toHaveBeenCalledTimes(1);
+    }, { timeout: 1500 });
+    expect(store.getState().app.preferences.proxy.disabled).toBe(true);
+    expect(store.getState().app.preferences.proxy.config.targetProtocols).toBeUndefined();
+    unmount();
+  });
 });

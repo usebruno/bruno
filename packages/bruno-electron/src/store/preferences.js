@@ -155,13 +155,7 @@ const preferencesSchema = Yup.object().shape({
       targetProtocols: Yup.object({
         http: Yup.boolean(),
         https: Yup.boolean()
-      })
-        .test(
-          'at-least-one-protocol',
-          'Select at least one protocol to proxy',
-          (value) => !value || value.http !== false || value.https !== false
-        )
-        .optional(),
+      }).optional(),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(1).max(65535).nullable(),
       auth: Yup.object({
@@ -171,6 +165,18 @@ const preferencesSchema = Yup.object().shape({
       }).optional(),
       bypassProxy: Yup.string().optional().max(1024)
     }).required()
+  }).test('at-least-one-protocol', 'Select at least one protocol to proxy', function (proxyVal) {
+    if (proxyVal?.disabled || proxyVal?.source !== 'manual') {
+      return true;
+    }
+    const targetProtocols = proxyVal?.config?.targetProtocols;
+    if (targetProtocols && targetProtocols.http === false && targetProtocols.https === false) {
+      return this.createError({
+        path: 'proxy.config.targetProtocols',
+        message: 'Select at least one protocol to proxy'
+      });
+    }
+    return true;
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])

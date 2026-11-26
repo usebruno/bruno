@@ -57,11 +57,6 @@ const ProxySettings = ({ close }) => {
         http: Yup.boolean().optional(),
         https: Yup.boolean().optional()
       })
-        .test(
-          'at-least-one-protocol',
-          'Select at least one protocol to proxy',
-          (val) => !val || val.http !== false || val.https !== false
-        )
         .default(undefined)
         .optional(),
       hostname: Yup.string().max(1024, 'Hostname must be at most 1024 characters'),
@@ -78,6 +73,18 @@ const ProxySettings = ({ close }) => {
       }).optional(),
       bypassProxy: Yup.string().optional().max(1024, 'Bypass proxy must be at most 1024 characters')
     }).required()
+  }).test('at-least-one-protocol', 'Select at least one protocol to proxy', function (proxyVal) {
+    if (proxyVal?.disabled || proxyVal?.source !== 'manual') {
+      return true;
+    }
+    const targetProtocols = proxyVal?.config?.targetProtocols;
+    if (targetProtocols && targetProtocols.http === false && targetProtocols.https === false) {
+      return this.createError({
+        path: 'config.targetProtocols',
+        message: 'Select at least one protocol to proxy'
+      });
+    }
+    return true;
   });
 
   const initialTargetProtocols = preferences.proxy.config?.targetProtocols;
@@ -124,7 +131,8 @@ const ProxySettings = ({ close }) => {
       .validate(values, { abortEarly: true })
       .then((validatedProxy) => {
         const nextConfig = { ...validatedProxy.config };
-        if (nextConfig.targetProtocols?.http !== false && nextConfig.targetProtocols?.https !== false) {
+        const hasValidTargetProtocols = nextConfig.targetProtocols?.http !== false || nextConfig.targetProtocols?.https !== false;
+        if (!hasValidTargetProtocols || (nextConfig.targetProtocols?.http !== false && nextConfig.targetProtocols?.https !== false)) {
           delete nextConfig.targetProtocols;
         } else if (nextConfig.targetProtocols) {
           nextConfig.targetProtocols = {

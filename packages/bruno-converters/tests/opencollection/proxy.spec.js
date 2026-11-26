@@ -50,4 +50,31 @@ describe('OpenCollection proxy targetProtocols conversion', () => {
     const roundTripped = openCollectionToBruno(oc);
     expect(roundTripped.brunoConfig.proxy.config.targetProtocols).toBeUndefined();
   });
+
+  it('drops stale config.proxy.config.targetProtocols when extension explicitly enables both protocols', () => {
+    const converted = openCollectionToBruno({
+      opencollection: '1.0.0',
+      info: { name: 'Override Collection' },
+      config: {
+        proxy: {
+          inherit: false,
+          config: {
+            protocol: 'http',
+            targetProtocols: { http: false, https: true },
+            hostname: '127.0.0.1',
+            port: 8080
+          }
+        }
+      },
+      extensions: {
+        bruno: {
+          proxy: {
+            targetProtocols: { http: true, https: true }
+          }
+        }
+      }
+    });
+
+    expect(converted.brunoConfig.proxy.config.targetProtocols).toBeUndefined();
+  });
 });

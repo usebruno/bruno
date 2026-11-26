@@ -80,10 +80,13 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
       disabled: config.proxy.disabled,
       inherit: config.proxy.inherit,
       config: config.proxy.config
-        ? {
-            ...config.proxy.config,
-            ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {})
-          }
+        ? (() => {
+            const { targetProtocols: _ignoredTargetProtocols, ...cleanProxyConfig } = config.proxy.config as any;
+            return {
+              ...cleanProxyConfig,
+              ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {})
+            };
+          })()
         : undefined
     };
   }
