@@ -37,8 +37,6 @@ const describeHiddenCollections = (hiddenCount, showHidden) => {
   return `${countOf(hiddenCount, 'collection')} already open in this workspace ${hiddenCount === 1 ? 'isn’t' : 'aren’t'} shown.`;
 };
 
-const DEFAULT_ACTION_LABELS = { open: 'Open', switch: 'Switch', switchTo: 'Switch to' };
-
 const CollectionList = ({
   collections,
   openPathKeys,
@@ -51,7 +49,7 @@ const CollectionList = ({
   banner = null,
   emptyText = null,
   noMatchText,
-  actionLabels = DEFAULT_ACTION_LABELS,
+  showChooseFolderNextToSearch = true,
   testIdPrefix,
   onChooseFolder,
   onOpen,
@@ -189,7 +187,7 @@ const CollectionList = ({
             data-testid={`${testIdPrefix}-select-all`}
           />
         )}
-        {onChooseFolder && (
+        {onChooseFolder && showChooseFolderNextToSearch && (
           <Button
             size="sm"
             color="secondary"
@@ -198,7 +196,7 @@ const CollectionList = ({
             onClick={onChooseFolder}
             data-testid={`${testIdPrefix}-choose-folder`}
           >
-            Choose folder…
+            Choose folder
           </Button>
         )}
       </div>
@@ -224,7 +222,7 @@ const CollectionList = ({
                     onClick={onChooseFolder}
                     data-testid={`${testIdPrefix}-no-match-choose-folder`}
                   >
-                    Choose folder…
+                    Choose folder
                   </Button>
                 )}
                 data-testid={`${testIdPrefix}-no-match`}
@@ -259,7 +257,6 @@ const CollectionList = ({
               isOpen={isOpen(collection)}
               isSelected={selectedKeys.has(toPathKey(collection.path))}
               isSelecting={selectedPaths.length > 0}
-              actionLabels={actionLabels}
               rowRef={focusSearchWhenRemovedWithFocus}
               testIdPrefix={testIdPrefix}
               onToggle={(event) => toggleRow(collection, event)}
@@ -277,7 +274,7 @@ const CollectionList = ({
             Cancel
           </Button>
           <Button color="primary" onClick={() => onOpen(selectedPaths)} data-testid={`${testIdPrefix}-open-selected`}>
-            {`${actionLabels.open} ${countOf(selectedPaths.length, 'collection')}`}
+            {`Open ${countOf(selectedPaths.length, 'collection')}`}
           </Button>
         </div>
       )}

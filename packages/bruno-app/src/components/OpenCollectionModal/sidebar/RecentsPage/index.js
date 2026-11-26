@@ -17,13 +17,11 @@ import EmptyState from '../../components/EmptyState';
 import { describeLastUse } from '../../utils/relative-time';
 import { isSameOpenCollections, mergeOpenCollections } from './utils';
 
-const RECENTS_ACTION_LABELS = { open: 'Reopen', switch: 'Go to', switchTo: 'Go to' };
-
 const RecentsPage = () => {
   const dispatch = useDispatch();
   const { status, items, error } = useSelector((state) => state.openCollectionModal.recents);
   const openCollections = useSelector(selectOpenCollections, isSameOpenCollections);
-  const { collections, openPathKeys } = useMemo(
+  const { collections, openPathKeys, unrecordedPathKeys } = useMemo(
     () => mergeOpenCollections(items, openCollections),
     [items, openCollections]
   );
@@ -66,7 +64,7 @@ const RecentsPage = () => {
     );
   }
 
-  if (collections.length === 0) {
+  if (items.length === 0) {
     return (
       <EmptyState
         key="empty"
@@ -74,7 +72,7 @@ const RecentsPage = () => {
         title="No Recent collections here.."
         actions={(
           <Button size="sm" variant="outline" color="secondary" onClick={chooseFolders} data-testid="recents-open-folder">
-            Choose folder…
+            Choose folder
           </Button>
         )}
         data-testid="recents-empty"
@@ -88,10 +86,11 @@ const RecentsPage = () => {
     <CollectionList
       collections={collections}
       openPathKeys={openPathKeys}
+      hiddenPathKeys={unrecordedPathKeys}
       getMeta={describeLastUse}
-      actionLabels={RECENTS_ACTION_LABELS}
       noMatchText="Recents only lists collections you have opened before. If it lives somewhere else, choose its folder."
       testIdPrefix="recents"
+      showChooseFolderNextToSearch={false}
       onChooseFolder={chooseFolders}
       onOpen={(paths) => dispatch(openCollectionsFromModal(paths))}
       onSwitch={(collectionPath) => dispatch(switchToCollection(collectionPath))}

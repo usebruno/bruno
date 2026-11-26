@@ -24,18 +24,7 @@ const ACCEPTED_FILE_TYPES = [
   'application/xml'
 ].join(',');
 
-const DOCS_LINKS = [
-  {
-    label: 'Migrating from Postman?',
-    url: 'https://docs.usebruno.com/get-started/import-export-data/postman-migration',
-    testId: 'import-page-migrate-link'
-  },
-  {
-    label: 'Learn more about importing',
-    url: 'https://docs.usebruno.com/get-started/import-export-data/import-collections',
-    testId: 'import-page-docs-link'
-  }
-];
+const IMPORT_DOCS_URL = 'https://docs.usebruno.com/get-started/import-export-data/import-collections';
 
 const ImportPage = () => {
   const importFrom = useImportHandoff();
@@ -145,18 +134,15 @@ const ImportPage = () => {
       />
 
       <div className="import-docs-links">
-        {DOCS_LINKS.map(({ label, url, testId }) => (
-          <button
-            key={url}
-            type="button"
-            className="import-docs-link"
-            onClick={() => window.ipcRenderer.openExternal(url)}
-            data-testid={testId}
-          >
-            {label}
-            <IconExternalLink size={13} strokeWidth={1.75} aria-hidden="true" />
-          </button>
-        ))}
+        <button
+          type="button"
+          className="import-docs-link"
+          onClick={() => window.ipcRenderer.openExternal(IMPORT_DOCS_URL)}
+          data-testid="import-page-docs-link"
+        >
+          Migrating from other tools?
+          <IconExternalLink size={13} strokeWidth={1.75} aria-hidden="true" />
+        </button>
       </div>
     </StyledWrapper>
   );

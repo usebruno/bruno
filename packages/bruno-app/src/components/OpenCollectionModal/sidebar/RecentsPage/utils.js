@@ -37,5 +37,9 @@ export const mergeOpenCollections = (recents, openCollections) => {
   });
   collections.push(...open.slice(nextOpen));
 
-  return { collections, openPathKeys };
+  return {
+    collections,
+    openPathKeys,
+    unrecordedPathKeys: new Set(openKeys.filter((key) => !recentsByKey.has(key)))
+  };
 };

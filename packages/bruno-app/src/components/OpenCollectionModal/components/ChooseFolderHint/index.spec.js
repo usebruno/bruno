@@ -15,7 +15,7 @@ const renderInButton = (preferences = {}) => {
     <Provider store={store}>
       <ThemeProvider>
         <button type="button">
-          Choose folder…
+          Choose folder
           <ChooseFolderHint id="choose-folder-hint" />
         </button>
       </ThemeProvider>
@@ -43,6 +43,6 @@ describe('ChooseFolderHint', () => {
   it('keeps the name of the button to its label', () => {
     renderInButton();
 
-    expect(screen.getByRole('button', { name: 'Choose folder…' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose folder' })).toBeInTheDocument();
   });
 });

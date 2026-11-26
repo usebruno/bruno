@@ -42,7 +42,7 @@ export const OPEN_COLLECTION_PAGES = [
   },
   {
     id: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
-    label: 'Choose folder…',
+    label: 'Choose folder',
     title: 'Choose folder',
     description: 'Collections from any folder you pick or drop here',
     icon: IconFolder,
@@ -78,7 +78,7 @@ export const OPEN_COLLECTION_PAGES = [
     id: OPEN_COLLECTION_PAGE.API_CATALOG,
     label: 'API Catalog',
     title: 'API Catalog',
-    description: 'Collections from public GitHub repos, indexed by Bruno',
+    description: 'Collections listed in Bruno’s public API catalog',
     icon: IconBrandSafari,
     group: 'sources',
     component: ApiCatalogPage

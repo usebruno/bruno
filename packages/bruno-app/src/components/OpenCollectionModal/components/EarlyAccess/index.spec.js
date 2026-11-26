@@ -25,13 +25,13 @@ describe('early access pages', () => {
       'Publish a release or snapshot of any collection',
       'Testers, PMs and partners open it without git',
       'Runs on your premises, nothing leaves your network'
-    ], 'https://link.usebruno.com/registry-waitlist', 'https://link.usebruno.com/docs/registry'],
+    ], 'https://link.usebruno.com/registry-waitlist'],
     ['API Catalog', ApiCatalogPage, 'catalog', 'Bruno API Catalog', 'Discover every public Bruno API collections', [
       'Indexed automatically from public GitHub repos',
       'Browse by API, company or category',
       'Preview a collection, then add it to your workspace'
-    ], 'https://link.usebruno.com/catalog-waitlist', 'https://link.usebruno.com/docs/catalog']
-  ])('shows the %s page and opens its waitlist and docs in the browser', (_name, Page, feature, title, subtitle, points, waitlistUrl, learnMoreUrl) => {
+    ], 'https://link.usebruno.com/catalog-waitlist']
+  ])('shows the %s page and opens its waitlist in the browser', (_name, Page, feature, title, subtitle, points, waitlistUrl) => {
     renderPage(Page);
     const page = within(screen.getByTestId(`open-collection-early-access-${feature}`));
 
@@ -39,10 +39,9 @@ describe('early access pages', () => {
     expect(page.getByText(subtitle)).toBeInTheDocument();
     expect(page.getAllByRole('listitem').map((item) => item.textContent)).toEqual(points);
 
-    fireEvent.click(page.getByRole('button', { name: 'Join waitlist' }));
-    expect(window.ipcRenderer.openExternal).toHaveBeenLastCalledWith(waitlistUrl);
+    expect(page.getAllByRole('button').map((button) => button.textContent)).toEqual(['Join waitlist']);
 
-    fireEvent.click(page.getByRole('button', { name: 'Learn more' }));
-    expect(window.ipcRenderer.openExternal).toHaveBeenLastCalledWith(learnMoreUrl);
+    fireEvent.click(page.getByRole('button', { name: 'Join waitlist' }));
+    expect(window.ipcRenderer.openExternal).toHaveBeenCalledWith(waitlistUrl);
   });
 });

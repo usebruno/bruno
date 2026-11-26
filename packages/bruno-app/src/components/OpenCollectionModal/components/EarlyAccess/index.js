@@ -2,7 +2,7 @@ import { IconCheck, IconExternalLink } from '@tabler/icons';
 import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 
-const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points, waitlistUrl, learnMoreUrl }) => (
+const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points, waitlistUrl }) => (
   <StyledWrapper>
     <div className="early-access" data-testid={`open-collection-early-access-${feature}`}>
       <span className="early-access-icon">
@@ -28,15 +28,6 @@ const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points, waitlistUrl
           data-testid={`open-collection-early-access-request-${feature}`}
         >
           Join waitlist
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          color="secondary"
-          onClick={() => window.ipcRenderer.openExternal(learnMoreUrl)}
-          data-testid={`open-collection-early-access-learn-more-${feature}`}
-        >
-          Learn more
         </Button>
       </div>
     </div>

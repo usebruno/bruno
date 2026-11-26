@@ -22,7 +22,7 @@ export const selectRecentCollections = async (page: Page, names: string[]) => {
 };
 
 export const openRecentCollection = async (page: Page, name: string) => {
-  await test.step(`Reopen "${name}" from its Recents row`, async () => {
+  await test.step(`Open "${name}" from its Recents row`, async () => {
     const recents = buildRecentsLocators(page);
     await recents.row(name).hover();
     await recents.rowOpenButton(name).click({ force: true });
@@ -30,7 +30,7 @@ export const openRecentCollection = async (page: Page, name: string) => {
 };
 
 export const switchToRecentCollection = async (page: Page, name: string) => {
-  await test.step(`Go to "${name}" from its Recents row`, async () => {
+  await test.step(`Switch to "${name}" from its Recents row`, async () => {
     const recents = buildRecentsLocators(page);
     await recents.row(name).hover();
     await recents.rowSwitchButton(name).click({ force: true });

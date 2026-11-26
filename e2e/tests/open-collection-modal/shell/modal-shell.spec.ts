@@ -27,7 +27,7 @@ const MENU_PAGES: MenuPage[] = [
   },
   {
     id: 'choose-folder',
-    label: 'Choose folder…',
+    label: 'Choose folder',
     title: 'Choose folder',
     description: 'Collections from any folder you pick or drop here'
   },
@@ -52,7 +52,7 @@ const MENU_PAGES: MenuPage[] = [
     id: 'api-catalog',
     label: 'API Catalog',
     title: 'API Catalog',
-    description: 'Collections from public GitHub repos, indexed by Bruno'
+    description: 'Collections listed in Bruno’s public API catalog'
   }
 ];
 

@@ -58,9 +58,8 @@ test.describe('Open collection modal: importing files', () => {
       await expect(importPage.shortcut()).toHaveText(importShortcut);
     });
 
-    await test.step('Verify the links to the import docs', async () => {
-      await expect(importPage.migrateLink()).toHaveText('Migrating from Postman?');
-      await expect(importPage.docsLink()).toHaveText('Learn more about importing');
+    await test.step('Verify the link to the import docs', async () => {
+      await expect(importPage.docsLink()).toHaveText('Migrating from other tools?');
     });
   });
 

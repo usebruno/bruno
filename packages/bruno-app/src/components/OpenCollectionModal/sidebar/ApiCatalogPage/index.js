@@ -15,7 +15,6 @@ const ApiCatalogPage = () => (
     subtitle="Discover every public Bruno API collections"
     points={POINTS}
     waitlistUrl="https://link.usebruno.com/catalog-waitlist"
-    learnMoreUrl="https://link.usebruno.com/docs/catalog"
   />
 );
 

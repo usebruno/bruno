@@ -242,15 +242,14 @@ describe('ImportPage', () => {
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
   });
 
-  it.each([
-    ['Migrating from Postman?', 'https://docs.usebruno.com/get-started/import-export-data/postman-migration'],
-    ['Learn more about importing', 'https://docs.usebruno.com/get-started/import-export-data/import-collections']
-  ])('opens "%s" in the browser', (label, url) => {
+  it('opens the import docs from its single "Migrating from other tools?" link', () => {
     window.ipcRenderer = { send: jest.fn(), openExternal: jest.fn() };
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: label }));
+    expect(screen.queryByRole('button', { name: 'Migrating from Postman?' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Learn more about importing' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Migrating from other tools?' }));
 
-    expect(window.ipcRenderer.openExternal).toHaveBeenCalledWith(url);
+    expect(window.ipcRenderer.openExternal).toHaveBeenCalledWith('https://docs.usebruno.com/get-started/import-export-data/import-collections');
   });
 });

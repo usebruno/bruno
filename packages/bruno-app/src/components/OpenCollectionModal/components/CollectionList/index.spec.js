@@ -358,7 +358,7 @@ describe('CollectionList', () => {
     const noMatch = screen.getByTestId('list-no-match');
     expect(noMatch).toHaveTextContent('No collection matches “zzz”');
     expect(noMatch).toHaveTextContent('Only collections you have opened before are listed.');
-    const chooseFolder = within(noMatch).getByRole('button', { name: 'Choose folder…' });
+    const chooseFolder = within(noMatch).getByRole('button', { name: 'Choose folder' });
     expect(chooseFolder).not.toHaveAttribute('title');
     fireEvent.click(chooseFolder);
     expect(onChooseFolder).toHaveBeenCalled();
@@ -375,11 +375,21 @@ describe('CollectionList', () => {
     expect(openSelectedButton()).toHaveTextContent('Open 1 collection');
   });
 
+  it('leaves Choose folder out of the search row when asked, and still offers it when nothing matches', () => {
+    const { onChooseFolder } = renderList({ showChooseFolderNextToSearch: false });
+
+    expect(screen.queryByTestId('list-choose-folder')).not.toBeInTheDocument();
+
+    search('zzz');
+    fireEvent.click(within(screen.getByTestId('list-no-match')).getByRole('button', { name: 'Choose folder' }));
+    expect(onChooseFolder).toHaveBeenCalled();
+  });
+
   it('offers to choose a folder next to the search box', () => {
     const { onChooseFolder } = renderList();
     const chooseFolder = screen.getByTestId('list-choose-folder');
 
-    expect(chooseFolder).toHaveTextContent('Choose folder…');
+    expect(chooseFolder).toHaveTextContent('Choose folder');
     expect(chooseFolder).not.toHaveAttribute('title');
     expect(searchBox()).toHaveAttribute('placeholder', 'Search collections');
     expect(searchBox()).toHaveAccessibleName('Search collections');

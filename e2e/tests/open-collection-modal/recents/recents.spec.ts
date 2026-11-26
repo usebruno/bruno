@@ -62,7 +62,7 @@ test.describe('Recents', () => {
       await test.step('Verify the empty state', async () => {
         await expect(recents.emptyStateTitle()).toHaveText('No Recent collections here..');
         await expect(recents.emptyState()).toContainText('Start with a sample collection');
-        await expect(recents.openFolderButton()).toHaveText('Choose folder…');
+        await expect(recents.openFolderButton()).toHaveText('Choose folder');
       });
     });
 
@@ -76,7 +76,7 @@ test.describe('Recents', () => {
         await mockBrowseFiles(app, []);
       });
 
-      await test.step('Click "Choose folder…"', async () => {
+      await test.step('Click "Choose folder"', async () => {
         await recents.openFolderButton().click();
       });
 
@@ -122,16 +122,16 @@ test.describe('Recents', () => {
 
       await showOpenCollectionModal(page, 'recents');
 
-      await test.step('Verify the closed collections say when they were closed and offer Reopen', async () => {
+      await test.step('Verify the closed collections say when they were closed and offer Open', async () => {
         await expect(recents.rowMeta(GAMMA)).toHaveText(CLOSED_RECENTLY);
-        await expect(recents.rowOpenButton(GAMMA)).toHaveText('Reopen');
+        await expect(recents.rowOpenButton(GAMMA)).toHaveText('Open');
         await expect(recents.rowMeta(BETA)).toHaveText(CLOSED_RECENTLY);
-        await expect(recents.rowOpenButton(BETA)).toHaveText('Reopen');
+        await expect(recents.rowOpenButton(BETA)).toHaveText('Open');
       });
 
-      await test.step('Verify the open collection says when it was opened and offers Go to', async () => {
+      await test.step('Verify the open collection says when it was opened and offers Switch', async () => {
         await expect(recents.rowMeta(ALPHA)).toHaveText(OPENED_RECENTLY);
-        await expect(recents.rowSwitchButton(ALPHA)).toHaveText('Go to');
+        await expect(recents.rowSwitchButton(ALPHA)).toHaveText('Switch');
       });
     });
 
@@ -199,7 +199,7 @@ test.describe('Recents', () => {
         await mockBrowseFiles(app, []);
       });
 
-      await test.step('Click "Choose folder…" in the no-match message', async () => {
+      await test.step('Click "Choose folder" in the no-match message', async () => {
         await recents.noMatchChooseFolderButton().click();
       });
 
@@ -208,16 +208,16 @@ test.describe('Recents', () => {
       });
     });
 
-    test('ticks the clicked collections and offers to reopen them together', async () => {
+    test('ticks the clicked collections and offers to open them together', async () => {
       const recents = buildRecentsLocators(page);
 
       await showOpenCollectionModal(page, 'recents');
       await selectRecentCollections(page, [GAMMA, BETA]);
 
-      await test.step('Verify both rows are ticked and the footer offers to reopen 2 collections', async () => {
+      await test.step('Verify both rows are ticked and the footer offers to open 2 collections', async () => {
         await expect(recents.rowCheckbox(GAMMA)).toBeChecked();
         await expect(recents.rowCheckbox(BETA)).toBeChecked();
-        await expect(recents.openSelectedButton()).toHaveText('Reopen 2 collections');
+        await expect(recents.openSelectedButton()).toHaveText('Open 2 collections');
       });
     });
 
@@ -258,7 +258,7 @@ test.describe('Recents', () => {
       await closeElectronApp(app);
     });
 
-    test('Reopen adds a closed collection to the workspace and closes the modal', async () => {
+    test('Open adds a closed collection to the workspace and closes the modal', async () => {
       const { sidebar, toast } = buildCommonLocators(page);
       const openCollectionModal = buildOpenCollectionModalLocators(page);
 
@@ -284,9 +284,9 @@ test.describe('Recents', () => {
 
       await showOpenCollectionModal(page, 'recents');
 
-      await test.step('Verify Recent Beta says it was opened and offers Go to', async () => {
+      await test.step('Verify Recent Beta says it was opened and offers Switch', async () => {
         await expect(recents.rowMeta(BETA)).toHaveText(OPENED_RECENTLY);
-        await expect(recents.rowSwitchButton(BETA)).toHaveText('Go to');
+        await expect(recents.rowSwitchButton(BETA)).toHaveText('Switch');
       });
     });
 
@@ -298,7 +298,7 @@ test.describe('Recents', () => {
       await showOpenCollectionModal(page, 'recents');
       await selectRecentCollections(page, [GAMMA, BETA]);
 
-      await test.step('Click "Reopen 2 collections"', async () => {
+      await test.step('Click "Open 2 collections"', async () => {
         await recents.openSelectedButton().click();
       });
 
@@ -310,7 +310,7 @@ test.describe('Recents', () => {
       });
     });
 
-    test('Go to reveals an open collection and shows its settings', async () => {
+    test('Switch reveals an open collection and shows its settings', async () => {
       const { sidebar, tabs } = buildCommonLocators(page);
       const openCollectionModal = buildOpenCollectionModalLocators(page);
 

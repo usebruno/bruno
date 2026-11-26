@@ -17,7 +17,6 @@ const CollectionListRow = ({
   isOpen,
   isSelected,
   isSelecting,
-  actionLabels,
   rowRef,
   testIdPrefix,
   onToggle,
@@ -88,10 +87,10 @@ const CollectionListRow = ({
           color="secondary"
           className="collection-list-row-action"
           onClick={pressAction}
-          aria-label={isOpen ? `${actionLabels.switchTo} ${collection.name}` : `${actionLabels.open} ${collection.name}`}
+          aria-label={isOpen ? `Switch to ${collection.name}` : `Open ${collection.name}`}
           data-testid={isOpen ? `${testIdPrefix}-row-switch` : `${testIdPrefix}-row-open`}
         >
-          {isOpen ? actionLabels.switch : actionLabels.open}
+          {isOpen ? 'Switch' : 'Open'}
         </Button>
       </span>
     </StyledWrapper>

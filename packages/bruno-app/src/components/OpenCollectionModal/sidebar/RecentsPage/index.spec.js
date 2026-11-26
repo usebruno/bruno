@@ -81,6 +81,7 @@ const findRows = () => screen.findAllByTestId('recents-row');
 const rowNames = () => screen.queryAllByTestId('recents-row').map((row) => within(row).getByTestId('recents-row-name').textContent);
 const rowFor = (name) => screen.queryAllByTestId('recents-row').find((row) => within(row).getByTestId('recents-row-name').textContent === name);
 const checkboxFor = (name) => within(rowFor(name)).getByLabelText(`Select ${name}`);
+const toggleOpenCollections = () => fireEvent.click(screen.getByTestId('recents-open-toggle'));
 
 describe('RecentsPage', () => {
   beforeEach(() => {
@@ -117,24 +118,22 @@ describe('RecentsPage', () => {
     expect(within(rowFor('Orders')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 3d ago');
   });
 
-  it('lists the open collections Recents has no record of in the same list, dated from when they were opened', async () => {
+  it('keeps the open collections Recents has no record of behind Show, dated from when they were opened', async () => {
     renderPage({ open: [openCollectionInRedux, restoredCollectionInRedux] });
     await findRows();
 
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
+    const openLine = screen.getByTestId('recents-open-line');
+    expect(openLine).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    toggleOpenCollections();
     expect(rowNames()).toEqual(['Billing', 'Open One', 'Restored', 'Orders']);
     expect(rowFor('Restored')).toHaveClass('is-open');
     expect(within(rowFor('Restored')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 10m ago');
-    expect(screen.queryByTestId('recents-open-line')).not.toBeInTheDocument();
-  });
+    expect(openLine).toHaveTextContent('Showing collections already open in this workspace. Hide');
 
-  it('offers Go to for the open collections and Reopen for the closed ones', async () => {
-    renderPage();
-    await findRows();
-
-    expect(within(rowFor('Open One')).getByTestId('recents-row-switch')).toHaveTextContent('Go to');
-    expect(within(rowFor('Open One')).getByRole('button', { name: 'Go to Open One' })).toBeInTheDocument();
-    expect(within(rowFor('Billing')).getByTestId('recents-row-open')).toHaveTextContent('Reopen');
-    expect(within(rowFor('Billing')).getByRole('button', { name: 'Reopen Billing' })).toBeInTheDocument();
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
   });
 
   it('puts focus in the search box once the list appears', async () => {
@@ -151,7 +150,7 @@ describe('RecentsPage', () => {
     fireEvent.click(rowFor('Billing'));
     fireEvent.click(rowFor('Orders'));
     const openSelected = screen.getByTestId('recents-open-selected');
-    expect(openSelected).toHaveTextContent('Reopen 2 collections');
+    expect(openSelected).toHaveTextContent('Open 2 collections');
 
     fireEvent.click(openSelected);
     expect(openMultipleCollections).toHaveBeenCalledWith(['/Users/me/work/billing', '/Users/me/shop/orders'], { silent: true, dontSendDisplayErrors: true, recordRecent: true });
@@ -178,30 +177,34 @@ describe('RecentsPage', () => {
     expect(modalState(store).isOpen).toBe(false);
   });
 
-  it('lists a recent collection that is already open next to the open ones it has no record of', async () => {
+  it('lists a recent collection that is already open, with the unrecorded open ones behind Show', async () => {
     recentsReturn(Promise.resolve([openOne]));
     renderPage({ open: [openCollectionInRedux, restoredCollectionInRedux] });
     await findRows();
 
     expect(screen.queryByTestId('recents-empty')).not.toBeInTheDocument();
-    expect(rowNames()).toEqual(['Open One', 'Restored']);
+    expect(rowNames()).toEqual(['Open One']);
     expect(rowFor('Open One')).toHaveClass('is-open');
-    expect(rowFor('Restored')).toHaveClass('is-open');
+    expect(screen.getByTestId('recents-open-line')).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
+
+    toggleOpenCollections();
+    expect(rowNames()).toEqual(['Open One', 'Restored']);
   });
 
-  it('lists the collections open in the workspace when Recents has no record yet', async () => {
+  it('shows the empty page when Recents has no record yet, even with collections open in the workspace', async () => {
     recentsReturn(Promise.resolve([]));
     renderPage();
-    await findRows();
 
-    expect(screen.queryByTestId('recents-empty')).not.toBeInTheDocument();
-    expect(rowNames()).toEqual(['Open One']);
+    expect(await screen.findByTestId('recents-empty')).toHaveTextContent('No Recent collections here..');
+    expect(rowNames()).toEqual([]);
   });
 
   it('finds a collection by its path and offers Choose folder when nothing matches', async () => {
     const { store } = renderPage();
     await findRows();
     const search = (text) => fireEvent.change(screen.getByTestId('recents-search'), { target: { value: text } });
+
+    expect(screen.queryByTestId('recents-choose-folder')).not.toBeInTheDocument();
 
     search('shop');
     expect(rowNames()).toEqual(['Orders']);
@@ -225,10 +228,10 @@ describe('RecentsPage', () => {
     const emptyState = await screen.findByTestId('recents-empty');
     expect(emptyState).toHaveTextContent('No Recent collections here..');
     expect(emptyState).toHaveTextContent('Start with a sample collection');
-    expect(within(emptyState).getAllByRole('button').map((button) => button.textContent)).toEqual(['Choose folder…']);
+    expect(within(emptyState).getAllByRole('button').map((button) => button.textContent)).toEqual(['Choose folder']);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Choose folder…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Choose folder' }));
     });
     expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
@@ -270,7 +273,7 @@ describe('RecentsPage', () => {
 
     expect(screen.queryByTestId('recents-error')).not.toBeInTheDocument();
     expect(rowNames()).toEqual(['Billing', 'Open One', 'Orders']);
-    expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Reopen 1 collection');
+    expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Open 1 collection');
   });
 
   it('puts focus on Choose folder when trying again finds no collections', async () => {
@@ -285,7 +288,7 @@ describe('RecentsPage', () => {
     });
 
     expect(screen.getByTestId('recents-empty')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Choose folder…' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Choose folder' })).toHaveFocus();
   });
 
   it('updates the list when the recent collections change and keeps the ticked ones', async () => {
@@ -298,8 +301,8 @@ describe('RecentsPage', () => {
       store.dispatch(recentCollectionsChangedEvent());
     });
 
-    expect(rowNames()).toEqual(['Open One', 'Orders', 'Billing']);
-    expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Reopen 1 collection');
+    expect(rowNames()).toEqual(['Orders', 'Billing']);
+    expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Open 1 collection');
   });
 
   it('keeps a collection whose folder is gone until the main process forgets it, then puts focus in the search box', async () => {
@@ -334,6 +337,6 @@ describe('RecentsPage', () => {
       store.dispatch(recentCollectionsChangedEvent());
     });
 
-    expect(screen.getByRole('button', { name: 'Choose folder…' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Choose folder' })).toHaveFocus();
   });
 });

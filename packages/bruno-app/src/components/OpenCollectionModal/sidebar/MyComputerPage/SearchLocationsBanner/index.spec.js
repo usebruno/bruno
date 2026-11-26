@@ -8,7 +8,7 @@ const renderBanner = ({ hasRows = true } = {}) => {
   const onManage = jest.fn();
   render(
     <ThemeProvider theme={themes.light}>
-      <button type="button">Choose folder…</button>
+      <button type="button">Choose folder</button>
       <SearchLocationsBanner onManage={onManage} />
       {hasRows && <button type="button">Open Billing</button>}
     </ThemeProvider>
@@ -67,7 +67,7 @@ describe('SearchLocationsBanner', () => {
     fireEvent.click(dismiss);
 
     expect(banner()).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Choose folder…' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Choose folder' })).toHaveFocus();
   });
 
   it('stays hidden once it was dismissed before', () => {

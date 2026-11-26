@@ -12,7 +12,6 @@ export const buildImportPageLocators = (page: Page) => ({
   selectFilesLink: () => page.getByTestId('import-page-select-files'),
   shortcut: () => page.getByTestId('import-page-drop-zone-shortcut'),
   fileInput: () => page.getByTestId('import-page-file-input'),
-  migrateLink: () => page.getByTestId('import-page-migrate-link'),
   docsLink: () => page.getByTestId('import-page-docs-link')
 });
 
