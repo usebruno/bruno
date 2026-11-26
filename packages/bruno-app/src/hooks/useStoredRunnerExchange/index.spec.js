@@ -131,6 +131,28 @@ describe('useStoredRunnerExchange', () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
+  it('sends the max preview size with the read', async () => {
+    invoke.mockResolvedValue(null);
+
+    renderHook(() => useStoredRunnerExchange(settledItem(), 3));
+
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith(CHANNEL, { request_uid: 'run-1', max_preview_size_mb: 3 }));
+  });
+
+  it('reads again when the max preview size changes', async () => {
+    const heldBack = { ...RESPONSE_RECEIVED, data: null, dataBuffer: null, storedRequestUid: 'run-1' };
+    invoke.mockResolvedValueOnce({ requestSent: REQUEST_SENT, responseReceived: heldBack }).mockResolvedValueOnce(STORED_EXCHANGE);
+    const { result, rerender } = renderHook(({ maxPreviewSizeMB }) => useStoredRunnerExchange(settledItem(), maxPreviewSizeMB), {
+      initialProps: { maxPreviewSizeMB: 3 }
+    });
+    await waitFor(() => expect(result.current.responseReceived).toEqual(heldBack));
+
+    rerender({ maxPreviewSizeMB: 30 });
+
+    await waitFor(() => expect(result.current.responseReceived).toEqual(RESPONSE_RECEIVED));
+    expect(invoke).toHaveBeenLastCalledWith(CHANNEL, { request_uid: 'run-1', max_preview_size_mb: 30 });
+  });
+
   it('never shows the exchange of a previous request while the next one loads', async () => {
     let resolveNext;
     invoke

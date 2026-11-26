@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import get from 'lodash/get';
+import { DEFAULT_MAX_PREVIEW_SIZE_MB } from 'utils/common/constants';
 import classnames from 'classnames';
 import QueryResponse from 'components/ResponsePane/QueryResponse/index';
 import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
@@ -21,7 +23,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const { testResults, assertionResults, preRequestTestResults, postResponseTestResults, error } = item;
 
-  const { requestSent, responseReceived: exchangeResponse } = useStoredRunnerExchange(item);
+  const maxPreviewSizeMB = useSelector((state) => get(state.app.preferences, 'response.maxPreviewSizeMB', DEFAULT_MAX_PREVIEW_SIZE_MB));
+  const { requestSent, responseReceived: exchangeResponse } = useStoredRunnerExchange(item, maxPreviewSizeMB);
   const responseReceived = exchangeResponse ?? {};
 
   const isResponseTabActive = selectedTab === 'response';

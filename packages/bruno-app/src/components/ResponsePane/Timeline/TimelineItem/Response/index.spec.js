@@ -38,4 +38,17 @@ describe('Timeline Response', () => {
 
     expect(bodyProps().isBodyHeldBack).toBe(false);
   });
+
+  it('hands the body this entry\'s response, not the parent item\'s', () => {
+    const size = 5 * 1024 * 1024 + 1;
+    renderResponse({
+      item: { uid: 'item-1', response: { status: 200, size: 12 } },
+      response: { statusCode: 404, statusText: 'Not Found', data: null, dataBuffer: null, size, headers: { 'x-a': '1' }, duration: 40 }
+    });
+
+    expect(bodyProps().item).toMatchObject({
+      uid: 'item-1',
+      response: { status: 404, statusText: 'Not Found', size, headers: { 'x-a': '1' }, duration: 40 }
+    });
+  });
 });

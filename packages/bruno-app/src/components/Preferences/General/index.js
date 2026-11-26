@@ -62,8 +62,16 @@ const General = () => {
     }),
     defaultLocation: Yup.string().max(1024),
     response: Yup.object({
-      maxPreviewSizeMB: Yup.number()
-        .positive('Number must be greater than 0')
+      maxPreviewSizeMB: Yup.mixed()
+        .transform((value, originalValue) => {
+          return originalValue === '' ? undefined : Number(originalValue);
+        })
+        .test('isNumber', 'Max response size must be a number', (value) => {
+          return value === undefined || !isNaN(value);
+        })
+        .test('isPositive', 'Number must be greater than 0', (value) => {
+          return value === undefined || Number(value) > 0;
+        })
     })
   });
 

@@ -70,7 +70,12 @@ describe('registerSqliteIpc', () => {
 
     it('returns the exchange rebuilt from the row and its files', async () => {
       expect(await invoke(channel, { request_uid: 'run-1', extra: 'ignored' })).toBe('exchange');
-      expect(readRunnerExchange).toHaveBeenCalledWith('run-1');
+      expect(readRunnerExchange).toHaveBeenCalledWith('run-1', undefined);
+    });
+
+    it('forwards the max preview size the renderer asks for', async () => {
+      await invoke(channel, { request_uid: 'run-1', max_preview_size_mb: 3 });
+      expect(readRunnerExchange).toHaveBeenCalledWith('run-1', 3);
     });
 
     it.each([undefined, {}, { request_uid: '' }, { request_uid: 42 }, { request_uid: { id: 'x' } }])(

@@ -1,5 +1,5 @@
 import { test, expect } from '../../playwright';
-import { closeAllCollections, createCollection, createRequest, sendRequest } from '../../pages';
+import { closeAllCollections, createCollection, createRequest, openRunnerResult, runCollection, sendRequest } from '../../pages';
 import { buildPreferencesLocators, setMaxPreviewSizePreference } from '../../pages/app-shell/preferences';
 
 const MB = 1024 * 1024;
@@ -31,6 +31,21 @@ test.describe('Large Response Crash/High Memory Usage Prevention', () => {
 
     await setMaxPreviewSizePreference(page, 3);
     await page.locator('.collection-item-name').filter({ hasText: 'large-response' }).click();
+
+    await expect(page.getByText('Large Response Warning')).toHaveCount(0);
+    await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload');
+  });
+
+  test('Raising the max preview size reveals a runner result without re-running', async ({ page, createTmpDir }) => {
+    await setMaxPreviewSizePreference(page, 1);
+    await createCollection(page, 'size-runner-test', await createTmpDir('size-runner-test'));
+    await createRequest(page, 'large-response', 'size-runner-test', { url: largePayloadUrl(2 * MB) });
+    await runCollection(page, 'size-runner-test');
+    await openRunnerResult(page, 'large-response');
+    await expect(page.getByText('Large Response Warning')).toBeVisible();
+
+    await setMaxPreviewSizePreference(page, 3);
+    await openRunnerResult(page, 'large-response');
 
     await expect(page.getByText('Large Response Warning')).toHaveCount(0);
     await expect(page.getByTestId('response-preview-container')).toContainText('bruno large payload');

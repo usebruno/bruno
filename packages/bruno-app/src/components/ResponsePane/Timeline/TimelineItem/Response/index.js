@@ -67,7 +67,7 @@ const Response = ({ collection, response, item }) => {
         dataBuffer={dataBuffer}
         error={error}
         headers={headers}
-        item={item}
+        item={{ ...item, response: { ...item?.response, size, data, dataBuffer, headers, error, duration, status: statusCode ?? status, statusText } }}
         type="response"
         isBodyHeldBack={isBodyHeldBack}
       />

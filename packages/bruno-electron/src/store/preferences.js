@@ -406,6 +406,13 @@ const savePreferences = async (newPreferences) => {
   });
 };
 
+const DEFAULT_MAX_PREVIEW_SIZE_MB = 10;
+
+const toMaxPreviewSizeMB = (value, fallback) => {
+  const megabytes = Number(value);
+  return value !== null && value !== '' && Number.isFinite(megabytes) && megabytes > 0 ? megabytes : fallback;
+};
+
 const preferencesUtil = {
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
@@ -466,12 +473,13 @@ const preferencesUtil = {
     }
   },
   getMaxPreviewSizeMB: () => {
-    return get(getPreferences(), 'response.maxPreviewSizeMB', 10);
+    return toMaxPreviewSizeMB(get(getPreferences(), 'response.maxPreviewSizeMB'), DEFAULT_MAX_PREVIEW_SIZE_MB);
   }
 };
 
 module.exports = {
   getPreferences,
   savePreferences,
-  preferencesUtil
+  preferencesUtil,
+  toMaxPreviewSizeMB
 };

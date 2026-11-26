@@ -13,7 +13,10 @@ jest.mock('electron', () => ({
 
 jest.mock('../sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn(), withSecureDelete: jest.fn((callback) => callback()) }));
 
-jest.mock('../../store/preferences', () => ({ preferencesUtil: { getMaxPreviewSizeMB: jest.fn(() => 50) } }));
+jest.mock('../../store/preferences', () => ({
+  ...jest.requireActual('../../store/preferences'),
+  preferencesUtil: { getMaxPreviewSizeMB: jest.fn(() => 50) }
+}));
 
 const MAX_PREVIEW_SIZE_BYTES = 50 * 1024 * 1024;
 
@@ -181,6 +184,20 @@ describe('runner-exchange service', () => {
 
       expect(responseReceived.dataBuffer).toBeNull();
       expect(responseReceived.storedRequestUid).toBe('run-1');
+    });
+
+    it('uses the max preview size the caller passes over the stored preference', async () => {
+      await storeWithBodySize(20 * 1024 * 1024);
+
+      expect((await readRunnerExchange('run-1', 10)).responseReceived.dataBuffer).toBeNull();
+      expect((await readRunnerExchange('run-1', 30)).responseReceived.dataBuffer).toBe(Buffer.from(body).toString('base64'));
+    });
+
+    it.each([null, '', 'abc', 0, -5, NaN, Infinity])('falls back to the stored preference when the caller passes %p', async (requested) => {
+      require('../../store/preferences').preferencesUtil.getMaxPreviewSizeMB.mockReturnValue(10);
+      await storeWithBodySize(20 * 1024 * 1024);
+
+      expect((await readRunnerExchange('run-1', requested)).responseReceived.dataBuffer).toBeNull();
     });
   });
 
