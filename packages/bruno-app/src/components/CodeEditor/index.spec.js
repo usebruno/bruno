@@ -180,6 +180,8 @@ describe('CodeEditor', () => {
     setupEditorWithRef({ value, mode: 'javascript', prettifyOnPaste });
     const editor = CodeMirror.mock.results[0].value;
     editor.getLine.mockReturnValue(value);
+    editor.getMode = () => ({ name: 'javascript', token: () => 'variable' });
+    editor.getTokenAt = () => ({ state: {} });
     const beforeChange = editor.on.mock.calls.find(([event]) => event === 'beforeChange')[1];
     const position = { line: 0, ch };
     const update = jest.fn();
@@ -191,6 +193,23 @@ describe('CodeEditor', () => {
     } else {
       expect(update).not.toHaveBeenCalled();
     }
+  });
+
+  it('preserves JavaScript pasted on a blank line within a template literal', () => {
+    const value = 'const message = `prefix\n\nsuffix`;';
+    setupEditorWithRef({ value, mode: 'javascript', prettifyOnPaste: true });
+    const editor = CodeMirror.mock.results[0].value;
+    editor.getLine.mockImplementation((line) => value.split('\n')[line]);
+    editor.getMode = () => ({ name: 'javascript', token: () => 'string-2' });
+    editor.getTokenAt = jest.fn(() => ({ state: {} }));
+    const beforeChange = editor.on.mock.calls.find(([event]) => event === 'beforeChange')[1];
+    const position = { line: 1, ch: 0 };
+    const update = jest.fn();
+
+    beforeChange(editor, { from: position, to: position, text: ['const x={a:1}'], origin: 'paste', update });
+
+    expect(editor.getTokenAt).toHaveBeenCalledWith(position, true);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('enters degraded mode when a pathological line is pasted', () => {

@@ -47,6 +47,17 @@ window.JSHINT = JSHINT;
 const NORMAL_GUTTERS = ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'];
 const TAB_SIZE = 2;
 
+const canFormatJavaScriptAtLineStart = (editor, line) => {
+  const token = editor.getTokenAt({ line, ch: 0 }, true);
+  const { mode, state } = CodeMirror.innerMode(editor.getMode(), token.state);
+  if (mode.name !== 'javascript') return false;
+
+  // Blank lines have no token style. Probe the JavaScript mode with a character
+  // to see if the tokenizer is continuing template text from an earlier line.
+  const stream = new CodeMirror.StringStream('x');
+  return mode.token(stream, CodeMirror.copyState(mode, state)) !== 'string-2';
+};
+
 const buildCodeMirrorOptions = ({
   profile,
   props,
@@ -728,7 +739,7 @@ class CodeEditor extends React.Component {
       // A standalone formatter can add punctuation that breaks an inline expression.
       const before = editor.getLine(change.from.line).slice(0, change.from.ch);
       const after = editor.getLine(change.to.line).slice(change.to.ch);
-      if (pastedText.trim() && !before.trim() && !after.trim()) {
+      if (pastedText.trim() && !before.trim() && !after.trim() && canFormatJavaScriptAtLineStart(editor, change.from.line)) {
         const formattedText = prettifyJavaScriptString(pastedText);
         const replacement = pastedText.endsWith('\n') ? formattedText : formattedText.replace(/\n$/, '');
         if (replacement !== pastedText) {
