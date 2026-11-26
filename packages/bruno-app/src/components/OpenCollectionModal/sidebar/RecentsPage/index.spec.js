@@ -113,7 +113,7 @@ describe('RecentsPage', () => {
     await findRows();
 
     expect(within(rowFor('Billing')).getByTestId('recents-row-meta')).toHaveTextContent('Closed 5m ago');
-    expect(within(rowFor('Open One')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 10m ago');
+    expect(within(rowFor('Open One')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 2h ago');
     expect(within(rowFor('Orders')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 3d ago');
   });
 
@@ -126,7 +126,7 @@ describe('RecentsPage', () => {
     expect(openLine).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
 
     toggleOpenCollections();
-    expect(rowNames()).toEqual(['Billing', 'Open One', 'Restored', 'Orders']);
+    expect(rowNames()).toEqual(['Billing', 'Restored', 'Open One', 'Orders']);
     expect(rowFor('Restored')).toHaveClass('is-open');
     expect(within(rowFor('Restored')).getByTestId('recents-row-meta')).toHaveTextContent('Opened 10m ago');
     expect(openLine).toHaveTextContent('Showing collections already open in this workspace. Hide');
@@ -187,7 +187,7 @@ describe('RecentsPage', () => {
     expect(screen.getByTestId('recents-open-line')).toHaveTextContent('1 collection already open in this workspace isn’t shown. Show');
 
     toggleOpenCollections();
-    expect(rowNames()).toEqual(['Open One', 'Restored']);
+    expect(rowNames()).toEqual(['Restored', 'Open One']);
   });
 
   it('shows the empty page when Recents has no record yet, even with collections open in the workspace', async () => {

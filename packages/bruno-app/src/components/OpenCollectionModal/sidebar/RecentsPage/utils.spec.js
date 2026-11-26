@@ -23,7 +23,7 @@ describe('mergeOpenCollections', () => {
     expect([...merged.unrecordedPathKeys]).toEqual(['/work/payments']);
   });
 
-  it('lists a recorded collection that is open once, dated by its later open, and does not mark it unrecorded', () => {
+  it('lists a recorded collection that is open once, dated by its recorded open, and does not mark it unrecorded', () => {
     const recents = [recent('/work/payments', 2500, 'opened')];
 
     const merged = mergeOpenCollections(recents, [open('/work/payments', 'Payments', 1000)]);
@@ -32,14 +32,30 @@ describe('mergeOpenCollections', () => {
     expect(merged.unrecordedPathKeys.size).toBe(0);
   });
 
-  it('counts a collection recorded before it was opened again, or recorded as closed, as opened when it is open now', () => {
-    const recents = [recent('/work/billing', 400, 'opened'), recent('/work/orders', 200, 'closed')];
+  it('dates a recorded open by its Recents time even when Bruno loads the collection again later, as at startup', () => {
+    const recents = [recent('/work/billing', 400, 'opened')];
 
-    const merged = mergeOpenCollections(recents, [open('/work/billing', 'Billing', 1000), open('/work/orders', 'Orders', 1000)]);
+    const merged = mergeOpenCollections(recents, [open('/work/billing', 'Billing', 1000)]);
 
-    expect(merged.collections.map(({ usedAt, lastEvent }) => ({ usedAt, lastEvent }))).toEqual([
-      { usedAt: 1000, lastEvent: 'opened' },
-      { usedAt: 1000, lastEvent: 'opened' }
+    expect(merged.collections).toEqual([{ path: '/work/billing', name: 'Billing', usedAt: 400, lastEvent: 'opened' }]);
+  });
+
+  it('counts a collection recorded as closed as opened when it is open now, dated from when it was loaded', () => {
+    const recents = [recent('/work/orders', 200, 'closed')];
+
+    const merged = mergeOpenCollections(recents, [open('/work/orders', 'Orders', 1000)]);
+
+    expect(merged.collections).toEqual([{ path: '/work/orders', name: 'Orders', usedAt: 1000, lastEvent: 'opened' }]);
+  });
+
+  it('keeps a collection restored at startup below a collection used after it was opened', () => {
+    const recents = [recent('/work/tuesday', 2000, 'closed'), recent('/work/monday', 1000, 'opened')];
+
+    const merged = mergeOpenCollections(recents, [open('/work/monday', 'monday', 3000)]);
+
+    expect(merged.collections).toEqual([
+      recent('/work/tuesday', 2000, 'closed'),
+      { path: '/work/monday', name: 'monday', usedAt: 1000, lastEvent: 'opened' }
     ]);
   });
 

@@ -2,7 +2,7 @@ import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/col
 
 const byNewestFirst = (a, b) => b.usedAt - a.usedAt;
 
-const getOpenedAt = (recent, importedAt) => (recent?.lastEvent === 'opened' ? Math.max(recent.usedAt, importedAt) : importedAt);
+const getOpenedAt = (recent, importedAt) => (recent?.lastEvent === 'opened' ? recent.usedAt : importedAt);
 
 export const isSameOpenCollections = (previous, next) =>
   previous.length === next.length
