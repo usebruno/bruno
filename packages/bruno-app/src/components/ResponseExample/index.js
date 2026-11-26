@@ -26,8 +26,8 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  // Edit mode lives on the tab (`openInEditMode`) so every save path — including a
-  // workspace-wide Save all — exits it through the store. It is set at tab creation by the
+  // Edit mode lives on the tab (`openInEditMode`) so every save path including a
+  // workspace-wide Save all exits it through the store. It is set at tab creation by the
   // OPEN_EXAMPLE task queue (see taskMiddleware.js) for just-created examples.
   const editMode = !!openInEditMode;
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
