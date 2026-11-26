@@ -42,9 +42,9 @@ describe('OverviewSection', () => {
   });
 
   it('explains Request Naming in a tooltip on its heading', () => {
-    const { getByText } = renderOverview({ requestNameSource: 'summary' });
+    const { getByText, getByTestId } = renderOverview({ requestNameSource: 'summary' });
 
-    fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
 
     expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
   });
@@ -53,12 +53,11 @@ describe('OverviewSection', () => {
     ['collection', 'Authentication is set at the collection level and inherited by each request.'],
     ['request', 'Authentication is set separately on each request.']
   ])('explains the %s auth placement in a tooltip next to its value, not on the heading', (authPlacement, explanation) => {
-    const { getByText } = renderOverview({ authPlacement });
-    const value = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
+    const { getByText, getByTestId, queryByTestId } = renderOverview({ authPlacement });
 
-    expect(getByText('Auth Placement').querySelector('svg')).toBeNull();
+    expect(queryByTestId('openapi-sync-detail-auth-placement-label-help')).not.toBeInTheDocument();
 
-    fireEvent.mouseEnter(value.querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-auth-placement-help'));
 
     expect(getByText(explanation)).toBeInTheDocument();
   });
@@ -79,13 +78,12 @@ describe('OverviewSection', () => {
     ['are missing', {}],
     ['are not values the sync knows', { requestNameSource: 'title', authPlacement: 'folder' }]
   ])('explains the default naming and auth placement with the same tooltips as saved ones when they %s', (_description, syncConfig) => {
-    const { getByText } = renderOverview(syncConfig);
-    const authPlacementValue = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
+    const { getByText, getByTestId } = renderOverview(syncConfig);
 
-    fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
     expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
 
-    fireEvent.mouseEnter(authPlacementValue.querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-auth-placement-help'));
     expect(getByText('Authentication is set separately on each request.')).toBeInTheDocument();
   });
 
@@ -97,9 +95,9 @@ describe('OverviewSection', () => {
   });
 
   it('explains the auto-check interval in a tooltip on the badge', () => {
-    const { getByText } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
+    const { getByText, getByTestId } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
 
-    fireEvent.mouseEnter(getByText('Auto-check every 15 min').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-auto-check-help'));
 
     expect(getByText('Bruno checks the spec for changes every 15 minutes.', { exact: false })).toBeInTheDocument();
   });

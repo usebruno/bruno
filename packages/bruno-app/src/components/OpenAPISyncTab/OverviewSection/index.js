@@ -111,7 +111,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         <StatusBadge
           radius="full"
           rightSection={(
-            <Help icon="info" size={11} placement="left" width={220}>
+            <Help icon="info" size={11} placement="left" width={220} dataTestId="openapi-sync-auto-check-help">
               {autoCheckEnabled
                 ? `Bruno checks the spec for changes every ${autoCheckInterval} minutes. You can change this in Edit connection settings.`
                 : 'Bruno does not check the spec for changes on its own. Use Check for updates, or turn it on in Edit connection settings.'}
@@ -273,25 +273,28 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
 
       <h4 className="overview-section-title mt-7">Last Synced Spec Details</h4>
       <div className="spec-details-grid">
-        {details.map(({ label, labelTooltip, headerExtra, value, tooltip }) => (
-          <div className="spec-detail-item" key={label}>
-            <div className="spec-detail-header">
-              <div className="spec-detail-label">
-                {label}
-                {labelTooltip && (
-                  <Help icon="info" size={11} placement="top" width={220}>{labelTooltip}</Help>
+        {details.map(({ label, labelTooltip, headerExtra, value, tooltip }) => {
+          const detailTestId = `openapi-sync-detail-${label.toLowerCase().replaceAll(' ', '-')}`;
+          return (
+            <div className="spec-detail-item" key={label}>
+              <div className="spec-detail-header">
+                <div className="spec-detail-label">
+                  {label}
+                  {labelTooltip && (
+                    <Help icon="info" size={11} placement="top" width={220} dataTestId={`${detailTestId}-label-help`}>{labelTooltip}</Help>
+                  )}
+                </div>
+                {headerExtra}
+              </div>
+              <div className="spec-detail-value" data-testid={detailTestId}>
+                {value}
+                {tooltip && (
+                  <Help icon="info" size={11} placement="top" width={200} dataTestId={`${detailTestId}-help`}>{tooltip}</Help>
                 )}
               </div>
-              {headerExtra}
             </div>
-            <div className="spec-detail-value" data-testid={`openapi-sync-detail-${label.toLowerCase().replaceAll(' ', '-')}`}>
-              {value}
-              {tooltip && (
-                <Help icon="info" size={11} placement="top" width={200}>{tooltip}</Help>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
