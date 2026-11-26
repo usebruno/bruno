@@ -521,6 +521,10 @@ const unmaskJsonInterpolations = (str, vars, prefix = 'BRUNO_VAR') => {
     .replace(new RegExp(`${SENTINEL}${prefix}_S_(\\d+)${SENTINEL}`, 'g'), (m, n) => restore(n, m));
 };
 
+const MASKED_BARE_VARIABLE = new RegExp(`^${SENTINEL}\\w+_V_\\d+${SENTINEL}$`);
+
+const isMaskedBareVariable = (value) => typeof value === 'string' && MASKED_BARE_VARIABLE.test(value);
+
 // ---------------------------------------------------------------------------
 // JSON value merge helpers
 // ---------------------------------------------------------------------------
@@ -594,7 +598,7 @@ const jsonNodeTypeChanged = (userVal, specVal, declared) => {
 const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false, restoreSpecTypes = false) => {
   if (!preserveValues) return specVal;
   if (shapeOpen) return userVal;
-  if (restoreSpecTypes && jsonNodeTypeChanged(userVal, specVal, declared)) return specVal;
+  if (restoreSpecTypes && !isMaskedBareVariable(userVal) && jsonNodeTypeChanged(userVal, specVal, declared)) return specVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
@@ -619,15 +623,6 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shap
   return userVal === undefined ? specVal : userVal;
 };
 
-const parsesAsJson = (text) => {
-  try {
-    JSON.parse(text);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 /**
  * Merge a user request body (mode=json) with a spec request body.
  *
@@ -644,7 +639,7 @@ const mergeJsonBody = (userBody, specBody, preserveValues = true, declared, rest
     const s = maskJsonInterpolations(specBody.json, 'BRU_S');
     const userJson = JSON.parse(u.masked);
     if (restoreSpecTypes && userJson === null) return specBody;
-    const merged = mergeJsonValues(userJson, JSON.parse(s.masked), preserveValues, declared, false, restoreSpecTypes && parsesAsJson(userBody.json));
+    const merged = mergeJsonValues(userJson, JSON.parse(s.masked), preserveValues, declared, false, restoreSpecTypes);
     let json = JSON.stringify(merged, null, 2);
     json = unmaskJsonInterpolations(json, u.vars, 'BRU_U');
     json = unmaskJsonInterpolations(json, s.vars, 'BRU_S');

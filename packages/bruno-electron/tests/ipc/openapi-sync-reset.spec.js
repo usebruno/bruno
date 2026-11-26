@@ -325,6 +325,22 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect((await drift()).modified).toEqual([]);
   });
 
+  it('restores a field of another type next to a {{var}} that Reset removes, so the endpoint is no longer listed', async () => {
+    writeRequest('Create pet', (request) => ({
+      ...request,
+      headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }],
+      body: { ...request.body, json: '{"name": "Fido", "owner": "seven", "junk": {{junk}}}' }
+    }));
+    const preview = await previewReset('POST:/pets');
+
+    await reset(await modifiedEndpoints());
+
+    const expected = { name: 'Fido', nickname: '', owner: { id: 0 } };
+    expect(JSON.parse(readRequest('Create pet').body.json)).toEqual(expected);
+    expect(JSON.parse(preview.newData.request.body.json)).toEqual(expected);
+    expect((await drift()).modified).toEqual([]);
+  });
+
   it('keeps a oneOf or anyOf part as written, and no longer lists the endpoint after Reset', async () => {
     const body = { subject: 'Hi', to: [{ email: 'a@x.io' }, { email: 'b@x.io' }], payload: { kind: 'b', data: 'hello' } };
     writeRequest('Send mail', (request) => ({
