@@ -10,7 +10,7 @@ const BusyOverlay = ({ children, onCancel }) => {
 
   return (
     <StyledWrapper ref={returnFocusOnClose} role="status" data-testid="open-collection-busy">
-      <IconLoader2 size={16} className="busy-spinner" aria-hidden="true" />
+      <IconLoader2 size={16} className="animate-spin" aria-hidden="true" />
       <span className="busy-label">{children}</span>
       {onCancel && (
         <button type="button" className="text-link hover:underline" onClick={onCancel} autoFocus data-testid="open-collection-busy-cancel">

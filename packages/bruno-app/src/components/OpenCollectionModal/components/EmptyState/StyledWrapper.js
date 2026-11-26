@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import spinnerStyles from '../SpinnerStyles';
 
 const StyledWrapper = styled.div`
   flex: 1;
@@ -20,7 +19,6 @@ const StyledWrapper = styled.div`
 
   .empty-state-spinner {
     color: ${(props) => props.theme.colors.text.muted};
-    ${spinnerStyles}
   }
 
   .empty-state-icon {

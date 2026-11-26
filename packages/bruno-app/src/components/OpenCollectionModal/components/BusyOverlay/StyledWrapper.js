@@ -1,6 +1,5 @@
 import styled from 'styled-components';
 import { rgba } from 'polished';
-import spinnerStyles from '../SpinnerStyles';
 
 const StyledWrapper = styled.div`
   position: absolute;
@@ -13,10 +12,6 @@ const StyledWrapper = styled.div`
   background: ${(props) => rgba(props.theme.bg, 0.7)};
   font-size: ${(props) => props.theme.font.size.base};
   color: ${(props) => props.theme.colors.text.muted};
-
-  .busy-spinner {
-    ${spinnerStyles}
-  }
 
   .busy-label {
     min-width: 0;
