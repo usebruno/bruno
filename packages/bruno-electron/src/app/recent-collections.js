@@ -55,12 +55,12 @@ const recordRecentCollectionClose = async (collectionPath, name) => {
 
 const isMissingPathError = (error) => ['ENOENT', 'ENOTDIR'].includes(error.code);
 
-const isNearestFolderInUse = async (folderPath) => {
+const isNearestFolderNonEmpty = async (folderPath) => {
   try {
     return (await fs.readdir(folderPath)).length > 0;
   } catch (error) {
     const parentPath = path.dirname(folderPath);
-    return isMissingPathError(error) && parentPath !== folderPath && isNearestFolderInUse(parentPath);
+    return isMissingPathError(error) && parentPath !== folderPath && isNearestFolderNonEmpty(parentPath);
   }
 };
 
@@ -129,7 +129,7 @@ const isVolumeReachable = async (collectionPath) => {
       return await isMountedBelow(mountFolder, path.dirname(realPath));
     }
     const homeFolder = await getHomeFolder();
-    return await isNearestFolderInUse(homeFolder && isInsideFolder(realPath, homeFolder) ? homeFolder : path.dirname(realPath));
+    return await isNearestFolderNonEmpty(homeFolder && isInsideFolder(realPath, homeFolder) ? homeFolder : path.dirname(realPath));
   } catch {
     return false;
   }
