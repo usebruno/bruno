@@ -81,6 +81,7 @@ jest.spyOn(fsPromises, 'readFile').mockImplementation(async () => 'mock-content'
 const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
+const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid } = require('../cache/requestUids');
 const { recordRecentCollections, recordRecentCollectionClose, forgetMissingRecentCollections, moveRecentCollection, renameRecentCollection } = require('../app/recent-collections');
 
@@ -388,6 +389,7 @@ describe('IPC collection handlers', () => {
 
   describe('renderer:remove-collection', () => {
     const collectionPath = path.join(os.tmpdir(), 'fake', 'orders');
+    const collectionUid = generateUidBasedOnHash(collectionPath);
     let watcher;
     let removeCollectionHandler;
 
@@ -398,7 +400,7 @@ describe('IPC collection handlers', () => {
     });
 
     it('hands the close to Recents before the rest of the close runs, with the collection name the window sends', async () => {
-      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+      await removeCollectionHandler({}, collectionPath, collectionUid, 'default', 'Orders');
 
       expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 'Orders');
       expect(recordRecentCollectionClose.mock.invocationCallOrder[0]).toBeLessThan(watcher.removeWatcher.mock.invocationCallOrder[0]);
@@ -407,15 +409,15 @@ describe('IPC collection handlers', () => {
     it('closes without waiting for Recents, so a share that stops answering cannot hold up the close', async () => {
       recordRecentCollectionClose.mockReturnValueOnce(new Promise(() => {}));
 
-      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+      await removeCollectionHandler({}, collectionPath, collectionUid, 'default', 'Orders');
 
-      expect(watcher.removeWatcher).toHaveBeenCalledWith(collectionPath, mainWindow, 'orders-uid');
+      expect(watcher.removeWatcher).toHaveBeenCalledWith(collectionPath, mainWindow, collectionUid);
     });
 
     it('never reads the collection folder synchronously, so a share that stops answering cannot freeze the app', async () => {
       const syncReads = [fs, fsExtra].flatMap((fsModule) => ['existsSync', 'lstatSync', 'statSync'].map((name) => jest.spyOn(fsModule, name)));
 
-      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 'Orders');
+      await removeCollectionHandler({}, collectionPath, collectionUid, 'default', 'Orders');
       const pathsReadSynchronously = syncReads.flatMap((syncRead) => syncRead.mock.calls.map(([filePath]) => filePath));
       syncReads.forEach((syncRead) => syncRead.mockRestore());
 
@@ -423,9 +425,19 @@ describe('IPC collection handlers', () => {
     });
 
     it('passes along whatever name the window sends, leaving names that are not strings to Recents', async () => {
-      await removeCollectionHandler({}, collectionPath, 'orders-uid', 'default', 42);
+      await removeCollectionHandler({}, collectionPath, collectionUid, 'default', 42);
 
       expect(recordRecentCollectionClose).toHaveBeenCalledWith(collectionPath, 42);
+    });
+
+    it.each([
+      ['a path that is not the collection the uid belongs to', path.join(os.tmpdir(), 'bruno-not-a-collection')],
+      ['a path that is not a string', 42]
+    ])('records nothing in Recents for %s and still runs the rest of the close', async (_label, sentPath) => {
+      await removeCollectionHandler({}, sentPath, collectionUid, 'default', 'Orders');
+
+      expect(recordRecentCollectionClose).not.toHaveBeenCalled();
+      expect(watcher.removeWatcher).toHaveBeenCalledWith(sentPath, mainWindow, collectionUid);
     });
   });
 

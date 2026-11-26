@@ -1390,7 +1390,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
   });
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath, collectionUid, workspacePath, collectionName) => {
-    recordRecentCollectionClose(collectionPath, collectionName);
+    if (typeof collectionPath === 'string' && generateUidBasedOnHash(collectionPath) === collectionUid) {
+      recordRecentCollectionClose(collectionPath, collectionName);
+    }
 
     if (watcher && mainWindow) {
       watcher.removeWatcher(collectionPath, mainWindow, collectionUid);
