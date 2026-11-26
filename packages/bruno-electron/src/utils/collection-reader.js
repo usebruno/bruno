@@ -29,10 +29,9 @@ const readCollectionConfig = async (collectionPath) => {
 };
 
 /**
- * `bru export openapi` builds the same data from the CLI's collection in
- * bruno-cli/src/utils/api-spec.js (toApiSpecCollectionData). Keep the skipped folders, the `ignore`
- * handling, request `depth`, collection variables and the order of requests and environments in step
- * with it, or the app and the CLI export different specs for the same collection.
+ * `bru export openapi` reads collections with a copy of this function, in
+ * bruno-cli/src/utils/collection-reader.js. Keep the two in step, or the app and the CLI export different
+ * specs for the same collection.
  *
  * This function will be refactored to return a unified Collection Structure.
  *

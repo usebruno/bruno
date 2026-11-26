@@ -197,16 +197,76 @@ describe('bru export openapi', () => {
       expect(errorSpy.mock.calls.flat().join(' ')).toContain('Warning: bad-json: Failed to parse JSON in request body');
     });
 
-    it('still writes the spec, and reports how many request files could not be parsed', async () => {
+    it('still writes the spec, and lists the request files that could not be parsed', async () => {
       const collectionPath = copyFixture(path.join(outDir, 'collection'));
       fs.writeFileSync(path.join(collectionPath, 'broken.bru'), 'meta {\n  name: broken\n');
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
       const outputFile = path.join(outDir, 'api.yaml');
 
       await runExport({ source: collectionPath, outputFile });
 
       expect(fs.existsSync(outputFile)).toBe(true);
-      expect(errorSpy.mock.calls.flat().join(' ')).toContain('1 file(s) could not be parsed and were left out of the spec.');
+      const logged = errorSpy.mock.calls.flat().join(' ');
+      expect(logged).toContain('1 file(s) could not be parsed and were left out of the spec: broken.bru');
+    });
+
+    it('still writes the spec when an environment file cannot be parsed, and lists it as skipped', async () => {
+      const collectionPath = copyFixture(path.join(outDir, 'collection'));
+      fs.writeFileSync(path.join(collectionPath, 'environments', 'Broken.bru'), 'vars {\n  unterminated');
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: collectionPath, outputFile });
+
+      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Local', 'Prod', 'dev']);
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain(path.join('environments', 'Broken.bru'));
+    });
+
+    it('still writes the spec when bruno.json cannot be parsed, named after the folder like the app', async () => {
+      const collectionPath = copyFixture(path.join(outDir, 'my-collection'));
+      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), '{ not json');
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: collectionPath, outputFile });
+
+      expect(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('my-collection');
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain('could not be parsed and were left out of the spec: bruno.json');
+    });
+  });
+
+  describe('which files are read, matching the app', () => {
+    it('does not read a folder in the ignore list, even when its files are broken', async () => {
+      const collectionPath = copyFixture(path.join(outDir, 'collection'));
+      fs.writeFileSync(path.join(collectionPath, 'ignored', 'folder.bru'), 'meta {\n  name: ignored\n');
+      fs.writeFileSync(path.join(collectionPath, 'ignored', 'broken.bru'), 'not valid bru {{{{');
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: collectionPath, outputFile });
+
+      expect(Object.keys(readExportedSpec(outputFile).paths)).not.toContain('/hidden');
+      expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('could not be parsed');
+    });
+
+    it('leaves out an environment file listed in the ignore list', async () => {
+      const collectionPath = copyFixture(path.join(outDir, 'collection'));
+      const configPath = path.join(collectionPath, 'bruno.json');
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      fs.writeFileSync(configPath, JSON.stringify({ ...config, ignore: [...config.ignore, 'environments/Prod.bru'] }));
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: collectionPath, outputFile });
+
+      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Local', 'dev']);
+    });
+
+    it('reads .yaml request files in an OpenCollection collection', async () => {
+      const collectionPath = path.join(outDir, 'yml-collection');
+      fs.cpSync(YML_FIXTURE, collectionPath, { recursive: true });
+      const requestYml = fs.readFileSync(path.join(collectionPath, 'request_1.yml'), 'utf8');
+      fs.writeFileSync(path.join(collectionPath, 'users.yaml'), requestYml.replace('name: request_1', 'name: users').replace(/url: .*/, 'url: https://api.example.com/users'));
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: collectionPath, outputFile });
+
+      expect(Object.keys(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).paths)).toContain('/users');
     });
   });
 
@@ -255,31 +315,6 @@ describe('bru export openapi', () => {
 
       expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_GENERIC);
       expect(errorSpy).toHaveBeenCalled();
-    });
-
-    it('exits with the invalid-file code when an environment file cannot be parsed', async () => {
-      const exitSpy = mockExit();
-      const collectionPath = copyFixture(path.join(outDir, 'collection'));
-      fs.writeFileSync(path.join(collectionPath, 'environments', 'Broken.bru'), 'vars {\n  unterminated');
-
-      await expect(runExport({ source: collectionPath, outputFile: path.join(outDir, 'api.yaml') })).rejects.toThrow(
-        `exit:${EXIT_STATUS.ERROR_INVALID_FILE}`
-      );
-
-      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_INVALID_FILE);
-    });
-
-    it('exits with the invalid-file code and a clear message when bruno.json cannot be parsed', async () => {
-      const exitSpy = mockExit();
-      const collectionPath = copyFixture(path.join(outDir, 'collection'));
-      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), '{ not json');
-
-      await expect(runExport({ source: collectionPath, outputFile: path.join(outDir, 'api.yaml') })).rejects.toThrow(
-        `exit:${EXIT_STATUS.ERROR_INVALID_FILE}`
-      );
-
-      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_INVALID_FILE);
-      expect(errorSpy.mock.calls.flat().join(' ')).toContain(`Failed to read the collection at ${collectionPath}`);
     });
   });
 });

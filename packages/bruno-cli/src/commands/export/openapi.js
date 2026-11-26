@@ -4,9 +4,8 @@ const chalk = require('chalk');
 const jsyaml = require('js-yaml');
 const { brunoToOpenApi } = require('@usebruno/converters');
 const { sanitizeName } = require('@usebruno/common').utils;
-const { createCollectionJsonFromPathname, getCollectionFormat } = require('../../utils/collection');
-const { loadEnvironments } = require('../../utils/environment');
-const { toApiSpecCollectionData } = require('../../utils/api-spec');
+const { getCollectionFormat } = require('../../utils/collection');
+const { readCollectionConfig, readCollectionForApiSpec } = require('../../utils/collection-reader');
 const { isDirectory } = require('../../utils/filesystem');
 const { EXIT_STATUS } = require('../../constants');
 
@@ -55,7 +54,8 @@ const ensureOutputDirectory = (outputPath) => {
   }
 };
 
-const getCollectionName = (collection, collectionPath) => sanitizeName(collection.brunoConfig?.name || path.basename(collectionPath));
+// Named the way the app's Create API Spec names it: the collection's name, or the folder's when it has none
+const getCollectionName = (brunoConfig, collectionPath) => sanitizeName(brunoConfig?.name || path.basename(collectionPath));
 
 const exportOpenApi = async (collectionPath, outputFile) => {
   if (!isDirectory(collectionPath)) {
@@ -69,28 +69,23 @@ const exportOpenApi = async (collectionPath, outputFile) => {
     exitWithError(`Unsupported output file extension: ${path.extname(outputFile)} (use .json, .yaml or .yml)`, EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
   }
 
-  global.brunoSkippedFiles = [];
-  let collection;
+  let collectionData;
   try {
-    collection = createCollectionJsonFromPathname(collectionPath);
+    collectionData = await readCollectionForApiSpec(collectionPath);
   } catch (error) {
     exitWithError(`Failed to read the collection at ${collectionPath}: ${error.message}`, EXIT_STATUS.ERROR_INVALID_FILE);
   }
 
-  let environments;
-  try {
-    environments = await loadEnvironments(collectionPath, collectionFormat);
-  } catch (error) {
-    exitWithError(`Failed to parse environment file: ${error.message}`, EXIT_STATUS.ERROR_INVALID_FILE);
-  }
-
-  const collectionName = getCollectionName(collection, collectionPath);
+  // A config the reader could not parse is already listed in `skipped`; reading it again would only repeat the error
+  const configParsed = !collectionData.skipped.includes(collectionData.configFile);
+  const brunoConfig = configParsed ? (await readCollectionConfig(collectionPath)).brunoConfig : null;
+  const collectionName = getCollectionName(brunoConfig, collectionPath);
   const outputPath = path.resolve(outputFile || `${collectionName}.yaml`);
   ensureOutputDirectory(outputPath);
 
   let exported;
   try {
-    exported = brunoToOpenApi(collectionName, toApiSpecCollectionData(collection, environments), '');
+    exported = brunoToOpenApi(collectionName, collectionData, '');
   } catch (error) {
     exitWithError(`Failed to export the OpenAPI spec: ${error.message}`, EXIT_STATUS.ERROR_GENERIC);
   }
@@ -104,8 +99,8 @@ const exportOpenApi = async (collectionPath, outputFile) => {
 
   console.log(chalk.green(`OpenAPI spec exported: ${outputPath}`));
   exported.warnings.forEach(({ message, itemName }) => console.error(chalk.yellow(`Warning: ${itemName ? `${itemName}: ` : ''}${message}`)));
-  if (global.brunoSkippedFiles.length > 0) {
-    console.error(chalk.yellow(`${global.brunoSkippedFiles.length} file(s) could not be parsed and were left out of the spec.`));
+  if (collectionData.skipped.length > 0) {
+    console.error(chalk.yellow(`${collectionData.skipped.length} file(s) could not be parsed and were left out of the spec: ${collectionData.skipped.join(', ')}`));
   }
 };
 

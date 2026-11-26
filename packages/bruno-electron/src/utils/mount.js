@@ -3,8 +3,16 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { posixifyPath } = require('./filesystem');
 
-// bruno-cli/src/utils/api-spec.js repeats these folders and the `ignore` matching below for
-// `bru export openapi`; change both together
+/**
+ * `bru export openapi` reads collections using the same helper function, with a copy of the following functions, in
+ * bruno-cli/src/utils/collection-walk.js. Keep the two in step, or the app and the CLI export different
+ * specs for the same collection.
+ *
+ * This function will be refactored to return a unified Collection Structure.
+ *
+ * @author @vasharma05-bruno
+ */
+
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
 
