@@ -1361,7 +1361,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const { openedCollections, ...result } = await openCollectionsByPathname(mainWindow, watcher, collectionPaths, options);
       if (options.recordRecent === true) {
         recordRecentCollections(openedCollections, 'opened');
-        forgetMissingRecentCollections(result.invalid);
+        forgetMissingRecentCollections([...result.invalid, ...result.failed.map((failure) => failure.path)]);
       }
       if (options.workspacePath) {
         const { setCollectionWorkspace } = require('../store/process-env');

@@ -341,7 +341,7 @@ describe('IPC collection handlers', () => {
       fs.rmSync(collectionsFolder, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     });
 
-    it('records what the user opened and forgets missing folders, keeping ones that failed to load', async () => {
+    it('records what the user opened and lets Recents check every folder that failed to open', async () => {
       const result = await openMultipleCollectionsHandler({}, [ordersCollection, folderWithoutCollection, deletedFolder], {
         silent: true,
         recordRecent: true
@@ -353,7 +353,7 @@ describe('IPC collection handlers', () => {
         invalid: [deletedFolder]
       });
       expect(recordRecentCollections).toHaveBeenCalledWith([{ path: ordersCollection, name: 'Orders API' }], 'opened');
-      expect(forgetMissingRecentCollections).toHaveBeenCalledWith([deletedFolder]);
+      expect(forgetMissingRecentCollections).toHaveBeenCalledWith([deletedFolder, folderWithoutCollection]);
     });
 
     it('replies without waiting for Recents to check the volumes of missing folders', async () => {

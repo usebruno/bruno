@@ -166,14 +166,29 @@ describe('recent collections', () => {
       expect(recentCollections.record).not.toHaveBeenCalled();
     });
 
-    it('records nothing and forgets nothing when the folder holds no collection', async () => {
+    it('records nothing and keeps a collection whose config is still there but cannot be opened', async () => {
       openCollection.mockResolvedValue({ opened: false });
       lstat.mockResolvedValue({ isDirectory: () => true });
+
+      await openCollectionFromRecentMenu(mainWindow, watcher, '/projects/orders');
+
+      expect(recentCollections.record).not.toHaveBeenCalled();
+      expect(recentCollections.forget).toHaveBeenCalledWith([]);
+    });
+
+    it('forgets a folder that no longer holds a collection', async () => {
+      openCollection.mockResolvedValue({ opened: false });
+      lstat.mockImplementation(async (filePath) => {
+        if (filePath === '/projects/notes') {
+          return { isDirectory: () => true };
+        }
+        throw fsError('ENOENT');
+      });
 
       await openCollectionFromRecentMenu(mainWindow, watcher, '/projects/notes');
 
       expect(recentCollections.record).not.toHaveBeenCalled();
-      expect(recentCollections.forget).toHaveBeenCalledWith([]);
+      expect(recentCollections.forget).toHaveBeenCalledWith(['/projects/notes']);
     });
 
     it('forgets a collection whose folder is gone', async () => {
@@ -383,13 +398,58 @@ describe('recent collections', () => {
     expect(recentCollections.forget).toHaveBeenCalledWith([]);
   });
 
-  it('keeps a folder that exists', async () => {
+  it('keeps a folder that still holds a collection config', async () => {
     onPlatform('darwin');
     lstat.mockResolvedValue({ isDirectory: () => true });
 
     await forgetMissingRecentCollections(['/Users/me/orders']);
 
     expect(recentCollections.forget).toHaveBeenCalledWith([]);
+  });
+
+  describe('a folder that is still there', () => {
+    const folderPath = '/Users/me/orders';
+    const lstatWithConfigs = (configErrors) => async (filePath) => {
+      if (filePath === folderPath) {
+        return { isDirectory: () => true };
+      }
+      const code = configErrors[path.basename(filePath)];
+      if (code) {
+        throw fsError(code);
+      }
+      return { isDirectory: () => false };
+    };
+
+    beforeEach(() => {
+      onPlatform('darwin');
+    });
+
+    it('is forgotten when it has neither opencollection.yml nor bruno.json', async () => {
+      lstat.mockImplementation(lstatWithConfigs({ 'opencollection.yml': 'ENOENT', 'bruno.json': 'ENOENT' }));
+
+      await forgetMissingRecentCollections([folderPath]);
+
+      expect(recentCollections.forget).toHaveBeenCalledWith([folderPath]);
+    });
+
+    it.each([
+      ['only opencollection.yml', { 'bruno.json': 'ENOENT' }],
+      ['only bruno.json', { 'opencollection.yml': 'ENOENT' }]
+    ])('is kept when it has %s', async (_label, configErrors) => {
+      lstat.mockImplementation(lstatWithConfigs(configErrors));
+
+      await forgetMissingRecentCollections([folderPath]);
+
+      expect(recentCollections.forget).toHaveBeenCalledWith([]);
+    });
+
+    it('is kept when its config files cannot be checked', async () => {
+      lstat.mockImplementation(lstatWithConfigs({ 'opencollection.yml': 'EACCES', 'bruno.json': 'EACCES' }));
+
+      await forgetMissingRecentCollections([folderPath]);
+
+      expect(recentCollections.forget).toHaveBeenCalledWith([]);
+    });
   });
 
   it('forgets a path that now holds a file or a link, which an open never accepts', async () => {

@@ -14,6 +14,8 @@ const MOUNT_FOLDERS = {
   linux: ['/media', '/run/media', '/mnt']
 };
 
+const COLLECTION_CONFIG_FILES = ['opencollection.yml', 'bruno.json'];
+
 let _mainWindow = null;
 let isChangeQueued = false;
 
@@ -133,16 +135,23 @@ const isVolumeReachable = async (collectionPath) => {
   }
 };
 
-const isFolderGone = async (collectionPath) => {
+const isConfigFileMissing = (collectionPath, fileName) =>
+  fs.lstat(path.join(collectionPath, fileName)).then(() => false, isMissingPathError);
+
+const isCollectionGone = async (collectionPath) => {
   try {
-    return !(await fs.lstat(collectionPath)).isDirectory();
+    if (!(await fs.lstat(collectionPath)).isDirectory()) {
+      return true;
+    }
+    const missing = await Promise.all(COLLECTION_CONFIG_FILES.map((fileName) => isConfigFileMissing(collectionPath, fileName)));
+    return missing.every(Boolean);
   } catch (error) {
     return isMissingPathError(error) && isVolumeReachable(collectionPath);
   }
 };
 
 const forgetMissingRecentCollections = async (paths) => {
-  const gone = await Promise.all(paths.map(isFolderGone));
+  const gone = await Promise.all(paths.map(isCollectionGone));
   forgetRecentCollections(paths.filter((_collectionPath, index) => gone[index]));
 };
 
