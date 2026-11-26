@@ -1,4 +1,4 @@
-import { test, expect, waitForReadyPage } from '../../../playwright';
+import { test, expect, waitForReadyPage, type ToastLog } from '../../../playwright';
 import { buildGrpcCommonLocators, openCollection, typeGrpcUrl } from '../../../pages';
 
 const COLLECTION_NAME = 'GrpcUrlTyping';
@@ -6,6 +6,11 @@ const SERVED_URL = 'grpc://localhost:50051';
 const UNSERVED_URL = 'grpc://localhost:50052';
 const REFLECTION_DEBOUNCE_MS = 3000;
 const REFLECTION_TIMEOUT_MS = REFLECTION_DEBOUNCE_MS + 30000;
+const LOADED_FROM_REFLECTION = /^Loaded \d+ gRPC methods from reflection$/;
+const FAILED_TO_LOAD = /^Failed to load gRPC methods: /;
+
+const reflectionToasts = async (toasts: ToastLog) =>
+  (await toasts.messages()).filter((message) => /gRPC methods/.test(message));
 
 test.describe('grpc reflection on url typing', () => {
   test.setTimeout(120000);
@@ -14,7 +19,6 @@ test.describe('grpc reflection on url typing', () => {
     const page = await waitForReadyPage(await restartApp());
     const locators = buildGrpcCommonLocators(page);
     const toasts = await recordToasts(page);
-    const filterReflectionToasts = async () => (await toasts.messages()).filter((message) => /gRPC methods/.test(message));
 
     await test.step('open the request, which starts without a url', async () => {
       await openCollection(page, COLLECTION_NAME);
@@ -46,17 +50,18 @@ test.describe('grpc reflection on url typing', () => {
       await expect(locators.method.dropdown()).toBeHidden();
     });
 
-    await test.step('each url was looked up once, and no reflection ran in between', async () => {
-      expect(await filterReflectionToasts()).toStrictEqual([
-        expect.stringMatching(/^Loaded \d+ gRPC methods from reflection$/),
-        expect.stringMatching(/^Failed to load gRPC methods: /)
+    await test.step('reflection toasts show one success, then one failure', async () => {
+      expect(await reflectionToasts(toasts)).toStrictEqual([
+        expect.stringMatching(LOADED_FROM_REFLECTION),
+        expect.stringMatching(FAILED_TO_LOAD)
       ]);
     });
   });
 
-  test('a refresh of a freshly typed url drops the methods of the previous one', async ({ restartApp }) => {
+  test('a refresh of a freshly typed url drops the methods of the previous one', async ({ restartApp, recordToasts }) => {
     const page = await waitForReadyPage(await restartApp());
     const locators = buildGrpcCommonLocators(page);
+    const toasts = await recordToasts(page);
 
     await test.step('open the request, which starts without a url', async () => {
       await openCollection(page, COLLECTION_NAME);
@@ -79,6 +84,13 @@ test.describe('grpc reflection on url typing', () => {
 
       await expect(locators.toast.byMessage(/Failed to load gRPC methods/)).toBeVisible({ timeout: 30000 });
       await expect(locators.method.dropdown()).toBeHidden();
+    });
+
+    await test.step('reflection toasts show one success, then one failure', async () => {
+      expect(await reflectionToasts(toasts)).toStrictEqual([
+        expect.stringMatching(LOADED_FROM_REFLECTION),
+        expect.stringMatching(FAILED_TO_LOAD)
+      ]);
     });
   });
 });
