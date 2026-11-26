@@ -5,6 +5,7 @@ import {
   Locator
 } from '../../playwright';
 import { buildModalLocators } from '../shared-ui/modal';
+import { buildUnsavedChangesModalLocators } from './unsaved-changes-modal';
 
 const tabDraftIndicator = (tab: Locator) => tab.locator('.has-changes-icon');
 
@@ -112,6 +113,13 @@ export const closeAllTabs = async (page: Page) => {
     }
 
     await clickTabContextMenuItem(page, requestTabLabel, 'close-all');
+
+    // Bulk close asks what to do with unsaved work; cleanup throws it away.
+    const unsavedChangesModal = buildUnsavedChangesModalLocators(page);
+    if (await unsavedChangesModal.root().isVisible({ timeout: 2000 }).catch(() => false)) {
+      await unsavedChangesModal.button('Don\'t Save').click();
+      await expect(unsavedChangesModal.root()).toBeHidden();
+    }
 
     // Handle "Unsaved Transient Requests" modal if it appears
     const discardAllButton = page.getByRole('button', { name: 'Discard All' });

@@ -163,7 +163,7 @@ test.describe('API specs open as workspace tabs', () => {
     await expect(sidebarItem(EDITABLE_SPEC.name)).toBeVisible();
   });
 
-  test('writes unsaved spec edits to disk before closing the tab as part of closing the others', async ({
+  test('writes unsaved spec edits to disk when the close-others prompt is answered with Save', async ({
     page,
     electronApp,
     createTmpDir
@@ -182,6 +182,13 @@ test.describe('API specs open as workspace tabs', () => {
 
     await createTransientRequest(page);
     await closeOtherTabsFrom(page, 'Untitled');
+
+    await test.step('Answer the bulk-close prompt with Save', async () => {
+      const modal = locators.unsavedChangesModal.root();
+      await expect(modal).toBeVisible();
+      await expect(modal).toContainText(`API Spec: ${EDITABLE_SPEC.name}`);
+      await locators.unsavedChangesModal.button('Save').click();
+    });
 
     await expect(locators.tabs.requestTab(EDITABLE_SPEC.file)).toHaveCount(0);
     await expect

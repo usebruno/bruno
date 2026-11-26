@@ -158,6 +158,54 @@ describe('postmanToBrunoEnvironment Function', () => {
     expect(brunoEnvironment).toEqual(expectedEnvironment);
   });
 
+  it('should mark variables with a "secret: true" flag as secret (current Postman export format)', () => {
+    const postmanEnvironment = {
+      id: 'dc5fe3c1-cad9-4ecb-989f-1a76bb215906',
+      name: 'Prod',
+      values: [
+        {
+          key: 'authtoken',
+          type: 'default',
+          enabled: true,
+          secret: true
+        },
+        {
+          key: 'region',
+          value: 'eu',
+          type: 'default',
+          enabled: true,
+          secret: false
+        }
+      ],
+      _postman_variable_scope: 'environment',
+      _postman_exported_using: 'Postman/12.34.4'
+    };
+
+    const brunoEnvironment = postmanToBrunoEnvironment(postmanEnvironment);
+
+    expect(brunoEnvironment).toEqual({
+      name: 'Prod',
+      variables: [
+        {
+          name: 'authtoken',
+          value: '',
+          enabled: true,
+          secret: true,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        },
+        {
+          name: 'region',
+          value: 'eu',
+          enabled: true,
+          secret: false,
+          type: 'text',
+          uid: 'mockeduuidvalue123456'
+        }
+      ]
+    });
+  });
+
   it.skip('should throw Error when JSON parsing fails', async () => {
     const invalidBrunoEnvironment = {
       id: 'some-id',
