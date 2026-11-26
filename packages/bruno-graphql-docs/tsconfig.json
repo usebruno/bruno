@@ -4,7 +4,7 @@
     "strict": true,
     "skipLibCheck": true,
     "jsx": "react",
-    "module": "ESNext",  
+    "module": "ESNext",
     "declaration": true,
     "declarationDir": "types",
     "sourceMap": true,
@@ -18,5 +18,5 @@
     "dist",
     "node_modules",
     "src/**/*.test.tsx"
-  ],
+  ]
 }
