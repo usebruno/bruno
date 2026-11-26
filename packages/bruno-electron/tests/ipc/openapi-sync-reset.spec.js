@@ -289,6 +289,22 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(after.inSync.map(({ id }) => id).sort()).toEqual(['POST:/pets', 'POST:/pets/:petId/photo']);
   });
 
+  it('takes the spec\'s method back when the file\'s method changed after the endpoint was listed', async () => {
+    const withDebugHeader = (request) => ({ ...request, headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }] });
+    writeRequest('Create pet', withDebugHeader);
+    const listed = await modifiedEndpoints();
+    writeRequest('Create pet', (request) => ({ ...withDebugHeader(request), method: 'PUT' }));
+    const preview = await previewReset('POST:/pets', { pathname: listed[0].pathname });
+
+    await reset(listed);
+
+    expect(readRequest('Create pet').method).toBe('POST');
+    expect(preview.newData.request.method).toBe('POST');
+    const after = await drift();
+    expect(after.localOnly).toEqual([]);
+    expect(after.inSync.map(({ id }) => id)).toContain('POST:/pets');
+  });
+
   it.each([
     ['a JSON object', '{\n  "name": "Fido",\n  "owner": {{owner}}\n}', '{\n  "name": "Fido",\n  "nickname": "",\n  "owner": {{owner}}\n}'],
     ['the whole body', '{{payload}}', '{{payload}}']

@@ -835,7 +835,7 @@ const mergeWithUserValues = (specItems, existingItems) => {
  * (tests, scripts, assertions) and user values for matching params/headers.
  *
  * fullReset: true = spec replaces entire request section (reset mode)
- *            false = only override url/body/auth from spec (sync mode); with
+ *            false = only override url/method/body/auth from spec (sync mode); with
  *            preserveValues the url keeps the spec path and its query string is
  *            rebuilt from the enabled query params
  */
@@ -866,6 +866,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
     request: {
       ...existingRequest.request,
       url: preserveValues ? urlWithQueryParams(specItem.request.url, params, existingRequest.request?.url) : specItem.request.url,
+      method: specItem.request.method,
       body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes),
       auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
       params,
