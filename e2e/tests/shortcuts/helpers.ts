@@ -80,22 +80,13 @@ export const resetKeybindings = async (page: Page) => {
 };
 
 export const setKeybindingsEnabled = async (page: Page, enabled: boolean) => {
-  const { keybindings } = buildCommonLocators(page).preferences;
+  const toggle = buildCommonLocators(page).preferences.keybindings.enabledToggle();
   await openKeybindingsTab(page);
-  const checkbox = keybindings.enabledToggle().getByRole('checkbox');
-  if ((await checkbox.isChecked()) !== enabled) {
-    await keybindings.enabledToggle().locator('label').click();
+  if ((await toggle.getByRole('checkbox').isChecked()) !== enabled) {
+    await toggle.locator('label').click();
   }
-  await expect(checkbox).toBeChecked({ checked: enabled });
+  await toggle.getByRole('checkbox', { checked: enabled }).waitFor({ state: 'attached' });
   await closePreferencesTab(page);
-};
-
-export const closeGlobalSearch = async (page: Page) => {
-  const { globalSearch } = buildCommonLocators(page);
-  // The modal focuses its input when it opens, so Escape closes it without a click first.
-  await expect(globalSearch.input()).toBeFocused();
-  await pressShortcut(page, 'Escape');
-  await expect(globalSearch.input()).toBeHidden();
 };
 
 export const closeTabByName = async (page: any, name: string | RegExp) => {
