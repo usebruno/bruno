@@ -91,7 +91,7 @@ const printRunSummary = (results, { unsupportedCount = 0 } = {}) => {
 
   if (unsupportedCount > 0) {
     const noun = unsupportedCount === 1 ? 'request' : 'requests';
-    console.log(chalk.yellow(`Ignored ${unsupportedCount} ${noun}. ${UNSUPPORTED_REQUESTS_MESSAGE} \n`));
+    console.log(chalk.yellow(`Ignored ${unsupportedCount} ${noun}. ${UNSUPPORTED_REQUESTS_MESSAGE}\n`));
   }
 
   return summary;
