@@ -7,7 +7,6 @@ import Button from 'ui/Button';
 import Checkbox from 'ui/Checkbox';
 import { toPathKey } from 'providers/ReduxStore/slices/open-collection-modal/collection-paths';
 import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
-import ChooseFolderHint from '../ChooseFolderHint';
 import NoMatch from '../NoMatch';
 import CollectionListRow from './CollectionListRow';
 import { tildify } from '../../utils/collection-location';
@@ -200,7 +199,6 @@ const CollectionList = ({
             data-testid={`${testIdPrefix}-choose-folder`}
           >
             Choose folder…
-            <ChooseFolderHint id={`${testIdPrefix}-choose-folder-hint`} />
           </Button>
         )}
       </div>
@@ -227,7 +225,6 @@ const CollectionList = ({
                     data-testid={`${testIdPrefix}-no-match-choose-folder`}
                   >
                     Choose folder…
-                    <ChooseFolderHint id={`${testIdPrefix}-no-match-choose-folder-hint`} />
                   </Button>
                 )}
                 data-testid={`${testIdPrefix}-no-match`}
