@@ -40,7 +40,7 @@ const ScopeTable = ({
           addToScopes={addToScopes}
           revealed={isSecretRevealed(section, row.name)}
           onToggleReveal={() => onToggleSecretReveal(section, row.name)}
-          onOpenObject={() => onOpenObject({ sectionKey: section.key, name: row.name })}
+          onOpenObject={() => onOpenObject({ sectionKey: section.key, uid: row.uid })}
           actions={actions}
         />
       )

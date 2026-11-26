@@ -133,7 +133,7 @@ const VariablesSidebar = ({ collection }) => {
   );
 
   const objectSection = objectSelection ? sections.find((entry) => entry.key === objectSelection.sectionKey) : null;
-  const objectRow = objectSection?.rows.find((row) => row.name === objectSelection.name);
+  const objectRow = objectSection?.rows.find((row) => row.uid === objectSelection.uid);
   const showObjectView = !!objectRow
     && isObjectOrArray(objectRow.value)
     && (!objectRow.secret || isSecretRevealed(objectSection, objectRow.name));
