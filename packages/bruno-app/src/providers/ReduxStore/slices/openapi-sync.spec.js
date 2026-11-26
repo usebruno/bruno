@@ -94,6 +94,21 @@ describe('openapi-sync source approval', () => {
     expect(checkCalls()).toEqual(['mine']);
   });
 
+  it('marks a first failed read so the tab can offer a retry, and keeps an earlier state on later failures', async () => {
+    const shared = collection('shared', 'http://127.0.0.1:4825/');
+    const store = buildStore([shared]);
+    invoke.mockRejectedValueOnce(new Error('read failed'));
+
+    await store.dispatch(loadSyncSourceState(shared));
+    expect(store.getState().openapiSync.sourceStates.shared).toEqual({ status: 'error' });
+
+    sourceStates.shared = { status: 'approved', autoCheck: true, autoCheckInterval: 5 };
+    await store.dispatch(loadSyncSourceState(shared));
+    invoke.mockRejectedValueOnce(new Error('read failed'));
+    await store.dispatch(loadSyncSourceState(shared));
+    expect(store.getState().openapiSync.sourceStates.shared.status).toBe('approved');
+  });
+
   it('starts checking once the user approves, and stores the state after approve and dismiss', async () => {
     const shared = collection('shared', 'http://127.0.0.1:4825/');
     const store = buildStore([shared]);

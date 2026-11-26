@@ -3,8 +3,9 @@ import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { setTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
+import { setTabUiState, loadSyncSourceState } from 'providers/ReduxStore/slices/openapi-sync';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
+import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
 import ConnectSpecForm from './ConnectSpecForm';
@@ -131,7 +132,22 @@ const OpenAPISyncTab = ({ collection }) => {
               />
             )}
 
-            {!isSourceApproved && !needsSourceReview && (
+            {sourceState?.status === 'error' && (
+              <div className="sync-review-empty-state mt-5" data-testid="openapi-sync-source-error">
+                <h4>Couldn’t read the sync source</h4>
+                <Button
+                  color="secondary"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => dispatch(loadSyncSourceState(collection))}
+                  data-testid="openapi-sync-source-retry"
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {!isSourceApproved && !needsSourceReview && sourceState?.status !== 'error' && (
               <div className="sync-review-empty-state mt-5" data-testid="openapi-sync-source-loading">
                 <p>Loading the sync source...</p>
               </div>

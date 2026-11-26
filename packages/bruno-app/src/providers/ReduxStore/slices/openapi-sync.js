@@ -215,11 +215,15 @@ const updateSourceState = (collection, channel, request = {}) => async (dispatch
   return sourceState;
 };
 
-export const loadSyncSourceState = (collection) => async (dispatch) => {
+export const loadSyncSourceState = (collection) => async (dispatch, getState) => {
   try {
     return await dispatch(updateSourceState(collection, 'renderer:get-openapi-sync-source-state'));
   } catch (error) {
     console.error('[OpenAPI Sync] Error reading the sync source state:', error);
+    // Keep a state read earlier; only a first read that fails needs a retry in the tab.
+    if (!getState().openapiSync?.sourceStates?.[collection.uid]) {
+      dispatch(setSourceState({ collectionUid: collection.uid, sourceState: { status: 'error' } }));
+    }
     return null;
   }
 };
