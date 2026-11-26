@@ -22,6 +22,19 @@ const toContext = (scriptType) => (GRPC_SCRIPT_TYPES.includes(scriptType) ? `grp
 
 const rootOf = (path) => path.split('.')[0];
 
+export const IDENTIFIER_CHAR = /[\w$]/;
+
+/**
+ * Whether the `()` ending just before `index` is a zero-argument call of a member that the path
+ * continues from, as `jar()` in `jar().getCookie`. The manifest names members of a call's result
+ * this way, so a path scanned back from a member keeps such calls.
+ * @param {string} line
+ * @param {number} index - The position of the `.` after the call
+ * @returns {boolean}
+ */
+export const isEmptyCallBefore = (line, index) =>
+  line.slice(index - 2, index) === '()' && line[index] === '.' && IDENTIFIER_CHAR.test(line[index - 3] || '');
+
 /**
  * The entries an editor's script can use: those under the requested globals that exist in its script.
  * @param {string[]} showHintsFor

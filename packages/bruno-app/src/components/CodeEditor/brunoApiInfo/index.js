@@ -1,8 +1,7 @@
-import { findApiEntry, renderApiDoc } from 'utils/codemirror/scriptApi';
+import { findApiEntry, isEmptyCallBefore, renderApiDoc, IDENTIFIER_CHAR } from 'utils/codemirror/scriptApi';
 
 const CodeMirror = require('codemirror');
 
-const IDENTIFIER_CHAR = /[\w$]/;
 const PATH_CHAR = /[\w$.]/;
 const NON_CODE_TOKENS = /\b(string|comment)\b/;
 const HOVER_DELAY_MS = 50;
@@ -11,11 +10,13 @@ const EDGE_MARGIN_PX = 15;
 
 /**
  * The dotted member path that ends with the identifier at `ch`, such as `bru.setEnvVar` for a
- * pointer anywhere on `setEnvVar` in `bru.setEnvVar('a', 1)`.
+ * pointer anywhere on `setEnvVar` in `bru.setEnvVar('a', 1)`. Zero-argument calls stay in the path
+ * (`bru.cookies.jar().getCookie`), matching how the manifest names members of a call's result.
  * @param {string} line
  * @param {number} ch
  * @returns {{ path: string, start: number } | null} Null off an identifier, or when the chain starts
- *   from a call or index result (`jar().getCookie`), which no documented path does.
+ *   from a call with arguments or an index result (`get(0).data`, `list[0].name`), which no
+ *   documented path does.
  */
 export const getApiPathAt = (line, ch) => {
   if (!IDENTIFIER_CHAR.test(line[ch] || '')) return null;
@@ -23,7 +24,11 @@ export const getApiPathAt = (line, ch) => {
   let end = ch;
   while (end < line.length && IDENTIFIER_CHAR.test(line[end])) end++;
   let start = ch;
-  while (start > 0 && PATH_CHAR.test(line[start - 1])) start--;
+  while (start > 0) {
+    if (PATH_CHAR.test(line[start - 1])) start--;
+    else if (isEmptyCallBefore(line, start)) start -= 2;
+    else break;
+  }
 
   const path = line.slice(start, end);
   if (path.startsWith('.') || path.includes('..')) return null;

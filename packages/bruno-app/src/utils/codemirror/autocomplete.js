@@ -1,7 +1,7 @@
 import { mockDataFunctions } from '@usebruno/common';
 import { AUTOCOMPLETE_SCOPES, AUTOCOMPLETE_TRIGGER, SCOPE_LABEL } from 'utils/common/constants';
 import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
-import { HINT_ROOTS, getApiEntries, getHintTexts, renderApiDoc } from 'utils/codemirror/scriptApi';
+import { HINT_ROOTS, getApiEntries, getHintTexts, isEmptyCallBefore, renderApiDoc } from 'utils/codemirror/scriptApi';
 
 const CodeMirror = require('codemirror');
 
@@ -325,7 +325,8 @@ const determineWordContext = (word) => {
 };
 
 /**
- * Extract word from current line with boundaries
+ * Extract word from current line with boundaries. Zero-argument calls stay in the word
+ * (`bru.cookies.jar().get`), so members of a call's result complete from its API root.
  * @param {string} currentLine - The current line content
  * @param {number} cursorPosition - Current cursor position
  * @returns {Object|null} Word information or null if no word found
@@ -337,8 +338,10 @@ const extractWordFromLine = (currentLine, cursorPosition) => {
   while (end < currentLine.length && WORD_PATTERN.test(currentLine.charAt(end))) {
     ++end;
   }
-  while (start && WORD_PATTERN.test(currentLine.charAt(start - 1))) {
-    --start;
+  while (start) {
+    if (WORD_PATTERN.test(currentLine.charAt(start - 1))) --start;
+    else if (isEmptyCallBefore(currentLine, start)) start -= 2;
+    else break;
   }
 
   if (start === end) {

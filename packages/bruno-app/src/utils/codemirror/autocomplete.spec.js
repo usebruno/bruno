@@ -963,6 +963,37 @@ describe('Bruno Autocomplete', () => {
           ])
         );
       });
+
+      describe('members of a zero-argument call result', () => {
+        const hintsAt = (line, scriptType) => {
+          mockedCodemirror.getCursor.mockReturnValue({ line: 0, ch: line.length });
+          mockedCodemirror.getLine.mockReturnValue(line);
+          mockedCodemirror.getRange.mockReturnValue(line);
+
+          return getAutoCompleteHints(mockedCodemirror, {}, [], { showHintsFor: ['req', 'res', 'bru'], scriptType });
+        };
+
+        it('offers the members of bru.cookies.jar()', () => {
+          const line = 'const value = bru.cookies.jar().';
+          const result = hintsAt(line, 'pre-request');
+
+          expect(hintTexts(result)).toEqual(expect.arrayContaining(['getCookie(url, name)', 'clear()']));
+          expect(result.from).toEqual({ line: 0, ch: line.length });
+          expect(result.list.find((hint) => hint.text === 'getCookie(url, name)').entry.path).toBe('bru.cookies.jar().getCookie');
+        });
+
+        it('completes a partly typed member of res.getSize()', () => {
+          const line = 'res.getSize().hea';
+          const result = hintsAt(line, 'post-response');
+
+          expect(hintTexts(result)).toEqual(['header']);
+          expect(result.from).toEqual({ line: 0, ch: line.lastIndexOf('.') + 1 });
+        });
+
+        it('offers nothing after a call with arguments', () => {
+          expect(hintsAt('bru.getEnvVar(key).', 'pre-request')).toBeNull();
+        });
+      });
     });
 
     describe('API hint docs', () => {

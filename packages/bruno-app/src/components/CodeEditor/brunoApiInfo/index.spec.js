@@ -25,10 +25,21 @@ describe('brunoApiInfo', () => {
       expect(getApiPathAt(line, line.length)).toBeNull();
     });
 
-    it('finds nothing on a member of a call result', () => {
+    it('reads a member of a zero-argument call result', () => {
       const jarLine = 'bru.cookies.jar().getCookie(url, name)';
 
-      expect(getApiPathAt(jarLine, jarLine.indexOf('getCookie') + 1)).toBeNull();
+      expect(getApiPathAt(jarLine, jarLine.indexOf('getCookie') + 1)).toEqual({ path: 'bru.cookies.jar().getCookie', start: 0 });
+      expect(getApiPathAt(jarLine, jarLine.indexOf('jar') + 1).path).toBe('bru.cookies.jar');
+    });
+
+    it('finds nothing on a member of a call with arguments or an index result', () => {
+      const callLine = 'bru.grpc.request.messages.get(0).data';
+      const indexLine = 'res.body.items[0].name';
+      const chainedLine = 'bru.cookies.jar()().getCookie';
+
+      expect(getApiPathAt(callLine, callLine.indexOf('data'))).toBeNull();
+      expect(getApiPathAt(indexLine, indexLine.indexOf('name'))).toBeNull();
+      expect(getApiPathAt(chainedLine, chainedLine.indexOf('getCookie'))).toBeNull();
     });
   });
 
@@ -134,6 +145,18 @@ describe('brunoApiInfo', () => {
 
       hover({ line: 0, ch: 0, sticky: 'after', xRel: 1 });
       expect(tooltip()).not.toBeNull();
+    });
+
+    it('shows the docs of a member of a documented call result, and nothing for an undocumented one', () => {
+      const text = 'bru.cookies.jar().getCookie(url, name); bru.getEnvVar().length;';
+      editorWith(text);
+      detach = attachApiInfo(cm, { scriptType: 'pre-request' });
+
+      hover({ line: 0, ch: text.indexOf('getCookie') + 1 });
+      expect(tooltip()).not.toBeNull();
+
+      hover({ line: 0, ch: text.indexOf('length') + 1 });
+      expect(tooltip()).toBeNull();
     });
 
     it('shows nothing for a member the editor\'s context does not have', () => {
