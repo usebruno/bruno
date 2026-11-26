@@ -96,6 +96,12 @@ const resolveSourceUrl = (collectionPath, sourceUrl) => {
   return path.resolve(collectionPath, sourceUrl);
 };
 
+const assertAllowedValue = (config, key, allowedValues) => {
+  if (key in config && !allowedValues.includes(config[key])) {
+    throw new Error(`${key} must be one of: ${allowedValues.join(', ')}`);
+  }
+};
+
 /**
  * Get the directory where OpenAPI spec files are stored in AppData.
  */
@@ -1947,13 +1953,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // Resolve to absolute for consistent internal handling (saveBrunoConfig converts back to relative)
       sanitizedConfig.sourceUrl = resolveSourceUrl(collectionPath, sanitizedConfig.sourceUrl);
 
-      if ('authPlacement' in sanitizedConfig && !AUTH_PLACEMENTS.includes(sanitizedConfig.authPlacement)) {
-        throw new Error(`authPlacement must be one of: ${AUTH_PLACEMENTS.join(', ')}`);
-      }
-
-      if ('requestNameSource' in sanitizedConfig && !REQUEST_NAME_SOURCES.includes(sanitizedConfig.requestNameSource)) {
-        throw new Error(`requestNameSource must be one of: ${REQUEST_NAME_SOURCES.join(', ')}`);
-      }
+      assertAllowedValue(sanitizedConfig, 'authPlacement', AUTH_PLACEMENTS);
+      assertAllowedValue(sanitizedConfig, 'requestNameSource', REQUEST_NAME_SOURCES);
 
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];
