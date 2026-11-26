@@ -29,6 +29,7 @@ import { setupAutoComplete } from 'utils/codemirror/autocomplete';
 import { variableNameRegex } from 'utils/common/regex';
 import { SCOPE_LABEL, COPY_SUCCESS_TIMEOUT } from 'utils/common/constants';
 import { SCOPE_ICON } from 'utils/codemirror/scopeIcons';
+import { createCopyButton } from 'utils/codemirror/copyButton';
 import { createAddToScopeSwitcher } from 'utils/codemirror/addToScopeSwitcher';
 import { goToVariableDefinition } from 'utils/codemirror/goToVariableDefinition';
 
@@ -46,21 +47,6 @@ export const setVarInfoSuppressed = (suppressed) => {
     hideActiveVarInfoPopup();
   }
 };
-
-const COPY_ICON_SVG_TEXT = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-    </svg>
-`;
-
-const CHECKMARK_ICON_SVG_TEXT = `
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="20,6 9,17 4,12"></polyline>
-</svg>
-`;
-
-const COPY_SUCCESS_COLOR = '#22c55e';
 
 export { COPY_SUCCESS_TIMEOUT };
 
@@ -170,64 +156,10 @@ const containsSecretVariableReferences = (rawValue, collection, item) => {
   return false;
 };
 
-const getCopyButton = (getVariableValue, onCopyCallback) => {
-  const copyButton = document.createElement('button');
-
-  copyButton.className = 'copy-button';
-  copyButton.setAttribute('data-testid', 'var-info-copy-button');
-  copyButton.innerHTML = COPY_ICON_SVG_TEXT;
-  copyButton.type = 'button';
-
-  let isCopied = false;
-
-  copyButton.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
-
-  copyButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    // Prevent clicking if showing success checkmark
-    if (isCopied) {
-      return;
-    }
-
-    // Resolve the latest value at click time so edits/saves are reflected.
-    const valueToCopy = typeof getVariableValue === 'function' ? getVariableValue() : getVariableValue;
-
-    const valueStr = toDisplayString(valueToCopy, String(valueToCopy));
-
-    navigator.clipboard
-      .writeText(valueStr)
-      .then(() => {
-        isCopied = true;
-        copyButton.innerHTML = CHECKMARK_ICON_SVG_TEXT;
-        copyButton.style.color = COPY_SUCCESS_COLOR;
-        copyButton.style.cursor = 'default';
-        copyButton.classList.add('copy-success');
-
-        setTimeout(() => {
-          isCopied = false;
-          copyButton.innerHTML = COPY_ICON_SVG_TEXT;
-          copyButton.style.color = '#989898';
-          copyButton.style.cursor = 'pointer';
-          copyButton.classList.remove('copy-success');
-        }, COPY_SUCCESS_TIMEOUT);
-
-        // Call callback if provided
-        if (onCopyCallback) {
-          onCopyCallback();
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to copy to clipboard:', err.message);
-      });
-  });
-
-  return copyButton;
-};
+const getCopyButton = (getVariableValue, onCopy) => createCopyButton(() => {
+  const value = getVariableValue();
+  return toDisplayString(value, String(value));
+}, { testId: 'var-info-copy-button', onCopy });
 
 export const renderVarInfo = (token, options) => {
   // Extract variable name and value based on token
@@ -848,7 +780,7 @@ export const renderVarInfo = (token, options) => {
     }
 
     // Copy button (always copy actual value, not masked)
-    const copyButton = getCopyButton(variableValue || '');
+    const copyButton = getCopyButton(() => variableValue || '');
     iconsContainer.appendChild(copyButton);
 
     valueContainer.appendChild(valueDisplay);
