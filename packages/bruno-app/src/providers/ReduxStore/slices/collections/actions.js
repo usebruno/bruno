@@ -2519,14 +2519,14 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
             dispatch(updateCollectionVar({
               collectionUid,
               type: 'request',
-              var: withDataType({ ...variable, value: newValue }, data.dataType)
+              var: { ...variable, value: newValue, dataType: data.dataType }
             }));
           } else {
             // Create new variable in draft with actual values
             dispatch(addCollectionVar({
               collectionUid,
               type: 'request',
-              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
+              var: { name: variableName, value: newValue, enabled: true, dataType: data.dataType }
             }));
           }
 
@@ -2546,7 +2546,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: withDataType({ ...variable, value: newValue }, data.dataType)
+              var: { ...variable, value: newValue, dataType: data.dataType }
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2554,7 +2554,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               folderUid: folder.uid,
               type: 'request',
-              var: withDataType({ name: variableName, value: newValue, enabled: true }, data.dataType)
+              var: { name: variableName, value: newValue, enabled: true, dataType: data.dataType }
             }));
           }
 
@@ -2574,7 +2574,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: withDataType({ ...variable, value: newValue }, data.dataType)
+              var: { ...variable, value: newValue, dataType: data.dataType }
             }));
           } else {
             // Create new variable in draft with actual values
@@ -2582,7 +2582,7 @@ export const updateVariableInScope = (variableName, newValue, scopeInfo, collect
               collectionUid,
               itemUid: item.uid,
               type: 'request',
-              var: withDataType({ name: variableName, value: newValue, local: false, enabled: true }, data.dataType)
+              var: { name: variableName, value: newValue, local: false, enabled: true, dataType: data.dataType }
             }));
           }
 
