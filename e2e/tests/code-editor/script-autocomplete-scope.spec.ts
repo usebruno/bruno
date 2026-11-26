@@ -6,6 +6,7 @@ import {
   createRequest,
   dismissCodeEditorHints,
   focusScriptEditor,
+  openCollectionSettings,
   readCodeEditorHints,
   readScriptEditorContent,
   showRootScriptHints,
@@ -14,6 +15,9 @@ import {
 
 const COLLECTION = 'script-autocomplete-scope';
 const REQUEST = 'ScopedHints';
+const OTHER_EDITORS_COLLECTION = 'script-autocomplete-other-editors';
+const GRPC_REQUEST = 'GrpcHints';
+const COLLECTION_TESTS_COLLECTION = 'script-autocomplete-collection-tests';
 
 test.describe.serial('Script autocomplete scope', () => {
   test.beforeAll(async ({ page, createTmpDir }) => {
@@ -112,6 +116,80 @@ test.describe.serial('Script autocomplete scope', () => {
       await focusScriptEditor(page, 'post-response');
       await typeInScriptEditor(page, 'post-response', 'bru.');
       expect(await readCodeEditorHints(page)).toContain('setEnvVar(key, value)');
+    });
+  });
+});
+
+test.describe.serial('Script autocomplete in gRPC editors', () => {
+  test.beforeAll(async ({ page, createTmpDir }) => {
+    const tmpDir = await createTmpDir('script-autocomplete-other-editors');
+    await createCollection(page, OTHER_EDITORS_COLLECTION, tmpDir);
+    await createRequest(page, GRPC_REQUEST, OTHER_EDITORS_COLLECTION, { url: 'localhost:50051', requestType: 'grpc' });
+  });
+
+  test.afterEach(async ({ page }) => {
+    await dismissCodeEditorHints(page);
+  });
+
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('gRPC Before Call Start offers only bru as a root', async ({ page }) => {
+    await test.step('Request root hints in the Before Call Start editor', async () => {
+      await showRootScriptHints(page, 'before-call-start');
+    });
+
+    await test.step('Only bru is listed', async () => {
+      expect(await readCodeEditorHints(page)).toEqual(['bru']);
+    });
+  });
+
+  test('gRPC Before Call Start suggests the gRPC members of bru', async ({ page }) => {
+    await test.step('Type a bru member access in the Before Call Start editor', async () => {
+      await focusScriptEditor(page, 'before-call-start');
+      await typeInScriptEditor(page, 'before-call-start', 'bru.');
+    });
+
+    await test.step('The gRPC namespace is offered', async () => {
+      expect(await readCodeEditorHints(page)).toContain('grpc');
+    });
+  });
+});
+
+test.describe.serial('Script autocomplete in collection Tests', () => {
+  test.beforeAll(async ({ page, createTmpDir }) => {
+    const tmpDir = await createTmpDir('script-autocomplete-collection-tests');
+    await createCollection(page, COLLECTION_TESTS_COLLECTION, tmpDir);
+    await openCollectionSettings(page, COLLECTION_TESTS_COLLECTION);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await dismissCodeEditorHints(page);
+  });
+
+  test.afterAll(async ({ page }) => {
+    await closeAllCollections(page);
+  });
+
+  test('collection Tests offers bru, req and res as roots', async ({ page }) => {
+    await test.step('Request root hints in the collection Tests editor', async () => {
+      await showRootScriptHints(page, 'collection-tests');
+    });
+
+    await test.step('Every global the tests bind is listed', async () => {
+      expect(await readCodeEditorHints(page)).toEqual(['bru', 'req', 'res']);
+    });
+  });
+
+  test('collection Tests suggests members for res', async ({ page }) => {
+    await test.step('Type a res member access in the collection Tests editor', async () => {
+      await focusScriptEditor(page, 'collection-tests');
+      await typeInScriptEditor(page, 'collection-tests', 'res.');
+    });
+
+    await test.step('Response members are offered', async () => {
+      expect(await readCodeEditorHints(page)).toContain('getBody()');
     });
   });
 });

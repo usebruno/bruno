@@ -6,6 +6,27 @@ export const CHEVRON_ICON_SVG_TEXT = `
 </svg>
 `;
 
+export const EXTERNAL_LINK_ICON_SVG_TEXT = `
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M12 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path>
+  <path d="M11 13l9-9"></path>
+  <path d="M15 4h5v5"></path>
+</svg>
+`;
+
+export const COPY_ICON_SVG_TEXT = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+</svg>
+`;
+
+export const CHECKMARK_ICON_SVG_TEXT = `
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="20,6 9,17 4,12"></polyline>
+</svg>
+`;
+
 // Collection Environment
 export const DATABASE_ICON_SVG_TEXT = `
 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

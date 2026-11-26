@@ -8,17 +8,26 @@ const ts = require('typescript');
  * generate-script-api.js
  *
  * Usage:
- *   node scripts/generate-script-api.js [--check]
+ *   node scripts/generate-script-api.js [--check] [--manifest-out <path> [--manifest-only]]
  *   require('./generate-script-api').generateScriptApi()   (the outputs in memory)
  *
  * Description:
- *   Writes packages/bruno-js/types/script-api.d.ts, the input of the API
- *   reference site. The per-member manifest is only built in memory, for the
- *   parity test (tests/script-api-parity.spec.js).
+ *   Walks the script API outward from the globals declared in
+ *   packages/bruno-js/types/globals.d.ts, reading types and docs from the
+ *   JSDoc on the bruno-js classes, and writes:
+ *   - packages/bruno-js/types/script-api.d.ts: one flattened interface per
+ *     public type, the input of the API reference site
+ *   - the manifest, when --manifest-out is given: one entry per member path,
+ *     for editor autocomplete and hover. Its consumer chooses where it goes.
+ *   Both come from the same walk, so they cannot disagree. The parity test
+ *   (tests/script-api-parity.spec.js) reads the manifest in memory.
  *
  * Options:
- *   --check   Fail instead of writing when the committed script-api.d.ts is
- *             out of date
+ *   --check                 Fail instead of writing when the committed script-api.d.ts
+ *                           is out of date
+ *   --manifest-out <path>   Also write the manifest to <path>, relative to the directory
+ *                           npm was run from (INIT_CWD), or else the current directory
+ *   --manifest-only         Write only the manifest; needs --manifest-out
  */
 
 const JS_PKG = path.resolve(__dirname, '..');
@@ -424,7 +433,7 @@ const createGenerator = (program) => {
       .map((p) => `${p.rest ? '...' : ''}${p.name}${p.optional ? '?' : ''}: ${p.type}`)
       .join(', ');
     const returns = { type: renderType(returnType), description: memberDoc.returns || signatureDoc.returns };
-    return { params, returns, doc: signatureDoc, text: `(${paramList}): ${returns.type}` };
+    return { params, returns, returnType, doc: signatureDoc, text: `(${paramList}): ${returns.type}` };
   };
 
   const hiddenByModifier = (symbol) => (symbol.declarations || []).some(
@@ -692,7 +701,7 @@ const createGenerator = (program) => {
     return out.join('\n').replace(/\n+$/, '\n');
   };
 
-  // ── Rendering: the member manifest (in memory, for the parity test) ──
+  // ── Rendering: the editor manifest ───────────────────────────────────
 
   const intersect = (inherited, own) => (own ? inherited.filter((value) => own.includes(value)) : inherited);
 
@@ -723,6 +732,7 @@ const createGenerator = (program) => {
         for (const signature of member.signatures) {
           entries.push(manifestEntry(memberPath, 'method', member.doc, `${member.name}${signature.text}`, scope, signature));
         }
+        walkReturnedMembers(entries, memberPath, member, scope, ancestors);
         continue;
       }
       entries.push(manifestEntry(memberPath, 'property', member.doc, `${member.name}: ${member.typeText}`, scope, null));
@@ -730,6 +740,18 @@ const createGenerator = (program) => {
       if (target && !ancestors.includes(target)) {
         walkMembers(entries, memberPath, target, scope, [...ancestors, target]);
       }
+    }
+  };
+
+  const walkReturnedMembers = (entries, memberPath, member, scope, ancestors) => {
+    const targets = new Set();
+    for (const signature of member.signatures) {
+      if (signature.params.some((param) => !param.optional && !param.rest)) continue;
+      const target = publicInterfaceOf(signature.returnType);
+      if (target && !ancestors.includes(target)) targets.add(target);
+    }
+    for (const target of targets) {
+      walkMembers(entries, `${memberPath}()`, target, scope, [...ancestors, target]);
     }
   };
 
@@ -794,12 +816,51 @@ const assertDeclarationsCompile = (declarations) => {
 
 const generateScriptApi = () => createGenerator(loadProgram()).generate();
 
+const writeOutputs = (outputs) => {
+  for (const [file, content] of outputs) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, content);
+    console.log(`Wrote ${path.relative(ROOT, file)}`);
+  }
+};
+
+/**
+ * The manifest's output path from `--manifest-out <path>`. npm runs a workspace script from the
+ * workspace's directory, so a relative path is resolved against INIT_CWD, the directory npm was
+ * run from, the same way the caller typed it.
+ * @param {string[]} args
+ * @returns {string | null}
+ */
+const getManifestOut = (args) => {
+  const index = args.indexOf('--manifest-out');
+  if (index === -1) return null;
+  const value = args[index + 1];
+  if (!value || value.startsWith('--')) {
+    throw new Error('--manifest-out needs a path.');
+  }
+  return path.resolve(process.env.INIT_CWD || process.cwd(), value);
+};
+
 const main = () => {
-  const check = process.argv.includes('--check');
-  const { declarations, skipped } = generateScriptApi();
+  const args = process.argv.slice(2);
+  const check = args.includes('--check');
+  const manifestOnly = args.includes('--manifest-only');
+  const manifestOut = getManifestOut(args);
+  if (manifestOnly && !manifestOut) {
+    throw new Error('--manifest-only needs --manifest-out <path>.');
+  }
+
+  const { declarations, manifest, skipped } = generateScriptApi();
   if (skipped.length) {
     console.warn(`Left out ${skipped.length} member(s) with no JSDoc summary (document them, or mark them @internal):\n${skipped.map((where) => `  ${where}`).join('\n')}`);
   }
+
+  const manifestOutputs = manifestOut ? [[manifestOut, JSON.stringify(manifest, null, 2) + '\n']] : [];
+  if (manifestOnly) {
+    writeOutputs(manifestOutputs);
+    return;
+  }
+
   assertDeclarationsCompile(declarations);
 
   if (check) {
@@ -812,12 +873,7 @@ const main = () => {
     return;
   }
 
-  const outputs = [[DTS_OUT, declarations]];
-  for (const [file, content] of outputs) {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, content);
-    console.log(`Wrote ${path.relative(ROOT, file)}`);
-  }
+  writeOutputs([[DTS_OUT, declarations], ...manifestOutputs]);
 };
 
 if (require.main === module) {

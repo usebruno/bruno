@@ -52,6 +52,7 @@ const Tests = ({ collection }) => {
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           showHintsFor={['req', 'res', 'bru']}
+          scriptType="tests"
           initialScroll={testsScroll}
           onScroll={setTestsScroll}
         />
