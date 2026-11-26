@@ -219,26 +219,12 @@ describe('OpenAPI sync source approval', () => {
     expect((await fetchFromSource(specPath)).content).toBe(SPEC);
   });
 
-  describe('on Windows', () => {
-    const platform = process.platform;
-    beforeEach(() => Object.defineProperty(process, 'platform', { value: 'win32' }));
-    afterEach(() => Object.defineProperty(process, 'platform', { value: platform }));
+  it('asks again when only the letter case of a file source changes', () => {
+    writeCollection(collectionPath, { sourceUrl: path.join(workDir, 'spec.json') });
+    approveOpenApiSyncSource({ collectionPath });
 
-    it('keeps a file source approved when only its letter case changes', () => {
-      writeCollection(collectionPath, { sourceUrl: path.join(workDir, 'spec.json') });
-      approveOpenApiSyncSource({ collectionPath });
-
-      writeCollection(collectionPath, { sourceUrl: path.join(workDir, 'SPEC.json') });
-      expect(getOpenApiSyncSourceState({ collectionPath })).toMatchObject({ status: 'approved', source: path.join(workDir, 'SPEC.json') });
-    });
-
-    it('still treats a url with a different letter case as a new source', () => {
-      writeCollection(collectionPath, { sourceUrl });
-      approveOpenApiSyncSource({ collectionPath });
-
-      writeCollection(collectionPath, { sourceUrl: sourceUrl.replace('openapi', 'OpenAPI') });
-      expect(getOpenApiSyncSourceState({ collectionPath })).toMatchObject({ status: 'pending' });
-    });
+    writeCollection(collectionPath, { sourceUrl: path.join(workDir, 'SPEC.json') });
+    expect(getOpenApiSyncSourceState({ collectionPath })).toMatchObject({ status: 'pending' });
   });
 
   it('reports no source for a collection without sync', () => {

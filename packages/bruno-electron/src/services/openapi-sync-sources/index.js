@@ -4,16 +4,8 @@ const { OpenApiSyncSourcesStore, toAutoCheckInterval } = require('../../store/op
 let sourcesStore;
 const getStore = () => sourcesStore || (sourcesStore = new OpenApiSyncSourcesStore());
 
-// Windows file paths are case-insensitive; URLs are compared as written.
-const isSameSource = (a, b) => {
-  if (!a || !b) {
-    return false;
-  }
-  if (process.platform === 'win32' && !/^https?:\/\//i.test(a)) {
-    return a.toLowerCase() === b.toLowerCase();
-  }
-  return a === b;
-};
+// Exact match: a case-sensitive folder can hold spec.json and SPEC.json as different files.
+const isSameSource = (a, b) => Boolean(a) && a === b;
 
 // Synced here before this release: approved once, keeping the auto check settings from the collection file.
 const migrateSyncedSource = ({ collectionPath, sourceKey, syncConfig, syncedSourceKey }) => {
