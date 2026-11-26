@@ -81,4 +81,24 @@ describe('EditorPlainTextCopy', () => {
       expect(text).toContain('- A bullet item');
     });
   });
+
+  describe('raw HTML blocks (read-only)', () => {
+    it('includes the visible text of a raw HTML block between paragraphs', () => {
+      const editor = new Editor({
+        extensions: createExtensions(),
+        content: 'First paragraph.\n\n<div><strong>green apple</strong></div>\n\nLast paragraph.',
+        editable: false
+      });
+      let hasRawBlock = false;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'rawHtmlBlock') hasRawBlock = true;
+      });
+      const { doc } = editor.state;
+      const slice = TextSelection.create(doc, 1, doc.content.size - 1).content();
+      const { text } = editor.view.serializeForClipboard(slice);
+      editor.destroy();
+      expect(hasRawBlock).toBe(true);
+      expect(text).toBe('First paragraph.\n\ngreen apple\n\nLast paragraph.');
+    });
+  });
 });
