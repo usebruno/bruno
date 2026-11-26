@@ -32,10 +32,6 @@ const CollectionListRow = ({
       onMoveFocus(event.key === 'ArrowDown' ? 1 : -1);
       return;
     }
-    if (isOpen && event.key === ' ') {
-      event.preventDefault();
-      return;
-    }
     if (event.target.type !== 'checkbox') {
       return;
     }

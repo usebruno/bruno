@@ -257,16 +257,17 @@ describe('CollectionList', () => {
     expect(openSelectedButton()).toHaveTextContent('Open 2 collections');
   });
 
-  it('leaves Space on the Switch button of an open collection alone, while Enter still switches', async () => {
+  it('switches to an open collection with Space or Enter on its Switch button', async () => {
     const user = userEvent.setup();
     const { onSwitch } = renderList({ openPathKeys: new Set(['/Users/me/work/billing']) });
     within(rowFor('Billing')).getByRole('button', { name: 'Switch to Billing' }).focus();
 
     await user.keyboard(' ');
-    expect(onSwitch).not.toHaveBeenCalled();
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+    expect(onSwitch).toHaveBeenCalledWith('/Users/me/work/billing');
 
     await user.keyboard('{Enter}');
-    expect(onSwitch).toHaveBeenCalledWith('/Users/me/work/billing');
+    expect(onSwitch).toHaveBeenCalledTimes(2);
   });
 
   it('moves focus between rows with the arrow keys and stops at both ends', () => {
