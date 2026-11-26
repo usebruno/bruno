@@ -29,7 +29,20 @@ describe('toApiSpecCollectionData', () => {
 
     const { requests } = toApiSpecCollectionData(collection, []);
 
-    expect(requests.map((item) => item.name)).toEqual(['token', 'login', 'users']);
+    expect(requests.map((item) => item.name)).toEqual(['login', 'token', 'users']);
+  });
+
+  it('orders requests by path, segment by segment, whatever order the collection lists them in', () => {
+    const collection = collectionOf([
+      folder('b', [request('two', 'b', 'two.bru'), request('one', 'b', 'one.bru')]),
+      folder('a', [request('nested', 'a', 'c', 'nested.bru')]),
+      request('Z', 'Z.bru'),
+      request('a-request', 'a.bru')
+    ]);
+
+    const { requests } = toApiSpecCollectionData(collection, []);
+
+    expect(requests.map((item) => item.name)).toEqual(['Z', 'nested', 'a-request', 'one', 'two']);
   });
 
   it('sets depth to the number of path segments below the collection root', () => {
@@ -41,9 +54,9 @@ describe('toApiSpecCollectionData', () => {
     const { requests } = toApiSpecCollectionData(collection, []);
 
     expect(requests.map((item) => [item.name, item.depth])).toEqual([
-      ['users', 1],
       ['login', 2],
-      ['token', 3]
+      ['token', 3],
+      ['users', 1]
     ]);
   });
 
