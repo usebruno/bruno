@@ -18,20 +18,26 @@ const MAC_EXTRA_ROOTS = ['/usr/local', '/Applications'];
 const LINUX_EXTRA_ROOTS = ['/usr/local'];
 const WINDOWS_SYSTEM_FOLDER_VARIABLES = ['SystemRoot', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramData'];
 
-const copiesInsideWiderMounts = (walkableMounts) =>
+const innermostMountOf = (folderPath, mounts) => mounts
+  .filter((mount) => folderPath === mount.path || folderPath.startsWith(`${mount.path.replace(/\/$/, '')}/`))
+  .sort((a, b) => b.path.length - a.path.length)[0];
+
+const showsSameFolder = (copyPath, mount, mounts) => {
+  const coveringMount = innermostMountOf(copyPath, mounts);
+  return coveringMount.device === mount.device
+    && path.posix.join(coveringMount.root, path.posix.relative(coveringMount.path, copyPath)) === mount.root;
+};
+
+const copiesInsideWiderMounts = (walkableMounts, mounts) =>
   walkableMounts.flatMap((mount) => walkableMounts
     .filter((wider) => wider !== mount && wider.device === mount.device)
     .map((wider) => ({ wider, relativeRoot: path.posix.relative(wider.root, mount.root) }))
     .filter(({ relativeRoot }) => relativeRoot !== '' && !relativeRoot.startsWith('..') && !path.posix.isAbsolute(relativeRoot))
     .map(({ wider, relativeRoot }) => path.posix.join(wider.path, relativeRoot))
-    .filter((copyPath) => copyPath !== mount.path));
+    .filter((copyPath) => copyPath !== mount.path && showsSameFolder(copyPath, mount, mounts)));
 
 const volumeOsFolders = (volumeRoots, pathModule) =>
   volumeRoots.flatMap((volumeRoot) => VOLUME_OS_FOLDERS.map((name) => pathModule.join(volumeRoot, name)));
-
-const innermostMountOf = (folderPath, mounts) => mounts
-  .filter((mount) => folderPath === mount.path || folderPath.startsWith(`${mount.path.replace(/\/$/, '')}/`))
-  .sort((a, b) => b.path.length - a.path.length)[0];
 
 const isWalkableRoot = (rootPath, mounts) => {
   const mount = innermostMountOf(rootPath, mounts);
@@ -50,7 +56,7 @@ const planUnixComputer = ({ mounts, systemFolders, extraRoots }) => {
     ],
     mountPrunePaths: [
       ...mounts.filter((mount) => !isWalkableMount(mount)).map((mount) => mount.path),
-      ...copiesInsideWiderMounts(walkableMounts)
+      ...copiesInsideWiderMounts(walkableMounts, mounts)
     ]
   };
 };

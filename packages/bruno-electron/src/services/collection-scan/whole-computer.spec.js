@@ -126,6 +126,23 @@ describe('planWholeComputer', () => {
       });
     });
 
+    it('keeps a folder another disk is mounted on, although a bind mount’s folder would show there', () => {
+      const { mountPrunePaths } = planWholeComputer({
+        platform: 'linux',
+        mounts: [
+          mount('/', 'local', '259:2', '/'),
+          mount('/data', 'local', '8:49', '/'),
+          mount('/srv/team', 'local', '8:49', '/team'),
+          mount('/srv/docs', 'local', '8:49', '/docs'),
+          mount('/data/team', 'local', '8:65', '/')
+        ],
+        env: {}
+      });
+
+      expect(mountPrunePaths).toContain('/data/docs');
+      expect(mountPrunePaths).not.toContain('/data/team');
+    });
+
     it.each([
       ['a network mount', [mount('/', 'local'), mount('/usr/local', 'network')]],
       ['inside a network mount of /usr', [mount('/', 'local'), mount('/usr', 'network')]]
