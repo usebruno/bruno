@@ -34,9 +34,6 @@ const test = base.extend<{ brunoAbcApp: BrunoAbcApp }>({
 });
 
 test.describe('Creating a transient request when the user data path contains "bruno"', () => {
-  let app: ElectronApplication;
-  let page: Page;
-
   test('TC-8686: Creates a transient request from the collection level', { tag: '@sanity' }, async ({
     brunoAbcApp: { app, page },
     collectionFixturePath
@@ -81,7 +78,7 @@ test.describe('Creating a transient request when the user data path contains "br
     const collectionName = 'first-collection-bruno';
     const requestName = 'saved-request-bruno';
     const collectionLocation = await createTmpDir(collectionName);
-    const { sidebar, tabs, toast } = buildCommonLocators(page);
+    const { sidebar, tabs } = buildCommonLocators(page);
     const createCollectionInTransientSaveModal = sidebar.saveRequestModal;
 
     await test.step('Create a transient request from the + icon', async () => {
