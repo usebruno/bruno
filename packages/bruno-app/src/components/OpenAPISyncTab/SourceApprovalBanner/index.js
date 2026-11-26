@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconAlertTriangle, IconShieldLock } from '@tabler/icons';
+import { IconAlertTriangle } from '@tabler/icons';
 import Button from 'ui/Button';
 import Checkbox from 'ui/Checkbox';
 import Select from 'ui/Select';
@@ -25,49 +25,49 @@ const SourceApprovalBanner = ({ sourceState, isBusy, onApprove, onDismiss }) => 
   const isDismissed = sourceState.status === 'dismissed';
 
   return (
-    <StyledWrapper className="flex flex-col gap-3 mt-5 px-4 py-3.5 rounded-lg" role="region" aria-label="Review sync source" data-testid="openapi-sync-source-approval">
-      <div className="flex gap-2.5">
-        <IconShieldLock size={18} className="source-approval-icon shrink-0 mt-px" aria-hidden="true" />
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="source-approval-title font-semibold">
+    <div className="overview-status-banner warning" role="region" aria-label="Review sync source" data-testid="openapi-sync-source-approval">
+      <StyledWrapper className="banner-text">
+        <div className="banner-title-row">
+          <div className="status-dot warning" />
+          <span className="banner-title">
             {isDismissed ? 'Sync is off for this collection' : 'Review this sync source before Bruno uses it'}
-          </div>
-          <div className="source-approval-description">
+          </span>
+        </div>
+        <div className="flex flex-col items-start gap-1.5 mt-1.5 ml-4">
+          <p className="source-approval-description">
             This collection syncs its requests from the source below. Bruno won’t contact it until you approve it on this computer.
-          </div>
-          <code className="source-approval-url self-start max-w-full px-1.5 py-0.5 rounded break-all" data-testid="openapi-sync-source-url">{sourceState.source}</code>
+          </p>
+          <code className="source-approval-url max-w-full px-1.5 py-0.5 rounded break-all" data-testid="openapi-sync-source-url">{sourceState.source}</code>
           {locationWarning && (
             <div className="source-approval-warning flex items-center gap-1.5" data-testid="openapi-sync-source-warning">
               <IconAlertTriangle size={14} aria-hidden="true" />
               <span>{locationWarning} Only approve it if you expected this.</span>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 pl-7">
-        <Checkbox
-          checked={autoCheck}
-          onChange={(event) => setAutoCheck(event.target.checked)}
-          label="Check for updates automatically"
-          data-testid="openapi-sync-source-auto-check"
-        />
-        {autoCheck && (
-          <div className="source-approval-interval flex items-center gap-1.5">
-            <span>every</span>
-            <Select
-              data={INTERVAL_OPTIONS}
-              value={autoCheckInterval}
-              onChange={(value) => value && setAutoCheckInterval(value)}
-              allowDeselect={false}
-              size="sm"
-              aria-label="Automatic check interval"
+          <div className="flex flex-wrap items-center gap-2">
+            <Checkbox
+              checked={autoCheck}
+              onChange={(event) => setAutoCheck(event.target.checked)}
+              label="Check for updates automatically"
+              data-testid="openapi-sync-source-auto-check"
             />
+            {autoCheck && (
+              <div className="source-approval-interval flex items-center gap-1.5">
+                <span>every</span>
+                <Select
+                  data={INTERVAL_OPTIONS}
+                  value={autoCheckInterval}
+                  onChange={(value) => value && setAutoCheckInterval(value)}
+                  allowDeselect={false}
+                  size="sm"
+                  aria-label="Automatic check interval"
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-2">
+        </div>
+      </StyledWrapper>
+      <div className="banner-button-row">
         {!isDismissed && (
           <Button variant="ghost" size="sm" onClick={onDismiss} disabled={isBusy} data-testid="openapi-sync-source-dismiss">
             Dismiss
@@ -82,7 +82,7 @@ const SourceApprovalBanner = ({ sourceState, isBusy, onApprove, onDismiss }) => 
           Approve source
         </Button>
       </div>
-    </StyledWrapper>
+    </div>
   );
 };
 
