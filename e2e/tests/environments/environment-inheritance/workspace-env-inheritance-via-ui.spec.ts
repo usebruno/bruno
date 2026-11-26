@@ -40,8 +40,8 @@ import {
   selectResponsePaneTab,
   sendRequest,
   setCodeMirrorEditorValue,
+  setCodeMirrorValue,
   setEnvironmentInheritance,
-  setEnvironmentVariableValue,
   setRequestUrlAndSave,
   validateRunnerResults,
   type EnvironmentVariable,
@@ -428,22 +428,28 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
       page,
       collectionName,
       await createTmpDir('workspace-inherited-source-guard'),
-      [BASE, DEV]
+      [
+        { ...BASE, variables: { baseOnly: BASE.variables.baseOnly } },
+        { ...DEV, variables: { overridden: DEV.variables.overridden } }
+      ]
     );
     await openEnvironmentInSettings(page, DEV.name, SCOPE);
 
-    await setEnvironmentVariableValue(page, DEV.variables.overridden.name, 'edited_but_unsaved');
+    await environment.variablesTab().click();
+    await searchEnvironmentVariables(page, DEV.variables.overridden.name);
+    await expect(environment.varRowLine(DEV.variables.overridden.name)).toHaveText(DEV.variables.overridden.value);
+    await setCodeMirrorValue(environment.varRowValueEditor(DEV.variables.overridden.name), 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
-    await scrollEnvironmentTableTo(page, environment.inheritedVarRow(BASE.variables.baseOnly.name));
+    await searchEnvironmentVariables(page, BASE.variables.baseOnly.name);
     await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText(DEV.name);
-    await scrollEnvironmentTableTo(page, environment.varRow(DEV.variables.overridden.name));
+    await modal.closeButton().click();
+    await searchEnvironmentVariables(page, DEV.variables.overridden.name);
     await expect(environment.varRowLine(DEV.variables.overridden.name)).toHaveText('edited_but_unsaved');
 
-    await modal.closeButton().click();
     await environment.resetTab().click();
   });
 

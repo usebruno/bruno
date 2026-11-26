@@ -32,8 +32,8 @@ import {
   selectResponsePaneTab,
   sendRequest,
   setCodeMirrorEditorValue,
+  setCodeMirrorValue,
   setEnvironmentInheritance,
-  setEnvironmentVariableValue,
   setRequestUrlAndSave,
   validateRunnerResults,
   type EnvironmentVariable,
@@ -392,22 +392,26 @@ test.describe('Collection environment inheritance, authored in the app', () => {
     const { environment, modal } = buildCommonLocators(page);
 
     await createCollectionWithEnvironments(page, collectionName, await createTmpDir('inherited-source-guard'), [
-      BASE,
-      DEV
+      { ...BASE, variables: { baseOnly: BASE.variables.baseOnly } },
+      { ...DEV, variables: { devOnly: DEV.variables.devOnly } }
     ]);
     await openEnvironmentInSettings(page, DEV.name);
 
-    await setEnvironmentVariableValue(page, DEV.variables.devOnly.name, 'edited_but_unsaved');
+    await environment.variablesTab().click();
+    await searchEnvironmentVariables(page, DEV.variables.devOnly.name);
+    await expect(environment.varRowLine(DEV.variables.devOnly.name)).toHaveText(DEV.variables.devOnly.value);
+    await setCodeMirrorValue(environment.varRowValueEditor(DEV.variables.devOnly.name), 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
-    await scrollEnvironmentTableTo(page, environment.inheritedVarRow(BASE.variables.baseOnly.name));
+    await searchEnvironmentVariables(page, BASE.variables.baseOnly.name);
     await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText(DEV.name);
+    await modal.closeButton().click();
+    await searchEnvironmentVariables(page, DEV.variables.devOnly.name);
     await expect(environment.varRowLine(DEV.variables.devOnly.name)).toHaveText('edited_but_unsaved');
 
-    await modal.closeButton().click();
     await environment.resetTab().click();
     await closeEnvironmentPanel(page);
   });
