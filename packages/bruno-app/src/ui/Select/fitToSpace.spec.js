@@ -69,13 +69,13 @@ describe('fitToSpace modifier', () => {
     expect(state.rects.popper.height).toBe(90);
   });
 
-  it('measures the space below the trigger against the whole window', () => {
+  it('measures the space below the trigger against its clipping parents', () => {
     const { state } = buildState({ offset: [0, 10] });
     spaceBelow(260);
 
     run(state);
 
-    expect(detectOverflow).toHaveBeenCalledWith(state, { boundary: document.documentElement, elementContext: 'reference' });
+    expect(detectOverflow).toHaveBeenCalledWith(state, { elementContext: 'reference' });
   });
 
   it('disables flip', () => {

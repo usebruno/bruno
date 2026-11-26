@@ -19,17 +19,17 @@ jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
   openMultipleCollections: jest.fn()
 }));
 
-const createStore = () =>
+const createStore = ({ gitVersion = '2.40.0' } = {}) =>
   configureStore({
     reducer: {
-      app: () => ({ gitVersion: '2.40.0', gitOperationProgress: {}, preferences: {} }),
+      app: () => ({ gitVersion, gitOperationProgress: {}, preferences: {} }),
       workspaces: () => ({ workspaces: [], activeWorkspaceUid: null })
     }
   });
 
-const renderFlow = (props = {}) =>
+const renderFlow = (props = {}, store = createStore()) =>
   render(
-    <Provider store={createStore()}>
+    <Provider store={store}>
       <ThemeProvider theme={themes.light}>
         <CloneGitRepository onClose={jest.fn()} onFinish={jest.fn()} {...props} />
       </ThemeProvider>
@@ -49,20 +49,29 @@ describe('CloneGitRepository variants', () => {
     expect(screen.getByTestId('clone-git-inline-layout')).toBeInTheDocument();
   });
 
-  it('prefills an editable url from initialUrl', async () => {
-    renderFlow({ variant: 'inline', initialUrl: 'https://gitlab.com/acme/api.git' });
-    await act(async () => {});
-    const input = screen.getByLabelText('Repository URL');
-    expect(input).toHaveValue('https://gitlab.com/acme/api.git');
-    expect(input).not.toHaveAttribute('readonly');
+  describe('when git is not installed', () => {
+    it('says so inside the page in the inline variant, without opening a modal', () => {
+      const onClose = jest.fn();
+      renderFlow({ variant: 'inline', onClose }, createStore({ gitVersion: null }));
+
+      expect(screen.getByTestId('git-not-found-message')).toHaveTextContent('Git was not detected on your system');
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(screen.queryByText('Git Not Found')).toBeNull();
+      expect(screen.queryByLabelText('Repository URL')).toBeNull();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('keeps the Git Not Found modal in the modal variant', () => {
+      renderFlow({}, createStore({ gitVersion: null }));
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Git Not Found')).toBeInTheDocument();
+      expect(screen.getByTestId('git-not-found-message')).toHaveTextContent('Git was not detected on your system');
+    });
   });
 
-  it('keeps the url locked when collectionRepositoryUrl is passed alongside initialUrl', async () => {
-    renderFlow({
-      variant: 'inline',
-      initialUrl: 'https://gitlab.com/acme/other.git',
-      collectionRepositoryUrl: 'https://github.com/acme/locked.git'
-    });
+  it('shows the locked repository URL instead of a URL field', async () => {
+    renderFlow({ variant: 'inline', collectionRepositoryUrl: 'https://github.com/acme/locked.git' });
     await act(async () => {});
     expect(screen.queryByLabelText('Repository URL')).toBeNull();
     expect(screen.getByText('https://github.com/acme/locked.git')).toBeInTheDocument();

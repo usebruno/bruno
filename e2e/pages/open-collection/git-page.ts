@@ -1,9 +1,10 @@
 import { Locator, Page, test } from '../../playwright';
+import { buildOpenCollectionModalLocators } from './modal';
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const buildGitPageLocators = (page: Page) => {
-  const panel = (): Locator => page.getByTestId('open-collection-git-panel-git-url');
+  const panel = (): Locator => page.getByTestId('open-collection-git-panel');
   const collectionList = (): Locator => panel().getByTestId('selection-list');
   const collectionRows = (): Locator => collectionList().getByRole('listitem');
   const skippedWarning = (): Locator => panel().getByTestId('skipped-paths-warning');
@@ -15,7 +16,7 @@ export const buildGitPageLocators = (page: Page) => {
     urlError: (): Locator => panel().getByTestId('clone-git-repository-url-error'),
     locationInput: (): Locator => panel().getByLabel('Clone to location', { exact: true }),
     branchSelect: (): Locator => panel().getByTestId('clone-git-repository-branch-select'),
-    branchList: (): Locator => page.getByTestId('clone-git-repository-branch-select-listbox'),
+    branchList: (): Locator => panel().getByTestId('clone-git-repository-branch-select-listbox'),
     inlineBody: (): Locator => panel().getByTestId('clone-git-inline-body'),
     inlineFooter: (): Locator => panel().getByTestId('clone-git-inline-footer'),
     confirmButton: (): Locator => panel().getByTestId('clone-git-inline-confirm'),
@@ -61,12 +62,12 @@ export const getBranchListPlacement = async (page: Page) => {
   const gitPage = buildGitPageLocators(page);
   const trigger = await gitPage.branchSelect().boundingBox();
   const list = await gitPage.branchList().boundingBox();
-  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const dialog = await buildOpenCollectionModalLocators(page).root().boundingBox();
   return {
     triggerBottom: trigger.y + trigger.height,
     listTop: list.y,
     listBottom: list.y + list.height,
-    viewportHeight
+    dialogBottom: dialog.y + dialog.height
   };
 };
 

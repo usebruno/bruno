@@ -20,13 +20,14 @@ const lastDropdownProps = () => Dropdown.mock.calls[Dropdown.mock.calls.length -
 describe('Select popper options', () => {
   beforeEach(() => Dropdown.mockClear());
 
-  it('registers only the sameWidth modifier without fitToSpace', () => {
+  it('registers only the sameWidth modifier and keeps the default strategy without fitToSpace', () => {
     renderSelect();
 
     expect(lastDropdownProps().popperOptions.modifiers.map((modifier) => modifier.name)).toEqual(['sameWidth']);
+    expect(lastDropdownProps().popperOptions.strategy).toBeUndefined();
   });
 
-  it('adds the fit modifiers with fitToSpace', () => {
+  it('adds the fit modifiers and the fixed strategy with fitToSpace', () => {
     renderSelect({ fitToSpace: true });
 
     expect(lastDropdownProps().popperOptions.modifiers.map((modifier) => modifier.name)).toEqual([
@@ -34,13 +35,13 @@ describe('Select popper options', () => {
       'fitToSpace',
       'flip'
     ]);
+    expect(lastDropdownProps().popperOptions.strategy).toBe('fixed');
   });
 
-  it('forwards appendTo to the dropdown', () => {
-    const appendTo = jest.fn();
-    renderSelect({ appendTo });
+  it('keeps the dropdown attached next to the trigger', () => {
+    renderSelect({ fitToSpace: true });
 
-    expect(lastDropdownProps().appendTo).toBe(appendTo);
+    expect(lastDropdownProps().appendTo).toBeUndefined();
   });
 
   it('gives the listbox a test id built from the select test id', () => {

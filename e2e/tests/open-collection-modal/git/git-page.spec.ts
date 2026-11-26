@@ -357,7 +357,7 @@ test.describe('Git page', () => {
     }
   });
 
-  test('opens the branch list below its trigger in a short window', async ({ launchElectronApp, createTmpDir }) => {
+  test('opens the branch list below its trigger and inside the modal in a short window', async ({ launchElectronApp, createTmpDir }) => {
     const repoPath = path.join(await createTmpDir('many-branches-repo'), 'many-branches');
     await createGitRepository(repoPath, [validCollectionEntry('only')]);
     for (let index = 1; index <= BRANCH_COUNT; index++) {
@@ -375,10 +375,10 @@ test.describe('Git page', () => {
       await expect(gitPage.branchSelect()).toContainText('main');
 
       await openBranchList(page);
-      const { triggerBottom, listTop, listBottom, viewportHeight } = await getBranchListPlacement(page);
+      const { triggerBottom, listTop, listBottom, dialogBottom } = await getBranchListPlacement(page);
 
       expect(listTop).toBeGreaterThanOrEqual(triggerBottom);
-      expect(listBottom).toBeLessThanOrEqual(viewportHeight);
+      expect(listBottom).toBeLessThanOrEqual(dialogBottom);
       await expect.poll(() => isBranchListScrollable(page)).toBe(true);
     } finally {
       await closeElectronApp(app);
@@ -399,6 +399,102 @@ test.describe('Git page', () => {
       await openGitPage(page);
 
       await gitPage.urlInput().fill(server.url);
+
+      await expect(gitPage.branchSelect()).toContainText('main');
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
+  test('hides an open branch list when another page of the modal opens', async ({ launchElectronApp, createTmpDir }) => {
+    const repoPath = path.join(await createTmpDir('branch-list-page-repo'), 'branch-list-page');
+    await createGitRepository(repoPath, [validCollectionEntry('only')]);
+    runGit(repoPath, ['branch', 'feature-a']);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
+    const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      const modal = buildOpenCollectionModalLocators(page);
+      await openGitPage(page);
+      await gitPage.urlInput().fill(server.url);
+      await expect(gitPage.branchSelect()).toContainText('main');
+
+      await openBranchList(page);
+      await expect(gitPage.branchList()).toBeVisible();
+
+      await modal.menuItem('recents').click();
+
+      await expect(modal.page('recents')).toBeVisible();
+      await expect(gitPage.branchList()).toBeHidden();
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
+  test('clones when Enter is pressed in the URL field', async ({ launchElectronApp, createTmpDir }) => {
+    const repoPath = path.join(await createTmpDir('enter-clone-repo'), 'enter-clone');
+    await createGitRepository(repoPath, [validCollectionEntry('only')]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
+    const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      await openGitPage(page);
+
+      await gitPage.urlInput().fill(server.url);
+      await gitPage.urlInput().press('Enter');
+
+      await expect(gitPage.collectionRow('only')).toBeVisible();
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
+  test('loads branches for and clones a URL pasted with spaces around it', async ({ launchElectronApp, createTmpDir }) => {
+    const repoPath = path.join(await createTmpDir('padded-url-repo'), 'padded-url');
+    await createGitRepository(repoPath, [validCollectionEntry('only')]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
+    const { app, cloneTarget } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      await openGitPage(page);
+
+      await test.step('Branches load for the URL with spaces', async () => {
+        await gitPage.urlInput().fill(`  ${server.url}  `);
+        await expect(gitPage.branchSelect()).toContainText('main');
+      });
+
+      await test.step('The URL clones', async () => {
+        await gitPage.confirmButton().click();
+        await expect(gitPage.collectionRow('only')).toBeVisible();
+        expect(fs.existsSync(path.join(cloneTarget, server.cloneFolderName, 'only', 'bruno.json'))).toBe(true);
+      });
+    } finally {
+      await closeElectronApp(app);
+      server.close();
+    }
+  });
+
+  test('loads branches for a URL with only a username', async ({ launchElectronApp, createTmpDir }) => {
+    const repoPath = path.join(await createTmpDir('username-url-repo'), 'username-url');
+    await createGitRepository(repoPath, [validCollectionEntry('only')]);
+    const server = await serveGitRepository({ sourceRepoPath: repoPath, servedRoot: await createTmpDir('git-http-root') });
+    const { app } = await launchWithCloneTarget(launchElectronApp, createTmpDir);
+
+    try {
+      const page = await waitForReadyPage(app);
+      const gitPage = buildGitPageLocators(page);
+      await openGitPage(page);
+
+      await gitPage.urlInput().fill(server.url.replace('http://', 'http://jdoe@'));
 
       await expect(gitPage.branchSelect()).toContainText('main');
     } finally {

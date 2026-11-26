@@ -760,7 +760,7 @@ const listBranchesForRemoteUrl = async ({ url }) => {
       baseDir: os.tmpdir(),
       timeout: { block: REMOTE_BRANCH_LISTING_TIMEOUT_MS, stdOut: false, stdErr: false }
     })
-      .env({ ...process.env, GIT_TERMINAL_PROMPT: '0' })
+      .env({ ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' })
       .listRemote(['--symref', url, 'HEAD', 'refs/heads/*']);
 
     return parseRemoteBranches(output);

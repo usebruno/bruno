@@ -4,11 +4,12 @@ import { fetchBranchesForRepositoryUrl } from 'providers/ReduxStore/slices/colle
 import useDebounce from 'hooks/useDebounce';
 
 export const EMPTY_BRANCH_LISTING = { branches: [], defaultBranch: '', loading: false, failed: false };
+const LOADING_BRANCH_LISTING = { ...EMPTY_BRANCH_LISTING, loading: true };
 
 const useBranchListing = (url, { canList }) => {
   const dispatch = useDispatch();
   const debouncedUrl = useDebounce(url, 500);
-  const [listing, setListing] = useState(EMPTY_BRANCH_LISTING);
+  const [listing, setListing] = useState({ url: null, value: EMPTY_BRANCH_LISTING });
   const latestRequestRef = useRef(0);
 
   useEffect(() => {
@@ -17,25 +18,25 @@ const useBranchListing = (url, { canList }) => {
     }
     const requestId = latestRequestRef.current + 1;
     latestRequestRef.current = requestId;
-    setListing({ ...EMPTY_BRANCH_LISTING, loading: true });
+    setListing({ url: debouncedUrl, value: LOADING_BRANCH_LISTING });
     dispatch(fetchBranchesForRepositoryUrl(debouncedUrl))
       .then(({ branches, defaultBranch }) => {
         if (latestRequestRef.current === requestId) {
-          setListing({ branches, defaultBranch: defaultBranch || '', loading: false, failed: false });
+          setListing({ url: debouncedUrl, value: { branches, defaultBranch: defaultBranch || '', loading: false, failed: false } });
         }
       })
       .catch((error) => {
         if (latestRequestRef.current === requestId) {
           console.error(error);
-          setListing({ ...EMPTY_BRANCH_LISTING, failed: true });
+          setListing({ url: debouncedUrl, value: { ...EMPTY_BRANCH_LISTING, failed: true } });
         }
       });
   }, [debouncedUrl]);
 
-  if (url !== debouncedUrl) {
-    return { ...EMPTY_BRANCH_LISTING, loading: canList(url) };
+  if (!canList(url)) {
+    return EMPTY_BRANCH_LISTING;
   }
-  return canList(debouncedUrl) ? listing : EMPTY_BRANCH_LISTING;
+  return url === debouncedUrl && listing.url === url ? listing.value : LOADING_BRANCH_LISTING;
 };
 
 export default useBranchListing;

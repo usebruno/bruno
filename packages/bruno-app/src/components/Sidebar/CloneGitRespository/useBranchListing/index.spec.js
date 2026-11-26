@@ -77,6 +77,30 @@ describe('useBranchListing', () => {
     expect(fetchBranchesForRepositoryUrl).toHaveBeenCalledTimes(1);
   });
 
+  it('never returns the previous URL\'s branches for a new URL, even on the render where the debounce catches up', async () => {
+    const store = configureStore({ reducer: { app: () => ({}) } });
+    const wrapper = ({ children }) => <Provider store={store}>{children}</Provider>;
+    const renders = [];
+    const { rerender } = renderHook(({ url }) => {
+      const listing = useBranchListing(url, { canList: () => true });
+      renders.push({ url, listing });
+      return listing;
+    }, { wrapper, initialProps: { url: API_URL } });
+    await settle();
+    await act(async () => {
+      replies[API_URL].resolve({ branches: ['main'], defaultBranch: 'main' });
+    });
+
+    rerender({ url: WEB_URL });
+    await settle();
+
+    const webRenders = renders.filter((entry) => entry.url === WEB_URL);
+    expect(webRenders.length).toBeGreaterThan(0);
+    webRenders.forEach(({ listing }) => {
+      expect(listing).toEqual({ ...EMPTY_BRANCH_LISTING, loading: true });
+    });
+  });
+
   it('drops an older reply for the same URL after the URL changed away and back', async () => {
     const calls = [];
     fetchBranchesForRepositoryUrl.mockImplementation((url) => () => {

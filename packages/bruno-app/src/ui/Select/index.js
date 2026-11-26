@@ -60,8 +60,7 @@ const sameWidthModifier = {
  * @param {string} props.label - Label text displayed above the select
  * @param {string} props.description - Description text displayed below the label
  * @param {string} props.className - Additional CSS class for the wrapper
- * @param {boolean} props.fitToSpace - Opens the dropdown downward and caps its height to the window space below the trigger (default: false)
- * @param {Element|function} props.appendTo - Where the dropdown is attached; a Tippy appendTo value (default: the trigger's parent)
+ * @param {boolean} props.fitToSpace - Opens the dropdown downward, past scrolling parents, and caps its height to the space left below the trigger in its clipping container (default: false)
  */
 const Select = ({
   data,
@@ -84,7 +83,6 @@ const Select = ({
   required = false,
   size = 'md',
   className,
-  appendTo,
   fitToSpace = false,
   'data-testid': testId
 }) => {
@@ -369,9 +367,10 @@ const Select = ({
           placement="bottom-start"
           visible={isOpen}
           onClickOutside={handleClickOutside}
-          popperOptions={{ modifiers: fitToSpace ? [sameWidthModifier, ...createFitToSpaceModifiers(maxDropdownHeight)] : [sameWidthModifier] }}
+          popperOptions={fitToSpace
+            ? { strategy: 'fixed', modifiers: [sameWidthModifier, ...createFitToSpaceModifiers(maxDropdownHeight)] }
+            : { modifiers: [sameWidthModifier] }}
           maxWidth="none"
-          appendTo={appendTo}
         >
           <div
             ref={menuRef}

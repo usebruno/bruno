@@ -27,6 +27,6 @@ export const createGitRepository = async (repoPath: string, entries: GitReposito
       await fs.promises.writeFile(path.join(folderPath, 'opencollection.yml'), openCollectionYml);
     }
   }
-  runGit(repoPath, ['add', '-A']);
-  runGit(repoPath, ['-c', 'user.name=bruno', '-c', 'user.email=bruno@example.com', 'commit', '-q', '-m', 'init']);
+  runGit(repoPath, ['add', '-A', '--force']);
+  runGit(repoPath, ['-c', 'user.name=bruno', '-c', 'user.email=bruno@example.com', '-c', 'commit.gpgsign=false', 'commit', '-q', '-m', 'init']);
 };

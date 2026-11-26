@@ -21,7 +21,7 @@ export const createFitToSpaceModifiers = (maxDropdownHeight) => [
     phase: 'main',
     requiresIfExists: ['offset'],
     fn: ({ state }) => {
-      const overflow = detectOverflow(state, { boundary: document.documentElement, elementContext: 'reference' });
+      const overflow = detectOverflow(state, { elementContext: 'reference' });
       const listbox = state.elements.popper.querySelector('[role="listbox"]');
       if (!listbox) {
         return;

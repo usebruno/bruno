@@ -10,7 +10,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
 import path from 'utils/common/path';
-import { cloneGitRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory, cloneGitRepository, openMultipleCollections } from 'providers/ReduxStore/slices/collections/actions';
 import CloneGitRepository from './index';
 
 const mockListBranches = (url) => window.ipcRenderer.invoke('renderer:list-remote-branches-for-url', { url });
@@ -48,16 +48,21 @@ const createStore = () =>
     }
   });
 
-const renderFlow = (props = {}, store = createStore()) =>
-  render(
+const typeUrl = (url) => fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: url } });
+
+const renderFlow = ({ url, ...props } = {}, store = createStore()) => {
+  const view = render(
     <Provider store={store}>
       <ThemeProvider theme={themes.light}>
         <CloneGitRepository onClose={jest.fn()} onFinish={jest.fn()} variant="inline" {...props} />
       </ThemeProvider>
     </Provider>
   );
-
-const typeUrl = (url) => fireEvent.change(screen.getByLabelText('Repository URL'), { target: { value: url } });
+  if (url) {
+    typeUrl(url);
+  }
+  return view;
+};
 
 const advance = (ms) => act(async () => {
   jest.advanceTimersByTime(ms);
@@ -190,12 +195,221 @@ describe('CloneGitRepository branch loading', () => {
     expect(branchListCalls()).toHaveLength(1);
   });
 
-  it('loads branches for a URL passed through initialUrl', async () => {
-    renderFlow({ initialUrl: API_URL });
+  it('lists branches for a URL with only a username, like the ones Bitbucket and Azure DevOps give', async () => {
+    const USERNAME_URL = 'https://jdoe@bitbucket.org/ws/repo.git';
+    branchResponses[USERNAME_URL] = Promise.resolve({ branches: ['main'], defaultBranch: 'main' });
+    renderFlow({ url: USERNAME_URL });
+
     await advance(500);
 
-    expect(branchListCalls()).toHaveLength(1);
-    expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:list-remote-branches-for-url', { url: API_URL });
+    expect(branchListCalls()).toEqual([['renderer:list-remote-branches-for-url', { url: USERNAME_URL }]]);
+    expect(screen.getByTestId('clone-git-repository-branch-select')).toHaveTextContent('main');
+  });
+
+  describe('a URL with spaces around it', () => {
+    const PADDED_URL = `  ${API_URL}  `;
+
+    it('lists the branches of the trimmed URL', async () => {
+      renderFlow({ url: PADDED_URL });
+
+      await advance(500);
+
+      expect(branchListCalls()).toEqual([['renderer:list-remote-branches-for-url', { url: API_URL }]]);
+    });
+
+    it('clones the trimmed URL', async () => {
+      cloneGitRepository.mockImplementation(() => () => Promise.resolve());
+      renderFlow({ url: PADDED_URL });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+      });
+
+      expect(cloneGitRepository).toHaveBeenCalledWith(expect.objectContaining({ url: API_URL, path: '/home/user/collections/api' }));
+    });
+
+    it('says a URL of only spaces is required', async () => {
+      renderFlow({ url: '   ' });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+      });
+
+      expect(screen.getByTestId('clone-git-repository-url-error')).toHaveTextContent('Repository URL is required');
+      expect(cloneGitRepository).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a paste into the host of the URL', () => {
+    const pasteUrl = (input, pastedText, selectionStart) => {
+      input.setSelectionRange(selectionStart, selectionStart);
+      fireEvent.paste(input, { clipboardData: { getData: () => pastedText } });
+      fireEvent.change(input, { target: { value: `${input.value.slice(0, selectionStart)}${pastedText}${input.value.slice(selectionStart)}` } });
+    };
+
+    it('does not list branches when a token is pasted before the host and the @ is not typed yet', async () => {
+      renderFlow({ url: API_URL });
+      await advance(500);
+      const input = screen.getByLabelText('Repository URL');
+
+      pasteUrl(input, 'ghp_abcdefghijklmnop1234', 'https://'.length);
+      await advance(1000);
+
+      expect(input).toHaveValue('https://ghp_abcdefghijklmnop1234github.com/acme/api.git');
+      expect(branchListCalls()).toEqual([['renderer:list-remote-branches-for-url', { url: API_URL }]]);
+    });
+
+    it('does not list branches once the @ is typed after the pasted token', async () => {
+      renderFlow({ url: API_URL });
+      await advance(500);
+      const input = screen.getByLabelText('Repository URL');
+
+      pasteUrl(input, 'ghp_abcdefghijklmnop1234', 'https://'.length);
+      typeUrl('https://ghp_abcdefghijklmnop1234@github.com/acme/api.git');
+      await advance(1000);
+
+      expect(branchListCalls()).toHaveLength(1);
+    });
+
+    it('lists branches for a whole URL pasted into the field', async () => {
+      renderFlow();
+      const input = screen.getByLabelText('Repository URL');
+
+      pasteUrl(input, OTHER_URL, 0);
+      await advance(500);
+
+      expect(branchListCalls()).toEqual([['renderer:list-remote-branches-for-url', { url: OTHER_URL }]]);
+    });
+
+    it('lists branches again after the next edit', async () => {
+      renderFlow({ url: API_URL });
+      await advance(500);
+      const input = screen.getByLabelText('Repository URL');
+
+      pasteUrl(input, 'git.', 'https://'.length);
+      await advance(1000);
+      expect(branchListCalls()).toHaveLength(1);
+
+      typeUrl('https://git.github.com/acme/api');
+      await advance(500);
+
+      expect(branchListCalls()).toHaveLength(2);
+    });
+  });
+
+  it('clears the URL error as soon as a valid URL is pasted after a failed Clone press', async () => {
+    renderFlow();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+    });
+    typeUrl('not a url');
+    await act(async () => {});
+    expect(screen.getByTestId('clone-git-repository-url-error')).toHaveTextContent('Please enter a valid git repository URL');
+
+    typeUrl(API_URL);
+    await act(async () => {});
+
+    expect(screen.queryByTestId('clone-git-repository-url-error')).toBeNull();
+  });
+
+  describe('Enter in the inline form', () => {
+    it('clones from the URL field', async () => {
+      cloneGitRepository.mockImplementation(() => () => Promise.resolve());
+      renderFlow({ url: API_URL });
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByLabelText('Repository URL'), { key: 'Enter' });
+      });
+
+      expect(cloneGitRepository).toHaveBeenCalledTimes(1);
+      expect(cloneGitRepository).toHaveBeenCalledWith(expect.objectContaining({ url: API_URL }));
+    });
+
+    it('does not clone with a modifier key held', async () => {
+      renderFlow({ url: API_URL });
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByLabelText('Repository URL'), { key: 'Enter', shiftKey: true });
+      });
+
+      expect(cloneGitRepository).not.toHaveBeenCalled();
+    });
+
+    it('picks a branch instead of cloning while the branch list is open', async () => {
+      branchResponses[API_URL] = Promise.resolve({ branches: ['main', 'dev'], defaultBranch: 'main' });
+      renderFlow({ url: API_URL });
+      await advance(500);
+      fireEvent.click(screen.getByTestId('clone-git-repository-branch-select'));
+      await act(async () => {});
+      const search = screen.getByRole('listbox').closest('.branch-select').querySelector('input');
+
+      await act(async () => {
+        fireEvent.keyDown(search, { key: 'ArrowDown' });
+        fireEvent.keyDown(search, { key: 'Enter' });
+      });
+
+      expect(cloneGitRepository).not.toHaveBeenCalled();
+    });
+
+    it('shows the URL error for an invalid URL', async () => {
+      renderFlow({ url: 'not a url' });
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByLabelText('Repository URL'), { key: 'Enter' });
+      });
+
+      expect(screen.getByTestId('clone-git-repository-url-error')).toHaveTextContent('Please enter a valid git repository URL');
+      expect(cloneGitRepository).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('clone location', () => {
+    it('keeps a folder picked with Browse when the default location changes', async () => {
+      browseDirectory.mockImplementation(() => () => Promise.resolve('/home/user/picked'));
+      const store = createStore();
+      renderFlow({}, store);
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-repository-browse'));
+      });
+      act(() => {
+        store.dispatch({ type: SET_DEFAULT_LOCATION, payload: '/home/user/elsewhere' });
+      });
+
+      expect(screen.getByLabelText('Clone to location')).toHaveValue('/home/user/picked');
+    });
+
+    it('clones into a folder picked with Browse', async () => {
+      browseDirectory.mockImplementation(() => () => Promise.resolve('/home/user/picked'));
+      cloneGitRepository.mockImplementation(() => () => Promise.resolve());
+      renderFlow({ url: API_URL });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-repository-browse'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+      });
+
+      expect(cloneGitRepository).toHaveBeenCalledWith(expect.objectContaining({ path: '/home/user/picked/api' }));
+    });
+
+    it('says the location is required when Browse fails and clears it', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      browseDirectory.mockImplementation(() => () => Promise.reject(new Error('cancelled')));
+      renderFlow({ url: API_URL });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-repository-browse'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
+      });
+
+      expect(screen.getByLabelText('Clone to location')).toHaveValue('');
+      expect(screen.getByText('Location is required')).toBeInTheDocument();
+      expect(cloneGitRepository).not.toHaveBeenCalled();
+    });
   });
 
   it('ignores a branch list that arrives for an older URL', async () => {
@@ -349,7 +563,7 @@ describe('CloneGitRepository branch loading', () => {
       { name: 'Orders API', path: '/home/user/collections/api/orders' },
       { name: 'Billing API', path: '/home/user/collections/api/billing' }
     ];
-    renderFlow({ initialUrl: API_URL });
+    renderFlow({ url: API_URL });
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
@@ -369,7 +583,7 @@ describe('CloneGitRepository branch loading', () => {
     const clone = deferred();
     cloneGitRepository.mockImplementation(() => () => clone.promise);
     collectionSearchResult.collections = [{ name: 'Orders API', path: '/home/user/collections/api/orders' }];
-    renderFlow({ initialUrl: API_URL });
+    renderFlow({ url: API_URL });
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('clone-git-inline-confirm'));
@@ -395,7 +609,7 @@ describe('CloneGitRepository branch loading', () => {
     };
 
     it('lets the inline variant fill the page height', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
 
       const list = await cloneAndScan(() => screen.getByTestId('clone-git-inline-confirm'));
 
@@ -403,7 +617,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('keeps the fixed list height in the modal variant', async () => {
-      renderFlow({ variant: 'modal', initialUrl: API_URL });
+      renderFlow({ variant: 'modal', url: API_URL });
 
       const list = await cloneAndScan(() => screen.getByRole('button', { name: 'Clone' }));
 
@@ -411,7 +625,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('lets the inline content and the scan result fill the page height', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
 
       await cloneAndScan(() => screen.getByTestId('clone-git-inline-confirm'));
 
@@ -420,7 +634,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('does not stretch the content or the scan result in the modal variant', async () => {
-      renderFlow({ variant: 'modal', initialUrl: API_URL });
+      renderFlow({ variant: 'modal', url: API_URL });
 
       await cloneAndScan(() => screen.getByRole('button', { name: 'Clone' }));
 
@@ -445,7 +659,7 @@ describe('CloneGitRepository branch loading', () => {
     };
 
     it('lists the skipped paths under View Details', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
       await cloneAndScan({ collections: [ORDERS], skippedPaths: [BROKEN_PATH] });
 
       expect(screen.getByText('1 collections were skipped because their config could not be read.')).toBeInTheDocument();
@@ -456,7 +670,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('shows the skipped paths warning below the collection list', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
       await cloneAndScan({ collections: [ORDERS], skippedPaths: [BROKEN_PATH] });
 
       const list = screen.getByTestId('selection-list');
@@ -466,7 +680,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('shows only the skipped paths and the no-collections message when every collection was skipped', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
       await cloneAndScan({ collections: [], skippedPaths: [BROKEN_PATH] });
 
       fireEvent.click(screen.getByRole('button', { name: 'View Details' }));
@@ -477,7 +691,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('shows how many collections are selected in the inline footer', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
       await cloneAndScan();
 
       const footer = screen.getByTestId('clone-git-inline-footer');
@@ -490,7 +704,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('offers only Close when the inline variant finds no collections', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
       await cloneAndScan({ collections: [] });
 
       expect(screen.getByText('No Bruno collections were found in this repository.')).toBeInTheDocument();
@@ -502,7 +716,7 @@ describe('CloneGitRepository branch loading', () => {
       const onOpenCollections = jest.fn();
       const onClose = jest.fn();
       const onFinish = jest.fn();
-      renderFlow({ initialUrl: API_URL, onOpenCollections, onClose, onFinish });
+      renderFlow({ url: API_URL, onOpenCollections, onClose, onFinish });
       await cloneAndScan();
 
       fireEvent.click(screen.getByText('Billing API'));
@@ -519,7 +733,7 @@ describe('CloneGitRepository branch loading', () => {
       openMultipleCollections.mockReturnValue({ type: 'test/openMultipleCollections' });
       const onClose = jest.fn();
       const onFinish = jest.fn();
-      renderFlow({ variant: 'modal', initialUrl: API_URL, onClose, onFinish });
+      renderFlow({ variant: 'modal', url: API_URL, onClose, onFinish });
       await cloneAndScan({ confirm: () => screen.getByRole('button', { name: 'Clone' }) });
 
       fireEvent.click(screen.getByText('Orders API'));
@@ -545,17 +759,17 @@ describe('CloneGitRepository branch loading', () => {
       branchResponses[API_URL] = Promise.resolve({ branches: ['main', 'dev'], defaultBranch: 'main' });
     });
 
-    it('attaches the branch list to the document body in the inline variant', async () => {
-      const { container } = renderFlow({ initialUrl: API_URL });
+    it('keeps the branch list next to its trigger in the inline variant, so it stays inside the dialog', async () => {
+      const { container } = renderFlow({ url: API_URL });
 
       const listbox = await openBranchList();
 
-      expect(listbox.closest('[data-tippy-root]').parentElement).toBe(document.body);
-      expect(container).not.toContainElement(listbox);
+      expect(container).toContainElement(listbox);
+      expect(screen.getByTestId('clone-git-repository-branch-select').closest('.branch-select')).toContainElement(listbox);
     });
 
     it('keeps the branch list next to its trigger in the modal variant', async () => {
-      renderFlow({ variant: 'modal', initialUrl: API_URL });
+      renderFlow({ variant: 'modal', url: API_URL });
 
       const listbox = await openBranchList();
 
@@ -563,7 +777,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('caps the branch list to the window space below its trigger in the inline variant', async () => {
-      renderFlow({ initialUrl: API_URL });
+      renderFlow({ url: API_URL });
 
       const listbox = await openBranchList();
 
@@ -572,7 +786,7 @@ describe('CloneGitRepository branch loading', () => {
     });
 
     it('keeps the default branch list height in the modal variant', async () => {
-      renderFlow({ variant: 'modal', initialUrl: API_URL });
+      renderFlow({ variant: 'modal', url: API_URL });
 
       const listbox = await openBranchList();
 

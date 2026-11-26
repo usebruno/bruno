@@ -1,10 +1,20 @@
-jest.mock('simple-git', () => jest.fn(() => ({
-  outputHandler: jest.fn(),
-  clone: jest.fn((_url, _path, _options, callback) => callback(null, 'cloned'))
-})));
+const mockGitEnv = jest.fn();
+
+jest.mock('simple-git', () => jest.fn(() => {
+  const git = {
+    outputHandler: jest.fn(),
+    clone: jest.fn((_url, _path, _options, callback) => callback(null, 'cloned')),
+    env: jest.fn((env) => {
+      mockGitEnv(env);
+      return git;
+    }),
+    listRemote: jest.fn(() => Promise.resolve('ref: refs/heads/main\tHEAD\n9c1f2a3\trefs/heads/main'))
+  };
+  return git;
+}));
 
 const simpleGit = require('simple-git');
-const { parseRemoteBranches, cloneGitRepository } = require('./git');
+const { parseRemoteBranches, cloneGitRepository, listBranchesForRemoteUrl } = require('./git');
 
 describe('parseRemoteBranches', () => {
   it('reads the branch names and the default branch out of ls-remote output', () => {
@@ -58,5 +68,14 @@ describe('cloneGitRepository', () => {
     await cloneGitRepository(win, { url: 'https://example.com/repo.git', path: '/collections/repo', processUid: 'p1' });
 
     expect(simpleGit).toHaveBeenCalledWith({ baseDir: '/collections/repo', config: ['core.longpaths=true'] });
+  });
+});
+
+describe('listBranchesForRemoteUrl', () => {
+  it('lists branches without terminal or credential manager sign-in prompts', async () => {
+    mockGitEnv.mockClear();
+
+    expect(await listBranchesForRemoteUrl({ url: 'https://github.com/org/repo.git' })).toEqual({ branches: ['main'], defaultBranch: 'main' });
+    expect(mockGitEnv).toHaveBeenCalledWith(expect.objectContaining({ GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' }));
   });
 });

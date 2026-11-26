@@ -9,8 +9,9 @@ jest.mock('../utils/filesystem', () => ({
   removeDirectory: jest.fn()
 }));
 
-const { getCollectionGitRepoUrl, listBranchesForRemoteUrl } = require('../utils/git');
-const { getCollectionGitRemoteUrl, handleListRemoteBranches } = require('./git');
+const { cloneGitRepository, getCollectionGitRepoUrl, listBranchesForRemoteUrl } = require('../utils/git');
+const { createDirectory, removeDirectory } = require('../utils/filesystem');
+const { getCollectionGitRemoteUrl, handleCloneGitRepository, handleListRemoteBranches } = require('./git');
 
 describe('getCollectionGitRemoteUrl', () => {
   beforeEach(() => {
@@ -61,5 +62,32 @@ describe('handleListRemoteBranches', () => {
     await expect(handleListRemoteBranches({}, { url: '--upload-pack=touch /tmp/pwned' }))
       .rejects.toThrow('Repository URL is not valid');
     expect(listBranchesForRemoteUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleCloneGitRepository', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('clones a url with spaces around it as the trimmed url', async () => {
+    const mainWindow = {};
+
+    await handleCloneGitRepository(mainWindow, { url: '  https://github.com/org/repo.git  ', path: '/tmp/repo', processUid: 'p1', branch: 'main' });
+
+    expect(createDirectory).toHaveBeenCalledWith('/tmp/repo');
+    expect(cloneGitRepository).toHaveBeenCalledWith(mainWindow, {
+      url: 'https://github.com/org/repo.git',
+      path: '/tmp/repo',
+      processUid: 'p1',
+      branch: 'main'
+    });
+  });
+
+  it('removes the created folder when the clone fails', async () => {
+    cloneGitRepository.mockRejectedValue(new Error('clone failed'));
+
+    await expect(handleCloneGitRepository({}, { url: 'https://github.com/org/repo.git', path: '/tmp/repo' })).rejects.toThrow('clone failed');
+    expect(removeDirectory).toHaveBeenCalledWith('/tmp/repo');
   });
 });
