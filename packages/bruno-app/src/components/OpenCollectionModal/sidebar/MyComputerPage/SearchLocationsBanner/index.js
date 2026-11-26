@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
-import { IconSearch, IconX } from '@tabler/icons';
+import { IconInfoCircle, IconX } from '@tabler/icons';
 import ActionIcon from 'ui/ActionIcon';
-import Button from 'ui/Button';
 import { getLocalStorageValue, setLocalStorageValue } from 'utils/common/localStorage';
 import { focusNextTabbable } from '../../../utils/focus';
 import StyledWrapper from './StyledWrapper';
@@ -24,24 +23,31 @@ const SearchLocationsBanner = ({ onManage }) => {
 
   return (
     <StyledWrapper ref={banner} role="region" aria-label="Find collections on this computer" data-testid="my-computer-banner">
-      <IconSearch size={15} strokeWidth={1.75} aria-hidden="true" />
-      <p className="banner-text">
-        This list shows collections Bruno finds in your default collection location and workspace folders. Add more folders, or search your whole computer, to find the rest.
-      </p>
-      <Button size="sm" color="secondary" className="banner-action" onClick={onManage} data-testid="my-computer-banner-manage">
-        Manage locations
-      </Button>
-      <ActionIcon
-        type="button"
-        size="sm"
-        className="banner-dismiss"
-        aria-label="Dismiss"
-        title="Dismiss"
-        onClick={dismiss}
-        data-testid="my-computer-banner-dismiss"
-      >
-        <IconX size={12} strokeWidth={2} />
-      </ActionIcon>
+      <IconInfoCircle size={16} strokeWidth={1.75} aria-hidden="true" />
+      <div className="banner-text">
+        <span className="banner-title">Showing collections from default and workspace folders</span>
+        <span className="banner-sub">Add more folders to find other collections on this computer.</span>
+      </div>
+      <div className="banner-end">
+        <button
+          type="button"
+          className="banner-action text-link hover:underline"
+          onClick={onManage}
+          data-testid="my-computer-banner-manage"
+        >
+          Manage locations
+        </button>
+        <ActionIcon
+          type="button"
+          size="sm"
+          aria-label="Dismiss"
+          title="Dismiss"
+          onClick={dismiss}
+          data-testid="my-computer-banner-dismiss"
+        >
+          <IconX size={14} strokeWidth={1.75} />
+        </ActionIcon>
+      </div>
     </StyledWrapper>
   );
 };

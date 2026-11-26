@@ -13,8 +13,13 @@ const StyledWrapper = styled.div`
     align-items: center;
     padding: 0.125rem 1.25rem 0.625rem;
 
+    .collection-list-choose-folder {
+      margin-left: 0.5rem;
+    }
+
     .collection-list-choose-folder button {
       height: 1.875rem;
+      border-color: ${(props) => props.theme.border.border0};
     }
   }
 
@@ -47,13 +52,6 @@ const StyledWrapper = styled.div`
   .collection-list-select-all {
     flex: none;
     margin-left: 0.75rem;
-  }
-
-  .collection-list-search-or {
-    flex: none;
-    padding: 0 0.5rem;
-    font-size: ${(props) => props.theme.font.size.sm};
-    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .collection-list-rows {

@@ -43,7 +43,7 @@ describe('ModalMenu', () => {
   it('lists Recents first, then Choose folder and Import, each without a shortcut', () => {
     renderMenu();
 
-    expect(menuItems().slice(0, 3).map((item) => item.textContent)).toEqual(['Recents', 'Choose folder…', 'Import file or URL']);
+    expect(menuItems().slice(0, 3).map((item) => item.textContent)).toEqual(['Recents', 'Browse folder', 'Import file or URL']);
   });
 
   it('shows Choose folder without opening the folder picker when its item is clicked', () => {

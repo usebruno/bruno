@@ -45,7 +45,7 @@ test.describe('Open collection modal entry points', () => {
 
     await test.step('Verify the modal shows Choose folder and marks it in the menu', async () => {
       await expect(openCollectionModal.pageView('choose-folder')).toBeVisible();
-      await expect(openCollectionModal.pageTitle()).toHaveText('Choose folder');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Browse folder');
       await expect(openCollectionModal.menuItem('choose-folder')).toHaveAttribute('aria-current', 'page');
     });
   });

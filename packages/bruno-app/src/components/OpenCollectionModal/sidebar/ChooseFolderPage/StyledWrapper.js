@@ -24,6 +24,9 @@ const StyledWrapper = styled.div`
 
   .choose-folder-shortcut {
     margin-left: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    background: ${(props) => props.theme.background.surface1};
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
   }

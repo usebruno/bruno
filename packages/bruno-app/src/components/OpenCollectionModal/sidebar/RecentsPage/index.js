@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconAlertTriangle, IconClock } from '@tabler/icons';
+import { IconAlertTriangle, IconHistory } from '@tabler/icons';
 import Button from 'ui/Button';
 import {
   closeOpenCollectionModal,
@@ -17,16 +17,17 @@ import EmptyState from '../../components/EmptyState';
 import { describeLastUse } from '../../utils/relative-time';
 import { isSameOpenCollections, mergeOpenCollections } from './utils';
 
+const RECENTS_ACTION_LABELS = { open: 'Reopen', switch: 'Go to', switchTo: 'Go to' };
+
 const RecentsPage = () => {
   const dispatch = useDispatch();
   const { status, items, error } = useSelector((state) => state.openCollectionModal.recents);
   const openCollections = useSelector(selectOpenCollections, isSameOpenCollections);
-  const { collections, openPathKeys, unrecordedPathKeys } = useMemo(
+  const { collections, openPathKeys } = useMemo(
     () => mergeOpenCollections(items, openCollections),
     [items, openCollections]
   );
 
-  const showPage = (page) => dispatch(openCollectionModal(page));
   const chooseFolders = () => dispatch(openCollectionModal(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, { pickFolders: true }));
 
   const openFolderButton = (
@@ -65,36 +66,20 @@ const RecentsPage = () => {
     );
   }
 
-  if (items.length === 0) {
+  if (collections.length === 0) {
     return (
       <EmptyState
         key="empty"
-        icon={IconClock}
-        title="No collections opened yet"
+        icon={IconHistory}
+        title="No Recent collections here.."
         actions={(
-          <>
-            {openFolderButton}
-            <Button variant="outline" color="secondary" onClick={() => showPage(OPEN_COLLECTION_PAGE.MY_COMPUTER)} data-testid="recents-show-my-computer">
-              Show collections on this computer
-            </Button>
-          </>
-        )}
-        foot={(
-          <>
-            Have a .yml, .zip or a Postman export?{' '}
-            <button
-              type="button"
-              className="text-link hover:underline whitespace-nowrap"
-              onClick={() => showPage(OPEN_COLLECTION_PAGE.IMPORT)}
-              data-testid="recents-import"
-            >
-              Import it
-            </button>
-          </>
+          <Button size="sm" variant="outline" color="secondary" onClick={chooseFolders} data-testid="recents-open-folder">
+            Browse folder
+          </Button>
         )}
         data-testid="recents-empty"
       >
-        Open a Bruno collection folder to work on it in place. Collections you open show up here next time.
+        Start with a sample collection
       </EmptyState>
     );
   }
@@ -103,8 +88,8 @@ const RecentsPage = () => {
     <CollectionList
       collections={collections}
       openPathKeys={openPathKeys}
-      hiddenPathKeys={unrecordedPathKeys}
       getMeta={describeLastUse}
+      actionLabels={RECENTS_ACTION_LABELS}
       noMatchText="Recents only lists collections you have opened before. If it lives somewhere else, choose its folder."
       testIdPrefix="recents"
       onChooseFolder={chooseFolders}

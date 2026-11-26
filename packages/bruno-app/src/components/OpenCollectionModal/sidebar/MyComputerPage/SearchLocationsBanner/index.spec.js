@@ -38,7 +38,8 @@ describe('SearchLocationsBanner', () => {
   it('says what the list covers and opens Locations from Manage locations, staying in place', () => {
     const { onManage } = renderBanner();
 
-    expect(banner()).toHaveTextContent('This list shows collections Bruno finds in your default collection location and workspace folders. Add more folders, or search your whole computer, to find the rest.');
+    expect(banner()).toHaveTextContent('Showing collections from default and workspace folders');
+    expect(banner()).toHaveTextContent('Add more folders to find other collections on this computer.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage locations' }));
 

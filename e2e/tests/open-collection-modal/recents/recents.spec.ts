@@ -60,11 +60,13 @@ test.describe('Recents', () => {
       await showOpenCollectionModal(page, 'recents');
 
       await test.step('Verify the empty state', async () => {
-        await expect(recents.emptyStateTitle()).toHaveText('No collections opened yet');
+        await expect(recents.emptyStateTitle()).toHaveText('No Recent collections here..');
+        await expect(recents.emptyState()).toContainText('Start with a sample collection');
+        await expect(recents.openFolderButton()).toHaveText('Browse folder');
       });
     });
 
-    test('Open a collection folder leads to Choose folder', async () => {
+    test('Browse folder leads to the Browse folder page', async () => {
       const openCollectionModal = buildOpenCollectionModalLocators(page);
       const recents = buildRecentsLocators(page);
 
@@ -74,42 +76,12 @@ test.describe('Recents', () => {
         await mockBrowseFiles(app, []);
       });
 
-      await test.step('Click "Open a collection folder…"', async () => {
+      await test.step('Click "Browse folder"', async () => {
         await recents.openFolderButton().click();
       });
 
-      await test.step('Verify the Choose folder page is shown', async () => {
+      await test.step('Verify the Browse folder page is shown', async () => {
         await expect(openCollectionModal.pageView('choose-folder')).toBeVisible();
-      });
-    });
-
-    test('Import it leads to Import', async () => {
-      const openCollectionModal = buildOpenCollectionModalLocators(page);
-      const recents = buildRecentsLocators(page);
-
-      await showOpenCollectionModal(page, 'recents');
-
-      await test.step('Click "Import it"', async () => {
-        await recents.importLink().click();
-      });
-
-      await test.step('Verify the Import page is shown', async () => {
-        await expect(openCollectionModal.pageView('import')).toBeVisible();
-      });
-    });
-
-    test('Show collections on this computer leads to My computer', async () => {
-      const openCollectionModal = buildOpenCollectionModalLocators(page);
-      const recents = buildRecentsLocators(page);
-
-      await showOpenCollectionModal(page, 'recents');
-
-      await test.step('Click "Show collections on this computer"', async () => {
-        await recents.showMyComputerButton().click();
-      });
-
-      await test.step('Verify the My computer page is shown', async () => {
-        await expect(openCollectionModal.pageView('my-computer')).toBeVisible();
       });
     });
   });
@@ -150,16 +122,16 @@ test.describe('Recents', () => {
 
       await showOpenCollectionModal(page, 'recents');
 
-      await test.step('Verify the closed collections say when they were closed and offer Open', async () => {
+      await test.step('Verify the closed collections say when they were closed and offer Reopen', async () => {
         await expect(recents.rowMeta(GAMMA)).toHaveText(CLOSED_RECENTLY);
-        await expect(recents.rowOpenButton(GAMMA)).toHaveText('Open');
+        await expect(recents.rowOpenButton(GAMMA)).toHaveText('Reopen');
         await expect(recents.rowMeta(BETA)).toHaveText(CLOSED_RECENTLY);
-        await expect(recents.rowOpenButton(BETA)).toHaveText('Open');
+        await expect(recents.rowOpenButton(BETA)).toHaveText('Reopen');
       });
 
-      await test.step('Verify the open collection says when it was opened and offers Switch', async () => {
+      await test.step('Verify the open collection says when it was opened and offers Go to', async () => {
         await expect(recents.rowMeta(ALPHA)).toHaveText(OPENED_RECENTLY);
-        await expect(recents.rowSwitchButton(ALPHA)).toHaveText('Switch');
+        await expect(recents.rowSwitchButton(ALPHA)).toHaveText('Go to');
       });
     });
 
@@ -236,16 +208,16 @@ test.describe('Recents', () => {
       });
     });
 
-    test('ticks the clicked collections and offers to open them together', async () => {
+    test('ticks the clicked collections and offers to reopen them together', async () => {
       const recents = buildRecentsLocators(page);
 
       await showOpenCollectionModal(page, 'recents');
       await selectRecentCollections(page, [GAMMA, BETA]);
 
-      await test.step('Verify both rows are ticked and the footer offers to open 2 collections', async () => {
+      await test.step('Verify both rows are ticked and the footer offers to reopen 2 collections', async () => {
         await expect(recents.rowCheckbox(GAMMA)).toBeChecked();
         await expect(recents.rowCheckbox(BETA)).toBeChecked();
-        await expect(recents.openSelectedButton()).toHaveText('Open 2 collections');
+        await expect(recents.openSelectedButton()).toHaveText('Reopen 2 collections');
       });
     });
 
@@ -286,7 +258,7 @@ test.describe('Recents', () => {
       await closeElectronApp(app);
     });
 
-    test('Open adds a closed collection to the workspace and closes the modal', async () => {
+    test('Reopen adds a closed collection to the workspace and closes the modal', async () => {
       const { sidebar, toast } = buildCommonLocators(page);
       const openCollectionModal = buildOpenCollectionModalLocators(page);
 
@@ -312,9 +284,9 @@ test.describe('Recents', () => {
 
       await showOpenCollectionModal(page, 'recents');
 
-      await test.step('Verify Recent Beta says it was opened and offers Switch', async () => {
+      await test.step('Verify Recent Beta says it was opened and offers Go to', async () => {
         await expect(recents.rowMeta(BETA)).toHaveText(OPENED_RECENTLY);
-        await expect(recents.rowSwitchButton(BETA)).toHaveText('Switch');
+        await expect(recents.rowSwitchButton(BETA)).toHaveText('Go to');
       });
     });
 
@@ -326,7 +298,7 @@ test.describe('Recents', () => {
       await showOpenCollectionModal(page, 'recents');
       await selectRecentCollections(page, [GAMMA, BETA]);
 
-      await test.step('Click "Open 2 collections"', async () => {
+      await test.step('Click "Reopen 2 collections"', async () => {
         await recents.openSelectedButton().click();
       });
 
@@ -338,7 +310,7 @@ test.describe('Recents', () => {
       });
     });
 
-    test('Switch reveals an open collection and shows its settings', async () => {
+    test('Go to reveals an open collection and shows its settings', async () => {
       const { sidebar, tabs } = buildCommonLocators(page);
       const openCollectionModal = buildOpenCollectionModalLocators(page);
 

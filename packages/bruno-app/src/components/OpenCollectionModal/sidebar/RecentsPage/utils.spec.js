@@ -12,24 +12,21 @@ describe('mergeOpenCollections', () => {
 
     expect(merged.collections).toEqual(recents);
     expect(merged.openPathKeys.size).toBe(0);
-    expect(merged.unrecordedPathKeys.size).toBe(0);
   });
 
-  it('adds every collection open in the workspace, dated from when it was opened, and marks the unrecorded ones', () => {
+  it('adds every collection open in the workspace, dated from when it was opened, even without a record', () => {
     const merged = mergeOpenCollections([], [open('/work/payments', 'Payments', 1000)]);
 
     expect(merged.collections).toEqual([{ path: '/work/payments', name: 'Payments', usedAt: 1000, lastEvent: 'opened' }]);
     expect([...merged.openPathKeys]).toEqual(['/work/payments']);
-    expect([...merged.unrecordedPathKeys]).toEqual(['/work/payments']);
   });
 
-  it('lists a recorded collection that is open once, dated by its later open, and does not mark it unrecorded', () => {
+  it('lists a recorded collection that is open once, dated by its later open', () => {
     const recents = [recent('/work/payments', 2500, 'opened')];
 
     const merged = mergeOpenCollections(recents, [open('/work/payments', 'Payments', 1000)]);
 
     expect(merged.collections).toEqual([{ path: '/work/payments', name: 'Payments', usedAt: 2500, lastEvent: 'opened' }]);
-    expect(merged.unrecordedPathKeys.size).toBe(0);
   });
 
   it('counts a collection recorded before it was opened again, or recorded as closed, as opened when it is open now', () => {

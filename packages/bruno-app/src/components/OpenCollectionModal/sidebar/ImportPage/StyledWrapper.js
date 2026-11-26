@@ -13,6 +13,14 @@ const StyledWrapper = styled.div`
 
   .import-text-field {
     ${iconInputStyles}
+
+    input {
+      border-color: ${(props) => props.theme.border.border0};
+
+      &:focus {
+        border-color: ${(props) => props.theme.input.focusBorder};
+      }
+    }
   }
 
   .import-text-status {

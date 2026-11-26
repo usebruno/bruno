@@ -27,8 +27,8 @@ const MENU_PAGES: MenuPage[] = [
   },
   {
     id: 'choose-folder',
-    label: 'Choose folder…',
-    title: 'Choose folder',
+    label: 'Browse folder',
+    title: 'Browse folder',
     description: 'Collections from any folder you pick or drop here'
   },
   {

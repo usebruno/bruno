@@ -48,7 +48,7 @@ test.describe('Choose folder: when the folder picker opens', () => {
     await showOpenCollectionModal(page, 'choose-folder');
 
     await test.step('Verify Choose folder waits on its start page', async () => {
-      await expect(openCollectionModal.pageTitle()).toHaveText('Choose folder');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Browse folder');
       await expect(chooseFolder.dropZone()).toBeVisible();
       await expect(chooseFolder.list()).toHaveCount(0);
     });

@@ -42,8 +42,8 @@ export const OPEN_COLLECTION_PAGES = [
   },
   {
     id: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
-    label: 'Choose folder…',
-    title: 'Choose folder',
+    label: 'Browse folder',
+    title: 'Browse folder',
     description: 'Collections from any folder you pick or drop here',
     icon: IconFolder,
     component: ChooseFolderPage

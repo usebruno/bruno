@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons';
+import { IconAlertTriangle, IconInfoCircle, IconPlus } from '@tabler/icons';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ToolHint from 'components/ToolHint';
 import { useTheme } from 'providers/Theme';
@@ -78,11 +78,12 @@ const LocationsPage = () => {
         <div className="locations-list-foot">
           <button
             type="button"
-            className="text-link hover:underline whitespace-nowrap"
+            className="inline-flex items-center gap-2.5 text-link hover:underline whitespace-nowrap"
             onClick={() => dispatch(pickSearchFolder())}
             data-testid="locations-add-folder"
           >
-            Add folder…
+            <IconPlus size={15} strokeWidth={1.6} aria-hidden="true" />
+            Add folder
           </button>
         </div>
       </div>

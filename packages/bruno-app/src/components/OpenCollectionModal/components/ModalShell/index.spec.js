@@ -102,7 +102,7 @@ describe('ModalShell', () => {
   it('falls back to the first page for an unknown page id', () => {
     renderShell('unknown');
 
-    expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Choose folder');
+    expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Browse folder');
     expect(screen.getByTestId('open-collection-menu-item-choose-folder')).toHaveAttribute('aria-current', 'page');
   });
 

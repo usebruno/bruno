@@ -149,7 +149,7 @@ describe('LocationsPage', () => {
     renderPage();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add folder…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add folder' }));
     });
 
     expect(callIpc).toHaveBeenCalledWith(SAVE_SEARCH_FOLDERS, [projects.path, archive.path, '/Users/me/clients']);
@@ -160,7 +160,7 @@ describe('LocationsPage', () => {
     renderPage();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add folder…' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add folder' }));
     });
 
     expect(browseDirectory).toHaveBeenCalledTimes(1);
@@ -197,7 +197,7 @@ describe('LocationsPage', () => {
 
     expect(rows()).toHaveLength(0);
     expect(screen.getByTestId('locations-empty')).toHaveTextContent('No search locations yet.');
-    expect(screen.getByRole('button', { name: 'Add folder…' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add folder' })).toBeInTheDocument();
   });
 
   it('explains what Bruno skips from an info button that a keyboard and a screen reader can reach', async () => {

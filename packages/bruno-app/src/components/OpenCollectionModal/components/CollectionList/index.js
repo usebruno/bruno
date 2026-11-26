@@ -38,6 +38,8 @@ const describeHiddenCollections = (hiddenCount, showHidden) => {
   return `${countOf(hiddenCount, 'collection')} already open in this workspace ${hiddenCount === 1 ? 'isn’t' : 'aren’t'} shown.`;
 };
 
+const DEFAULT_ACTION_LABELS = { open: 'Open', switch: 'Switch', switchTo: 'Switch to' };
+
 const CollectionList = ({
   collections,
   openPathKeys,
@@ -50,6 +52,7 @@ const CollectionList = ({
   banner = null,
   emptyText = null,
   noMatchText,
+  actionLabels = DEFAULT_ACTION_LABELS,
   testIdPrefix,
   onChooseFolder,
   onOpen,
@@ -188,20 +191,17 @@ const CollectionList = ({
           />
         )}
         {onChooseFolder && (
-          <>
-            <span className="collection-list-search-or">or</span>
-            <Button
-              size="sm"
-              color="secondary"
-              className="collection-list-choose-folder"
-              icon={<IconFolder size={14} strokeWidth={1.75} />}
-              onClick={onChooseFolder}
-              data-testid={`${testIdPrefix}-choose-folder`}
-            >
-              Choose folder…
-              <ChooseFolderHint id={`${testIdPrefix}-choose-folder-hint`} />
-            </Button>
-          </>
+          <Button
+            size="sm"
+            color="secondary"
+            className="collection-list-choose-folder"
+            icon={<IconFolder size={14} strokeWidth={1.75} />}
+            onClick={onChooseFolder}
+            data-testid={`${testIdPrefix}-choose-folder`}
+          >
+            Browse folder
+            <ChooseFolderHint id={`${testIdPrefix}-choose-folder-hint`} />
+          </Button>
         )}
       </div>
 
@@ -226,7 +226,7 @@ const CollectionList = ({
                     onClick={onChooseFolder}
                     data-testid={`${testIdPrefix}-no-match-choose-folder`}
                   >
-                    Choose folder…
+                    Browse folder
                     <ChooseFolderHint id={`${testIdPrefix}-no-match-choose-folder-hint`} />
                   </Button>
                 )}
@@ -262,6 +262,7 @@ const CollectionList = ({
               isOpen={isOpen(collection)}
               isSelected={selectedKeys.has(toPathKey(collection.path))}
               isSelecting={selectedPaths.length > 0}
+              actionLabels={actionLabels}
               rowRef={focusSearchWhenRemovedWithFocus}
               testIdPrefix={testIdPrefix}
               onToggle={(event) => toggleRow(collection, event)}
@@ -279,7 +280,7 @@ const CollectionList = ({
             Cancel
           </Button>
           <Button color="primary" onClick={() => onOpen(selectedPaths)} data-testid={`${testIdPrefix}-open-selected`}>
-            {`Open ${countOf(selectedPaths.length, 'collection')}`}
+            {`${actionLabels.open} ${countOf(selectedPaths.length, 'collection')}`}
           </Button>
         </div>
       )}

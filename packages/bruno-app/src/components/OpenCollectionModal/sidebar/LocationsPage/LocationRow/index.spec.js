@@ -17,7 +17,7 @@ const renderRow = (row) => {
   render(
     <ThemeProvider>
       <LocationRow row={row} onRemove={onRemove} />
-      <button type="button">Add folder…</button>
+      <button type="button">Add folder</button>
     </ThemeProvider>
   );
   return { onRemove };
@@ -78,6 +78,6 @@ describe('LocationRow', () => {
     fireEvent.click(remove);
 
     expect(onRemove).toHaveBeenCalledWith('/Users/me/projects/api');
-    expect(screen.getByRole('button', { name: 'Add folder…' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Add folder' })).toHaveFocus();
   });
 });

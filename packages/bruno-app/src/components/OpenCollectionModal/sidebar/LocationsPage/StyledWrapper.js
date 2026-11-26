@@ -105,7 +105,7 @@ const StyledWrapper = styled.div`
   }
 
   .locations-list-foot {
-    padding: 0.5625rem 0.75rem 0.5625rem 2.3125rem;
+    padding: 0.5625rem 0.75rem;
     border-top: 0.0625rem solid ${(props) => props.theme.border.border0};
   }
 `;
