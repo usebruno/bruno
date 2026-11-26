@@ -147,7 +147,7 @@ export const getSidebarSections = ({ collection, item, globalEnvironments, activ
 };
 
 const SKIPPED_REFERENCE_KEYS = new Set(['uid', 'description', 'enabled', 'type', 'contentType']);
-const SCRIPT_VARIABLE_PATTERN = /\bbru\.(?:getVar|setVar)\(\s*(['"`])([^'"`]+?)\1/g;
+const SCRIPT_VARIABLE_PATTERN = /\bbru\.getVar\(\s*(['"`])([^'"`]+?)\1/g;
 
 const addReference = (found, name, location) => {
   const locations = found.get(name) || [];

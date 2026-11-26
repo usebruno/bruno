@@ -153,7 +153,7 @@ describe('getRequestReferences', () => {
     expect(references.get('api_token')).toEqual(['Headers']);
     expect(references.get('expected_status')).toEqual(['Assertions']);
     expect(references.get('page_size')).toEqual(['Pre Request Script']);
-    expect(references.get('next_cursor')).toEqual(['Post Response Vars', 'Post Response Script']);
+    expect(references.get('next_cursor')).toEqual(['Post Response Vars']);
     expect(references.get('limit')).toEqual(['Pre Request Vars', 'Tests']);
   });
 
