@@ -167,6 +167,7 @@ const useOpenAPISync = (collection) => {
       if (result.errorCode === 'SOURCE_FILE_NOT_FOUND') {
         setFileNotFound(true);
         setError(result.error);
+        dispatch(setCollectionUpdate({ collectionUid: collection.uid, hasUpdates: false, error: result.error }));
         return;
       }
 
