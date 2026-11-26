@@ -412,6 +412,7 @@ const useOpenAPISync = (collection) => {
       console.error('Error saving settings:', err);
       toast.error(formatIpcError(err) || 'Failed to save settings');
       dispatch(loadSyncSourceState(collection));
+      throw err;
     }
   };
 
