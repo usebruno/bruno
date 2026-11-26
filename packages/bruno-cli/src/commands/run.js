@@ -49,6 +49,7 @@ const printGenericTable = (headers, rows, title) => {
 
 const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not supported in CLI';
 const UNSUPPORTED_REQUEST_TYPES = ['grpc-request', 'ws-request'];
+
 const isUnsupportedRequest = (item) => UNSUPPORTED_REQUEST_TYPES.includes(item.type);
 
 const printRunSummary = (results, { unsupportedCount = 0 } = {}) => {
