@@ -115,6 +115,12 @@ describe('getSidebarSections', () => {
     expect(environment.rows.find((row) => row.name === 'api_token').secret).toBe(true);
   });
 
+  it('makes inherited environment variables read-only', () => {
+    const environment = sectionByKey(sections, 'environment');
+    expect(environment.rows.find((row) => row.name === 'region').readOnly).toBe(true);
+    expect(environment.rows.find((row) => row.name === 'host').readOnly).toBeUndefined();
+  });
+
   it('shows one row for an inherited variable that the environment redefines as a secret', () => {
     const local = { uid: 'env-local', name: 'Local', variables: [variable('host', 'https://local')] };
     const prod = { uid: 'env-prod', name: 'Prod', extends: 'Local', variables: [variable('host', 'https://prod', { secret: true })] };
@@ -152,15 +158,18 @@ describe('getRequestReferences', () => {
     expect(references.get('tenant_id')).toEqual(['Params']);
     expect(references.get('api_token')).toEqual(['Headers']);
     expect(references.get('expected_status')).toEqual(['Assertions']);
-    expect(references.get('page_size')).toEqual(['Pre Request Script']);
     expect(references.get('next_cursor')).toEqual(['Post Response Vars']);
-    expect(references.get('limit')).toEqual(['Pre Request Vars', 'Tests']);
+    expect(references.get('limit')).toEqual(['Pre Request Vars']);
   });
 
   it('skips disabled rows and prompt variables', () => {
     expect(references.has('disabled_param_var')).toBe(false);
     expect(references.has('disabled_var')).toBe(false);
     expect(references.has('?Ask me')).toBe(false);
+  });
+
+  it('does not collect names read by bru.getVar in scripts and tests', () => {
+    expect(references.has('page_size')).toBe(false);
   });
 });
 
@@ -170,7 +179,7 @@ describe('getUsedSections', () => {
 
   it('puts undefined variables first', () => {
     expect(used[0].key).toBe('undefined');
-    expect(names(used[0])).toEqual(['tenant_id', 'expected_status', 'page_size']);
+    expect(names(used[0])).toEqual(['tenant_id', 'expected_status']);
   });
 
   it('places each used variable in the scope it resolves from', () => {
@@ -242,7 +251,7 @@ describe('getUsedSections', () => {
   });
 
   it('counts the rows across sections', () => {
-    expect(countRows(used)).toBe(9);
+    expect(countRows(used)).toBe(8);
   });
 });
 

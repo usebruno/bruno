@@ -16,9 +16,9 @@ const buildRowScopeInfo = (section, row, collection, dataType) => {
     case SCOPES.COLLECTION:
       return { type: 'collection', data: { collection, variable: row.variable, dataType } };
     case SCOPES.ENVIRONMENT:
-      return { type: 'environment', data: { environment: section.owner, secret: row.secret, dataType } };
+      return { type: 'environment', data: { environment: section.owner, secret: row.variable.secret, dataType } };
     case SCOPES.GLOBAL:
-      return { type: 'global', data: { secret: row.secret, dataType } };
+      return { type: 'global', data: { secret: row.variable.secret, dataType } };
     default:
       return null;
   }

@@ -27,7 +27,7 @@ describe('useVariableActions', () => {
   ])('saves an edited %s secret as a secret', (scope, type) => {
     const { saveValue } = renderActions();
     const section = { scope, owner: { uid: 'env-child' } };
-    const row = { name: 'token', secret: true };
+    const row = { name: 'token', secret: true, variable: { name: 'token', secret: true } };
 
     saveValue(section, row, 'new-secret', 'string');
 
@@ -37,5 +37,22 @@ describe('useVariableActions', () => {
       expect.objectContaining({ type, data: expect.objectContaining({ secret: true }) }),
       'col-1'
     );
+  });
+
+  it.each([
+    [SCOPES.ENVIRONMENT, 'environment'],
+    [SCOPES.GLOBAL, 'global']
+  ])('keeps a plain %s variable plain when it is masked for a secret reference', (scope, type) => {
+    const { saveValue, clearValue } = renderActions();
+    const section = { scope, owner: { uid: 'env-child' } };
+    const row = { name: 'authHeader', secret: true, variable: { name: 'authHeader', secret: false } };
+
+    saveValue(section, row, 'Bearer {{token}}', 'string');
+    clearValue(section, row);
+
+    expect(updateVariableInScope).toHaveBeenCalledTimes(2);
+    updateVariableInScope.mock.calls.forEach(([, , scopeInfo]) => {
+      expect(scopeInfo).toEqual(expect.objectContaining({ type, data: expect.objectContaining({ secret: false }) }));
+    });
   });
 });

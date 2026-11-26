@@ -80,7 +80,8 @@ const winningVariables = (variables) => {
 
 const environmentRows = (environments, environment) => {
   const { variables } = resolveEnvironmentInheritance({ environments, targetEnvironment: environment, merge: true });
-  return enabledRows(winningVariables(variables));
+  return enabledRows(winningVariables(variables))
+    .map((row) => (row.variable.inheritedFrom ? { ...row, readOnly: true } : row));
 };
 
 const section = (scope, rows, extra = {}) => ({
@@ -147,7 +148,6 @@ export const getSidebarSections = ({ collection, item, globalEnvironments, activ
 };
 
 const SKIPPED_REFERENCE_KEYS = new Set(['uid', 'description', 'enabled', 'type', 'contentType']);
-const SCRIPT_VARIABLE_PATTERN = /\bbru\.getVar\(\s*(['"`])([^'"`]+?)\1/g;
 
 const addReference = (found, name, location) => {
   const locations = found.get(name) || [];
@@ -175,13 +175,6 @@ const collectReferences = (value, location, found) => {
   }
 };
 
-const collectScriptReferences = (script, location, found) => {
-  if (typeof script !== 'string') return;
-  for (const match of script.matchAll(SCRIPT_VARIABLE_PATTERN)) {
-    addReference(found, match[2].trim(), location);
-  }
-};
-
 const collectDefinedNames = (variables, location, found) => {
   (variables || [])
     .filter((variable) => variable.enabled && variable.name)
@@ -204,23 +197,25 @@ export const getRequestReferences = (collection, item) => {
   collectReferences(request.vars?.req, 'Pre Request Vars', found);
   collectDefinedNames(request.vars?.res, 'Post Response Vars', found);
   collectReferences(request.vars?.res, 'Post Response Vars', found);
-  collectScriptReferences(request.script?.req, 'Pre Request Script', found);
-  collectScriptReferences(request.script?.res, 'Post Response Script', found);
-  collectScriptReferences(request.tests, 'Tests', found);
 
   return found;
 };
 
 const isDynamicVariable = (name) => name.startsWith('$') && !name.startsWith('$oauth2.') && !!mockDataFunctions[name.slice(1)];
 
-const findWinningRow = (sections, name) => {
+const findRow = (sections, isMatch) => {
   for (const entry of sections) {
-    const matches = entry.rows.filter((candidate) => candidate.reference === name);
+    const matches = entry.rows.filter(isMatch);
     const row = matches.findLast((candidate) => !candidate.readOnly) ?? matches[0];
     if (row) return { section: entry, row };
   }
   return null;
 };
+
+const findWinningRow = (sections, name) => (
+  findRow(sections, (candidate) => candidate.reference === name && !candidate.postResponse)
+  ?? findRow(sections, (candidate) => candidate.reference === name)
+);
 
 /**
  * The variables a request references, each placed in the scope its value resolves from.

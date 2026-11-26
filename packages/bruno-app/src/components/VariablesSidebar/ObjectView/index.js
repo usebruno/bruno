@@ -8,6 +8,7 @@ import useCopyToClipboard from 'hooks/useCopyToClipboard';
 import CodeEditor from 'components/CodeEditor';
 import { COPY_FEEDBACK_MS, JSON_MODE, SCOPE_ICONS } from '../constants';
 import ScopePill from '../ScopePill';
+import { secretRevealKey } from '../utils';
 import StyledWrapper from './StyledWrapper';
 
 const ObjectView = ({ section, row, collection, onBack }) => {
@@ -46,6 +47,7 @@ const ObjectView = ({ section, row, collection, onBack }) => {
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           mode={JSON_MODE}
+          docKey={`variables-sidebar-object:${secretRevealKey(section, row.name)}`}
           readOnly
           enableBrunoVarInfo
           enableVariableHighlighting
