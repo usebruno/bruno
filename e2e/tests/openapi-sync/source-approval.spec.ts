@@ -4,7 +4,7 @@ import http from 'http';
 import { AddressInfo } from 'net';
 import jsyaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../playwright';
-import { openWorkspaceFromDialog, buildCommonLocators } from '../../pages';
+import { openWorkspaceFromDialog, buildCommonLocators, buildSidebarLocators } from '../../pages';
 import { openConnectedOpenApiSyncTab } from '../../pages/openapi-sync';
 import { waitForReadyPage } from '../../utils';
 
@@ -69,7 +69,8 @@ test.describe('OpenAPI sync: a sync source that came with a shared collection', 
         await titleBar.activeWorkspaceName().filter({ hasText: WORKSPACE_NAME }).waitFor({ timeout: 10000 });
       });
 
-      await test.step('The OpenAPI button shows the source needs review', async () => {
+      await test.step('Opening the collection shows its OpenAPI button needs review', async () => {
+        await buildSidebarLocators(page).collectionRow(COLLECTION_NAME).click();
         await expect(approval.headerDot()).toBeVisible({ timeout: 10000 });
       });
 
