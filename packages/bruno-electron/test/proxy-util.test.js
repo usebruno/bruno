@@ -182,4 +182,119 @@ describe('proxy-util', () => {
     expect(requestConfig.httpAgent).toBeDefined();
     expect(getOrCreateHttpAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: null }));
   });
+
+  test('setupProxyAgents: manual proxy routes both HTTP and HTTPS by default', async () => {
+    setupMocks();
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { getOrCreateHttpAgent, getOrCreateHttpsAgent } = require('@usebruno/requests');
+
+    const proxyConfig = {
+      protocol: 'http',
+      hostname: '127.0.0.1',
+      port: 8080,
+      auth: { disabled: true, username: '', password: '' },
+      bypassProxy: ''
+    };
+
+    const httpReq = { url: 'http://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig: httpReq,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {}
+    });
+    expect(httpReq.httpAgent).toBeDefined();
+    expect(getOrCreateHttpAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: 'http://127.0.0.1:8080' }));
+
+    const httpsReq = { url: 'https://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig: httpsReq,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {}
+    });
+    expect(httpsReq.httpsAgent).toBeDefined();
+    expect(getOrCreateHttpsAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: 'http://127.0.0.1:8080' }));
+  });
+
+  test('setupProxyAgents: manual proxy with targetProtocols { http: false, https: true } proxies only HTTPS', async () => {
+    setupMocks();
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { getOrCreateHttpAgent, getOrCreateHttpsAgent } = require('@usebruno/requests');
+
+    const proxyConfig = {
+      protocol: 'http',
+      targetProtocols: { http: false, https: true },
+      hostname: '127.0.0.1',
+      port: 8080,
+      auth: { disabled: true, username: '', password: '' },
+      bypassProxy: ''
+    };
+
+    const httpTimeline = [];
+    const httpReq = { url: 'http://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig: httpReq,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline: httpTimeline
+    });
+    expect(getOrCreateHttpAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: null }));
+    expect(httpTimeline.some((t) => t.type === 'info' && /Proxy skipped: HTTP traffic/.test(t.message))).toBe(true);
+
+    const httpsReq = { url: 'https://example.com/resource' };
+    await setupProxyAgents({
+      requestConfig: httpsReq,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {}
+    });
+    expect(getOrCreateHttpsAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: 'http://127.0.0.1:8080' }));
+  });
+
+  test('setupProxyAgents: manual proxy with targetProtocols { http: true, https: false } proxies only HTTP and resets on redirect', async () => {
+    setupMocks();
+    const { setupProxyAgents } = require('../src/utils/proxy-util');
+    const { getOrCreateHttpAgent, getOrCreateHttpsAgent } = require('@usebruno/requests');
+
+    const proxyConfig = {
+      protocol: 'socks5',
+      targetProtocols: { http: true, https: false },
+      hostname: '127.0.0.1',
+      port: 1080,
+      auth: { disabled: true, username: '', password: '' },
+      bypassProxy: ''
+    };
+
+    const sharedConfig = { url: 'http://example.com/start' };
+    await setupProxyAgents({
+      requestConfig: sharedConfig,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {}
+    });
+    expect(getOrCreateHttpAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: 'socks5://127.0.0.1:1080' }));
+
+    // Redirect from HTTP -> HTTPS must drop the proxied httpAgent and fall back to a direct httpsAgent
+    sharedConfig.url = 'https://example.com/redirected';
+    const redirectTimeline = [];
+    await setupProxyAgents({
+      requestConfig: sharedConfig,
+      proxyMode: 'on',
+      proxyConfig,
+      httpsAgentRequestFields: {},
+      interpolationOptions: {},
+      timeline: redirectTimeline
+    });
+    expect(sharedConfig.httpAgent).toBeUndefined();
+    expect(sharedConfig.httpsAgent).toBeDefined();
+    expect(getOrCreateHttpsAgent).toHaveBeenCalledWith(expect.objectContaining({ proxyUri: null }));
+    expect(redirectTimeline.some((t) => t.type === 'info' && /Proxy skipped: HTTPS traffic/.test(t.message))).toBe(true);
+  });
 });

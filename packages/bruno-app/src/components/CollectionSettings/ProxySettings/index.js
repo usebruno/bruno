@@ -106,8 +106,6 @@ const ProxySettings = ({ collection }) => {
     }));
   };
 
-  const handleSave = () => dispatch(saveCollectionSettings(collection.uid));
-
   // The compact editor is shorter than its 34px box; a click on the box's padding focuses the editor too
   const focusEditorFromBox = (e) => {
     if (e.target !== e.currentTarget) return;
@@ -220,6 +218,37 @@ const ProxySettings = ({ collection }) => {
   const enabledValue = disabled ? 'false' : (inherit ? 'inherit' : 'true');
 
   const selectedProtocol = currentProxyConfig.config?.protocol || 'http';
+  const targetProtocols = {
+    http: currentProxyConfig.config?.targetProtocols?.http !== false,
+    https: currentProxyConfig.config?.targetProtocols?.https !== false
+  };
+  const hasSelectedTargetProtocol = targetProtocols.http || targetProtocols.https;
+  const targetProtocolsError = enabledValue === 'true' && !hasSelectedTargetProtocol
+    ? 'Select at least one protocol to proxy'
+    : undefined;
+
+  const handleSave = () => {
+    if (targetProtocolsError) return;
+    dispatch(saveCollectionSettings(collection.uid));
+  };
+
+  const handleTargetProtocolChange = (protocolKey) => (e) => {
+    const nextTargetProtocols = {
+      ...targetProtocols,
+      [protocolKey]: e.target.checked
+    };
+    const nextConfig = {
+      ...currentProxyConfig.config
+    };
+
+    if (nextTargetProtocols.http && nextTargetProtocols.https) {
+      delete nextConfig.targetProtocols;
+    } else {
+      nextConfig.targetProtocols = nextTargetProtocols;
+    }
+
+    updateProxy({ config: nextConfig });
+  };
 
   return (
     <StyledWrapper className="h-full w-full">
@@ -271,34 +300,60 @@ const ProxySettings = ({ collection }) => {
           {enabledValue === 'true' && (
             <>
               <div className="flex flex-col gap-3">
-                <div className="w-[200px]">
-                  <FormField label="Protocol" labelId="collection-proxy-protocol-label">
-                    <MenuDropdown
-                      items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
-                        id: value,
-                        label,
-                        onClick: () => handleProtocolChange({ target: { value } })
-                      }))}
-                      selectedItemId={selectedProtocol}
-                      placement="bottom-start"
-                      data-testid="collection-proxy-protocol-menu"
-                      appendTo={() => document.body}
-                      popperOptions={{ strategy: 'fixed' }}
-                      sameWidth
-                    >
-                      <button
-                        type="button"
-                        id="collection-proxy-protocol-trigger"
-                        className="protocol-trigger"
-                        aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
-                        data-testid="collection-proxy-protocol"
+                <div className="flex flex-wrap items-start gap-6">
+                  <div className="w-[200px]">
+                    <FormField label="Protocol" labelId="collection-proxy-protocol-label">
+                      <MenuDropdown
+                        items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                          id: value,
+                          label,
+                          onClick: () => handleProtocolChange({ target: { value } })
+                        }))}
+                        selectedItemId={selectedProtocol}
+                        placement="bottom-start"
+                        data-testid="collection-proxy-protocol-menu"
+                        appendTo={() => document.body}
+                        popperOptions={{ strategy: 'fixed' }}
+                        sameWidth
                       >
-                        <span>
-                          {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
-                        </span>
-                        <IconChevronDown size={14} strokeWidth={2} />
-                      </button>
-                    </MenuDropdown>
+                        <button
+                          type="button"
+                          id="collection-proxy-protocol-trigger"
+                          className="protocol-trigger"
+                          aria-labelledby="collection-proxy-protocol-label collection-proxy-protocol-trigger"
+                          data-testid="collection-proxy-protocol"
+                        >
+                          <span>
+                            {PROXY_PROTOCOL_OPTIONS.find((option) => option.value === selectedProtocol)?.label ?? selectedProtocol}
+                          </span>
+                          <IconChevronDown size={14} strokeWidth={2} />
+                        </button>
+                      </MenuDropdown>
+                    </FormField>
+                  </div>
+                  <FormField
+                    label="Proxy traffic for"
+                    labelId="collection-proxy-target-protocols-label"
+                    error={targetProtocolsError}
+                  >
+                    <div
+                      role="group"
+                      aria-labelledby="collection-proxy-target-protocols-label"
+                      className="flex items-center gap-4 min-h-[34px]"
+                    >
+                      <Checkbox
+                        label="HTTP"
+                        checked={targetProtocols.http}
+                        onChange={handleTargetProtocolChange('http')}
+                        data-testid="collection-proxy-protocol-http"
+                      />
+                      <Checkbox
+                        label="HTTPS"
+                        checked={targetProtocols.https}
+                        onChange={handleTargetProtocolChange('https')}
+                        data-testid="collection-proxy-protocol-https"
+                      />
+                    </div>
                   </FormField>
                 </div>
                 <div className="grid grid-cols-[1fr_96px] gap-3">
@@ -400,7 +455,13 @@ const ProxySettings = ({ collection }) => {
 
         </FieldList>
 
-        <Button type="submit" size="base" className="self-start mt-2" onClick={handleSave}>
+        <Button
+          type="submit"
+          size="base"
+          className="self-start mt-2"
+          disabled={Boolean(targetProtocolsError)}
+          onClick={handleSave}
+        >
           Save
         </Button>
       </FieldList>

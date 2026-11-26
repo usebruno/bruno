@@ -388,6 +388,34 @@ describe('transformProxyConfig', () => {
         expect((result as any).config.auth.username).toBe('');
         expect((result as any).config.auth.password).toBe('');
       });
+
+      test('should preserve restricted targetProtocols when migrating old format', () => {
+        const oldConfig = {
+          enabled: true,
+          protocol: 'http',
+          targetProtocols: { http: false, https: true },
+          hostname: '127.0.0.1',
+          port: 8080
+        };
+
+        const result = transformProxyConfig(oldConfig) as any;
+
+        expect(result.config.targetProtocols).toEqual({ http: false, https: true });
+      });
+
+      test('should omit targetProtocols when both http and https are enabled during old format migration', () => {
+        const oldConfig = {
+          enabled: true,
+          protocol: 'http',
+          targetProtocols: { http: true, https: true },
+          hostname: '127.0.0.1',
+          port: 8080
+        };
+
+        const result = transformProxyConfig(oldConfig) as any;
+
+        expect(result.config.targetProtocols).toBeUndefined();
+      });
     });
   });
 });

@@ -1,6 +1,7 @@
 const path = require('path');
 const { isFile, isDirectory } = require('./filesystem');
 const { transformProxyConfig } = require('@usebruno/requests');
+const { serializeProxyTargetProtocols } = require('@usebruno/common');
 
 function transformBrunoConfigBeforeSave(brunoConfig) {
   if (brunoConfig && !brunoConfig.opencollection) {
@@ -36,6 +37,15 @@ function transformBrunoConfigBeforeSave(brunoConfig) {
     // Remove auth.disabled: false (optional field)
     if (brunoConfig.proxy.config?.auth?.disabled === false) {
       delete brunoConfig.proxy.config.auth.disabled;
+    }
+    // Omit targetProtocols when both HTTP and HTTPS are enabled
+    if (brunoConfig.proxy.config?.targetProtocols) {
+      const serializedTargetProtocols = serializeProxyTargetProtocols(brunoConfig.proxy.config.targetProtocols);
+      if (serializedTargetProtocols) {
+        brunoConfig.proxy.config.targetProtocols = serializedTargetProtocols;
+      } else {
+        delete brunoConfig.proxy.config.targetProtocols;
+      }
     }
   }
 

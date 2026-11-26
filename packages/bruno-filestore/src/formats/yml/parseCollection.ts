@@ -1,6 +1,6 @@
 import type { OpenCollection } from '@opencollection/types';
 import type { FolderRoot } from '@usebruno/schema-types/collection/folder';
-import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
+import { normalizeOpenApiSyncConfigs, serializeProxyTargetProtocols } from '@usebruno/common';
 import { parseYml } from './utils';
 import { toBrunoAuth } from './common/auth';
 import { toBrunoHttpHeaders } from './common/headers';
@@ -111,11 +111,16 @@ const parseCollection = (ymlString: string): ParsedCollection => {
       const proxyConfig = oc.config.proxy as any;
 
       if ('inherit' in proxyConfig && typeof proxyConfig.inherit === 'boolean' && proxyConfig.config && typeof proxyConfig.config === 'object') {
+        const rawTargetProtocols = brunoExtension?.proxy?.targetProtocols ?? proxyConfig.config.targetProtocols;
+        const serializedTargetProtocols = rawTargetProtocols
+          ? serializeProxyTargetProtocols(rawTargetProtocols)
+          : undefined;
         // Valid newer format
         brunoConfig.proxy = {
           inherit: proxyConfig.inherit,
           config: {
             protocol: proxyConfig.config.protocol || 'http',
+            ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {}),
             hostname: proxyConfig.config.hostname || '',
             port: proxyConfig.config.port || '',
             auth: {

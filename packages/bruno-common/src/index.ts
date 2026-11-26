@@ -58,3 +58,13 @@ export type {
 
 export * as utils from './utils';
 export * from './constants';
+export {
+  DEFAULT_PROXY_TARGET_PROTOCOLS,
+  normalizeProxyTargetProtocols,
+  isProxyEnabledForUrl,
+  serializeProxyTargetProtocols
+} from './proxy';
+export type {
+  ProxyTargetProtocols,
+  NormalizedProxyTargetProtocols
+} from './proxy';

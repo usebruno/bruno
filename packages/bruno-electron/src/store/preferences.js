@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { serializeProxyTargetProtocols } = require('@usebruno/common');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -151,6 +152,16 @@ const preferencesSchema = Yup.object().shape({
     }).optional(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+      targetProtocols: Yup.object({
+        http: Yup.boolean(),
+        https: Yup.boolean()
+      })
+        .test(
+          'at-least-one-protocol',
+          'Select at least one protocol to proxy',
+          (value) => !value || value.http !== false || value.https !== false
+        )
+        .optional(),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(1).max(65535).nullable(),
       auth: Yup.object({
@@ -281,11 +292,15 @@ class PreferencesStore {
       const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
+        const serializedTargetProtocols = proxy.targetProtocols
+          ? serializeProxyTargetProtocols(proxy.targetProtocols)
+          : undefined;
         const newProxy = {
           source: 'inherit',
           pac: { source: '' },
           config: {
             protocol: proxy.protocol || 'http',
+            ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {}),
             hostname: proxy.hostname || '',
             port: proxy.port || null,
             auth: {
@@ -391,6 +406,16 @@ const savePreferences = async (newPreferences) => {
     preferencesSchema
       .validate(newPreferences, { abortEarly: true })
       .then((validatedPreferences) => {
+        if (validatedPreferences?.proxy?.config?.targetProtocols) {
+          const serializedTargetProtocols = serializeProxyTargetProtocols(
+            validatedPreferences.proxy.config.targetProtocols
+          );
+          if (serializedTargetProtocols) {
+            validatedPreferences.proxy.config.targetProtocols = serializedTargetProtocols;
+          } else {
+            delete validatedPreferences.proxy.config.targetProtocols;
+          }
+        }
         preferencesStore.savePreferences(validatedPreferences);
         resolve();
       })

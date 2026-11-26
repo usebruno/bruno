@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import debounce from 'lodash/debounce';
@@ -8,7 +8,6 @@ import { savePreferences, refreshPacCache } from 'providers/ReduxStore/slices/ap
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff, IconRefresh, IconChevronDown } from '@tabler/icons';
-import { useState } from 'react';
 import SystemProxy from './SystemProxy';
 import Checkbox from 'ui/Checkbox';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -54,6 +53,17 @@ const ProxySettings = ({ close }) => {
     }).optional(),
     config: Yup.object({
       protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
+      targetProtocols: Yup.object({
+        http: Yup.boolean().optional(),
+        https: Yup.boolean().optional()
+      })
+        .test(
+          'at-least-one-protocol',
+          'Select at least one protocol to proxy',
+          (val) => !val || val.http !== false || val.https !== false
+        )
+        .default(undefined)
+        .optional(),
       hostname: Yup.string().max(1024, 'Hostname must be at most 1024 characters'),
       port: Yup.number()
         .min(1, 'Port must be between 1 and 65535.')
@@ -70,6 +80,12 @@ const ProxySettings = ({ close }) => {
     }).required()
   });
 
+  const initialTargetProtocols = preferences.proxy.config?.targetProtocols;
+  const hasCustomTargetProtocols = Boolean(
+    initialTargetProtocols
+    && (initialTargetProtocols.http === false || initialTargetProtocols.https === false)
+  );
+
   const formik = useFormik({
     initialValues: {
       disabled: preferences.proxy.disabled || false,
@@ -79,6 +95,14 @@ const ProxySettings = ({ close }) => {
       },
       config: {
         protocol: preferences.proxy.config?.protocol || 'http',
+        ...(hasCustomTargetProtocols
+          ? {
+              targetProtocols: {
+                http: initialTargetProtocols.http !== false,
+                https: initialTargetProtocols.https !== false
+              }
+            }
+          : {}),
         hostname: preferences.proxy.config?.hostname || '',
         port: preferences.proxy.config?.port || 0,
         auth: {
@@ -99,10 +123,23 @@ const ProxySettings = ({ close }) => {
     proxySchema
       .validate(values, { abortEarly: true })
       .then((validatedProxy) => {
+        const nextConfig = { ...validatedProxy.config };
+        if (nextConfig.targetProtocols?.http !== false && nextConfig.targetProtocols?.https !== false) {
+          delete nextConfig.targetProtocols;
+        } else if (nextConfig.targetProtocols) {
+          nextConfig.targetProtocols = {
+            http: nextConfig.targetProtocols.http !== false,
+            https: nextConfig.targetProtocols.https !== false
+          };
+        }
+
         dispatch(
           savePreferences({
             ...preferences,
-            proxy: validatedProxy
+            proxy: {
+              ...validatedProxy,
+              config: nextConfig
+            }
           })
         ).catch(() => {
           toast.error('Failed to save preferences');
@@ -163,6 +200,23 @@ const ProxySettings = ({ close }) => {
 
   const fieldError = (touched, error) => (touched && error ? error : undefined);
   const protocol = formik.values.config.protocol;
+  const targetProtocols = {
+    http: formik.values.config.targetProtocols?.http !== false,
+    https: formik.values.config.targetProtocols?.https !== false
+  };
+  const targetProtocolsError = typeof formik.errors.config?.targetProtocols === 'string'
+    ? (fieldError(formik.touched.config?.targetProtocols, formik.errors.config?.targetProtocols)
+      || formik.errors.config?.targetProtocols)
+    : undefined;
+
+  const handleTargetProtocolChange = (protocolKey) => (e) => {
+    const next = {
+      ...targetProtocols,
+      [protocolKey]: e.target.checked
+    };
+    formik.setFieldValue('config.targetProtocols', next, true);
+    formik.setFieldTouched('config.targetProtocols', true, false);
+  };
 
   return (
     <StyledWrapper>
@@ -189,32 +243,60 @@ const ProxySettings = ({ close }) => {
           {proxyMode === 'manual' ? (
             <>
               <div className="flex flex-col gap-3">
-                <div className="w-[200px]">
-                  <FormField label="Protocol" labelId="preferences-proxy-protocol-label">
-                    <MenuDropdown
-                      items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
-                        id: value,
-                        label,
-                        onClick: () => formik.setFieldValue('config.protocol', value)
-                      }))}
-                      selectedItemId={protocol}
-                      placement="bottom-start"
-                      data-testid="preferences-proxy-protocol-menu"
-                      appendTo={() => document.body}
-                      popperOptions={{ strategy: 'fixed' }}
-                      sameWidth
-                    >
-                      <button
-                        type="button"
-                        id="preferences-proxy-protocol-trigger"
-                        className="protocol-trigger"
-                        aria-labelledby="preferences-proxy-protocol-label preferences-proxy-protocol-trigger"
-                        data-testid="preferences-proxy-protocol"
+                <div className="flex flex-wrap items-start gap-6">
+                  <div className="w-[200px]">
+                    <FormField label="Protocol" labelId="preferences-proxy-protocol-label">
+                      <MenuDropdown
+                        items={PROXY_PROTOCOL_OPTIONS.map(({ value, label }) => ({
+                          id: value,
+                          label,
+                          onClick: () => formik.setFieldValue('config.protocol', value)
+                        }))}
+                        selectedItemId={protocol}
+                        placement="bottom-start"
+                        data-testid="preferences-proxy-protocol-menu"
+                        appendTo={() => document.body}
+                        popperOptions={{ strategy: 'fixed' }}
+                        sameWidth
                       >
-                        <span>{PROXY_PROTOCOL_OPTIONS.find((option) => option.value === protocol)?.label ?? protocol}</span>
-                        <IconChevronDown size={14} strokeWidth={2} />
-                      </button>
-                    </MenuDropdown>
+                        <button
+                          type="button"
+                          id="preferences-proxy-protocol-trigger"
+                          className="protocol-trigger"
+                          aria-labelledby="preferences-proxy-protocol-label preferences-proxy-protocol-trigger"
+                          data-testid="preferences-proxy-protocol"
+                        >
+                          <span>{PROXY_PROTOCOL_OPTIONS.find((option) => option.value === protocol)?.label ?? protocol}</span>
+                          <IconChevronDown size={14} strokeWidth={2} />
+                        </button>
+                      </MenuDropdown>
+                    </FormField>
+                  </div>
+                  <FormField
+                    label="Proxy traffic for"
+                    labelId="preferences-proxy-target-protocols-label"
+                    error={targetProtocolsError}
+                  >
+                    <div
+                      role="group"
+                      aria-labelledby="preferences-proxy-target-protocols-label"
+                      className="flex items-center gap-4 min-h-[34px]"
+                    >
+                      <Checkbox
+                        label="HTTP"
+                        checked={targetProtocols.http}
+                        onChange={handleTargetProtocolChange('http')}
+                        inputClassName="mousetrap"
+                        data-testid="preferences-proxy-protocol-http"
+                      />
+                      <Checkbox
+                        label="HTTPS"
+                        checked={targetProtocols.https}
+                        onChange={handleTargetProtocolChange('https')}
+                        inputClassName="mousetrap"
+                        data-testid="preferences-proxy-protocol-https"
+                      />
+                    </div>
                   </FormField>
                 </div>
                 <div className="grid grid-cols-[1fr_96px] gap-3">

@@ -1,10 +1,9 @@
-import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
 import { toOpenCollectionActions, toOpenCollectionAuth, toOpenCollectionHeaders, toOpenCollectionScripts, toOpenCollectionVariables } from "./common";
 import { toOpenCollectionEnvironments } from "./environment";
 import { toOpenCollectionFolder } from "./folder";
 import { toOpenCollectionItems } from "./items";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, ClientCertificate, CollectionConfig, OpenCollection, PemCertificate, Pkcs12Certificate, Protobuf } from "./types";
-import { HTTP_SCRIPT_KEYS } from '@usebruno/common';
+import { HTTP_SCRIPT_KEYS, normalizeOpenApiSyncConfigs, serializeProxyTargetProtocols } from '@usebruno/common';
 
 const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): CollectionConfig | undefined => {
   if (!brunoConfig) {
@@ -35,10 +34,13 @@ const toOpenCollectionConfig = (brunoConfig: BrunoConfig | undefined): Collectio
   }
 
   if (brunoConfig.proxy) {
+    const proxyConfig = brunoConfig.proxy.config
+      ? (({ targetProtocols: _targetProtocols, ...rest }) => rest)(brunoConfig.proxy.config)
+      : undefined;
     config.proxy = {
       disabled: brunoConfig.proxy.disabled,
       inherit: brunoConfig.proxy.inherit,
-      config: brunoConfig.proxy.config
+      config: proxyConfig
     };
   }
 
@@ -170,6 +172,7 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
     presets?: BrunoPresets;
     scripts?: { flow?: 'sandwich' | 'sequential' };
     openapi?: BrunoConfig['openapi'];
+    proxy?: { targetProtocols?: { http?: boolean; https?: boolean } };
   } = {};
 
   if (brunoConfig?.ignore?.length) {
@@ -198,6 +201,11 @@ export const brunoToOpenCollection = (collection: BrunoCollection): OpenCollecti
   const openApiEntries = normalizeOpenApiSyncConfigs(brunoConfig?.openapi);
   if (openApiEntries.length > 0) {
     brunoExtension.openapi = openApiEntries;
+  }
+
+  const serializedTargetProtocols = serializeProxyTargetProtocols(brunoConfig?.proxy?.config?.targetProtocols);
+  if (serializedTargetProtocols) {
+    brunoExtension.proxy = { targetProtocols: serializedTargetProtocols };
   }
 
   if (Object.keys(brunoExtension).length > 0) {
