@@ -1434,6 +1434,16 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
     expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
   });
 
+  it('keeps the auth and body blocks of the modes not in use when the spec\'s types are restored', () => {
+    const withAuth = ({ request }, auth) => ({ request: { ...request, auth } });
+    const user = withAuth(item({ mode: 'json', json: '{"name":"Fido"}', text: 'Saved text' }), { mode: 'basic', basic: { username: 'me', password: 'secret' }, bearer: { token: 'old' } });
+    const spec = withAuth(item({ mode: 'json', json: '{"name":""}', text: null, formUrlEncoded: [] }), { mode: 'bearer', bearer: { token: '{{token}}' }, basic: null });
+    const merged = helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request;
+
+    expect(merged.auth).toEqual({ mode: 'bearer', bearer: { token: '{{token}}' }, basic: { username: 'me', password: 'secret' } });
+    expect(merged.body).toMatchObject({ mode: 'json', json: '{"name":"Fido"}', text: 'Saved text' });
+  });
+
   it('keeps the JSON text as written when restoring the spec\'s types changes no value', () => {
     const json = '{\n    "owner": { "id": 9007199254740993 },\n    "name": "Fido",\n    "price": 19.90\n}';
     const user = item({ mode: 'json', json });

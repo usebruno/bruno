@@ -864,14 +864,17 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   const previousRequest = previousSpecItem && (previousSpecItem.request || {});
   const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey });
+  const withOtherModeBlocks = (merged, existing) => (restoreSpecTypes && isPlainObject(merged) && isPlainObject(existing)
+    ? { ...merged, ..._.omit(existing, ['mode', merged.mode]) }
+    : merged);
   return {
     ...existingRequest,
     request: {
       ...existingRequest.request,
       url: preserveValues ? urlWithQueryParams(specItem.request.url, params, existingRequest.request?.url) : specItem.request.url,
       method: specItem.request.method,
-      body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes),
-      auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
+      body: withOtherModeBlocks(mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes), existingRequest.request?.body),
+      auth: withOtherModeBlocks(mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues), existingRequest.request?.auth),
       params,
       headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey })
     }
@@ -1117,19 +1120,15 @@ const EMPTY_SPEC_ITEM = { request: { body: {} } };
 const previousSpecItemFor = (storedCollection, method, endpointPath) =>
   findItemInCollection(storedCollection?.items || [], method, endpointPath)?.item || EMPTY_SPEC_ITEM;
 
-const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy }) => {
+const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy, restoreSpecTypes = false }) => {
   const storedSpec = preserveValues && newSpec ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
   const storedCollection = _.once(() => storedSpecCollectionOf(storedSpec, groupBy));
   return (method, endpointPath) => ({
     preserveValues,
     previousSpecItem: previousSpecItemFor(storedCollection(), method, endpointPath),
-    declaredBody: declaredBodyOf(newSpec, method, endpointPath)
+    declaredBody: declaredBodyOf(newSpec, method, endpointPath),
+    restoreSpecTypes
   });
-};
-
-const resetMergeOptionsFor = (collectionPath, brunoConfig, storedSpec, groupBy) => {
-  const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, storedSpec, { preserveValues: true, groupBy });
-  return (method, endpointPath) => ({ ...mergeOptionsOf(method, endpointPath), restoreSpecTypes: true });
 };
 
 const registerOpenAPISyncIpc = (mainWindow) => {
@@ -1609,9 +1608,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // matching the shape that mergeSpecIntoRequest expects as its first argument.
       let specItemForDisplay = specItem;
       if (specItem && actualRequest) {
-        const mergeOptionsOf = resetToSpec
-          ? resetMergeOptionsFor(collectionPath, brunoConfig, specToUse, groupBy)
-          : mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, groupBy });
+        const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues: preserveValues || resetToSpec, groupBy, restoreSpecTypes: resetToSpec });
         const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptionsOf(method, endpointPath));
         specItemForDisplay = { ...specItem, request: merged.request };
       }
@@ -2114,7 +2111,11 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const specCollection = loadStoredSpecCollection(collectionPath, brunoConfig);
       const mergeOptionsOf = fullReset
         ? () => ({ fullReset: true })
-        : resetMergeOptionsFor(collectionPath, brunoConfig, loadStoredSpecIfAny(collectionPath, brunoConfig), specConversionOptions(brunoConfig, collectionPath).groupBy);
+        : mergeOptionsFor(collectionPath, brunoConfig, loadStoredSpecIfAny(collectionPath, brunoConfig), {
+            preserveValues: true,
+            groupBy: specConversionOptions(brunoConfig, collectionPath).groupBy,
+            restoreSpecTypes: true
+          });
 
       let resetCount = 0;
       for (const endpoint of endpoints) {

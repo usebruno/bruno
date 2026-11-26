@@ -103,18 +103,34 @@ const editCreatePet = (request) => ({
     ...request.headers.map((header) => (header.name === 'X-Request-Id' ? { ...header, value: '{{requestId}}', enabled: true } : header)),
     { name: 'X-Debug', value: '1', enabled: true }
   ],
-  body: { ...request.body, json: JSON.stringify({ name: 'Fido', owner: { id: 7 } }) },
-  auth: { ...request.auth, bearer: { token: 'my-secret' } },
+  body: { ...request.body, json: JSON.stringify({ name: 'Fido', owner: { id: 7 } }), text: 'Saved text' },
+  auth: { ...request.auth, bearer: { token: 'my-secret' }, basic: { username: 'me', password: 'secret' } },
   docs: 'My notes',
-  script: { req: 'bru.setVar(\'ready\', true);' },
+  script: { req: 'bru.setVar(\'ready\', true);', res: 'bru.setVar(\'petId\', res.body.id);' },
   tests: 'test(\'works\', () => {});',
-  vars: { req: [{ name: 'petName', value: 'Fido', enabled: true }] },
+  vars: { req: [{ name: 'petName', value: 'Fido', enabled: true }], res: [{ name: 'petId', value: 'res.body.id', enabled: true }] },
   assertions: [{ name: 'res.status', value: 'eq 200', enabled: true }]
 });
 
 const namesAndValues = (entries) => entries.map(({ name, value }) => [name, value]);
 
-const withoutUids = (value) => JSON.parse(JSON.stringify(value, (key, entry) => (key === 'uid' ? undefined : entry)));
+const withoutUids = (value) => JSON.parse(JSON.stringify(value, (key, entry) => (key === 'uid' || key === 'itemUid' ? undefined : entry)));
+
+const blocksOfOtherModes = ({ mode, ...blocks }) => Object.fromEntries(Object.entries(blocks).filter(([key]) => key !== mode));
+
+const keptByReset = ({ seq, tags, settings, examples, request }) => withoutUids({
+  seq,
+  tags,
+  settings,
+  examples,
+  docs: request.docs,
+  script: request.script,
+  tests: request.tests,
+  vars: request.vars,
+  assertions: request.assertions,
+  otherAuthModes: blocksOfOtherModes(request.auth),
+  otherBodyModes: blocksOfOtherModes(request.body)
+});
 
 const shownRequest = ({ request }) => withoutUids({
   url: request.url,
@@ -147,7 +163,9 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     fs.writeFileSync(fileOf(fileName), stringifyRequest(item, { format }));
   };
 
-  const readRequest = (name) => parseRequest(fs.readFileSync(fileOf(name), 'utf8'), { format }).request;
+  const readItem = (name) => parseRequest(fs.readFileSync(fileOf(name), 'utf8'), { format });
+
+  const readRequest = (name) => readItem(name).request;
 
   const drift = () => ipcMain._getHandler('renderer:get-collection-drift')({}, { collectionPath });
 
@@ -177,8 +195,19 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     fs.rmSync(mockUserData, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
 
-  it('restores the spec\'s fields and keeps the user\'s values, docs, scripts, tests, vars and assertions', async () => {
-    writeRequest('Create pet', editCreatePet);
+  it('restores the spec\'s fields and keeps the user\'s values and everything else the request has', async () => {
+    const item = openApiToBruno(petSpec).items.find((each) => each.name === 'Create pet');
+    const settings = { encodeUrl: false, timeout: 5000, followRedirects: false, maxRedirects: 3 };
+    const example = {
+      type: 'http-request',
+      name: 'Created',
+      description: 'Saved response',
+      request: { method: 'POST', url: '{{baseUrl}}/pets', headers: [], params: [], body: { mode: 'json', json: '{"name": "Rex"}' } },
+      response: { status: 201, statusText: 'Created', headers: [], body: { type: 'json', content: '{"id": 1}' } }
+    };
+    fs.writeFileSync(fileOf('Create pet'), stringifyRequest({ ...item, seq: 7, tags: ['pets', 'smoke'], settings, examples: [example], request: editCreatePet(item.request) }, { format }));
+    const kept = keptByReset(readItem('Create pet'));
+    expect(kept).toMatchObject({ seq: 7, tags: ['pets', 'smoke'], settings, examples: [expect.objectContaining({ name: 'Created' })] });
 
     await reset(await modifiedEndpoints());
 
@@ -188,11 +217,7 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(request.url).toBe('{{baseUrl}}/pets?limit={{pageSize}}');
     expect(JSON.parse(request.body.json)).toEqual({ name: 'Fido', nickname: '', owner: { id: 7 } });
     expect(request.auth).toMatchObject({ mode: 'bearer', bearer: { token: 'my-secret' } });
-    expect(request.docs).toBe('My notes');
-    expect(request.script.req).toContain('bru.setVar(\'ready\', true);');
-    expect(request.tests).toContain('test(\'works\'');
-    expect(request.vars.req).toEqual([expect.objectContaining({ name: 'petName', value: 'Fido' })]);
-    expect(request.assertions).toEqual([expect.objectContaining({ name: 'res.status', value: 'eq 200' })]);
+    expect(keptByReset(readItem('Create pet'))).toEqual(kept);
   });
 
   it('takes the spec\'s auth when the user changed the auth mode', async () => {
