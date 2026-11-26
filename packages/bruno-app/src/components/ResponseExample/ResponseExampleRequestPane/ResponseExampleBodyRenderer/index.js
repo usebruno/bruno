@@ -62,7 +62,7 @@ const ResponseExampleBodyRenderer = ({
       case 'text':
       case 'sparql':
         return (
-          <div className={`min-h-96 ${REQUEST_BODY_EDITOR_CLASS}`}>
+          <div className={`code-editor-container ${REQUEST_BODY_EDITOR_CLASS}`} data-testid="response-example-request-body">
             <CodeEditor
               collection={collection}
               item={item}

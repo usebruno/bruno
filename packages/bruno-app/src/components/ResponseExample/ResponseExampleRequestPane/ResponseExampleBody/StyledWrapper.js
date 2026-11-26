@@ -71,7 +71,7 @@ const StyledWrapper = styled.div`
   /* CodeEditor container */
   .code-editor-container {
     flex: 1;
-    min-height: 200px;
+    min-height: 384px;
     height: 200px;
     border-top: none;
   }
