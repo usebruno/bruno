@@ -45,7 +45,7 @@ test.describe('Choose folder', () => {
     await showOpenCollectionModal(page, 'choose-folder');
 
     await test.step('Verify the start page, with the folder picker still closed', async () => {
-      await expect(openCollectionModal.pageTitle()).toHaveText('Browse folder');
+      await expect(openCollectionModal.pageTitle()).toHaveText('Choose folder');
       await expect(chooseFolder.dropZone()).toContainText('Drop Bruno collection folders here');
       await expect(chooseFolder.dropZone()).toContainText('Bruno Collection folder has opencollection.yml or bruno.json at the root');
       await expect(chooseFolder.chooseLink()).toHaveText('choose folders');

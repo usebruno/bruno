@@ -199,7 +199,7 @@ const CollectionList = ({
             onClick={onChooseFolder}
             data-testid={`${testIdPrefix}-choose-folder`}
           >
-            Browse folder
+            Choose folder…
             <ChooseFolderHint id={`${testIdPrefix}-choose-folder-hint`} />
           </Button>
         )}
@@ -226,7 +226,7 @@ const CollectionList = ({
                     onClick={onChooseFolder}
                     data-testid={`${testIdPrefix}-no-match-choose-folder`}
                   >
-                    Browse folder
+                    Choose folder…
                     <ChooseFolderHint id={`${testIdPrefix}-no-match-choose-folder-hint`} />
                   </Button>
                 )}

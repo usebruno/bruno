@@ -62,11 +62,11 @@ test.describe('Recents', () => {
       await test.step('Verify the empty state', async () => {
         await expect(recents.emptyStateTitle()).toHaveText('No Recent collections here..');
         await expect(recents.emptyState()).toContainText('Start with a sample collection');
-        await expect(recents.openFolderButton()).toHaveText('Browse folder');
+        await expect(recents.openFolderButton()).toHaveText('Choose folder…');
       });
     });
 
-    test('Browse folder leads to the Browse folder page', async () => {
+    test('Choose folder leads to the Choose folder page', async () => {
       const openCollectionModal = buildOpenCollectionModalLocators(page);
       const recents = buildRecentsLocators(page);
 
@@ -76,11 +76,11 @@ test.describe('Recents', () => {
         await mockBrowseFiles(app, []);
       });
 
-      await test.step('Click "Browse folder"', async () => {
+      await test.step('Click "Choose folder…"', async () => {
         await recents.openFolderButton().click();
       });
 
-      await test.step('Verify the Browse folder page is shown', async () => {
+      await test.step('Verify the Choose folder page is shown', async () => {
         await expect(openCollectionModal.pageView('choose-folder')).toBeVisible();
       });
     });

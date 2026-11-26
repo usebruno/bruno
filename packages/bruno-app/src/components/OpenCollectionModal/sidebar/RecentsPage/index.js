@@ -74,7 +74,7 @@ const RecentsPage = () => {
         title="No Recent collections here.."
         actions={(
           <Button size="sm" variant="outline" color="secondary" onClick={chooseFolders} data-testid="recents-open-folder">
-            Browse folder
+            Choose folder…
           </Button>
         )}
         data-testid="recents-empty"

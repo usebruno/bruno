@@ -225,10 +225,10 @@ describe('RecentsPage', () => {
     const emptyState = await screen.findByTestId('recents-empty');
     expect(emptyState).toHaveTextContent('No Recent collections here..');
     expect(emptyState).toHaveTextContent('Start with a sample collection');
-    expect(within(emptyState).getAllByRole('button').map((button) => button.textContent)).toEqual(['Browse folder']);
+    expect(within(emptyState).getAllByRole('button').map((button) => button.textContent)).toEqual(['Choose folder…']);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Browse folder' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Choose folder…' }));
     });
     expect(modalState(store).page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
     expect(browseDirectories).toHaveBeenCalledTimes(1);
@@ -273,7 +273,7 @@ describe('RecentsPage', () => {
     expect(screen.getByTestId('recents-open-selected')).toHaveTextContent('Reopen 1 collection');
   });
 
-  it('puts focus on Browse folder when trying again finds no collections', async () => {
+  it('puts focus on Choose folder when trying again finds no collections', async () => {
     recentsReturn(Promise.reject(new Error('disk failure')));
     renderPage({ open: [] });
     const tryAgain = await screen.findByRole('button', { name: 'Try again' });
@@ -285,7 +285,7 @@ describe('RecentsPage', () => {
     });
 
     expect(screen.getByTestId('recents-empty')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Browse folder' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Choose folder…' })).toHaveFocus();
   });
 
   it('updates the list when the recent collections change and keeps the ticked ones', async () => {
@@ -334,6 +334,6 @@ describe('RecentsPage', () => {
       store.dispatch(recentCollectionsChangedEvent());
     });
 
-    expect(screen.getByRole('button', { name: 'Browse folder' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Choose folder…' })).toHaveFocus();
   });
 });
