@@ -42,9 +42,7 @@ test.describe('Creating a transient request when the user data path contains "br
 
     await openCollectionFromDialog(page, app, collectionFixturePath!);
 
-    await test.step('Create a transient request by clicking the + icon', async () => {
-      await createTransientRequestFromPreset(page);
-    });
+    await createTransientRequestFromPreset(page);
 
     await test.step('Verify that a new request page is opened', async () => {
       await expect(tabs.activeRequestTab()).toContainText('Untitled');
@@ -62,9 +60,7 @@ test.describe('Creating a transient request when the user data path contains "br
       await titleBar.homeButton().click();
     });
 
-    await test.step('Create a transient request by clicking the + icon', async () => {
-      await createTransientRequestFromPreset(page);
-    });
+    await createTransientRequestFromPreset(page);
 
     await test.step('Verify that a new request page is opened', async () => {
       await expect(tabs.activeRequestTab()).toContainText('Untitled');
@@ -81,22 +77,16 @@ test.describe('Creating a transient request when the user data path contains "br
     const { sidebar, tabs } = buildCommonLocators(page);
     const createCollectionInTransientSaveModal = sidebar.saveRequestModal;
 
-    await test.step('Create a transient request from the + icon', async () => {
-      await createTransientRequestFromPreset(page);
-    });
+    await createTransientRequestFromPreset(page);
 
     await test.step('Save the request and verify the popup', async () => {
       await page.keyboard.press(saveShortcut);
       await expect(createCollectionInTransientSaveModal.emptyState()).toBeVisible();
     });
 
-    await test.step('Create a collection from inside the popup', async () => {
-      await createCollectionInSaveModal(page, app, collectionName, collectionLocation);
-    });
+    await createCollectionInSaveModal(page, app, collectionName, collectionLocation);
 
-    await test.step('Choose the new collection, name the request and save', async () => {
-      await saveTransientViaModal(page, requestName, { collectionName });
-    });
+    await saveTransientViaModal(page, requestName, { collectionName });
 
     await test.step('Verify that the request is saved as configured', async () => {
       await expect(createCollectionInTransientSaveModal.root()).toBeHidden();
