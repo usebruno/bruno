@@ -114,6 +114,7 @@ class SingleLineEditor extends Component {
     setupLinkAware(this.editor, { onLinkClick: undefined });
 
     this.editor.setValue(String(this.props.value ?? ''));
+    this.editor.on('beforeChange', this._onBeforeChange);
     this.editor.on('change', this._onEdit);
     this.editor.on('paste', this._onPaste);
     this.editor.on('blur', this._onBlur);
@@ -177,6 +178,11 @@ class SingleLineEditor extends Component {
         this._updateNewlineMarkers();
       }
     }
+  };
+
+  _onBeforeChange = (_, change) => {
+    if (!this.props.stripNewlines || change.text.length < 2 || change.origin === 'setValue' || !change.update) return;
+    change.update(change.from, change.to, [change.text.join('')]);
   };
 
   _onPaste = (_, event) => this.props.onPaste?.(event);
@@ -246,6 +252,7 @@ class SingleLineEditor extends Component {
       if (this.editor?._destroyLinkAware) {
         this.editor._destroyLinkAware();
       }
+      this.editor.off('beforeChange', this._onBeforeChange);
       this.editor.off('change', this._onEdit);
       this.editor.off('paste', this._onPaste);
       this.editor.off('blur', this._onBlur);

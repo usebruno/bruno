@@ -103,6 +103,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                 isSecret={isSecret}
                 readOnly={readOnly}
                 isCompact
+                stripNewlines
               />
               {isSecret && <SensitiveFieldWarning fieldName={key} secretName={key} value={value} collection={collection} item={item} fieldKey={key} onReplaceValue={(val) => handleChange(key, val)} />}
             </div>
@@ -168,6 +169,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             item={item}
             readOnly={readOnly}
             isCompact
+            stripNewlines
           />
         </div>
       </div>
@@ -206,6 +208,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     item={item}
                     readOnly={readOnly}
                     isCompact
+                    stripNewlines
                   />
                 </div>
               </div>
@@ -224,6 +227,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
                     item={item}
                     readOnly={readOnly}
                     isCompact
+                    stripNewlines
                   />
                 </div>
               </div>
@@ -250,6 +254,7 @@ const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAu
             item={item}
             readOnly={readOnly}
             isCompact
+            stripNewlines
           />
         </div>
       </div>
