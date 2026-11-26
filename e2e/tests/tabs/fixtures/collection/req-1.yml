@@ -1,0 +1,10 @@
+info:
+  name: req-1
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8081/ping
+  body:
+    type: none

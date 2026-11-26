@@ -1,0 +1,35 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Unquoted Query Params
+meta:
+  id: wrk_unquoted_query_params
+  created: 1776845227518
+  modified: 1776845227518
+collection:
+  - url: http://localhost:8081/query
+    name: Query Request
+    meta:
+      id: req_unquoted_query_params_001
+      created: 1776845260825
+      modified: 1778146479401
+      isPrivate: false
+      sortKey: -1776845260825
+    method: GET
+    parameters:
+      - name: date
+        value: 2024-01-01
+        disabled: false
+      - name: count
+        value: 42
+        disabled: false
+      - name: enabled
+        value: true
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true

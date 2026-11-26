@@ -5,13 +5,12 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { getItemTypeLabel } from 'utils/collections';
+import { getCloneDisplayName, getItemTypeLabel } from 'utils/collections';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowBackUp, IconEdit, IconCaretDown } from '@tabler/icons';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
 import Help from 'components/Help';
 import PathDisplay from 'components/PathDisplay/index';
-import path from 'utils/common/path';
 import Portal from 'components/Portal';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
@@ -23,9 +22,9 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const isFolder = isItemAFolder(item);
   const inputRef = useRef();
   const [isEditing, toggleEditing] = useState(false);
-  const itemName = item?.name;
   const itemType = item?.type;
   const itemTypeLabel = getItemTypeLabel(item);
+  const cloneName = getCloneDisplayName(collection, item);
   const [showFilesystemName, toggleShowFilesystemName] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -34,8 +33,8 @@ const CloneCollectionItem = ({ collectionUid, item, onClose }) => {
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      name: `${itemName} copy`,
-      filename: `${sanitizeName(itemName)} copy`
+      name: cloneName,
+      filename: sanitizeName(cloneName)
     },
     validationSchema: Yup.object({
       name: Yup.string()

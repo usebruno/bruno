@@ -94,7 +94,7 @@ const EnvironmentBadge = ({ environment, icon: Icon }) => {
         delayShow={1000}
         hidden={environment.name?.length < 7}
       >
-        <span className="env-text max-w-24 truncate overflow-hidden" style={colorStyle}>
+        <span className="env-text max-w-36 truncate overflow-hidden" style={colorStyle}>
           {environment.name}
         </span>
       </ToolHint>

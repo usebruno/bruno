@@ -1,0 +1,20 @@
+meta {
+  name: MissingMethod
+  type: grpc
+  seq: 5
+}
+
+grpc {
+  url: {{host}}
+  method:
+  body: grpc
+  auth: inherit
+  methodType: unary
+}
+
+body:grpc {
+  name: message 1
+  content: '''
+    {}
+  '''
+}

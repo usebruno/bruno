@@ -1,5 +1,15 @@
 const { createOpenAI } = require('@ai-sdk/openai');
 const { createAnthropic } = require('@ai-sdk/anthropic');
+const {
+  COPILOT_PROVIDER_ID,
+  COPILOT_PROVIDER_LABEL,
+  NO_TOKEN_MESSAGE: COPILOT_NO_TOKEN_MESSAGE,
+  isCopilotModelId,
+  copilotBrunoModelId,
+  getCopilotCatalog,
+  findCopilotModel,
+  createCopilotSdk
+} = require('./copilot');
 
 const OPENAI_COMPATIBLE_PREFIX = 'openai-compatible:';
 
@@ -56,11 +66,21 @@ const MODEL_DEFINITIONS = {
   'claude-haiku-4-5': { provider: 'anthropic', modelId: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', reasoning: true }
 };
 
-const isReasoningModel = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]?.reasoning);
+const isReasoningModel = (modelId) =>
+  Boolean(MODEL_DEFINITIONS[modelId]?.reasoning) || Boolean(findCopilotModel(modelId)?.reasoning);
 
 const isOpenAiReasoningModel = (modelId) => {
   const def = MODEL_DEFINITIONS[modelId];
   return Boolean(def?.reasoning && def?.provider === 'openai');
+};
+
+const resolveMaxOutputTokens = (modelId, requested) => {
+  if (MODEL_DEFINITIONS[modelId]) return requested;
+  const copilotModel = findCopilotModel(modelId);
+  if (copilotModel) {
+    return copilotModel.maxOutputTokens > 0 ? Math.min(requested, copilotModel.maxOutputTokens) : requested;
+  }
+  return undefined;
 };
 
 // Cache SDK instances. Built-in keyed by `${providerId}:${apiKey}`; compat
@@ -89,6 +109,12 @@ const compatProviderEntry = (endpoint) => ({
   baseURL: endpoint.baseURL || ''
 });
 
+const copilotProviderEntry = () => ({
+  id: COPILOT_PROVIDER_ID,
+  label: COPILOT_PROVIDER_LABEL,
+  isCustom: false
+});
+
 const getSdk = ({ providerId, apiKey, baseURL }) => {
   const isCompat = isOpenAiCompatibleProviderId(providerId);
   const effectiveKey = isCompat && !apiKey ? '' : apiKey;
@@ -98,6 +124,8 @@ const getSdk = ({ providerId, apiKey, baseURL }) => {
 
   if (isCompat) {
     sdk = createOpenAI({ apiKey: effectiveKey, baseURL });
+  } else if (providerId === COPILOT_PROVIDER_ID) {
+    sdk = createCopilotSdk({ token: apiKey, apiEndpoint: baseURL });
   } else {
     const provider = PROVIDERS[providerId];
     if (!provider) throw new Error(`Unknown AI provider: ${providerId}`);
@@ -125,8 +153,16 @@ const listProviders = (aiPreferences) => {
     ? aiPreferences.openaiCompatibleEndpoints
     : [];
 
-  return [...builtIn, ...endpoints.map(compatProviderEntry)];
+  return [...builtIn, copilotProviderEntry(), ...endpoints.map(compatProviderEntry)];
 };
+
+const copilotModelEntries = () => getCopilotCatalog().models.map((model) => ({
+  id: copilotBrunoModelId(model.modelId),
+  label: model.label,
+  provider: COPILOT_PROVIDER_ID,
+  isCustom: false,
+  multiplier: model.multiplier
+}));
 
 const listModels = (aiPreferences) => {
   const builtIn = Object.entries(MODEL_DEFINITIONS).map(([id, def]) => ({
@@ -155,10 +191,10 @@ const listModels = (aiPreferences) => {
     }
   }
 
-  return [...builtIn, ...custom];
+  return [...builtIn, ...copilotModelEntries(), ...custom];
 };
 
-/** Resolve a Bruno model id (built-in or custom) into its provider config. */
+/** Resolve a Bruno model id (built-in, Copilot or custom) into its provider config. */
 const resolveModelDefinition = (modelId, aiPreferences) => {
   if (MODEL_DEFINITIONS[modelId]) {
     const def = MODEL_DEFINITIONS[modelId];
@@ -167,6 +203,17 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
       sdkModelId: def.modelId,
       label: def.label,
       baseURL: null
+    };
+  }
+
+  if (isCopilotModelId(modelId)) {
+    const copilotModel = findCopilotModel(modelId);
+    if (!copilotModel) return null;
+    return {
+      providerId: COPILOT_PROVIDER_ID,
+      sdkModelId: copilotModel.modelId,
+      label: copilotModel.label,
+      baseURL: getCopilotCatalog().apiEndpoint
     };
   }
 
@@ -189,10 +236,9 @@ const resolveModelDefinition = (modelId, aiPreferences) => {
   return null;
 };
 
-const isBuiltInModelId = (modelId) => Boolean(MODEL_DEFINITIONS[modelId]);
-
 const providerLabel = (providerId, aiPreferences) => {
   if (PROVIDERS[providerId]) return PROVIDERS[providerId].label;
+  if (providerId === COPILOT_PROVIDER_ID) return COPILOT_PROVIDER_LABEL;
   const endpointId = endpointIdFromProviderId(providerId);
   if (endpointId) {
     const endpoint = getCompatEndpoint(aiPreferences, endpointId);
@@ -215,7 +261,11 @@ const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
   }
 
   const isCompat = isOpenAiCompatibleProviderId(def.providerId);
+  const isCopilot = def.providerId === COPILOT_PROVIDER_ID;
   const apiKey = getApiKey(def.providerId);
+  if (!apiKey && isCopilot) {
+    throw new Error(COPILOT_NO_TOKEN_MESSAGE);
+  }
   if (!apiKey && !isCompat) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} API key is not configured. Add it in Preferences > AI.`);
   }
@@ -223,8 +273,13 @@ const getModel = (modelId, { aiPreferences, getApiKey, apiFormatOverride }) => {
   if (isCompat && !def.baseURL) {
     throw new Error(`${providerLabel(def.providerId, aiPreferences)} is missing a Base URL. Set one in Preferences > AI.`);
   }
+  if (isCopilot && !def.baseURL) {
+    throw new Error('GitHub Copilot models are still loading. Refresh models in Preferences > AI.');
+  }
 
   const sdk = getSdk({ providerId: def.providerId, apiKey, baseURL: def.baseURL });
+
+  if (isCopilot) return sdk.chat(def.sdkModelId);
 
   // Built-in providers keep the SDK default; only custom (OpenAI-compatible)
   // endpoints let the user pick between Chat Completions and the Responses API.
@@ -259,6 +314,7 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
       id: model.id,
       label: model.label,
       provider: model.provider,
+      multiplier: model.multiplier,
       apiFormat: model.apiFormat
     });
   }
@@ -266,7 +322,7 @@ const getAvailableModels = ({ aiPreferences, hasApiKey }) => {
 };
 
 const isKnownProviderId = (providerId, aiPreferences) => {
-  if (PROVIDERS[providerId]) return true;
+  if (PROVIDERS[providerId] || providerId === COPILOT_PROVIDER_ID) return true;
   const endpointId = endpointIdFromProviderId(providerId);
   if (!endpointId) return false;
   return Boolean(getCompatEndpoint(aiPreferences, endpointId));
@@ -302,9 +358,9 @@ module.exports = {
   providerIdFromEndpointId,
   getCompatEndpoint,
   isKnownProviderId,
-  isBuiltInModelId,
   isReasoningModel,
   isOpenAiReasoningModel,
+  resolveMaxOutputTokens,
   validateApiKeyForProvider,
   providerLabel
 };

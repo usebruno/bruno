@@ -1,10 +1,16 @@
 ## What's New in Bruno v4.4.0
 
+### Bruno Script API Documentation
+
+Introducing the Bruno Script API documentation at [api-reference.usebruno.com](https://api-reference.usebruno.com/), a complete reference for the `req`, `res` and `bru` objects you use in pre-request scripts, post-response scripts and tests.
+
+![Bruno Script API documentation](https://d3icksk7srk4uh.cloudfront.net/4.4.0/api-ref.png)
+
 ### 1Password Secret Manager
 
 Bruno now reads secrets from 1Password through the 1Password Connect server. Add a 1Password account in the Secret Manager, pick the vaults to expose, and reference secrets with the same `{{secret.}}` syntax used by Doppler, Infisical and HashiCorp Vault.
 
-![1Password account set up](https://d3icksk7srk4uh.cloudfront.net/4.4.0/1pass.png)
+![1Password account set up](https://d3icksk7srk4uh.cloudfront.net/4.4.0/password.png)
 
 ### OpenAPI Sync and the API Spec Panel
 
@@ -13,28 +19,35 @@ Bruno now reads secrets from 1Password through the 1Password Connect server. Add
 * **Bulk Import: Check for Spec Updates.** The Bulk Import modal shows which specs have changes since the last sync.
 * **Spec item actions.** Right-click an item in the API Spec panel to generate, reveal, rename, clone or delete.
 
-![Spec item context menu](https://d3icksk7srk4uh.cloudfront.net/4.4.0/mock-server.png)
+![Spec item context menu](https://d3icksk7srk4uh.cloudfront.net/4.4.0/generate-mock.png)
 
-### Smarter Variable Autocomplete
+### Fix Sensitive Data Warnings in One Click
 
-* **Scope-aware ranking.** OAuth2 credentials are ranked below dynamic variables, and process-env entries stay in the list until explicitly dismissed.
-* **Readable suggestions.** Long variable names are no longer truncated, and the suggestion no longer deletes text after the cursor.
-* **Save as secret, inline.** When a sensitive value is detected in a credential field, Bruno offers to save it as a secret variable from the warning tooltip, in one click.
+When Bruno warns that a credential field holds a plain-text value or a non-secret variable, you can now save it as a secret directly from the warning.
 
-![Save a sensitive value as a secret from the warning tooltip](https://d3icksk7srk4uh.cloudfront.net/4.4.0/secret-values.png)
+* Warnings now cover API Key auth, AWS SigV4 session token, and collection proxy password
+* Warnings now apply to global, collection, folder, and request variables
+
+![Save a sensitive value as a secret from the warning tooltip](https://d3icksk7srk4uh.cloudfront.net/4.4.0/secret-var-warnings.png)
+
+### Faster Variable Autocomplete
+
+Variable suggestions now appear as soon as you type `{` in the URL bar, params, headers, and auth fields.
+You can also open the variable list anywhere with a shortkey
 
 ### Environment Sidebar
 
 * **Multi-select and bulk actions.** Select multiple environments in a collection or global sidebar with the standard shortcuts, then duplicate, delete or move them in one step.
 * **Create from search.** When a search returns no results, the sidebar offers to create an environment with that name.
 
-![Environment Multi-select bulk actions](https://d3icksk7srk4uh.cloudfront.net/4.4.0/export-env.png)
+![Environment Multi-select bulk actions](https://d3icksk7srk4uh.cloudfront.net/4.4.0/env-multi-select.png)
 
-### Collection Runner at Scale
+### Faster Collection Runner Start for Large Runs
 
-The runner no longer freezes the app when started with high iteration counts. The Include and Exclude tag filters have been reworked so they read as a single list, and folder-level tags are matched the same way as request tags.
+The runner view now opens right away when you click **Run** with a high iteration count, instead of freezing before the results table appears.
+You can also adjust **Concurrent iterations** in parallel mode to keep large runs smooth on lower-spec systems
 
-![Collection Runner Include and Exclude tag](https://d3icksk7srk4uh.cloudfront.net/4.4.0/collection-runner.png)
+![Collection Runner](https://d3icksk7srk4uh.cloudfront.net/4.4.0/runner.png)
 
 ### Mock Servers
 

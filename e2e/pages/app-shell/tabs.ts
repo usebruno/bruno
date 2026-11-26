@@ -1,0 +1,175 @@
+import {
+  test,
+  expect,
+  Page,
+  Locator
+} from '../../playwright';
+import { buildModalLocators } from '../shared-ui/modal';
+import { buildUnsavedChangesModalLocators } from './unsaved-changes-modal';
+
+/**
+ * Locators for the request tab strip (request, folder and collection settings tabs).
+ */
+export const buildRequestTabsLocators = (page: Page) => ({
+  allRequestTabs: () => page.locator('.request-tab'),
+  tabByName: (name: string) => page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) }),
+  requestTab: (requestName: string) => page.locator('.request-tab .tab-label').filter({ hasText: requestName }),
+  folderTab: (folderName: string) => page.locator('.request-tab .tab-label').filter({ hasText: folderName }),
+  collectionSettingsTab: () =>
+    page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
+  activeRequestTab: () => page.locator('.request-tab.active'),
+  leftChevron: () => page.getByLabel('Left Chevron'),
+  scrollContainer: () => page.locator('.tabs-scroll-container'),
+  activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
+  // The request tab's right-click menu; `key` is the menu item id (e.g. 'clone-request').
+  requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
+  activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
+  closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
+  closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
+  closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
+  draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
+  activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
+  tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+  tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient'),
+  tabLabel: (tab: Locator) => tab.locator('.tab-label')
+});
+
+const buildLocators = (page: Page) => ({
+  tabs: buildRequestTabsLocators(page)
+});
+
+/**
+ * Close every open request tab, discarding or saving based on the saveChanges flag.
+ *
+ * @param page - The page object
+ * @returns void
+ */
+export const closeAllOpenTabs = async (page: Page, saveChanges = false) => {
+  await test.step(`Close all tabs, ${saveChanges ? 'saving' : 'discarding'} changes`, async () => {
+    const locators = buildLocators(page);
+    const closableTabs = locators.tabs.closableTabs();
+    const confirmClose = page.locator('.bruno-modal').filter({ hasText: 'Unsaved changes' });
+    const resolveButton = saveChanges
+      ? confirmClose.getByRole('button', { name: /^Save( All)?$/ })
+      : confirmClose.getByRole('button', { name: 'Don\'t Save' });
+
+    const pressCloseAllTabs = async () => {
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('ControlOrMeta+Shift+W');
+    };
+
+    await pressCloseAllTabs();
+
+    await expect(async () => {
+      if (await confirmClose.isVisible()) {
+        await resolveButton.click();
+      }
+      await expect(closableTabs).toHaveCount(0, { timeout: 1000 });
+    }).toPass({ timeout: 15000 });
+  });
+};
+
+// Aim at the label's left edge: on a short tab name the close-gradient overlay covers its centre.
+const clickTabContextMenuItem = async (page: Page, tabLabel: Locator, itemId: string) => {
+  await tabLabel.click({ button: 'right', position: { x: 5, y: 5 } });
+
+  const dropdown = page.locator('.tippy-box.dropdown');
+  await dropdown.waitFor({ state: 'visible', timeout: 5000 });
+  await dropdown.locator(`[role="menuitem"][data-item-id="${itemId}"]`).click();
+};
+
+/**
+ * Close a request tab that has unsaved changes, discarding them in the confirmation modal.
+ * @param page - The page object
+ * @param requestName - The name shown on the request tab
+ * @returns void
+ */
+export const closeRequestTabDiscardingChanges = async (page: Page, requestName: string) => {
+  await test.step(`Close tab "${requestName}" without saving`, async () => {
+    const locators = buildLocators(page);
+    const tabLabel = locators.tabs.requestTab(requestName);
+    await tabLabel.hover();
+    await locators.tabs.closeTab(requestName).click();
+    await buildModalLocators(page).byTitle('Unsaved changes').getByRole('button', { name: 'Don\'t Save' }).click();
+    await expect(tabLabel).toHaveCount(0);
+  });
+};
+
+/**
+ * Close all open request tabs using the right-click context menu
+ * @param page - The page object
+ * @returns void
+ */
+export const closeAllTabs = async (page: Page) => {
+  await test.step('Close all tabs', async () => {
+    // Find actual request tabs (those with .tab-method, not Overview/Environments)
+    const requestTabLabel = page.locator('.request-tab').filter({ has: page.locator('.tab-method') }).locator('.tab-label').first();
+    if (!(await requestTabLabel.isVisible().catch(() => false))) {
+      return; // No request tabs to close
+    }
+
+    await clickTabContextMenuItem(page, requestTabLabel, 'close-all');
+
+    // Bulk close asks what to do with unsaved work; cleanup throws it away.
+    const unsavedChangesModal = buildUnsavedChangesModalLocators(page);
+    if (await unsavedChangesModal.root().isVisible({ timeout: 2000 }).catch(() => false)) {
+      await unsavedChangesModal.button('Don\'t Save').click();
+      await expect(unsavedChangesModal.root()).toBeHidden();
+    }
+
+    // Handle "Unsaved Transient Requests" modal if it appears
+    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
+    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await discardAllButton.click();
+    }
+
+    const saveTransientModal = page.getByTestId('save-transient-request-modal');
+    if (await saveTransientModal.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await saveTransientModal.getByRole('button', { name: 'Cancel' }).click();
+      await expect(saveTransientModal).toBeHidden();
+    }
+  });
+};
+
+/**
+ * Pick an entry from a request tab's right-click menu (e.g. "close-others", "close-left").
+ * @param page - The page object
+ * @param tabName - Exact label of the tab to right-click
+ * @param itemId - The menu item's data-item-id
+ */
+export const selectTabContextMenuItem = async (page: Page, tabName: string, itemId: string) => {
+  await test.step(`Select "${itemId}" from the "${tabName}" tab menu`, async () => {
+    const { tabs } = buildLocators(page);
+    await clickTabContextMenuItem(page, tabs.tabLabel(tabs.tabByName(tabName)), itemId);
+  });
+};
+
+// Switch to an already-open request tab by its label (e.g. transient tabs are "Untitled N").
+export const switchToOpenTab = async (page: Page, label: string) => {
+  await test.step(`Switch to tab "${label}"`, async () => {
+    const { tabs } = buildLocators(page);
+    const tab = tabs.tabByName(label);
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  });
+};
+
+export const activeTabIsInStrip = async (page: Page) => {
+  const locators = buildLocators(page);
+  const strip = await locators.tabs.scrollContainer().boundingBox();
+  const tab = await locators.tabs.activeRequestTab().boundingBox();
+  if (!strip || !tab) return false;
+
+  return tab.x >= strip.x - 1 && tab.x + tab.width <= strip.x + strip.width + 1;
+};
+
+/**
+ * Open the active request tab's right-click menu. The tab's close gradient overlays the centre,
+ * so the click targets the left edge of the label.
+ */
+export const openActiveRequestTabMenu = async (page: Page) => {
+  await test.step('Open the active request tab menu', async () => {
+    const { tabs } = buildLocators(page);
+    await tabs.activeRequestTabLabel().click({ button: 'right', position: { x: 4, y: 8 } });
+  });
+};

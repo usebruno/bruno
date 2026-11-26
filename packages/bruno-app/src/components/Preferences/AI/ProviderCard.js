@@ -40,7 +40,11 @@ const ProviderCard = ({
   models,
   isModelEnabled,
   onToggleModel,
-  onStatusChange
+  onStatusChange,
+  logo,
+  statusText,
+  credentials,
+  setupHint = 'Add an API key to enable'
 }) => {
   const Logo = PROVIDER_LOGOS[provider.id];
 
@@ -57,11 +61,11 @@ const ProviderCard = ({
     const was = prev.current;
     if (!was.enabled && providerEnabled) {
       setExpanded(true);
-    } else if (was.enabled && !providerEnabled) {
+    } else if (was.enabled && !providerEnabled && provider.configured) {
       setExpanded(false);
     }
     prev.current = { enabled: providerEnabled };
-  }, [providerEnabled]);
+  }, [providerEnabled, provider.configured]);
 
   const isEditing = editing || !provider.configured;
 
@@ -152,23 +156,26 @@ const ProviderCard = ({
         onClick={() => setExpanded(!expanded)}
         role="button"
         tabIndex={0}
+        aria-expanded={expanded}
         onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setExpanded(!expanded);
           }
         }}
+        data-testid={`ai-provider-${provider.id}-header`}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          {Logo ? <Logo className="provider-logo w-[18px] h-[18px] flex-shrink-0" /> : null}
+          {logo ?? (Logo ? <Logo className="provider-logo w-[18px] h-[18px] flex-shrink-0" /> : null)}
           <span className="font-semibold text-[12.5px]">{provider.label}</span>
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <span className={`provider-status inline-flex items-center gap-1.5 text-[11px] ${provider.configured ? 'configured' : ''}`}>
             <span className={`status-dot w-[7px] h-[7px] rounded-full ${provider.configured ? 'configured' : ''}`} />
-            {provider.configured
+            {statusText ?? (provider.configured
               ? `${enabledModelsCount}/${models.length} models`
-              : 'Not configured'}
+              : 'Not configured')}
           </span>
           <span className="flex items-center" onClick={stopBubble}>
             {providerToggle}
@@ -182,111 +189,112 @@ const ProviderCard = ({
       <div className={`provider-body-wrapper ${expanded ? 'open' : ''}`}>
         <div className="provider-body-inner">
           <div className="provider-body flex flex-col gap-3.5 px-3 pt-3 pb-3">
-            {/* API key */}
-            <div>
-              <div className="key-section-label flex items-center justify-between gap-2 text-[11px] mb-1">
-                <span>API Key</span>
-              </div>
-
-              {!isEditing ? (
-                <div
-                  className="key-display-row flex items-center justify-between gap-2 h-8 box-border pl-2.5 pr-0.5"
-                  onClick={stopBubble}
-                >
-                  <span className="key-display-mask text-xs">••••••••••••••••</span>
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleTest}
-                      disabled={testing || !providerEnabled}
-                      title="Test connection"
-                      aria-label="Test connection"
-                    >
-                      {testing ? <IconLoader2 size={15} className="spin" /> : <IconBolt size={15} />}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleStartEdit}
-                      title="Replace key"
-                      aria-label="Replace key"
-                    >
-                      <IconPencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleClear}
-                      title="Remove key"
-                      aria-label="Remove key"
-                    >
-                      <IconTrash size={15} />
-                    </button>
-                  </div>
+            {credentials ?? (
+              <div>
+                <div className="key-section-label flex items-center justify-between gap-2 text-[11px] mb-1">
+                  <span>API Key</span>
                 </div>
-              ) : (
-                <div className="flex items-center gap-1.5" onClick={stopBubble}>
-                  <div className="relative flex-1 flex items-center">
-                    <input
-                      id={`api-key-${provider.id}`}
-                      type={showKey ? 'text' : 'password'}
-                      className="key-input w-full h-8 box-border text-xs leading-none pl-2.5 pr-8"
-                      placeholder={provider.apiKeyPlaceholder}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                      spellCheck="false"
-                      value={keyDraft}
-                      onChange={(e) => setKeyDraft(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onClick={stopBubble}
-                      autoFocus
-                      data-testid={`ai-provider-${provider.id}-key-input`}
-                    />
-                    <button
-                      type="button"
-                      className="key-eye-btn absolute right-1 p-1 inline-flex items-center cursor-pointer"
-                      onClick={() => setShowKey(!showKey)}
-                      tabIndex={-1}
-                      aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                    >
-                      {showKey ? <IconEyeOff size={14} /> : <IconEye size={14} />}
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-primary h-8 box-border px-3 text-xs font-medium inline-flex items-center justify-center gap-1 cursor-pointer"
-                    disabled={saving || !keyDraft.trim()}
-                    onClick={handleSave}
-                    data-testid={`ai-provider-${provider.id}-save`}
+
+                {!isEditing ? (
+                  <div
+                    className="key-display-row flex items-center justify-between gap-2 h-8 box-border pl-2.5 pr-0.5"
+                    onClick={stopBubble}
                   >
-                    {saving ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
-                    Save
-                  </button>
-                  {provider.configured && (
+                    <span className="key-display-mask text-xs">••••••••••••••••</span>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                        onClick={handleTest}
+                        disabled={testing || !providerEnabled}
+                        title="Test connection"
+                        aria-label="Test connection"
+                      >
+                        {testing ? <IconLoader2 size={15} className="spin" /> : <IconBolt size={15} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                        onClick={handleStartEdit}
+                        title="Replace key"
+                        aria-label="Replace key"
+                      >
+                        <IconPencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon danger w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                        onClick={handleClear}
+                        title="Remove key"
+                        aria-label="Remove key"
+                      >
+                        <IconTrash size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5" onClick={stopBubble}>
+                    <div className="relative flex-1 flex items-center">
+                      <input
+                        id={`api-key-${provider.id}`}
+                        type={showKey ? 'text' : 'password'}
+                        className="key-input w-full h-8 box-border text-xs leading-none pl-2.5 pr-8"
+                        placeholder={provider.apiKeyPlaceholder}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        value={keyDraft}
+                        onChange={(e) => setKeyDraft(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onClick={stopBubble}
+                        autoFocus
+                        data-testid={`ai-provider-${provider.id}-key-input`}
+                      />
+                      <button
+                        type="button"
+                        className="key-eye-btn absolute right-1 p-1 inline-flex items-center cursor-pointer"
+                        onClick={() => setShowKey(!showKey)}
+                        tabIndex={-1}
+                        aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                      >
+                        {showKey ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
-                      onClick={handleCancelEdit}
-                      title="Cancel"
+                      className="btn-primary h-8 box-border px-3 text-xs font-medium inline-flex items-center justify-center gap-1 cursor-pointer"
+                      disabled={saving || !keyDraft.trim()}
+                      onClick={handleSave}
+                      data-testid={`ai-provider-${provider.id}-save`}
                     >
-                      <IconX size={15} />
+                      {saving ? <IconLoader2 size={13} className="spin" /> : <IconCheck size={13} />}
+                      Save
                     </button>
-                  )}
-                </div>
-              )}
+                    {provider.configured && (
+                      <button
+                        type="button"
+                        className="btn-icon w-7 h-7 box-border inline-flex items-center justify-center cursor-pointer"
+                        onClick={handleCancelEdit}
+                        title="Cancel"
+                      >
+                        <IconX size={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
 
-              {feedback && (
-                <div
-                  className={`feedback flex items-center gap-1.5 text-[11px] px-2 py-1 mt-1.5 ${feedback.type}`}
-                  role="status"
-                >
-                  {feedback.type === 'success' ? <IconCheck size={12} /> : <IconAlertCircle size={12} />}
-                  {feedback.message}
-                </div>
-              )}
-            </div>
+                {feedback && (
+                  <div
+                    className={`feedback flex items-center gap-1.5 text-[11px] px-2 py-1 mt-1.5 ${feedback.type}`}
+                    role="status"
+                  >
+                    {feedback.type === 'success' ? <IconCheck size={12} /> : <IconAlertCircle size={12} />}
+                    {feedback.message}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Models */}
             {models.length > 0 && (
@@ -296,7 +304,7 @@ const ProviderCard = ({
                   {!provider.configured && (
                     <span className="keyless-hint flex items-center gap-1.5 text-[11px] py-1">
                       <IconAlertCircle size={12} />
-                      Add an API key to enable
+                      {setupHint}
                     </span>
                   )}
                 </div>
@@ -318,6 +326,7 @@ const ProviderCard = ({
                           onChange={() => onToggleModel(model.id, !enabled)}
                         />
                         <span className="text-xs">{model.label}</span>
+                        {model.tag && <span className="model-tag ml-auto">{model.tag}</span>}
                       </label>
                     );
                   })}
