@@ -64,7 +64,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
       });
 
       test('opens Global Search, not the action now bound to the default shortcut', async ({ pageWithUserData: page }) => {
-        const { tabs } = buildCommonLocators(page);
+        const { environment } = buildCommonLocators(page);
         const globalSearch = buildGlobalSearchLocators(page);
         await remapKeybinding(page, 'globalSearch', 'Shift', 'KeyK');
         await remapKeybinding(page, 'editEnvironment', modifier, 'KeyK');
@@ -73,7 +73,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await expect(globalSearch.input()).toBeFocused();
         await closeGlobalSearch(page);
-        await expect(tabs.tabByName('Environments')).toHaveCount(0);
+        await expect(environment.collectionEnvTab()).toHaveCount(0);
       });
 
       test('opens Global Search while keyboard shortcuts are turned off', async ({ pageWithUserData: page }) => {
