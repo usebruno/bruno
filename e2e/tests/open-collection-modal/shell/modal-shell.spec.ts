@@ -230,7 +230,8 @@ test.describe('Open collection modal shell', () => {
       await expect(openCollectionModal.menuItem('import')).toBeFocused();
     });
 
-    await test.step('Press ArrowUp twice', async () => {
+    await test.step('Press ArrowUp three times', async () => {
+      await page.keyboard.press('ArrowUp');
       await page.keyboard.press('ArrowUp');
       await page.keyboard.press('ArrowUp');
     });
@@ -243,8 +244,8 @@ test.describe('Open collection modal shell', () => {
       await page.keyboard.press('ArrowDown');
     });
 
-    await test.step('Verify focus wrapped to Choose folder', async () => {
-      await expect(openCollectionModal.menuItem('choose-folder')).toBeFocused();
+    await test.step('Verify focus wrapped to Recents', async () => {
+      await expect(openCollectionModal.menuItem('recents')).toBeFocused();
     });
   });
 
