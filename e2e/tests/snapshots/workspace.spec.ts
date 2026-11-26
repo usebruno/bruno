@@ -6,7 +6,7 @@ import {
   openRequest,
   openWorkspaceFromDialog
 } from '../../pages';
-import { waitForReadyPage } from '../../utils';
+import { findSnapshotCollectionEntry, readSnapshot, waitForReadyPage } from '../../utils';
 import fs from 'fs';
 
 const buildWorkspaceYml = (workspaceName: string) => [
@@ -209,6 +209,11 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
   });
 
   test('falls back when active workspace and active tab belong to malformed workspace snapshot', async ({ launchElectronApp, createTmpDir }) => {
+    // This scenario creates the active tab, then starts a fresh Electron process to restore it.
+    if (process.platform === 'win32') {
+      test.setTimeout(45_000);
+    }
+
     const userDataPath = await createTmpDir('snap-workspace-malformed-with-active-tab');
     const workspacePath = await createTmpDir('demo-workspace-malformed-active-tab');
     const defaultCollectionPath = await createTmpDir('default-workspace-col-malformed-active-tab');
@@ -240,7 +245,14 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       await openRequest(page, 'Malformed Workspace Col', 'Malformed Workspace Req', { persist: true });
       await expect(page.getByRole('tab', { name: 'Malformed Workspace Req' })).toBeVisible({ timeout: 10000 });
 
-      await page.waitForTimeout(2000);
+      const collectionPath = path.join(malformedWorkspaceCollectionPath, 'Malformed Workspace Col');
+      const requestPath = path.join(collectionPath, 'Malformed Workspace Req.yml');
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        const entry = findSnapshotCollectionEntry(snapshot, collectionPath);
+        const activeTabPath = entry?.activeTab?.value;
+        return typeof activeTabPath === 'string' ? path.normalize(activeTabPath) : null;
+      }).toBe(requestPath);
       await closeElectronApp(app);
     });
 

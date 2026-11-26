@@ -2,14 +2,11 @@ import path from 'path';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
-  createRequest,
-  createEnvironment,
   selectEnvironment,
   openRequest,
-  openWorkspaceFromDialog,
-  openCollection
+  openWorkspaceFromDialog
 } from '../../../pages';
-import { waitForReadyPage } from '../../../utils';
+import { findSnapshotCollectionEntry, initBruCollection, readSnapshot, waitForReadyPage, writeBruRequest } from '../../../utils';
 
 const buildWorkspaceYml = (workspaceName: string, collectionPath: string) => [
   'opencollection: 1.0.0',
@@ -29,26 +26,34 @@ test.describe('Snapshot: Shared collection across workspaces restores its own en
     launchElectronApp,
     createTmpDir
   }) => {
+    // This scenario launches Electron twice and switches between workspaces on each launch.
+    if (process.platform === 'win32') {
+      test.setTimeout(45_000);
+    }
+
     const userDataPath = await createTmpDir('snap-shared-col-env-userdata');
     const workspaceAPath = await createTmpDir('snap-shared-col-env-ws-a');
     const workspaceBPath = await createTmpDir('snap-shared-col-env-ws-b');
     const sharedCollectionPath = await createTmpDir('snap-shared-col-env-collection');
 
-    fs.writeFileSync(path.join(sharedCollectionPath, 'bruno.json'), JSON.stringify({ version: '1', name: 'SharedCol', type: 'collection' }, null, 2));
+    initBruCollection(sharedCollectionPath, 'SharedCol');
+    writeBruRequest(sharedCollectionPath, 'PingA', { seq: 1 });
+    const environmentsPath = path.join(sharedCollectionPath, 'environments');
+    fs.mkdirSync(environmentsPath);
+    for (const name of ['env-a', 'env-b']) {
+      fs.writeFileSync(path.join(environmentsPath, `${name}.bru`), 'vars {\n}\n');
+    }
     fs.writeFileSync(path.join(workspaceAPath, 'workspace.yml'), buildWorkspaceYml('Workspace A', sharedCollectionPath));
     fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), buildWorkspaceYml('Workspace B', sharedCollectionPath));
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    await test.step('Open Workspace A, create request, and select env-a', async () => {
+    await test.step('Open Workspace A and select env-a', async () => {
       await openWorkspaceFromDialog(app, page, workspaceAPath);
       await expect(page.getByTestId('workspace-name')).toHaveText('Workspace A', { timeout: 10000 });
-      await openCollection(page, 'SharedCol');
-      await createRequest(page, 'PingA', 'SharedCol', { url: 'https://echo.usebruno.com', method: 'GET' });
       await openRequest(page, 'SharedCol', 'PingA', { persist: true });
 
-      await createEnvironment(page, 'env-a');
       await selectEnvironment(page, 'env-a');
       await expect(page.locator('.current-environment')).toContainText('env-a');
     });
@@ -56,10 +61,8 @@ test.describe('Snapshot: Shared collection across workspaces restores its own en
     await test.step('Open Workspace B, select env-b for the same shared collection', async () => {
       await openWorkspaceFromDialog(app, page, workspaceBPath);
       await expect(page.getByTestId('workspace-name')).toHaveText('Workspace B', { timeout: 10000 });
-      await openCollection(page, 'SharedCol');
       await openRequest(page, 'SharedCol', 'PingA');
 
-      await createEnvironment(page, 'env-b');
       await selectEnvironment(page, 'env-b');
       await expect(page.locator('.current-environment')).toContainText('env-b');
     });
@@ -83,7 +86,14 @@ test.describe('Snapshot: Shared collection across workspaces restores its own en
     });
 
     await test.step('Close and relaunch app: both workspaces still restore their own environment', async () => {
-      await page.waitForTimeout(2000);
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return [
+          path.normalize(snapshot?.activeWorkspacePath ?? ''),
+          findSnapshotCollectionEntry(snapshot, sharedCollectionPath, workspaceAPath)?.selectedEnvironment,
+          findSnapshotCollectionEntry(snapshot, sharedCollectionPath, workspaceBPath)?.selectedEnvironment
+        ];
+      }).toEqual([path.normalize(workspaceBPath), 'env-a', 'env-b']);
       await closeElectronApp(app);
 
       const app2 = await launchElectronApp({ userDataPath });
