@@ -362,6 +362,48 @@ describe('ModalShell', () => {
     expect(screen.queryByTestId('open-collection-note-action')).not.toBeInTheDocument();
   });
 
+  describe('the header of a found list on Choose folder', () => {
+    const renderFoundList = ({ collections, folders }) => {
+      const result = { id: 'search-1', type: 'list', collections, folders, preselect: [], note: null };
+      const store = createStore({ isOpen: true, page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER, chooseFolder: { ...closedState.chooseFolder, result } });
+      renderWithStore(<ModalShell />, store);
+      return store;
+    };
+
+    it('names the picked folder and its collection count, and Back returns to the start page', () => {
+      const store = renderFoundList({
+        collections: [{ path: '/work/apis/orders', name: 'Orders' }, { path: '/work/apis/billing', name: 'Billing' }],
+        folders: ['/work/apis']
+      });
+
+      expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Selected folder');
+      expect(screen.getByText('2 collections found in /work/apis')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('open-collection-back'));
+
+      expect(store.getState().openCollectionModal.chooseFolder.result).toBeNull();
+      expect(store.getState().openCollectionModal.page).toBe(OPEN_COLLECTION_PAGE.CHOOSE_FOLDER);
+      expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Choose folder');
+      expect(screen.queryByTestId('open-collection-back')).not.toBeInTheDocument();
+    });
+
+    it('counts the folders when several were picked', () => {
+      renderFoundList({
+        collections: [{ path: '/work/a/one', name: 'One' }, { path: '/work/b/two', name: 'Two' }, { path: '/work/b/three', name: 'Three' }],
+        folders: ['/work/a', '/work/b']
+      });
+
+      expect(screen.getByTestId('open-collection-page-title')).toHaveTextContent('Selected folders');
+      expect(screen.getByText('3 collections found in 2 folders')).toBeInTheDocument();
+    });
+
+    it('shortens a folder in the home folder with ~', () => {
+      renderFoundList({ collections: [{ path: '/Users/me/work/orders', name: 'Orders' }], folders: ['/Users/me/work'] });
+
+      expect(screen.getByText('1 collection found in ~/work')).toBeInTheDocument();
+    });
+  });
+
   describe('Add to search locations on the note of a found list', () => {
     const note = { tone: 'info', text: 'work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.' };
     const renderListNote = (fields) => {
@@ -509,11 +551,11 @@ describe('ModalShell', () => {
   });
 
   it('shows the Choose folder note between the header and the page, and dismisses it', () => {
-    const note = { tone: 'info', text: 'work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.' };
+    const note = { tone: 'info', text: 'Show this folder in My computer every time?' };
     const store = createStore({
       isOpen: true,
       page: OPEN_COLLECTION_PAGE.CHOOSE_FOLDER,
-      chooseFolder: { ...closedState.chooseFolder, result: { id: 'search-1', type: 'list', collections: [], preselect: [], note } }
+      chooseFolder: { ...closedState.chooseFolder, result: { id: 'search-1', type: 'list', collections: [], folders: ['/work'], preselect: [], note } }
     });
     renderWithStore(<ModalShell />, store);
 

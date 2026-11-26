@@ -122,7 +122,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
       preselect: [],
       tone: searchTone,
       text: sentences(
-        `${name} isn’t a collection itself, but it has ${countOf(folder.collectionPaths.length, 'collection')} inside. Pick the ones to open.`,
+        'Show this folder in My computer every time?',
         brokenText,
         describeMissing('it')
       )
@@ -166,7 +166,7 @@ const decideOutcome = (searchResult, openPathKeys) => {
     preselect: directPaths,
     tone: searchTone,
     text: sentences(
-      `Found ${countOf(allPaths.length, 'collection')} in the folders you picked. Pick the ones to open.`,
+      'Show these folders in My computer every time?',
       notCollectionsText,
       brokenText,
       unreadableText,

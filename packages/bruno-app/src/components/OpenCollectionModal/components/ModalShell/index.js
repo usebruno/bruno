@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import useKeybinding from 'hooks/useKeybinding';
-import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection-modal';
+import { folderNoteDismissed, folderResultCleared } from 'providers/ReduxStore/slices/open-collection-modal';
 import {
   addFolderResultToSearch,
   closeOpenCollectionModal,
@@ -11,6 +11,7 @@ import {
   openDroppedItems,
   openWorkspaceFromModal
 } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { countOf } from 'providers/ReduxStore/slices/open-collection-modal/folder-results';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { findOpenCollectionPage } from '../../sidebar/pages';
 import BusyOverlay from '../BusyOverlay';
@@ -19,6 +20,7 @@ import { useImportHandoff } from '../ImportHandoff/context';
 import ModalMenu from '../../sidebar/ModalMenu';
 import Note from '../Note';
 import PageHeader from '../PageHeader';
+import { tildify } from '../../utils/collection-location';
 import { focusNextTabbable, focusWhenFocusIsLost, getTabbableElements } from '../../utils/focus';
 import { isDraggingFiles, readDroppedItems } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
@@ -52,7 +54,11 @@ const ModalShell = () => {
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
   const note = useSelector((state) => state.openCollectionModal.chooseFolder.result?.note);
-  const isNoteOverList = useSelector((state) => state.openCollectionModal.chooseFolder.result?.type === 'list');
+  const folderList = useSelector((state) => {
+    const { result } = state.openCollectionModal.chooseFolder;
+    return result?.type === 'list' ? result : null;
+  });
+  const isNoteOverList = folderList !== null;
   const foldersToAdd = useSelector((state) => {
     const { result } = state.openCollectionModal.chooseFolder;
     return result?.addedToSearch ? undefined : result?.folders;
@@ -91,6 +97,16 @@ const ModalShell = () => {
     dispatch(openCollectionModal(page.parent));
     queueMicrotask(() => focusWhenFocusIsLost(getTabbableElements(hostSlot.current)[0]));
   };
+
+  const header = page.id === OPEN_COLLECTION_PAGE.CHOOSE_FOLDER && folderList
+    ? {
+        title: folderList.folders.length === 1 ? 'Selected folder' : 'Selected folders',
+        description: `${countOf(folderList.collections.length, 'collection')} found in ${
+          folderList.folders.length === 1 ? tildify(folderList.folders[0]) : countOf(folderList.folders.length, 'folder')
+        }`,
+        onBack: () => dispatch(folderResultCleared())
+      }
+    : { title: page.title, description: Subtitle ? <Subtitle /> : page.description, onBack: page.parent ? goBack : undefined };
 
   const addFoldersToSearch = (event) => {
     focusNextTabbable(event.currentTarget);
@@ -210,12 +226,7 @@ const ModalShell = () => {
         >
           <ModalMenu titleId={TITLE_ID} activePageId={hostPage.id} />
           <div className="modal-main">
-            <PageHeader
-              title={page.title}
-              description={Subtitle ? <Subtitle /> : page.description}
-              onBack={page.parent ? goBack : undefined}
-              onClose={close}
-            />
+            <PageHeader {...header} onClose={close} />
             {note && (
               <Note
                 tone={note.tone}

@@ -135,7 +135,7 @@ describe('getFolderSearchOutcome with one folder', () => {
       collections: [billing, api],
       folders: ['/work'],
       preselect: [],
-      note: { tone: 'info', text: 'work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.' }
+      note: { tone: 'info', text: 'Show this folder in My computer every time?' }
     });
   });
 
@@ -154,7 +154,7 @@ describe('getFolderSearchOutcome with one folder', () => {
       new Set([api.path, billing.path])
     );
 
-    expect(outcome.note.text).toBe('work isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.');
+    expect(outcome.note.text).toBe('Show this folder in My computer every time?');
   });
 
   it('explains a folder without collections', () => {
@@ -268,7 +268,7 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(outcome.collections).toEqual([billing]);
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. 1 collection was skipped because its config can’t be read.'
+      text: 'Show this folder in My computer every time? 1 collection was skipped because its config can’t be read.'
     });
   });
 
@@ -281,7 +281,7 @@ describe('getFolderSearchOutcome with one folder', () => {
     expect(outcome.collections).toEqual([api]);
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 1 folder inside it.'
+      text: 'Show this folder in My computer every time? Bruno couldn’t read 1 folder inside it.'
     });
   });
 
@@ -305,7 +305,7 @@ describe('getFolderSearchOutcome with one folder', () => {
 
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. Bruno couldn’t read 2 folders inside it.'
+      text: 'Show this folder in My computer every time? Bruno couldn’t read 2 folders inside it.'
     });
   });
 });
@@ -319,7 +319,7 @@ describe('getFolderSearchOutcome with files dropped along with folders', () => {
     );
 
     expect(outcome.note.text).toBe(
-      'work isn’t a collection itself, but it has 1 collection inside. Pick the ones to open. 2 dropped files weren’t opened. Use Import file or URL to import them.'
+      'Show this folder in My computer every time? 2 dropped files weren’t opened. Use Import file or URL to import them.'
     );
   });
 
@@ -442,7 +442,7 @@ describe('getFolderSearchOutcome with several folders', () => {
       preselect: [orders.path],
       note: {
         tone: 'info',
-        text: 'Found 3 collections in the folders you picked. Pick the ones to open. docs isn’t a collection, so it was skipped.'
+        text: 'Show these folders in My computer every time? docs isn’t a collection, so it was skipped.'
       }
     });
   });
@@ -459,7 +459,7 @@ describe('getFolderSearchOutcome with several folders', () => {
 
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 1 folder inside them.'
+      text: 'Show these folders in My computer every time? Bruno couldn’t read 1 folder inside them.'
     });
   });
 
@@ -497,7 +497,7 @@ describe('getFolderSearchOutcome with several folders', () => {
       new Set([api.path, billing.path, orders.path])
     );
 
-    expect(outcome.note.text).toBe('Found 3 collections in the folders you picked. Pick the ones to open.');
+    expect(outcome.note.text).toBe('Show these folders in My computer every time?');
   });
 
   it('lists a collection once when it was found through two picked folders', () => {
@@ -507,7 +507,7 @@ describe('getFolderSearchOutcome with several folders', () => {
     );
 
     expect(outcome.collections).toEqual([api]);
-    expect(outcome.note.text).toMatch(/^Found 1 collection in/);
+    expect(outcome.note.text).toBe('Show these folders in My computer every time?');
   });
 
   it('explains when none of the folders is a collection', () => {
@@ -567,7 +567,7 @@ describe('getFolderSearchOutcome with several folders', () => {
 
     expect(outcome.note).toEqual({
       tone: 'warning',
-      text: 'Found 2 collections in the folders you picked. Pick the ones to open. Bruno couldn’t read 2 folders inside them.'
+      text: 'Show these folders in My computer every time? Bruno couldn’t read 2 folders inside them.'
     });
   });
 

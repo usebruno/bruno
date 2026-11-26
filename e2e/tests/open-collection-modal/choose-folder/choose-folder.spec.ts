@@ -113,8 +113,14 @@ test.describe('Choose folder', () => {
 
     await chooseFolders(page, electronApp, [parentFolder]);
 
-    await test.step('Verify the note explains the folder and offers to search it', async () => {
-      await expect(openCollectionModal.note()).toContainText('parent isn’t a collection itself, but it has 2 collections inside. Pick the ones to open.');
+    await test.step('Verify the header names the picked folder and its collection count', async () => {
+      await expect(openCollectionModal.pageTitle()).toHaveText('Selected folder');
+      await expect(openCollectionModal.root().getByText(/^2 collections found in .+parent$/)).toBeVisible();
+      await expect(openCollectionModal.backButton()).toBeVisible();
+    });
+
+    await test.step('Verify the note offers to search the folder from My computer', async () => {
+      await expect(openCollectionModal.note()).toContainText('Show this folder in My computer every time?');
       await expect(openCollectionModal.noteActionButton()).toHaveText('Add to search locations');
     });
 
@@ -132,6 +138,17 @@ test.describe('Choose folder', () => {
       await expect(chooseFolder.rowCheckbox('Parent Beta')).not.toBeChecked();
       await expect(chooseFolder.selectAll()).not.toBeChecked();
       await expect(chooseFolder.openSelectedButton()).toHaveCount(0);
+    });
+
+    await test.step('Go back from the list', async () => {
+      await openCollectionModal.backButton().click();
+    });
+
+    await test.step('Verify Choose folder shows its start page again', async () => {
+      await expect(openCollectionModal.pageTitle()).toHaveText('Choose folder');
+      await expect(chooseFolder.dropZone()).toBeVisible();
+      await expect(chooseFolder.list()).toHaveCount(0);
+      await expect(openCollectionModal.backButton()).toHaveCount(0);
     });
   });
 
@@ -340,7 +357,7 @@ test.describe('Choose folder', () => {
     ]);
 
     await test.step('Verify the note counts every collection found', async () => {
-      await expect(openCollectionModal.note()).toContainText('Found 3 collections in the folders you picked. Pick the ones to open.');
+      await expect(openCollectionModal.note()).toContainText('Show these folders in My computer every time?');
     });
 
     await test.step('Verify only the picked collection folder is ticked', async () => {
@@ -451,7 +468,7 @@ test.describe('Choose folder', () => {
     await pressOpenCollectionShortcut(page, 'choose-folder');
 
     await test.step('Verify the new pick replaces the list', async () => {
-      await expect(openCollectionModal.note()).toContainText('nested isn’t a collection itself, but it has 1 collection inside. Pick the ones to open.');
+      await expect(openCollectionModal.note()).toContainText('Show this folder in My computer every time?');
       await expect(chooseFolder.rowNames()).toHaveText(['Parent Beta']);
     });
   });

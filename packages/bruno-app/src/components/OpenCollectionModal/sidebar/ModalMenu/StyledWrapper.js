@@ -24,7 +24,7 @@ const StyledWrapper = styled.nav`
 
   .menu-section-label {
     padding: 0.25rem 0.625rem 0.375rem;
-    margin-top: 1rem;
+    margin-top: 2rem;
     font-size: ${(props) => props.theme.font.size.xs};
     font-weight: 600;
     letter-spacing: 0.04em;

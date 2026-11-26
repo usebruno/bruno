@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { IconAlertTriangle, IconExternalLink, IconLink, IconLoader2, IconUpload } from '@tabler/icons';
+import { IconAlertTriangle, IconArrowUpRight, IconLink, IconLoader2, IconUpload } from '@tabler/icons';
 import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
 import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import DropZone from '../../components/DropZone';
@@ -141,7 +141,7 @@ const ImportPage = () => {
           data-testid="import-page-docs-link"
         >
           Migrating from other tools?
-          <IconExternalLink size={13} strokeWidth={1.75} aria-hidden="true" />
+          <IconArrowUpRight size={13} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </div>
     </StyledWrapper>
