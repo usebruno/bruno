@@ -368,6 +368,12 @@ const findRequestFileOnDisk = (dirPath, method, urlPath, collectionPath = dirPat
   return null;
 };
 
+const readCollectionRequestFile = (collectionPath, pathname) => {
+  if (!isPathInsideCollection(pathname, collectionPath)) return null;
+  const format = pathname.endsWith('.yml') || pathname.endsWith('.yaml') ? 'yml' : 'bru';
+  return { format, request: parseRequest(fs.readFileSync(pathname, 'utf8'), { format }) };
+};
+
 /**
  * Save an OpenAPI spec file to AppData specs directory.
  * - Detects format (JSON/YAML) from the content and uses the correct file extension.
@@ -641,6 +647,7 @@ const mergeJsonBody = (userBody, specBody, preserveValues = true, declared, rest
     const userJson = JSON.parse(u.masked);
     if (restoreSpecTypes && userJson === null) return specBody;
     const merged = mergeJsonValues(userJson, JSON.parse(s.masked), preserveValues, declared, false, restoreSpecTypes);
+    if (restoreSpecTypes && _.isEqual(merged, userJson)) return { ...specBody, mode: 'json', json: userBody.json };
     let json = JSON.stringify(merged, null, 2);
     json = unmaskJsonInterpolations(json, u.vars, 'BRU_U');
     json = unmaskJsonInterpolations(json, s.vars, 'BRU_S');
@@ -1543,11 +1550,11 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // Find the actual collection file for this endpoint
       let actualRequest = null;
       if (resetToSpec && pathname) {
-        if (!isPathInsideCollection(pathname, collectionPath)) {
+        const requestFile = readCollectionRequestFile(collectionPath, pathname);
+        if (!requestFile) {
           return { error: 'Request file is outside the collection' };
         }
-        const fileFormat = pathname.endsWith('.yml') || pathname.endsWith('.yaml') ? 'yml' : 'bru';
-        actualRequest = parseRequest(fs.readFileSync(pathname, 'utf8'), { format: fileFormat });
+        actualRequest = requestFile.request;
       } else {
         actualRequest = findRequestFileOnDisk(collectionPath, method.toUpperCase(), endpointPath)?.request || null;
       }
@@ -2115,17 +2122,14 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         const specItem = findItemInCollection(specCollection.items, endpoint.method, endpoint.path)?.item;
 
         if (specItem && endpoint.pathname) {
-          if (!isPathInsideCollection(endpoint.pathname, collectionPath)) {
-            console.error(`[OpenAPI Sync] Path traversal blocked in reset-endpoints: ${endpoint.pathname}`);
-            continue;
-          }
-
           try {
-            const fileFormat = endpoint.pathname.endsWith('.yml') || endpoint.pathname.endsWith('.yaml') ? 'yml' : 'bru';
-            const existingContent = fs.readFileSync(endpoint.pathname, 'utf8');
-            const existingRequest = parseRequest(existingContent, { format: fileFormat });
-            const mergedRequest = mergeSpecIntoRequest(existingRequest, specItem, mergeOptionsOf(endpoint.method, endpoint.path));
-            const requestContent = await stringifyRequestViaWorker(mergedRequest, { format: fileFormat });
+            const requestFile = readCollectionRequestFile(collectionPath, endpoint.pathname);
+            if (!requestFile) {
+              console.error(`[OpenAPI Sync] Path traversal blocked in reset-endpoints: ${endpoint.pathname}`);
+              continue;
+            }
+            const mergedRequest = mergeSpecIntoRequest(requestFile.request, specItem, mergeOptionsOf(endpoint.method, endpoint.path));
+            const requestContent = await stringifyRequestViaWorker(mergedRequest, { format: requestFile.format });
             await writeFile(endpoint.pathname, requestContent);
             resetCount++;
           } catch (err) {

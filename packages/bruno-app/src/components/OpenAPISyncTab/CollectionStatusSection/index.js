@@ -20,8 +20,6 @@ const CollectionStatusSection = ({
   collection,
   collectionDrift,
   reloadDrift,
-  specDrift,
-  storedSpec,
   lastSyncDate,
   onOpenEndpoint,
   isLoading,
@@ -62,7 +60,6 @@ const CollectionStatusSection = ({
   const modifiedCount = collectionDrift?.modified?.length || 0;
   const missingCount = collectionDrift?.missing?.length || 0;
   const localOnlyCount = collectionDrift?.localOnly?.length || 0;
-  const version = specDrift?.storedVersion || storedSpec?.info?.version;
 
   const bannerState = useMemo(() => {
     if (hasDrift) {
@@ -74,7 +71,7 @@ const CollectionStatusSection = ({
       };
     }
     return null;
-  }, [hasDrift, modifiedCount, missingCount, localOnlyCount, version, lastSyncDate]);
+  }, [hasDrift, modifiedCount, missingCount, localOnlyCount]);
 
   return (
     <div className="collection-status-section">

@@ -142,8 +142,6 @@ const OpenAPISyncTab = ({ collection }) => {
                   collection={collection}
                   collectionDrift={collectionDrift}
                   reloadDrift={reloadDrift}
-                  specDrift={specDrift}
-                  storedSpec={storedSpec}
                   lastSyncDate={openApiSyncConfig?.lastSyncDate}
                   onOpenEndpoint={openEndpointInTab}
                   isLoading={isDriftLoading || isLoading}

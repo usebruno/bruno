@@ -262,11 +262,16 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(previews.map(({ newData }) => namesAndValues(newData.request.headers))).toEqual(written);
   });
 
-  it('does not read a request file outside the collection for the preview', async () => {
+  it('does not read or reset a request file outside the collection', async () => {
     const outside = path.join(mockUserData, `Create pet.${format}`);
-    fs.writeFileSync(outside, stringifyRequest(openApiToBruno(petSpec).items.find((each) => each.name === 'Create pet'), { format }));
+    const item = openApiToBruno(petSpec).items.find((each) => each.name === 'Create pet');
+    item.request.headers.push({ name: 'X-Debug', value: '1', enabled: true });
+    fs.writeFileSync(outside, stringifyRequest(item, { format }));
+    const content = fs.readFileSync(outside, 'utf8');
 
     expect(await previewReset('POST:/pets', { pathname: outside })).toEqual({ error: 'Request file is outside the collection' });
+    expect(await reset([{ id: 'POST:/pets', method: 'POST', path: '/pets', pathname: outside }])).toEqual({ success: true, resetCount: 0 });
+    expect(fs.readFileSync(outside, 'utf8')).toBe(content);
   });
 
   it('takes the spec\'s body for a JSON body that is null, so the endpoint is no longer listed', async () => {
@@ -346,6 +351,22 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(JSON.parse(readRequest('Create pet').body.json)).toEqual(expected);
     expect(JSON.parse(preview.newData.request.body.json)).toEqual(expected);
     expect((await drift()).modified).toEqual([]);
+  });
+
+  it('keeps a JSON body as written when Reset leaves its values as they are', async () => {
+    writeRequest('Create pet', (request) => ({
+      ...request,
+      headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }],
+      body: { ...request.body, json: '{\n    "owner": { "id": 9007199254740993 },\n    "name": "Fido",\n    "nickname": "Rex"\n}' }
+    }));
+    const written = readRequest('Create pet').body.json;
+    const preview = await previewReset('POST:/pets');
+
+    await reset(await modifiedEndpoints());
+
+    expect(readRequest('Create pet').headers.map(({ name }) => name)).toEqual(['X-Request-Id']);
+    expect(readRequest('Create pet').body.json).toBe(written);
+    expect(preview.newData.request.body.json).toBe(written);
   });
 
   it('keeps a oneOf or anyOf part as written, and no longer lists the endpoint after Reset', async () => {

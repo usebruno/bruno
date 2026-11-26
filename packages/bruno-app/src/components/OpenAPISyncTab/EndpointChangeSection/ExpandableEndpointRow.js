@@ -17,7 +17,7 @@ import EndpointVisualDiff from './EndpointVisualDiff';
 // Expandable row - can be used with or without decision buttons
 const ExpandableEndpointRow = ({ endpoint, decision, onDecisionChange, collectionPath, newSpec, showDecisions = true, decisionLabels, diffLeftLabel, diffRightLabel, swapDiffSides, collectionUid, actions, preserveValues = true, resetToSpec = false }) => {
   const dispatch = useDispatch();
-  const rowKey = endpoint.id || `${endpoint.method}-${endpoint.path}`;
+  const rowKey = (resetToSpec && endpoint.pathname) || endpoint.id || `${endpoint.method}-${endpoint.path}`;
   const isExpanded = useSelector((state) => {
     return state.openapiSync?.tabUiState?.[collectionUid]?.expandedRows?.[rowKey] || false;
   });

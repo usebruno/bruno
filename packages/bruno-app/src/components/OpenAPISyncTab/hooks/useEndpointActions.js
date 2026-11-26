@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
+const RESET_OUTCOME = 'Fields you added are removed and fields you deleted come back. Your values are kept unless their auth mode, body mode or type differs from the spec.';
+
 const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -27,7 +29,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     setPendingAction({
       type: 'reset-endpoint',
       title: 'Reset Endpoint',
-      message: `Reset "${endpoint.method} ${endpoint.path}" to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.`,
+      message: `Reset "${endpoint.method} ${endpoint.path}" to the spec? ${RESET_OUTCOME}`,
       endpoint
     });
   };
@@ -37,7 +39,7 @@ const useEndpointActions = (collection, collectionDrift, reloadDrift) => {
     setPendingAction({
       type: 'reset-all-modified',
       title: 'Reset All Modified',
-      message: `Reset ${collectionDrift.modified.length} modified endpoint(s) to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.`
+      message: `Reset ${collectionDrift.modified.length} modified endpoint(s) to the spec? ${RESET_OUTCOME}`
     });
   };
 

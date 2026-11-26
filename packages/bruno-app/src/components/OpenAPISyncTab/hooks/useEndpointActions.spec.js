@@ -29,7 +29,7 @@ describe('useEndpointActions', () => {
     const { result } = renderActions();
 
     act(() => result.current.handleResetEndpoint(createPet));
-    expect(result.current.pendingAction.message).toBe('Reset "POST /pets" to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.');
+    expect(result.current.pendingAction.message).toBe('Reset "POST /pets" to the spec? Fields you added are removed and fields you deleted come back. Your values are kept unless their auth mode, body mode or type differs from the spec.');
     await confirm(result);
 
     expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:reset-endpoints-to-spec', { collectionPath: '/collections/pets', endpoints: [createPet] });
@@ -39,7 +39,7 @@ describe('useEndpointActions', () => {
     const { result } = renderActions();
 
     act(() => result.current.handleResetAllModified());
-    expect(result.current.pendingAction.message).toBe('Reset 2 modified endpoint(s) to the spec? Fields you added are removed and fields you deleted come back. Your values are kept.');
+    expect(result.current.pendingAction.message).toBe('Reset 2 modified endpoint(s) to the spec? Fields you added are removed and fields you deleted come back. Your values are kept unless their auth mode, body mode or type differs from the spec.');
     await confirm(result);
 
     expect(window.ipcRenderer.invoke).toHaveBeenCalledWith('renderer:reset-endpoints-to-spec', { collectionPath: '/collections/pets', endpoints: [createPet, listPets] });

@@ -1434,6 +1434,14 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
     expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
   });
 
+  it('keeps the JSON text as written when restoring the spec\'s types changes no value', () => {
+    const json = '{\n    "owner": { "id": 9007199254740993 },\n    "name": "Fido",\n    "price": 19.90\n}';
+    const user = item({ mode: 'json', json });
+    const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0},"price":0}' });
+
+    expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
+  });
+
   it('restores only the fields of another type when the JSON body holds a {{var}}', () => {
     const user = item({ mode: 'json', json: '{"name":{{petName}},"owner":"seven","tag":"{{tag}}"}' });
     const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0},"tag":{"id":0}}' });
