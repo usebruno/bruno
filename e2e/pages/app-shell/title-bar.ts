@@ -1,7 +1,7 @@
 import { Page, test } from '../../playwright';
 
 export const buildTitleBarLocators = (page: Page) => ({
-  homeButton: () => page.getByTestId('app-titlebar').locator('.home-button'),
+  homeButton: () => page.getByTestId('app-titlebar').getByTestId('home-button'),
   workspaceMenuTrigger: () => page.getByTestId('workspace-menu'),
   activeWorkspaceName: () => page.getByTestId('workspace-menu').getByTestId('workspace-name'),
   createWorkspaceOption: () => page.getByTestId('workspace-menu-create-workspace'),

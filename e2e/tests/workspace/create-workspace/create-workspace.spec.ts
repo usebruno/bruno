@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { waitForReadyPage } from '../../../utils';
 import { buildCreateWorkspaceModalLocators, openCreateWorkspaceModal } from '../../../pages/workspace/create-workspace-modal';
+import { buildCollectionHeaderLocators } from '../../../pages/collection/header';
 
 type WorkspaceConfig = {
   opencollection?: string;
@@ -752,9 +753,9 @@ test.describe('Create Workspace', () => {
 
       await test.step('Rename existing workspace - cog should NOT be visible', async () => {
         // Use workspace actions dropdown to start rename
-        const actionsIcon = page.getByTestId('workspace-actions-trigger');
-        await actionsIcon.click();
-        await page.locator('.dropdown-item').filter({ hasText: 'Rename' }).click();
+        const collectionHeader = buildCollectionHeaderLocators(page);
+        await collectionHeader.workspaceActionsTrigger().click();
+        await collectionHeader.workspaceActionsItem('rename').click();
 
         // Inline rename input should appear
         await expect(page.locator('.workspace-name-input')).toBeVisible({ timeout: 5000 });

@@ -54,9 +54,8 @@ test.describe('Closable workspace tabs', () => {
     const wsLocation = await createTmpDir('closable-workspace-tabs-transient');
     const app = await launchElectronApp({ initUserDataPath, templateVars: { wsLocation } });
     const page = await waitForReadyPage(app);
-    const { tabs, startPage, collectionHeader, modal, titleBar } = buildCommonLocators(page);
+    const { tabs, startPage, collectionHeader, modal, titleBar, appCrashScreen } = buildCommonLocators(page);
     const overviewTab = tabs.workspaceTab('workspaceOverview');
-    const crashScreen = page.getByText('Oops! Something went wrong');
 
     try {
       await test.step('Create a second workspace from the start page', async () => {
@@ -65,7 +64,7 @@ test.describe('Closable workspace tabs', () => {
         await startPage.createButton('workspace').click();
         await expect(overviewTab).toBeVisible();
 
-        const nameInput = page.locator('.workspace-name-input');
+        const nameInput = collectionHeader.workspaceNameInput();
         await expect(nameInput).toBeVisible();
         await nameInput.press('Enter');
         await expect(nameInput).toHaveCount(0);
@@ -79,7 +78,7 @@ test.describe('Closable workspace tabs', () => {
         await expect(modal.byTitle('Close Workspace')).toBeVisible();
         await modal.button('Close').click();
 
-        await expect(crashScreen).toHaveCount(0);
+        await expect(appCrashScreen()).toHaveCount(0);
         await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');
       });
     } finally {

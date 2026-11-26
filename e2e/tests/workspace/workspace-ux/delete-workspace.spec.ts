@@ -45,7 +45,7 @@ test.describe('Delete workspace', () => {
       });
 
       await test.step('The collection stored outside the workspace folder is kept', async () => {
-        expect(fs.readdirSync(outsideLocation).length).toBeGreaterThan(0);
+        expect(fs.existsSync(path.join(outsideLocation, 'Outer Col'))).toBe(true);
       });
     } finally {
       await closeElectronApp(app);

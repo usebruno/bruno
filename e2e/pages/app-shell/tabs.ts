@@ -27,7 +27,7 @@ export const buildRequestTabsLocators = (page: Page) => ({
   // Workspace tabs (Overview, Environments) are closable but not part of a collection's tabs
   closableTabs: () => page.locator('.request-tab')
     .filter({ has: page.getByTestId('request-tab-close-icon') })
-    .filter({ hasNot: page.locator('[data-testid^="request-tab-workspace"]') }),
+    .filter({ hasNot: page.getByTestId('request-tab-workspaceOverview').or(page.getByTestId('request-tab-workspaceEnvironments')) }),
   closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
   draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),

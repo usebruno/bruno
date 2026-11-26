@@ -4,12 +4,14 @@ const StyledWrapper = styled.div`
   height: 100%;
   overflow-y: auto;
   display: flex;
+  justify-content: center;
+  padding: 48px 24px;
+  color: ${(props) => props.theme.text};
 
   .start-page {
-    margin: auto;
+    margin: auto 0;
     width: 100%;
-    max-width: 720px;
-    padding: 2rem 1rem;
+    max-width: 730px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -17,78 +19,83 @@ const StyledWrapper = styled.div`
   }
 
   .brand-title {
-    font-size: 1.5rem;
+    font-size: 28px;
     font-weight: 600;
-    color: ${(props) => props.theme.text};
+    line-height: 1.2;
   }
 
   .brand-tagline {
-    font-size: ${(props) => props.theme.font.size.sm};
+    margin-top: 4px;
     color: ${(props) => props.theme.colors.text.muted};
-    margin-bottom: 1.5rem;
+    margin-bottom: 36px;
   }
 
   .value-points {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 36px;
     text-align: left;
   }
 
   .value-point {
     border: 1px solid ${(props) => props.theme.border.border1};
     border-radius: ${(props) => props.theme.border.radius.base};
-    padding: 0.75rem;
+    padding: 14px 16px;
   }
 
   .value-point-title {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
-    font-weight: 500;
-    color: ${(props) => props.theme.text};
-    margin-bottom: 0.25rem;
+    gap: 8px;
+    font-weight: 600;
+    margin-bottom: 6px;
+
+    svg {
+      color: ${(props) => props.theme.brand};
+    }
   }
 
   .value-point-text {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
+    line-height: 1.5;
   }
 
   .columns {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 2rem 4rem;
+    gap: 32px 80px;
     text-align: left;
   }
 
   .section-title {
-    font-size: ${(props) => props.theme.font.size.xs};
+    font-size: ${(props) => props.theme.font.size.sm};
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: ${(props) => props.theme.colors.text.muted};
-    margin-bottom: 0.5rem;
+    margin-bottom: 10px;
   }
 
   .create-title {
-    margin-top: 2rem;
+    margin-top: 32px;
   }
 
   .create-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 4px;
   }
 
   .create-divider {
     align-self: center;
     width: 1px;
-    height: 1.25rem;
-    margin: 0 0.5rem;
+    height: 18px;
+    margin: 0 6px;
     background: ${(props) => props.theme.border.border1};
   }
 
@@ -96,23 +103,24 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    width: 32px;
+    height: 32px;
     border-radius: ${(props) => props.theme.border.radius.base};
     color: ${(props) => props.theme.colors.text.muted};
 
     &:hover {
       color: ${(props) => props.theme.text};
-      background: ${(props) => props.theme.background.surface1};
+      background: ${(props) => props.theme.background.surface0};
     }
   }
 
   .link {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
+    gap: 8px;
+    padding: 5px 0;
     color: ${(props) => props.theme.textLink};
+    font-size: ${(props) => props.theme.font.size.base};
 
     &:hover {
       text-decoration: underline;

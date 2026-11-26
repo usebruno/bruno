@@ -117,9 +117,9 @@ const StartPage = ({ workspace }) => {
   };
 
   const openGlobalEnvironmentSettings = () => scratchCollectionUid && dispatch(addTab({
-    uid: `${scratchCollectionUid}-global-environment-settings`,
+    uid: `${scratchCollectionUid}-environments`,
     collectionUid: scratchCollectionUid,
-    type: 'global-environment-settings'
+    type: 'workspaceEnvironments'
   }));
 
   const requestItems = scratchCollection
@@ -186,7 +186,7 @@ const StartPage = ({ workspace }) => {
           {VALUE_POINTS.map(({ icon: Icon, title, text }) => (
             <div className="value-point" key={title}>
               <div className="value-point-title">
-                <Icon size={16} strokeWidth={1.5} />
+                <Icon size={16} strokeWidth={1.75} />
                 {title}
               </div>
               <div className="value-point-text">{text}</div>

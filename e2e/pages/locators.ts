@@ -96,6 +96,7 @@ export const buildCommonLocators = (page: Page) => ({
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
   startPage: buildStartPageLocators(page),
+  appCrashScreen: () => page.getByText('Oops! Something went wrong'),
   deleteWorkspaceModal: buildDeleteWorkspaceModalLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
   createWorkspaceModal: buildCreateWorkspaceModalLocators(page),

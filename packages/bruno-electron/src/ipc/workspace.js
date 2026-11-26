@@ -298,10 +298,16 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
   });
 
   ipcMain.handle('renderer:delete-workspace', async (event, workspacePath) => {
-    validateWorkspacePath(workspacePath);
+    if (!workspacePath) {
+      throw new Error('Workspace path is required');
+    }
     if (getWorkspaceUid(workspacePath) === defaultWorkspaceManager.getDefaultWorkspaceUid()) {
       throw new Error('Cannot delete the default workspace');
     }
+    if (!fs.existsSync(workspacePath)) {
+      return { success: true };
+    }
+    validateWorkspacePath(workspacePath);
 
     // Stop watching the collections stored inside the folder before their files disappear
     for (const collectionPath of getWorkspaceCollectionPathsInsideFolder(workspacePath)) {

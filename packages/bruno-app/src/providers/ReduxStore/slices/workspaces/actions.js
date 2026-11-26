@@ -553,6 +553,13 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
       }
     }
 
+    if (!getState().tabs.activeTabUid) {
+      const restoredTab = getState().tabs.tabs.find((t) => t.collectionUid === collection.uid);
+      if (restoredTab) {
+        dispatch(focusTab({ uid: restoredTab.uid }));
+      }
+    }
+
     dispatch(markSnapshotCollectionHydrated({ pathname: collection.pathname }));
     maybeCompleteSnapshotHydrationSession(dispatch, getState);
   };

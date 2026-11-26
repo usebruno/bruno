@@ -1,4 +1,5 @@
-import { Page, test, expect } from '../../playwright';
+import { Page, test } from '../../playwright';
+import { buildTitleBarLocators } from '../app-shell/title-bar';
 import { buildCollectionHeaderLocators } from '../collection/header';
 
 export type EnvironmentScope = 'collection' | 'global';
@@ -354,11 +355,11 @@ export const selectNoEnvironment = async (page: Page) => {
 export const openWorkspaceEnvironmentsTab = async (page: Page, firstEnvironmentName = 'Default') => {
   await test.step('Open the workspace Environments tab', async () => {
     const locators = buildEnvironmentLocators(page);
-    await page.locator('.home-button').click();
-    await page.getByTestId('collection-header').getByTestId('environment-selector-trigger').click();
+    await buildTitleBarLocators(page).homeButton().click();
+    await buildCollectionHeaderLocators(page).envSelectorTrigger().click();
 
-    const configureButton = page.getByTestId('configure-env');
-    await expect(configureButton.or(locators.createEnvButton())).toBeVisible();
+    const configureButton = locators.configureButton();
+    await configureButton.or(locators.createEnvButton()).waitFor();
     if (await configureButton.isVisible()) {
       await configureButton.click();
     } else {

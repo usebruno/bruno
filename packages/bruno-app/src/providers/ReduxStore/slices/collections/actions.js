@@ -5,6 +5,7 @@ import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, VARIABLE_ADD_SCOPES } from 'u
 import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
+import last from 'lodash/last';
 import get from 'lodash/get';
 import map from 'lodash/map';
 import set from 'lodash/set';
@@ -115,6 +116,8 @@ import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { selectActiveWorkspace, selectCollectionsWithOpenTabs } from 'src/selectors/collections';
+import { getNeighbourCollectionUid } from 'utils/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
 import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
@@ -3815,6 +3818,13 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     }
   });
 
+  const activeTab = find(state.tabs?.tabs, (t) => t.uid === state.tabs?.activeTabUid);
+  const closedActiveCollectionUid = activeTab && tabUids.includes(activeTab.uid) ? activeTab.collectionUid : null;
+  const workspace = closedActiveCollectionUid && state.workspaces ? selectActiveWorkspace(state) : null;
+  const switcherOrder = workspace
+    ? [workspace.scratchCollectionUid, ...selectCollectionsWithOpenTabs(state).map((c) => c.uid)]
+    : [];
+
   const closingOpenApiSyncCollectionUids = (state.tabs?.tabs || [])
     .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
     .map((t) => t.collectionUid);
@@ -3825,6 +3835,18 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
   // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
   // would rewrite scroll position to localStorage right after we cleared it.
   each(tabUids, (tabUid) => clearPersistedScope(tabUid));
+
+  const tabsOf = (collectionUid) => getState().tabs.tabs.filter((t) => t.collectionUid === collectionUid);
+  if (workspace && tabsOf(closedActiveCollectionUid).length === 0) {
+    const neighbourUid = getNeighbourCollectionUid(switcherOrder, closedActiveCollectionUid, (uid) => tabsOf(uid).length > 0);
+    if (neighbourUid) {
+      const neighbourTabs = tabsOf(neighbourUid);
+      const isAfterClosed = switcherOrder.indexOf(neighbourUid) > switcherOrder.indexOf(closedActiveCollectionUid);
+      dispatch(focusTab({ uid: (isAfterClosed ? neighbourTabs[0] : last(neighbourTabs)).uid }));
+    } else if (workspace.scratchCollectionUid && closedActiveCollectionUid !== workspace.scratchCollectionUid) {
+      dispatch(addTab({ uid: `${workspace.scratchCollectionUid}-overview`, collectionUid: workspace.scratchCollectionUid, type: 'workspaceOverview' }));
+    }
+  }
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: its overview if open, else the start page.
   // Dispatch is synchronous; state is already updated by _closeTabs above.

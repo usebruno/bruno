@@ -280,7 +280,7 @@ const AppTitleBar = () => {
         <div className="titlebar-left">
           {showWindowControls && <AppMenu />}
 
-          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button">
+          <ActionIcon onClick={handleHomeClick} label="Home" size="lg" className="home-button" data-testid="home-button">
             <IconHome size={16} stroke={1.5} />
           </ActionIcon>
 

@@ -25,16 +25,16 @@ import {
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
+import { renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
-import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import get from 'lodash/get';
 import isEqual from 'lodash/isEqual';
-import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectActiveWorkspace, selectCollectionsWithOpenTabs } from 'src/selectors/collections';
 import { selectActiveTab, selectActiveTabUid, selectTabCountsByCollection, selectFirstTabUidByCollection } from 'src/selectors/tab';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
 import { uuid } from 'utils/common';
@@ -80,14 +80,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = useSelector(selectActiveWorkspace);
 
-  const mountedCollections = useSelector((state) =>
-    getWorkspaceCollections({
-      collections: selectCollections(state),
-      workspaces: state.workspaces.workspaces,
-      activeWorkspace: selectActiveWorkspace(state)
-    })
-      .filter((c) => c.mountStatus === 'mounted')
-      .map((c) => ({ uid: c.uid, name: c.name })), isEqual);
+  const collectionsWithOpenTabs = useSelector(selectCollectionsWithOpenTabs, isEqual);
 
   // Per-collection tab counts (switcher badges) and first open tab (focused
   // when switching to that collection).
@@ -242,11 +235,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const DisplayIcon = isScratchCollection ? IconCategory : IconBox;
 
   // Switcher handlers
-  const handleSwitchToWorkspace = (workspaceUid) => {
+  const handleSwitchToWorkspace = () => {
     switcherRef.current?.hide();
-    if (workspaceUid) {
-      dispatch(switchWorkspace(workspaceUid));
-    }
+    const scratchCollectionUid = currentWorkspace.scratchCollectionUid;
+    if (!scratchCollectionUid) return;
+    const existingTabUid = firstTabUidByCollection[scratchCollectionUid];
+    dispatch(existingTabUid
+      ? focusTab({ uid: existingTabUid })
+      : addTab({ uid: `${scratchCollectionUid}-overview`, collectionUid: scratchCollectionUid, type: 'workspaceOverview' }));
   };
 
   const handleSwitchToCollection = (targetCollection) => {
@@ -569,6 +565,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   ref={workspaceNameInputRef}
                   type="text"
                   className="workspace-name-input"
+                  data-testid="workspace-inline-name-input"
                   value={workspaceNameInput}
                   onChange={handleWorkspaceNameChange}
                   onKeyDown={handleWorkspaceNameKeyDown}
@@ -632,7 +629,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                         className={classNames('dropdown-item', {
                           'dropdown-item-active': isScratchCollection
                         })}
-                        onClick={() => handleSwitchToWorkspace(currentWorkspace.uid)}
+                        onClick={handleSwitchToWorkspace}
                       >
                         <div className="dropdown-icon">
                           <IconCategory size={16} strokeWidth={1.5} />
@@ -647,11 +644,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     </>
                   )}
 
-                  {mountedCollections.length > 0 && (
+                  {collectionsWithOpenTabs.length > 0 && (
                     <>
                       <div className="dropdown-separator" />
                       <div className="label-item">Collections</div>
-                      {mountedCollections.map((col) => {
+                      {collectionsWithOpenTabs.map((col) => {
                         const colTabCount = getTabCount(col.uid);
                         return (
                           <div

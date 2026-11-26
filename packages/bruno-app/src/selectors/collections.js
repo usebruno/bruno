@@ -2,7 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import {
   findCollectionByUid,
   getGlobalEnvironmentVariables,
-  getGlobalEnvironmentVariablesMasked
+  getGlobalEnvironmentVariablesMasked,
+  getWorkspaceCollections
 } from 'utils/collections/index';
 
 /**
@@ -33,6 +34,20 @@ export const selectSelectedSidebarUids = (state) => state.collections.selectedSi
 export const selectActiveWorkspace = (state) => {
   const { workspaces, activeWorkspaceUid } = state.workspaces;
   return workspaces?.find((w) => w.uid === activeWorkspaceUid);
+};
+
+export const selectCollectionsWithOpenTabs = (state) => {
+  const collectionsByUid = new Map(getWorkspaceCollections({
+    collections: selectCollections(state),
+    workspaces: state.workspaces.workspaces,
+    activeWorkspace: selectActiveWorkspace(state)
+  })
+    .filter((c) => c.mountStatus === 'mounted')
+    .map((c) => [c.uid, c]));
+
+  return [...new Set(state.tabs.tabs.map((t) => t.collectionUid))]
+    .filter((uid) => collectionsByUid.has(uid))
+    .map((uid) => ({ uid, name: collectionsByUid.get(uid).name }));
 };
 
 const selectGlobalEnvironments = (state) => state.globalEnvironments.globalEnvironments;
