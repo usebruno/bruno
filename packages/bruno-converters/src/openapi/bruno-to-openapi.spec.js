@@ -1,7 +1,8 @@
 import jsyaml from 'js-yaml';
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { test as isValidPathTemplate } from 'openapi-path-templating';
-import brunoToOpenApi, { buildSpecVariables, getEnvironmentVariablesKeyValuePairs } from './bruno-to-openapi-spec';
+import brunoToOpenApi, { buildSpecVariables, getEnvironmentVariablesKeyValuePairs } from './bruno-to-openapi';
+import openApiToBruno from './openapi-to-bruno';
 import path from 'path';
 
 jest.mock('nanoid', () => ({
@@ -30,6 +31,15 @@ jest.mock('@usebruno/common', () => ({
   }
 }));
 
+const toEnvVariables = (environments = []) => Object.fromEntries(environments.map((environment) => [environment.name, environment.variables]));
+
+// Exports the way the app does, with no environment selected unless one is given, and the spec serialized as YAML
+const exportSpec = (name, items, variables, environments, selectedEnvironment = '') => {
+  const collectionData = { requests: items, collectionVariables: variables, envVariables: toEnvVariables(environments) };
+  const { content, warnings } = brunoToOpenApi(name, collectionData, selectedEnvironment);
+  return { content: jsyaml.dump(content), warnings };
+};
+
 describe('brunoToOpenApi - server variables reconstruction', () => {
   const makeItems = (urls) =>
     urls.map((url, i) => ({
@@ -54,7 +64,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
     };
     const items = makeItems(['{{baseUrl}}/users', '{{baseUrl}}/items']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
 
     // Should contain the template server URL
     expect(content).toContain('url: \'{protocol}://{host}:{port}/v1\'');
@@ -79,7 +89,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
     };
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
 
     // Path should be /users, not /v1/users (since server URL already has /v1)
     expect(content).toContain('/users:');
@@ -92,7 +102,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
     };
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
 
     // Should contain the resolved origin as a plain server
     expect(content).toMatch(/url:\s*'?https:\/\/api\.example\.com'?/);
@@ -111,7 +121,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
     // Mix of baseUrl requests and a direct URL request
     const items = makeItems(['{{baseUrl}}/users', 'https://other-api.com/data']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
 
     // Template server should be in root servers
     expect(content).toContain('url: \'{protocol}://{host}/v1\'');
@@ -167,7 +177,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
     const parsed = require('js-yaml').load(content);
 
     // Root servers should only have the collection baseUrl
@@ -208,7 +218,7 @@ describe('brunoToOpenApi - server variables reconstruction', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
     const parsed = require('js-yaml').load(content);
 
     // Operation-level server should have template URL with variables
@@ -287,11 +297,7 @@ describe('brunoToOpenApi - duplicate operation variants', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.example.com' },
-      items,
-      name: 'Test API'
-    });
+    const { content } = exportSpec('Test API', items, { baseUrl: 'https://api.example.com' });
     const parsed = require('js-yaml').load(content);
     const operation = parsed.paths['/users'].get;
     const variants = operation['x-bruno-variants'];
@@ -338,11 +344,7 @@ describe('brunoToOpenApi - duplicate operation variants', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.example.com' },
-      items,
-      name: 'Test API'
-    });
+    const { content } = exportSpec('Test API', items, { baseUrl: 'https://api.example.com' });
     const parsed = require('js-yaml').load(content);
     const operation = parsed.paths['/users'].post;
     const variant = operation['x-bruno-variants'][0];
@@ -385,11 +387,7 @@ describe('brunoToOpenApi - duplicate operation variants', () => {
       }
     ];
 
-    const firstExport = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.example.com' },
-      items,
-      name: 'Test API'
-    });
+    const firstExport = exportSpec('Test API', items, { baseUrl: 'https://api.example.com' });
     const firstParsed = require('js-yaml').load(firstExport.content);
 
     expect(firstParsed.paths['/users'].post.requestBody.$ref).toBe('#/components/requestBodies/sync_user');
@@ -425,11 +423,7 @@ describe('brunoToOpenApi - duplicate operation variants', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.example.com' },
-      items,
-      name: 'Test API'
-    });
+    const { content } = exportSpec('Test API', items, { baseUrl: 'https://api.example.com' });
     const parsed = require('js-yaml').load(content);
 
     expect(parsed.paths['/users/{userId}'].put.requestBody.$ref).toBe('#/components/requestBodies/sync_user');
@@ -488,15 +482,11 @@ describe('brunoToOpenApi - duplicate operation variants', () => {
       }
     ];
     const variables = { baseUrl: 'https://api.example.com' };
-    const firstExport = brunoToOpenApi({ variables, items, name: 'Test API' });
-    const imported = brunoToOpenApi(require('js-yaml').load(firstExport.content));
+    const firstExport = exportSpec('Test API', items, variables);
+    const imported = openApiToBruno(require('js-yaml').load(firstExport.content));
     const reExportItems = flattenItemsForExport(imported.items);
 
-    const secondExport = brunoToOpenApi({
-      variables: Object.fromEntries(imported.environments[0].variables.map((variable) => [variable.name, variable.value])),
-      items: reExportItems,
-      name: imported.name
-    });
+    const secondExport = exportSpec(imported.name, reExportItems, Object.fromEntries(imported.environments[0].variables.map((variable) => [variable.name, variable.value])));
     const operation = require('js-yaml').load(secondExport.content).paths['/users'].get;
 
     expect(operation['x-bruno-variants']).toHaveLength(2);
@@ -516,7 +506,7 @@ describe('brunoToOpenApi - operation ids', () => {
     request: { url: `{{baseUrl}}${url}`, method, params: [], headers: [], body: {}, auth: {} }
   });
 
-  const exportItems = (items) => jsyaml.load(brunoToOpenApi({ variables: { baseUrl: 'https://api.example.com' }, items, name: 'Test API' }).content);
+  const exportItems = (items) => jsyaml.load(exportSpec('Test API', items, { baseUrl: 'https://api.example.com' }).content);
 
   it('gives each request an operation id from its pathname', () => {
     const spec = exportItems([
@@ -580,7 +570,7 @@ describe('brunoToOpenApi - parameter and body value preservation', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
     const parsed = require('js-yaml').load(content);
 
     expect(parsed.components.requestBodies.upload_avatar.content).toHaveProperty('multipart/form-data');
@@ -604,7 +594,7 @@ describe('brunoToOpenApi - parameter and body value preservation', () => {
         headers: [], body: {}, auth: {}
       }
     }];
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test' });
+    const { content } = exportSpec('Test', items, variables);
     const parsed = require('js-yaml').load(content);
     const params = parsed.paths['/users/{userId}'].get.parameters;
 
@@ -631,7 +621,7 @@ describe('brunoToOpenApi - parameter and body value preservation', () => {
         headers: [], body: {}, auth: {}
       }
     }];
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test' });
+    const { content } = exportSpec('Test', items, variables);
     const parsed = require('js-yaml').load(content);
     const params = parsed.paths['/users/{userId}'].get.parameters;
 
@@ -655,7 +645,7 @@ describe('brunoToOpenApi - parameter and body value preservation', () => {
         headers: [], body: {}, auth: {}
       }
     }];
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test' });
+    const { content } = exportSpec('Test', items, variables);
     const parsed = require('js-yaml').load(content);
     const params = parsed.paths['/users/{userId}'].get.parameters;
 
@@ -678,7 +668,7 @@ describe('brunoToOpenApi - parameter and body value preservation', () => {
         auth: {}
       }
     }];
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test' });
+    const { content } = exportSpec('Test', items, variables);
     const parsed = require('js-yaml').load(content);
     const schema = parsed.components.schemas.create_user;
 
@@ -724,7 +714,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Both environments should appear as servers
     expect(content).toContain('description: Production');
@@ -747,7 +737,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Both servers should appear
     expect(content).toMatch(/url:\s*'?https:\/\/api\.prod\.com\/v1'?/);
@@ -769,7 +759,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     };
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API' });
+    const { content } = exportSpec('Test API', items, variables);
 
     // Should use collection baseUrl as template
     expect(content).toContain('url: \'{protocol}://{host}/v1\'');
@@ -790,7 +780,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Collection template server should be present
     expect(content).toContain('url: \'{protocol}://{host}/v1\'');
@@ -813,7 +803,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Both should appear as separate server entries
     expect(content).toContain('description: Base Server');
@@ -830,7 +820,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Collection template and Production should have server entries
     expect(content).toContain('description: Base Server');
@@ -848,7 +838,7 @@ describe('brunoToOpenApi - multi-environment servers', () => {
     ];
     const items = makeItems(['{{baseUrl}}/users']);
 
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
 
     // Both should appear as separate server entries (each maps to a Bruno environment on import)
     expect(content).toContain('description: Production');
@@ -887,12 +877,12 @@ describe('brunoToOpenApi - OAuth2 scope handling (BRU-3297)', () => {
   ])('grant type %s', (grantType) => {
     it(`should not throw when scope is null`, () => {
       const items = [makeOauth2Item(grantType, null)];
-      expect(() => brunoToOpenApi({ variables: {}, items, name: 'Test' })).not.toThrow();
+      expect(() => exportSpec('Test', items, {})).not.toThrow();
     });
 
     it(`should not throw when scope is undefined`, () => {
       const items = [makeOauth2Item(grantType, undefined)];
-      expect(() => brunoToOpenApi({ variables: {}, items, name: 'Test' })).not.toThrow();
+      expect(() => exportSpec('Test', items, {})).not.toThrow();
     });
   });
 
@@ -902,20 +892,20 @@ describe('brunoToOpenApi - OAuth2 scope handling (BRU-3297)', () => {
   ])('grant type %s emits valid scopes object', (grantType, flowKey) => {
     it(`should emit empty scopes object when scope is null (OpenAPI 3.0 requires scopes key)`, () => {
       const items = [makeOauth2Item(grantType, null)];
-      const { content } = brunoToOpenApi({ variables: {}, items, name: 'Test' });
+      const { content } = exportSpec('Test', items, {});
       expect(content).toContain(`${flowKey}:`);
       expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
     });
 
     it(`should emit empty scopes object when scope is empty string`, () => {
       const items = [makeOauth2Item(grantType, '')];
-      const { content } = brunoToOpenApi({ variables: {}, items, name: 'Test' });
+      const { content } = exportSpec('Test', items, {});
       expect(content).toMatch(new RegExp(`${flowKey}:[\\s\\S]*?scopes:\\s*{}`));
     });
 
     it(`should emit scope entry when scope is a non-empty string`, () => {
       const items = [makeOauth2Item(grantType, 'openid')];
-      const { content } = brunoToOpenApi({ variables: {}, items, name: 'Test' });
+      const { content } = exportSpec('Test', items, {});
       expect(content).toContain('openid:');
     });
   });
@@ -993,7 +983,7 @@ describe('brunoToOpenApi - non-HTTP request type filtering', () => {
 
     let result;
     expect(() => {
-      result = brunoToOpenApi({ variables: {}, items, name: 'Test API' });
+      result = exportSpec('Test API', items, {});
     }).not.toThrow();
 
     const spec = require('js-yaml').load(result.content);
@@ -1029,7 +1019,7 @@ describe('brunoToOpenApi - descriptions', () => {
       }
     ];
 
-    const { content } = brunoToOpenApi({ variables: {}, items, name: 'Described API' });
+    const { content } = exportSpec('Described API', items, {});
     const spec = require('js-yaml').load(content);
     const operation = spec.paths['/users'].get;
 
@@ -1044,7 +1034,7 @@ describe('brunoToOpenApi - descriptions', () => {
 
 describe('brunoToOpenApi - collections that do not have any requests in them', () => {
   it('still produces a usable spec file when the collection has no requests in it yet', () => {
-    const result = brunoToOpenApi({ name: 'EmptyColl', variables: {}, items: [], environments: [] });
+    const result = exportSpec('EmptyColl', [], {}, []);
     const spec = jsyaml.load(result.content);
     expect(spec.openapi).toBe('3.0.0');
     expect(spec.info).toEqual({ title: 'EmptyColl', version: '1.0.0' });
@@ -1053,29 +1043,19 @@ describe('brunoToOpenApi - collections that do not have any requests in them', (
   });
 
   it('keeps the server addresses from each environment even when there are no requests', () => {
-    const result = brunoToOpenApi({
-      name: 'EmptyColl',
-      variables: { baseUrl: 'https://api.test' },
-      items: [],
-      environments: [{ name: 'Local', variables: [{ name: 'baseUrl', value: 'https://local.test', enabled: true }] }]
-    });
+    const result = exportSpec('EmptyColl', [], { baseUrl: 'https://api.test' }, [{ name: 'Local', variables: [{ name: 'baseUrl', value: 'https://local.test', enabled: true }] }]);
     const spec = jsyaml.load(result.content);
     expect(spec.paths).toEqual({});
     expect(spec.servers.map((server) => server.url)).toEqual(['https://api.test', 'https://local.test']);
   });
 
   it('treats a collection that only contains folders as having no requests', () => {
-    const result = brunoToOpenApi({
-      name: 'FoldersOnly',
-      variables: {},
-      items: [{ type: 'folder', name: 'A' }],
-      environments: []
-    });
+    const result = exportSpec('FoldersOnly', [{ type: 'folder', name: 'A' }], {}, []);
     expect(jsyaml.load(result.content).paths).toEqual({});
   });
 
   it('refuses to guess when the list of requests is missing altogether', () => {
-    expect(() => brunoToOpenApi({ name: 'NoList', variables: {}, environments: [] })).toThrow();
+    expect(() => exportSpec('NoList', undefined, {}, [])).toThrow();
   });
 });
 
@@ -1093,37 +1073,21 @@ describe('brunoToOpenApi - a variable that could not be resolved', () => {
       .map((line) => line.trim().replace(/:$/, ''));
 
   it('leaves the placeholder readable in the path instead of percent encoding its braces', () => {
-    const { content } = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.test' },
-      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
-      name: 'Test API'
-    });
+    const { content } = exportSpec('Test API', [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')], { baseUrl: 'https://api.test' });
 
     expect(pathsIn(content)).toEqual(['/api/v1/{secret-var}/github']);
     expect(content).not.toContain('%7B');
   });
 
   it('writes the placeholder the same way whether or not the url starts with the base url', () => {
-    const viaBaseUrl = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.test' },
-      items: [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/github')],
-      name: 'Test API'
-    });
-    const viaLiteralHost = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.test' },
-      items: [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')],
-      name: 'Test API'
-    });
+    const viaBaseUrl = exportSpec('Test API', [itemWithUrl('{{baseUrl}}/api/v1/{{secret-var}}/github')], { baseUrl: 'https://api.test' });
+    const viaLiteralHost = exportSpec('Test API', [itemWithUrl('https://other.test/api/v1/{{secret-var}}/github')], { baseUrl: 'https://api.test' });
 
     expect(pathsIn(viaLiteralHost.content)).toEqual(pathsIn(viaBaseUrl.content));
   });
 
   it('keeps a character the user genuinely encoded, which still means what it meant', () => {
-    const { content } = brunoToOpenApi({
-      variables: { baseUrl: 'https://api.test' },
-      items: [itemWithUrl('https://other.test/api/v1/a%20b')],
-      name: 'Test API'
-    });
+    const { content } = exportSpec('Test API', [itemWithUrl('https://other.test/api/v1/a%20b')], { baseUrl: 'https://api.test' });
 
     expect(pathsIn(content)).toEqual(['/api/v1/a%20b']);
   });
@@ -1139,7 +1103,7 @@ describe('brunoToOpenApi - secrets and other placeholders left unfilled', () => 
   });
 
   const exportUrl = (url, { variables = {}, environments, request } = {}) => {
-    const { content } = brunoToOpenApi({ variables, items: [itemWithUrl(url, request)], name: 'Test API', environments });
+    const { content } = exportSpec('Test API', [itemWithUrl(url, request)], variables, environments);
     const spec = jsyaml.load(content);
     const [specPath] = Object.keys(spec.paths);
     return { content, spec, specPath, operation: spec.paths[specPath].get };
@@ -1379,9 +1343,9 @@ describe('brunoToOpenApi - secrets and other placeholders left unfilled', () => 
 
   it('re-imports placeholders Bruno fills in itself without a variable that would hide them', () => {
     const environments = [{ name: 'Prod', variables: [{ name: 'baseUrl', value: 'https://{{process.env.HOST}}/{{$secrets.vault.path}}', enabled: true }] }];
-    const { content } = brunoToOpenApi({ variables: {}, items: [itemWithUrl('{{baseUrl}}/data')], name: 'Test API', environments });
+    const { content } = exportSpec('Test API', [itemWithUrl('{{baseUrl}}/data')], {}, environments);
 
-    const environment = brunoToOpenApi(jsyaml.load(content)).environments.find((env) => env.name === 'Prod');
+    const environment = openApiToBruno(jsyaml.load(content)).environments.find((env) => env.name === 'Prod');
     expect(environment.variables.map((v) => [v.name, v.value])).toEqual([['baseUrl', 'https://{{process.env.HOST}}/{{$secrets.vault.path}}']]);
   });
 
@@ -1390,9 +1354,9 @@ describe('brunoToOpenApi - secrets and other placeholders left unfilled', () => 
       { name: 'Prod', variables: [{ name: 'baseUrl', value: 'https://api.test', enabled: true }] },
       { name: 'Staging', variables: [{ name: 'baseUrl', value: 'https://staging.test', enabled: true }] }
     ];
-    const { content } = brunoToOpenApi({ variables: {}, items: [itemWithUrl('https://{{tenantSecret}}.other.test/data')], name: 'Test API', environments: [...environments, ...withSecrets('tenantSecret')] });
+    const { content } = exportSpec('Test API', [itemWithUrl('https://{{tenantSecret}}.other.test/data')], {}, [...environments, ...withSecrets('tenantSecret')]);
 
-    brunoToOpenApi(jsyaml.load(content)).environments
+    openApiToBruno(jsyaml.load(content)).environments
       .filter((env) => ['Prod', 'Staging'].includes(env.name))
       .forEach((env) => expect(env.variables.find((v) => v.name === 'tenantSecret')).toMatchObject({ value: '', secret: true }));
   });
@@ -1407,17 +1371,12 @@ describe('brunoToOpenApi - secrets and other placeholders left unfilled', () => 
         { name: 'tenantToken', value: '', enabled: true, secret: true }
       ]
     }];
-    const { content } = brunoToOpenApi({
-      variables: { var: 'env-var-value' },
-      items: [
-        itemWithUrl('https://test.com/{{secvar}}/{{var}}'),
-        { ...itemWithUrl('https://{{tenantToken}}.api.test/data'), name: 'Tenant', pathname: path.join('collection', 'Tenant.bru') }
-      ],
-      name: 'Test API',
-      environments
-    });
+    const { content } = exportSpec('Test API', [
+      itemWithUrl('https://test.com/{{secvar}}/{{var}}'),
+      { ...itemWithUrl('https://{{tenantToken}}.api.test/data'), name: 'Tenant', pathname: path.join('collection', 'Tenant.bru') }
+    ], { var: 'env-var-value' }, environments);
 
-    const collection = brunoToOpenApi(jsyaml.load(content));
+    const collection = openApiToBruno(jsyaml.load(content));
     const [request, tenant] = collection.items;
 
     expect(request.request.url).toBe('{{baseUrl}}/:secvar/env-var-value');
@@ -1456,7 +1415,7 @@ describe('brunoToOpenApi - export invariants across url shapes', () => {
       depth: 1,
       request: { url, method: 'GET', params, headers: [], body: {}, auth: {} }
     }));
-    const { content } = brunoToOpenApi({ variables, items, name: 'Test API', environments });
+    const { content } = exportSpec('Test API', items, variables, environments);
     return { content, spec: jsyaml.load(content) };
   };
 
@@ -1489,7 +1448,7 @@ describe('brunoToOpenApi - export invariants across url shapes', () => {
       await expect(SwaggerParser.validate(jsyaml.load(content))).resolves.toBeDefined();
     }
 
-    const reimported = brunoToOpenApi(jsyaml.load(content));
+    const reimported = openApiToBruno(jsyaml.load(content));
     reimported.environments.forEach((environment) => environment.variables
       .filter((v) => v.secret)
       .forEach((v) => expect(declaredSecrets).toContain(v.name)));
@@ -1541,7 +1500,7 @@ describe('brunoToOpenApi - export invariants across url shapes', () => {
   ])('treats a request under the base url %s as a path on the root server', (baseUrl, url, expectedPath) => {
     const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
     const slashEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: baseUrl, enabled: true }] }];
-    const spec = jsyaml.load(brunoToOpenApi({ variables: {}, items, name: 'Test API', environments: slashEnvironments }).content);
+    const spec = jsyaml.load(exportSpec('Test API', items, {}, slashEnvironments).content);
 
     expect(Object.keys(spec.paths)).toEqual([expectedPath]);
     expect(spec.paths[expectedPath].get.servers).toBeUndefined();
@@ -1550,7 +1509,7 @@ describe('brunoToOpenApi - export invariants across url shapes', () => {
   it('gives a request that only shares a prefix with the base url its own server', () => {
     const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url: 'https://slash.test/apiusers', method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
     const prefixEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: 'https://slash.test/api', enabled: true }] }];
-    const spec = jsyaml.load(brunoToOpenApi({ variables: {}, items, name: 'Test API', environments: prefixEnvironments }).content);
+    const spec = jsyaml.load(exportSpec('Test API', items, {}, prefixEnvironments).content);
 
     expect(spec.paths['/apiusers'].get.servers).toEqual([{ url: 'https://slash.test' }]);
   });
@@ -1558,13 +1517,106 @@ describe('brunoToOpenApi - export invariants across url shapes', () => {
   it('keeps an empty default for a plain collection variable used in an environment base url', () => {
     const items = [{ name: 'Request', type: 'http-request', pathname: path.join('collection', 'Request.bru'), depth: 1, request: { url: '{{baseUrl}}/x', method: 'GET', params: [], headers: [], body: {}, auth: {} } }];
     const plainEnvironments = [{ name: 'local', variables: [{ name: 'baseUrl', value: 'https://api.test/{{apiVersion}}', enabled: true }] }];
-    const { content } = brunoToOpenApi({ variables: { apiVersion: 'v2' }, items, name: 'Test API', environments: plainEnvironments });
+    const { content } = exportSpec('Test API', items, { apiVersion: 'v2' }, plainEnvironments);
 
     const localServer = jsyaml.load(content).servers.find((server) => server.description === 'local');
     expect(localServer.variables).toEqual({ apiVersion: { default: '' } });
 
-    const reimported = brunoToOpenApi(jsyaml.load(content)).environments.find((e) => e.name === 'local');
+    const reimported = openApiToBruno(jsyaml.load(content)).environments.find((e) => e.name === 'local');
     expect(reimported.variables.find((v) => v.name === 'apiVersion')).toMatchObject({ value: '', secret: false });
+  });
+});
+
+describe('brunoToOpenApi - with an environment selected', () => {
+  const itemWithUrl = (name, url) => ({
+    name,
+    type: 'http-request',
+    pathname: path.join('collection', `${name}.bru`),
+    depth: 1,
+    request: { url, method: 'GET', params: [], headers: [], body: {}, auth: {} }
+  });
+
+  const environments = [
+    {
+      name: 'Local',
+      variables: [
+        { name: 'baseUrl', value: 'http://localhost:3000', enabled: true },
+        { name: 'version', value: 'v1-local', enabled: true }
+      ]
+    },
+    {
+      name: 'Prod',
+      variables: [
+        { name: 'baseUrl', value: 'https://api.prod.test', enabled: true },
+        { name: 'version', value: 'v2', enabled: true },
+        { name: 'token', value: 'prod-secret-token', enabled: true, secret: true },
+        { name: 'region', value: 'prod-region', enabled: false }
+      ]
+    }
+  ];
+
+  const exportWith = (selectedEnvironment, items, variables = {}) =>
+    jsyaml.load(exportSpec('Test API', items, variables, environments, selectedEnvironment).content);
+
+  it('adds the selected environment\'s base URL as the first server, and still lists every environment', () => {
+    const spec = exportWith('Prod', [itemWithUrl('users', '{{baseUrl}}/users')]);
+
+    expect(spec.servers).toEqual([
+      { url: 'https://api.prod.test', description: 'Base Server' },
+      { url: 'http://localhost:3000', description: 'Local' },
+      { url: 'https://api.prod.test', description: 'Prod' }
+    ]);
+  });
+
+  it('lists only the environments\' servers when no environment is selected', () => {
+    const spec = exportWith('', [itemWithUrl('users', '{{baseUrl}}/users')]);
+
+    expect(spec.servers).toEqual([
+      { url: 'http://localhost:3000', description: 'Local' },
+      { url: 'https://api.prod.test', description: 'Prod' }
+    ]);
+  });
+
+  it('fills an absolute URL with the selected environment\'s values', () => {
+    const items = [itemWithUrl('items', 'https://other.test/{{version}}/items')];
+
+    expect(Object.keys(exportWith('Prod', items).paths)).toEqual(['/v2/items']);
+    expect(Object.keys(exportWith('Local', items).paths)).toEqual(['/v1-local/items']);
+  });
+
+  it('lets the selected environment win over a collection variable of the same name', () => {
+    const items = [itemWithUrl('items', 'https://other.test/{{version}}/items')];
+
+    expect(Object.keys(exportWith('Prod', items, { version: 'v0-collection' }).paths)).toEqual(['/v2/items']);
+    expect(Object.keys(exportWith('', items, { version: 'v0-collection' }).paths)).toEqual(['/v0-collection/items']);
+  });
+
+  it('keeps a {{baseUrl}}-relative path as a template even when the environment defines its variables', () => {
+    const spec = exportWith('Prod', [itemWithUrl('users', '{{baseUrl}}/{{version}}/users')]);
+
+    expect(Object.keys(spec.paths)).toEqual(['/{version}/users']);
+  });
+
+  it('never writes the selected environment\'s secret, or a collection value that the secret overrides', () => {
+    const spec = exportWith('Prod', [itemWithUrl('items', 'https://other.test/{{token}}/items')], { token: 'collection-token' });
+    const written = JSON.stringify(spec);
+
+    expect(Object.keys(spec.paths)).toEqual(['/{token}/items']);
+    expect(written).not.toContain('prod-secret-token');
+    expect(written).not.toContain('collection-token');
+  });
+
+  it('ignores a disabled variable in the selected environment', () => {
+    const spec = exportWith('Prod', [itemWithUrl('items', 'https://other.test/{{region}}/items')], { region: 'collection-region' });
+
+    expect(Object.keys(spec.paths)).toEqual(['/collection-region/items']);
+    expect(JSON.stringify(spec)).not.toContain('prod-region');
+  });
+
+  it('treats an environment name that does not exist as no environment', () => {
+    const items = [itemWithUrl('users', '{{baseUrl}}/users'), itemWithUrl('items', 'https://other.test/{{version}}/items')];
+
+    expect(exportWith('Missing', items, { version: 'v0-collection' })).toEqual(exportWith('', items, { version: 'v0-collection' }));
   });
 });
 

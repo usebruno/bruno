@@ -2,7 +2,7 @@ export { default as postmanToBruno } from './postman/postman-to-bruno.js';
 export { default as postmanToBrunoEnvironment } from './postman/postman-env-to-bruno-env.js';
 export { default as brunoToPostman } from './postman/bruno-to-postman.js';
 export { default as openApiToBruno } from './openapi/openapi-to-bruno.js';
-export { default as brunoToOpenApi } from './openapi/bruno-to-openapi-spec.js';
+export { default as brunoToOpenApi } from './openapi/bruno-to-openapi.js';
 export { default as insomniaToBruno } from './insomnia/insomnia-to-bruno.js';
 export { default as wsdlToBruno } from './wsdl/wsdl-to-bruno.js';
 export { default as postmanTranslation, translatePostmanScript } from './postman/postman-translations.js';
