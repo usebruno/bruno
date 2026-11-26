@@ -49,6 +49,7 @@ const printGenericTable = (headers, rows, title) => {
 
 const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not supported in CLI';
 const UNSUPPORTED_REQUEST_TYPES = ['grpc-request', 'ws-request'];
+const isUnsupportedRequest = (item) => UNSUPPORTED_REQUEST_TYPES.includes(item.type);
 
 const printRunSummary = (results, { unsupportedCount = 0 } = {}) => {
   const summary = getRunnerSummary(results);
@@ -717,9 +718,7 @@ const handler = async function (argv) {
       }
     }
 
-    const callStack = getCallStack(resolvedPaths, collection, { recursive });
-    requestItems = callStack.filter((item) => !UNSUPPORTED_REQUEST_TYPES.includes(item.type));
-    const unsupportedCount = callStack.length - requestItems.length;
+    requestItems = getCallStack(resolvedPaths, collection, { recursive });
 
     if (testsOnly) {
       requestItems = requestItems.filter((item) => {
@@ -742,6 +741,10 @@ const handler = async function (argv) {
         return isRequestTagsIncluded(effectiveTagsByPathname.get(item.pathname) || [], includeTags, excludeTags);
       });
     }
+
+    const totalBeforeUnsupportedFilter = requestItems.length;
+    requestItems = requestItems.filter((item) => !isUnsupportedRequest(item));
+    const unsupportedCount = totalBeforeUnsupportedFilter - requestItems.length;
 
     const runtime = getJsSandboxRuntime(sandbox);
 
@@ -821,7 +824,7 @@ const handler = async function (argv) {
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
-          if (UNSUPPORTED_REQUEST_TYPES.includes(requestItem.type)) {
+          if (isUnsupportedRequest(requestItem)) {
             resolve();
             return;
           }
