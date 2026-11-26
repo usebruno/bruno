@@ -76,11 +76,8 @@ erDiagram
     TEXT avatar_url
     TEXT visibility
     INTEGER is_private "NOT NULL"
-    INTEGER is_fork "NOT NULL"
     INTEGER is_archived "NOT NULL"
     TEXT default_branch
-    TEXT pushed_at
-    TEXT tree_sha
     TEXT tree_etag
     INTEGER tree_checked_at
     INTEGER last_seen "NOT NULL"
@@ -214,11 +211,8 @@ erDiagram
 | `avatar_url` | TEXT |  |  |  |
 | `visibility` | TEXT |  |  |  |
 | `is_private` | INTEGER | yes |  |  |
-| `is_fork` | INTEGER | yes | `0` |  |
 | `is_archived` | INTEGER | yes | `0` |  |
 | `default_branch` | TEXT |  |  |  |
-| `pushed_at` | TEXT |  |  |  |
-| `tree_sha` | TEXT |  |  |  |
 | `tree_etag` | TEXT |  |  |  |
 | `tree_checked_at` | INTEGER |  |  |  |
 | `last_seen` | INTEGER | yes |  |  |

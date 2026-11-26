@@ -40,11 +40,8 @@ export const up = (): string => {
       avatar_url TEXT,
       visibility TEXT,
       is_private INTEGER NOT NULL CHECK (is_private IN (0, 1)),
-      is_fork INTEGER NOT NULL DEFAULT 0,
       is_archived INTEGER NOT NULL DEFAULT 0,
       default_branch TEXT,
-      pushed_at TEXT,
-      tree_sha TEXT,
       tree_etag TEXT,
       tree_checked_at INTEGER,
       last_seen INTEGER NOT NULL
