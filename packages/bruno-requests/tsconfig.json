@@ -11,8 +11,6 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "declaration": true,
-    "declarationDir": "./dist/types",
     "allowJs": true,
     "checkJs": false
   },

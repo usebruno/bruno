@@ -3,6 +3,7 @@ const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
 const json = require('@rollup/plugin-json');
 const terser = require('@rollup/plugin-terser').default;
+const dts = require('rollup-plugin-dts').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const os = require('os');
 
@@ -35,7 +36,8 @@ const commonPlugins = [
   typescript({
     tsconfig: './tsconfig.json',
     declaration: false,
-    declarationMap: false
+    declarationMap: false,
+    emitDeclarationOnly: false
   }),
   terser({
     maxWorkers: Math.max(1, os.availableParallelism())
@@ -77,6 +79,12 @@ module.exports = [
       }
     ],
     plugins: commonPlugins,
+    external: externalDeps
+  },
+  {
+    input: 'src/index.ts',
+    output: [{ file: packageJson.types, format: 'es' }],
+    plugins: [dts()],
     external: externalDeps
   }
 ];
