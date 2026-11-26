@@ -152,7 +152,7 @@ export const buildSpecVariables = ({ collectionVariables, envVariables, environm
 export default function brunoToOpenApi(name, collectionData, selectedEnvironment) {
   const { requests: items, envVariables, collectionVariables } = collectionData;
 
-  const variables = buildSpecVariables({
+  let variables = buildSpecVariables({
     collectionVariables,
     envVariables,
     environment: selectedEnvironment
@@ -164,7 +164,7 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
   }));
 
   // Filter only include http-request and graphql-request items that aren't transient
-  items = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
+  const requestItems = items.filter((item) => ['http-request', 'graphql-request'].includes(item.type) && !item.isTransient);
 
   const components = {
     schemas: {},
@@ -342,7 +342,7 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
   };
 
   const generatePaths = () => {
-    const _items = items.map((item) => {
+    const _items = requestItems.map((item) => {
       const { url: rawPath, operationLevelServer } = resolveRequestUrl(item?.request?.url || '', item?.request?.vars?.req);
       const queryStart = maskPlaceholders(rawPath).search(/[?#]/);
       const pathOnly = queryStart === -1 ? rawPath : rawPath.slice(0, queryStart);
