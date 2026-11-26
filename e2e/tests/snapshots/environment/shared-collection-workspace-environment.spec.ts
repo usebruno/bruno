@@ -1,4 +1,5 @@
 import path from 'path';
+import { setSnapshotRestartTimeout } from '../../../utils';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
@@ -29,6 +30,7 @@ test.describe('Snapshot: Shared collection across workspaces restores its own en
     launchElectronApp,
     createTmpDir
   }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-shared-col-env-userdata');
     const workspaceAPath = await createTmpDir('snap-shared-col-env-ws-a');
     const workspaceBPath = await createTmpDir('snap-shared-col-env-ws-b');

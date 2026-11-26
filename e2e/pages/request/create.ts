@@ -210,10 +210,12 @@ export const createRequest = async (
 
     await locators.modal.button('Create').click();
 
+    // Windows file discovery can outlast the default assertion timeout.
+    const visibilityOptions = process.platform === 'win32' ? { timeout: 15000 } : {};
     if (inFolder) {
-      await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible();
+      await expect(locators.sidebar.folderRequest(parentName, requestName)).toBeVisible(visibilityOptions);
     } else {
-      await expect(locators.sidebar.request(requestName)).toBeVisible();
+      await expect(locators.sidebar.request(requestName)).toBeVisible(visibilityOptions);
     }
   });
 };

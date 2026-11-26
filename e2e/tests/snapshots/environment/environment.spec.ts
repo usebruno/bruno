@@ -1,4 +1,5 @@
 import path from 'path';
+import { setSnapshotRestartTimeout } from '../../../utils';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import {
@@ -62,6 +63,7 @@ test.describe('Snapshot: Collection Environment Persistence', () => {
   });
 
   test('keeps selected environments for non-active collections across snapshot saves', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-env-persistence');
     const firstCollectionPath = await createTmpDir('snap-col-a');
     const secondCollectionPath = await createTmpDir('snap-col-b');

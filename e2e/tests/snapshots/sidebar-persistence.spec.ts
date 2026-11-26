@@ -7,7 +7,7 @@ import {
   Page
 } from '../../playwright';
 import { buildSidebarLocators } from '../../pages';
-import { waitForReadyPage, readSnapshot, waitForSnapshotFile } from '../../utils';
+import { waitForReadyPage, readSnapshot, waitForSnapshotFile, setSnapshotRestartTimeout } from '../../utils';
 import { SIDEBAR_WIDTH_KEY, SIDEBAR_COLLAPSED_KEY } from '../../../packages/bruno-app/src/utils/common/localStorage';
 
 async function resizeSidebar(page: Page, targetWidth: number) {
@@ -184,6 +184,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
   });
 
   test('sidebar mixed-source hydration (width from localStorage, collapsed from snapshot)', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-sidebar-mixed');
 
     await test.step('Session 1: establish collapsed state and width in snapshot', async () => {
@@ -281,6 +282,7 @@ test.describe('Snapshot: Sidebar Persistence', () => {
   });
 
   test('localStorage takes precedence over snapshot when both exist', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-sidebar-precedence');
 
     await test.step('Session 1: establish snapshot values', async () => {

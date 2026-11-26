@@ -1,4 +1,5 @@
 import path from 'path';
+import { setSnapshotRestartTimeout } from '../../utils';
 import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
@@ -157,6 +158,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
   });
 
   test('does not restore stale tabs from deleted workspace and remains interactive', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-workspace-stale-tabs-deleted');
     const workspacePath = await createTmpDir('demo-workspace-stale-tabs');
     const defaultCollectionPath = await createTmpDir('default-workspace-col-stale-tabs');
@@ -209,6 +211,7 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
   });
 
   test('falls back when active workspace and active tab belong to malformed workspace snapshot', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-workspace-malformed-with-active-tab');
     const workspacePath = await createTmpDir('demo-workspace-malformed-active-tab');
     const defaultCollectionPath = await createTmpDir('default-workspace-col-malformed-active-tab');

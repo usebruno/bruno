@@ -1,4 +1,5 @@
 import path from 'path';
+import { setSnapshotRestartTimeout } from '../../utils';
 import fs from 'fs';
 import { test, expect, closeElectronApp } from '../../playwright';
 import {
@@ -39,6 +40,7 @@ const findSnapshotRequestTab = (snapshot: any, requestName: string) => {
 
 test.describe('Snapshot: Request Pane Interactivity', () => {
   test('grpc request pane tab interactivity is restored after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-grpc-interactivity');
     const colPath = await createTmpDir('col');
 
@@ -86,6 +88,7 @@ test.describe('Snapshot: Request Pane Interactivity', () => {
   });
 
   test('websocket request pane tab interactivity is restored after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-ws-interactivity');
     const colPath = await createTmpDir('col');
 

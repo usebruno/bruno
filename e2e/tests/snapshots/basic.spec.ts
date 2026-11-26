@@ -1,4 +1,5 @@
 import path from 'path';
+import { setSnapshotRestartTimeout } from '../../utils';
 import fs from 'fs';
 import {
   test,
@@ -67,6 +68,7 @@ const expectSnapshotWorkspaceSortings = async (userDataPath: string, expectedSor
 
 test.describe('Snapshot: Tab Persistence', () => {
   test('open tabs are restored after app restart in the same order', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-tabs-order');
     const colPath = await createTmpDir('col');
 
@@ -109,6 +111,7 @@ test.describe('Snapshot: Tab Persistence', () => {
   });
 
   test('active tab is remembered after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-active-tab');
     const colPath = await createTmpDir('col');
 
@@ -143,6 +146,7 @@ test.describe('Snapshot: Tab Persistence', () => {
   });
 
   test('closed tab stays closed after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-closed-tab');
     const colPath = await createTmpDir('col');
 
@@ -550,6 +554,7 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
   });
 
   test('same collection in two workspaces keeps tabs isolated after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
     const sharedColPath = await createTmpDir('shared-col');
     const workspaceBPath = await createTmpDir('workspace-b-shared-col');
@@ -787,6 +792,7 @@ test.describe('Snapshot: File Structure', () => {
 
 test.describe('Snapshot: Basic Request Movement', () => {
   test('requests interactivity is also restored', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-structure');
     const colPath = await createTmpDir('col');
 
@@ -824,6 +830,7 @@ test.describe('Snapshot: Basic Request Movement', () => {
   });
 
   test('graphql request pane tab interactivity is restored after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-graphql-interactivity');
     const colPath = await createTmpDir('col');
 
