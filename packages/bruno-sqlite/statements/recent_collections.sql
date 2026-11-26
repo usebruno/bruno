@@ -8,7 +8,7 @@ LIMIT @max_rows;
 INSERT OR REPLACE INTO recent_collections (path_key, path, name, used_at, last_event)
 VALUES (
   @path_key,
-  @path,
+  COALESCE((SELECT path FROM recent_collections WHERE path_key = @path_key), @path),
   COALESCE(@name, (SELECT name FROM recent_collections WHERE path_key = @path_key), @folder_name),
   @used_at,
   @last_event

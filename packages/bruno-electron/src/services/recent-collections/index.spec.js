@@ -148,14 +148,14 @@ describe('recent collections service', () => {
     expect(recentCollections.list()[0].name).toBe('y'.repeat(256));
   });
 
-  it('treats the slash and backslash spellings of a Windows path as one collection', () => {
+  it('treats the slash, backslash and letter case spellings of a Windows path as one collection, keeping the first spelling', () => {
     onPlatform('win32');
 
     recentCollections.record([{ path: 'C:/Users/me/api', name: 'API' }], 'opened');
     recentCollections.record([{ path: 'C:\\Users\\me\\api' }], 'closed');
     recentCollections.record([{ path: 'c:\\users\\me\\api\\' }], 'opened');
 
-    expect(recentCollections.list()).toEqual([{ path: 'c:\\users\\me\\api', name: 'API', usedAt: expect.any(Number), lastEvent: 'opened' }]);
+    expect(recentCollections.list()).toEqual([{ path: 'C:\\Users\\me\\api', name: 'API', usedAt: expect.any(Number), lastEvent: 'opened' }]);
     expect(recentCollections.move('C:\\Users\\me\\api', 'C:\\Users\\Me\\API')).toBe(true);
     expect(pathsOf(recentCollections.list())).toEqual(['C:\\Users\\Me\\API']);
     expect(recentCollections.forget(['C:/USERS/ME/API'])).toBe(true);
