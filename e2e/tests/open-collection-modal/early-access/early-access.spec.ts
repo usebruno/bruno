@@ -33,11 +33,11 @@ const EARLY_ACCESS_PAGES: EarlyAccessPage[] = [
     pageTitle: 'API Catalog',
     feature: 'catalog',
     title: 'Bruno API Catalog',
-    subtitle: 'The public home for Bruno collections',
+    subtitle: 'Discover every public Bruno API collections',
     points: [
-      'List your API’s collection straight from its public repo',
-      'Search collections by API, company or topic',
-      'They open it in Bruno in one click and get your updates'
+      'Indexed automatically from public GitHub repos',
+      'Browse by API, company or category',
+      'Preview a collection, then add it to your workspace'
     ]
   }
 ];
@@ -64,7 +64,7 @@ test.describe('Open collection modal early access pages', () => {
       await test.step('Verify the request early access button is visible and enabled', async () => {
         await expect(earlyAccess.requestButton()).toBeVisible();
         await expect(earlyAccess.requestButton()).toBeEnabled();
-        await expect(earlyAccess.requestButton()).toHaveText('Request early access');
+        await expect(earlyAccess.requestButton()).toHaveText('Join waitlist');
       });
     });
   }

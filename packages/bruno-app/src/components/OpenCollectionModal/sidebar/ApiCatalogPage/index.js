@@ -2,9 +2,9 @@ import { IconBrandSafari } from '@tabler/icons';
 import EarlyAccess from '../../components/EarlyAccess';
 
 const POINTS = [
-  'List your API’s collection straight from its public repo',
-  'Search collections by API, company or topic',
-  'They open it in Bruno in one click and get your updates'
+  'Indexed automatically from public GitHub repos',
+  'Browse by API, company or category',
+  'Preview a collection, then add it to your workspace'
 ];
 
 const ApiCatalogPage = () => (
@@ -12,7 +12,7 @@ const ApiCatalogPage = () => (
     feature="catalog"
     icon={IconBrandSafari}
     title="Bruno API Catalog"
-    subtitle="The public home for Bruno collections"
+    subtitle="Discover every public Bruno API collections"
     points={POINTS}
     waitlistUrl="https://link.usebruno.com/catalog-waitlist"
     learnMoreUrl="https://link.usebruno.com/docs/catalog"

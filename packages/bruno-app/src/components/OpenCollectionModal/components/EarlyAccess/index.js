@@ -27,7 +27,7 @@ const EarlyAccess = ({ feature, icon: Icon, title, subtitle, points, waitlistUrl
           onClick={() => window.ipcRenderer.openExternal(waitlistUrl)}
           data-testid={`open-collection-early-access-request-${feature}`}
         >
-          Request early access
+          Join waitlist
         </Button>
         <Button
           size="sm"

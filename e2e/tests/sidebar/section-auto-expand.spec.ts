@@ -68,9 +68,7 @@ test.describe('Sidebar Section Auto-Expand', () => {
     await expect(sectionContent).not.toBeVisible();
 
     // Now click on the search action button in the collapsed section
-    // The search button is in section-actions with title "Search requests"
-    const searchButton = collectionsSection.locator('.section-actions button[title="Search requests"]');
-    await searchButton.click();
+    await buildCommonLocators(page).sidebar.searchToggle().click();
 
     // The section should now be expanded
     await expect(collectionsSection).toHaveClass(/expanded/);

@@ -51,6 +51,7 @@ const CollectionsSection = () => {
 
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [advancedCreateName, setAdvancedCreateName] = useState('');
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 
   // Import collection shortcut
   useKeybinding('importCollection', () => {
@@ -225,13 +226,15 @@ const CollectionsSection = () => {
 
   const sectionActions = (
     <>
-      <ActionIcon
-        onClick={handleToggleSearch}
-        label="Search requests"
-        data-testid="sidebar-search-toggle"
-      >
-        <IconSearch size={14} stroke={1.5} aria-hidden="true" />
-      </ActionIcon>
+      <ToolHint text="Search requests" toolhintId="CollectionsHeaderSearchToolhintId" place="bottom" positionStrategy="fixed" className="flex">
+        <ActionIcon
+          onClick={handleToggleSearch}
+          aria-label="Search requests"
+          data-testid="sidebar-search-toggle"
+        >
+          <IconSearch size={14} stroke={1.5} aria-hidden="true" />
+        </ActionIcon>
+      </ToolHint>
 
       <ToolHint text="New collection" toolhintId="CollectionsHeaderNewToolhintId" place="bottom" positionStrategy="fixed" className="flex">
         <ActionIcon
@@ -259,17 +262,26 @@ const CollectionsSection = () => {
         </ActionIcon>
       </ToolHint>
 
-      <MenuDropdown
-        data-testid="collections-header-actions-menu"
-        items={actionsDropdownItems}
-        placement="bottom-end"
+      <ToolHint
+        text="More actions"
+        toolhintId="CollectionsHeaderMoreToolhintId"
+        place="bottom"
+        positionStrategy="fixed"
+        className="flex"
+        hidden={isActionsMenuOpen}
       >
-        <ActionIcon
-          label="More actions"
+        <MenuDropdown
+          data-testid="collections-header-actions-menu"
+          items={actionsDropdownItems}
+          placement="bottom-end"
+          opened={isActionsMenuOpen}
+          onChange={setIsActionsMenuOpen}
         >
-          <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
-        </ActionIcon>
-      </MenuDropdown>
+          <ActionIcon aria-label="More actions">
+            <IconDotsVertical size={14} stroke={1.5} aria-hidden="true" />
+          </ActionIcon>
+        </MenuDropdown>
+      </ToolHint>
 
       {collectionsToClose.length > 0 && (
         <RemoveCollections collectionUids={collectionsToClose} onClose={clearCollectionsToClose} />
