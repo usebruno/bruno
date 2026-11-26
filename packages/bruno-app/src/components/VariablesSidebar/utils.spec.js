@@ -171,6 +171,19 @@ describe('getRequestReferences', () => {
   it('does not collect names read by bru.getVar in scripts and tests', () => {
     expect(references.has('page_size')).toBe(false);
   });
+
+  it('collects references from Akamai EdgeGrid auth', () => {
+    const akamaiRequest = {
+      ...request,
+      request: {
+        url: 'https://example.com',
+        auth: { mode: 'akamai-edgegrid', akamaiEdgegrid: { accessToken: '{{akamai_access}}', clientToken: '{{akamai_client}}' } }
+      }
+    };
+    const akamaiReferences = getRequestReferences({ ...collection, items: [akamaiRequest] }, akamaiRequest);
+    expect(akamaiReferences.get('akamai_access')).toEqual(['Auth']);
+    expect(akamaiReferences.get('akamai_client')).toEqual(['Auth']);
+  });
 });
 
 describe('getUsedSections', () => {

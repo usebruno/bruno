@@ -9,6 +9,7 @@ import {
 import {
   findEnvironmentInCollection,
   getAllVariables,
+  getAuthContentKey,
   getEffectiveActiveEnvironmentUid,
   getFormattedCollectionOauth2Credentials,
   getTreePathFromCollectionToItem,
@@ -191,7 +192,7 @@ export const getRequestReferences = (collection, item) => {
   collectReferences(request.params, 'Params', found);
   collectReferences(headers, 'Headers', found);
   collectReferences(request.body?.[request.body?.mode], 'Body', found);
-  collectReferences(auth?.[auth?.mode], 'Auth', found);
+  collectReferences(auth?.[getAuthContentKey(auth?.mode)], 'Auth', found);
   collectReferences(request.assertions, 'Assertions', found);
   collectDefinedNames(request.vars?.req, 'Pre Request Vars', found);
   collectReferences(request.vars?.req, 'Pre Request Vars', found);

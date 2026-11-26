@@ -8,17 +8,13 @@ import {
   updateSettingsSelectedTab,
   updatedFolderSettingsSelectedTab
 } from 'providers/ReduxStore/slices/collections';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import { getAuthContentKey, humanizeRequestAuthMode } from 'utils/collections';
 import { SensitiveFieldOwnerContext } from 'components/SensitiveFieldWarning/context';
 import AuthFields from '../AuthFields';
 import StyledWrapper from './StyledWrapper';
 
 const noop = () => {};
 const noopUpdateAuth = () => ({ type: 'noop' });
-
-const AUTH_CONTENT_KEYS = {
-  'akamai-edgegrid': 'akamaiEdgegrid'
-};
 
 export const isInheritedAuthSupported = (inheritedSource, supportedModes) => {
   if (!supportedModes) {
@@ -125,7 +121,7 @@ const InheritedAuth = ({ collection, item, inheritedSource, supportedModes, unsu
   }
 
   const isFolderSource = inheritedSource.type === 'folder';
-  const contentKey = AUTH_CONTENT_KEYS[inheritedMode] ?? inheritedMode;
+  const contentKey = getAuthContentKey(inheritedMode);
 
   const updateSourceAuthField = (fieldKey, value) => {
     const payload = {

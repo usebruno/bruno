@@ -1023,6 +1023,12 @@ export const humanizeRequestBodyMode = (mode) => {
   return label;
 };
 
+const AUTH_CONTENT_KEYS = {
+  'akamai-edgegrid': 'akamaiEdgegrid'
+};
+
+export const getAuthContentKey = (mode) => AUTH_CONTENT_KEYS[mode] ?? mode;
+
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
