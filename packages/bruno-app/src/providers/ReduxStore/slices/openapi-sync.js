@@ -228,8 +228,16 @@ export const loadSyncSourceState = (collection) => async (dispatch, getState) =>
   }
 };
 
-export const approveSyncSource = (collection, { autoCheck, autoCheckInterval, sourceUrl, expectedSource } = {}) =>
-  updateSourceState(collection, 'renderer:approve-openapi-sync-source', { autoCheck, autoCheckInterval, sourceUrl, expectedSource });
+export const approveSyncSource = (collection, { autoCheck, autoCheckInterval, sourceUrl, expectedSource } = {}) => async (dispatch, getState) => {
+  const previous = getState().openapiSync?.sourceStates?.[collection.uid];
+  const sourceState = await dispatch(updateSourceState(collection, 'renderer:approve-openapi-sync-source', { autoCheck, autoCheckInterval, sourceUrl, expectedSource }));
+  // Results from the last check belong to the previous source, so they must not show for this one.
+  if (previous?.status !== 'approved' || previous.source !== sourceState?.source) {
+    dispatch(clearCollectionUpdate({ collectionUid: collection.uid }));
+    dispatch(clearDrift({ collectionUid: collection.uid }));
+  }
+  return sourceState;
+};
 
 export const dismissSyncSource = (collection, { expectedSource } = {}) =>
   updateSourceState(collection, 'renderer:dismiss-openapi-sync-source', { expectedSource });

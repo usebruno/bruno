@@ -3,7 +3,9 @@ import openapiSyncReducer, {
   checkActiveWorkspaceCollectionsForUpdates,
   approveSyncSource,
   dismissSyncSource,
-  loadSyncSourceState
+  loadSyncSourceState,
+  setCollectionUpdate,
+  setDrift
 } from './openapi-sync';
 
 const collection = (uid, sourceUrl) => ({
@@ -35,7 +37,7 @@ describe('openapi-sync source approval', () => {
         case 'renderer:get-openapi-sync-source-state':
           return sourceStates[collectionUid];
         case 'renderer:approve-openapi-sync-source':
-          sourceStates[collectionUid] = { status: 'approved', autoCheck: request.autoCheck, autoCheckInterval: request.autoCheckInterval };
+          sourceStates[collectionUid] = { status: 'approved', source: request.sourceUrl, autoCheck: request.autoCheck, autoCheckInterval: request.autoCheckInterval };
           return sourceStates[collectionUid];
         case 'renderer:dismiss-openapi-sync-source':
           sourceStates[collectionUid] = { status: 'dismissed', autoCheck: false, autoCheckInterval: 5 };
@@ -107,6 +109,24 @@ describe('openapi-sync source approval', () => {
     invoke.mockRejectedValueOnce(new Error('read failed'));
     await store.dispatch(loadSyncSourceState(shared));
     expect(store.getState().openapiSync.sourceStates.shared.status).toBe('approved');
+  });
+
+  it('drops the last check results when a new source is approved, and keeps them when the same one is approved again', async () => {
+    const shared = collection('shared', 'http://127.0.0.1:4825/');
+    const store = buildStore([shared]);
+    const seedResults = () => {
+      store.dispatch(setCollectionUpdate({ collectionUid: 'shared', hasUpdates: true, error: null }));
+      store.dispatch(setDrift({ collectionUid: 'shared', patch: { specDrift: { added: [{}] } } }));
+    };
+    const results = () => [store.getState().openapiSync.collectionUpdates.shared, store.getState().openapiSync.drift.shared];
+
+    await store.dispatch(approveSyncSource(shared, { sourceUrl: 'http://127.0.0.1:4825/a.json' }));
+    seedResults();
+    await store.dispatch(approveSyncSource(shared, { sourceUrl: 'http://127.0.0.1:4825/a.json', autoCheckInterval: 15 }));
+    expect(results().every(Boolean)).toBe(true);
+
+    await store.dispatch(approveSyncSource(shared, { sourceUrl: 'http://127.0.0.1:4825/b.json' }));
+    expect(results()).toEqual([undefined, undefined]);
   });
 
   it('starts checking once the user approves, and stores the state after approve and dismiss', async () => {
