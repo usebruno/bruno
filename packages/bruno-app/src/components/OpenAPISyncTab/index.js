@@ -3,9 +3,8 @@ import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuid } from 'uuid';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { setTabUiState, loadSyncSourceState } from 'providers/ReduxStore/slices/openapi-sync';
+import { setTabUiState } from 'providers/ReduxStore/slices/openapi-sync';
 import ResponsiveTabs from 'ui/ResponsiveTabs';
-import Button from 'ui/Button';
 import StyledWrapper from './StyledWrapper';
 import OpenAPISyncHeader from './OpenAPISyncHeader';
 import ConnectSpecForm from './ConnectSpecForm';
@@ -15,6 +14,7 @@ import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
 import OverviewSection from './OverviewSection';
 import SourceApprovalBanner from './SourceApprovalBanner';
+import Button from 'ui/Button';
 import useOpenAPISync from './hooks/useOpenAPISync';
 
 const OpenAPISyncTab = ({ collection }) => {
@@ -37,6 +37,7 @@ const OpenAPISyncTab = ({ collection }) => {
     handleSaveSettings,
     handleApproveSource,
     handleDismissSource,
+    retrySourceState,
     openEndpointInTab,
     reloadDrift
   } = useOpenAPISync(collection);
@@ -139,7 +140,7 @@ const OpenAPISyncTab = ({ collection }) => {
                   color="secondary"
                   size="sm"
                   className="mt-3"
-                  onClick={() => dispatch(loadSyncSourceState(collection))}
+                  onClick={retrySourceState}
                   data-testid="openapi-sync-source-retry"
                 >
                   Retry

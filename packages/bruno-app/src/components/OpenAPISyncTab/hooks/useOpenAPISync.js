@@ -464,6 +464,7 @@ const useOpenAPISync = (collection) => {
     handleSaveSettings,
     handleApproveSource,
     handleDismissSource,
+    retrySourceState: () => dispatch(loadSyncSourceState(collection)),
     openEndpointInTab,
     reloadDrift
   };
