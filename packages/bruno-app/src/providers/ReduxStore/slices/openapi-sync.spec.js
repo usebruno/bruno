@@ -129,6 +129,20 @@ describe('openapi-sync source approval', () => {
     expect(results()).toEqual([undefined, undefined]);
   });
 
+  it('drops the last check results when settings approve a new url before the file is saved', async () => {
+    const shared = collection('shared', 'http://127.0.0.1:4825/a.json');
+    const store = buildStore([shared]);
+    sourceStates.shared = { status: 'approved', source: 'http://127.0.0.1:4825/a.json', autoCheck: true, autoCheckInterval: 5 };
+    await store.dispatch(loadSyncSourceState(shared));
+    store.dispatch(setCollectionUpdate({ collectionUid: 'shared', hasUpdates: true, error: null }));
+    // The file still names a.json, so main describes a.json, which is no longer the approved source.
+    invoke.mockResolvedValueOnce({ status: 'pending', source: 'http://127.0.0.1:4825/a.json', autoCheck: false, autoCheckInterval: 5 });
+
+    await store.dispatch(approveSyncSource(shared, { sourceUrl: 'http://127.0.0.1:4825/b.json' }));
+
+    expect(store.getState().openapiSync.collectionUpdates.shared).toBeUndefined();
+  });
+
   it('starts checking once the user approves, and stores the state after approve and dismiss', async () => {
     const shared = collection('shared', 'http://127.0.0.1:4825/');
     const store = buildStore([shared]);

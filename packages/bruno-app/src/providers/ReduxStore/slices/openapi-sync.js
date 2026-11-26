@@ -232,7 +232,8 @@ export const approveSyncSource = (collection, { autoCheck, autoCheckInterval, so
   const previous = getState().openapiSync?.sourceStates?.[collection.uid];
   const sourceState = await dispatch(updateSourceState(collection, 'renderer:approve-openapi-sync-source', { autoCheck, autoCheckInterval, sourceUrl, expectedSource }));
   // Results from the last check belong to the previous source, so they must not show for this one.
-  if (previous?.status !== 'approved' || previous.source !== sourceState?.source) {
+  // Settings approves a new URL before saving it, so the returned state can still describe the old, now unapproved, source.
+  if (previous?.status !== 'approved' || sourceState?.status !== 'approved' || previous.source !== sourceState.source) {
     dispatch(clearCollectionUpdate({ collectionUid: collection.uid }));
     dispatch(clearDrift({ collectionUid: collection.uid }));
   }
