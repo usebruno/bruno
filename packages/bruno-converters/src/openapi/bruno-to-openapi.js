@@ -55,70 +55,6 @@ const toTemplatePath = (path) => {
   return { templatePath: templatePath.replace(placeholderRegex, '{$1}'), segmentParamNames };
 };
 
-const xmlToJson = (xmlString) => {
-  const parser = new xml2js.Parser({ explicitArray: false, trim: true });
-  let jsonResult = null;
-
-  parser.parseString(xmlString, (err, result) => {
-    if (err) {
-      throw err;
-    } else {
-      jsonResult = result;
-    }
-  });
-
-  return jsonResult;
-};
-
-const generateInfoSection = (name) => {
-  return {
-    title: name,
-    version: '1.0.0'
-  };
-};
-
-// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
-// left out, because the secret wins at runtime)
-const getEnabledVarsAsObject = (variables = []) => {
-  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
-  const result = {};
-  variables.forEach((v) => {
-    if (v.name && v.enabled && !secretNames.has(v.name)) {
-      result[v.name] = v.value;
-    }
-  });
-  return result;
-};
-
-const generatePropertyShape = (obj) => {
-  const data = {};
-
-  // add 'type'
-  if (Array.isArray(obj)) {
-    data['type'] = 'array';
-    data['items'] = {
-      type: 'string'
-    };
-  } else {
-    data['type'] = typeof obj;
-  }
-
-  // add 'properties'
-  let properties = null;
-  if (obj && typeof obj === 'object') {
-    properties = {};
-    const keys = Object.keys(obj);
-    keys.forEach((key) => {
-      const value = obj[key];
-      properties[key] = generatePropertyShape(value);
-    });
-    if (keys.length) {
-      data['properties'] = properties;
-    }
-  }
-  return data;
-};
-
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
 
 export const getEnvironmentVariablesKeyValuePairs = (envVariables) => {
@@ -756,3 +692,67 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
     warnings
   };
 }
+
+const xmlToJson = (xmlString) => {
+  const parser = new xml2js.Parser({ explicitArray: false, trim: true });
+  let jsonResult = null;
+
+  parser.parseString(xmlString, (err, result) => {
+    if (err) {
+      throw err;
+    } else {
+      jsonResult = result;
+    }
+  });
+
+  return jsonResult;
+};
+
+const generateInfoSection = (name) => {
+  return {
+    title: name,
+    version: '1.0.0'
+  };
+};
+
+// Convert env variable array to { name: value } object (only enabled vars; a name with an enabled secret is
+// left out, because the secret wins at runtime)
+const getEnabledVarsAsObject = (variables = []) => {
+  const secretNames = new Set(variables.filter((v) => v.enabled && v.secret).map((v) => v.name));
+  const result = {};
+  variables.forEach((v) => {
+    if (v.name && v.enabled && !secretNames.has(v.name)) {
+      result[v.name] = v.value;
+    }
+  });
+  return result;
+};
+
+const generatePropertyShape = (obj) => {
+  const data = {};
+
+  // add 'type'
+  if (Array.isArray(obj)) {
+    data['type'] = 'array';
+    data['items'] = {
+      type: 'string'
+    };
+  } else {
+    data['type'] = typeof obj;
+  }
+
+  // add 'properties'
+  let properties = null;
+  if (obj && typeof obj === 'object') {
+    properties = {};
+    const keys = Object.keys(obj);
+    keys.forEach((key) => {
+      const value = obj[key];
+      properties[key] = generatePropertyShape(value);
+    });
+    if (keys.length) {
+      data['properties'] = properties;
+    }
+  }
+  return data;
+};
