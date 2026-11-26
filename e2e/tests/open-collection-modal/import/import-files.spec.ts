@@ -16,6 +16,8 @@ import {
 } from '../../../pages/open-collection-modal/import-page';
 import { importFixturePath, writeZip } from './helpers';
 
+const importShortcut = process.platform === 'darwin' ? '⌘ O' : 'Ctrl+O';
+
 const PING_REQUEST = `meta {
   name: ping
   type: http
@@ -53,6 +55,7 @@ test.describe('Open collection modal: importing files', () => {
       await expect(importPage.dropZone()).toContainText('Drop anywhere to import');
       await expect(importPage.dropZone()).toContainText('Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno');
       await expect(importPage.selectFilesLink()).toBeVisible();
+      await expect(importPage.shortcut()).toHaveText(importShortcut);
     });
 
     await test.step('Verify the links to the import docs', async () => {

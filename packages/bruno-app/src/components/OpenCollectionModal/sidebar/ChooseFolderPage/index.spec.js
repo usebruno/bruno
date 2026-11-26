@@ -94,13 +94,13 @@ describe('ChooseFolderPage', () => {
   it('shows the open folder shortcut next to the choose folders link', () => {
     renderPage();
 
-    expect(screen.getByTestId('choose-folder-shortcut')).toHaveTextContent(/(Shift|⇧).*O$/);
+    expect(screen.getByTestId('choose-folder-drop-zone-shortcut')).toHaveTextContent(/(Shift|⇧).*O$/);
   });
 
   it('shows no shortcut when keyboard shortcuts are turned off', () => {
     renderPage({ preferences: { keybindingsEnabled: false } });
 
-    expect(screen.queryByTestId('choose-folder-shortcut')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('choose-folder-drop-zone-shortcut')).not.toBeInTheDocument();
   });
 
   it('opens the folder picker from the choose folders link', async () => {

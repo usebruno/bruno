@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { IconAlertTriangle, IconExternalLink, IconLink, IconLoader2, IconUpload } from '@tabler/icons';
 import { loadImportFiles, loadImportText } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import useKeybindingDisplayText from 'hooks/useKeybindingDisplayText';
 import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
@@ -42,6 +43,7 @@ const ImportPage = () => {
   const [text, setText] = useState('');
   const [isDragOverZone, setIsDragOverZone] = useState(false);
   const fileInput = useRef(null);
+  const importShortcut = useKeybindingDisplayText()('importCollection');
 
   const trimmedText = text.trim();
   const isZipText = isZipUrl(trimmedText);
@@ -119,6 +121,7 @@ const ImportPage = () => {
         }}
         title="Drop anywhere to import"
         hint="Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno"
+        shortcut={importShortcut}
         data-testid="import-page-drop-zone"
       >
         Or{' '}

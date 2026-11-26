@@ -4,9 +4,11 @@ import { Provider } from 'react-redux';
 import toast from 'react-hot-toast';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
+import appReducer from 'providers/ReduxStore/slices/app';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
 import { readImportFiles, readImportText } from 'utils/importers/import-sources';
 import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
+import { isMacOS } from 'utils/common/platform';
 import { ImportHandoffContext } from '../../components/ImportHandoff/context';
 import ImportPage from './index';
 
@@ -15,6 +17,11 @@ jest.mock('nanoid', () => {
   return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
 });
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { error: jest.fn(), success: jest.fn() } }));
+jest.mock('utils/common/platform', () => ({
+  ...jest.requireActual('utils/common/platform'),
+  isMacOS: jest.fn(),
+  isLinuxOS: jest.fn()
+}));
 jest.mock('utils/importers/import-sources', () => ({
   ...jest.requireActual('utils/importers/import-sources'),
   readImportFiles: jest.fn(),
@@ -24,10 +31,13 @@ jest.mock('utils/importers/import-sources', () => ({
 const importData = { rawData: { openapi: '3.0.0' }, type: 'openapi' };
 const closedState = openCollectionModalReducer(undefined, { type: 'init' });
 
-const renderPage = () => {
+const renderPage = ({ preferences = {} } = {}) => {
   const store = configureStore({
-    reducer: { openCollectionModal: openCollectionModalReducer },
-    preloadedState: { openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT } }
+    reducer: { openCollectionModal: openCollectionModalReducer, app: appReducer },
+    preloadedState: {
+      openCollectionModal: { ...closedState, isOpen: true, page: OPEN_COLLECTION_PAGE.IMPORT },
+      app: { ...appReducer(undefined, { type: 'init' }), preferences }
+    }
   });
   const importFrom = jest.fn((load) => store.dispatch(load));
   render(
@@ -50,6 +60,7 @@ const paste = (value) => fireEvent.paste(textField(), { clipboardData: { getData
 describe('ImportPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    isMacOS.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -67,6 +78,22 @@ describe('ImportPage', () => {
     expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('Drop anywhere to import');
     expect(screen.getByTestId('import-page-drop-zone')).toHaveTextContent('Postman · Insomnia · OpenAPI · WSDL · OpenCollection · Bruno');
     expect(screen.getByTestId('import-page-select-files')).toHaveTextContent('select files');
+  });
+
+  it.each([
+    ['macOS', true, '⌘ O'],
+    ['Windows', false, 'Ctrl+O']
+  ])('shows the %s import shortcut next to select files', (_os, isMac, shortcut) => {
+    isMacOS.mockReturnValue(isMac);
+    renderPage();
+
+    expect(screen.getByTestId('import-page-drop-zone-shortcut').textContent).toBe(shortcut);
+  });
+
+  it('shows no shortcut when keyboard shortcuts are turned off', () => {
+    renderPage({ preferences: { keybindingsEnabled: false } });
+
+    expect(screen.queryByTestId('import-page-drop-zone-shortcut')).not.toBeInTheDocument();
   });
 
   it('shows the Enter hint once there is text', () => {

@@ -8,7 +8,7 @@ export const buildChooseFolderLocators = (page: Page) => ({
   ...buildCollectionListLocators(page, 'choose-folder'),
   dropZone: () => page.getByTestId('choose-folder-drop-zone'),
   chooseLink: () => page.getByTestId('choose-folder-choose-link'),
-  shortcut: () => page.getByTestId('choose-folder-shortcut')
+  shortcut: () => page.getByTestId('choose-folder-drop-zone-shortcut')
 });
 
 export const chooseFolders = async (page: Page, electronApp: ElectronApplication, folderPaths: string[]) => {

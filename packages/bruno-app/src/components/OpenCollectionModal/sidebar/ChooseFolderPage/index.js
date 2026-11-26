@@ -58,6 +58,7 @@ const ChooseFolderPage = () => {
                   Bruno Collection folder has <code>opencollection.yml</code> or <code>bruno.json</code> at the root
                 </>
               )}
+              shortcut={chooseFolderShortcut}
               data-testid="choose-folder-drop-zone"
             >
               Or{' '}
@@ -70,9 +71,6 @@ const ChooseFolderPage = () => {
               >
                 choose folders
               </button>
-              {chooseFolderShortcut ? (
-                <span className="choose-folder-shortcut" data-testid="choose-folder-shortcut">{chooseFolderShortcut}</span>
-              ) : null}
             </DropZone>
           </div>
         )}
