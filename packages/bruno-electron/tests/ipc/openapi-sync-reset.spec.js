@@ -84,6 +84,13 @@ const petSpec = {
         },
         responses: OK
       }
+    },
+    '/recipients': {
+      post: {
+        summary: 'Add recipients',
+        requestBody: { content: { 'application/json': { schema: { anyOf: [recipient, { type: 'array', items: recipient }] } } } },
+        responses: OK
+      }
     }
   }
 };
@@ -355,6 +362,23 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     const request = readRequest('Send mail');
     expect(request.headers).toEqual([]);
     expect(JSON.parse(request.body.json)).toEqual(body);
+    expect((await drift()).modified).toEqual([]);
+  });
+
+  it('keeps a body the spec allows in another shape than its example, and no longer lists the endpoint after Reset', async () => {
+    const recipients = [{ email: 'a@x.io' }, { email: 'b@x.io' }];
+    writeRequest('Add recipients', (request) => ({
+      ...request,
+      headers: [{ name: 'X-Debug', value: '1', enabled: true }],
+      body: { ...request.body, json: JSON.stringify(recipients, null, 2) }
+    }));
+    expect((await modifiedEndpoints()).map(({ id, changes }) => [id, changes])).toEqual([['POST:/recipients', '+1 headers']]);
+    const preview = await previewReset('POST:/recipients');
+
+    await reset(await modifiedEndpoints());
+
+    expect(JSON.parse(readRequest('Add recipients').body.json)).toEqual(recipients);
+    expect(JSON.parse(preview.newData.request.body.json)).toEqual(recipients);
     expect((await drift()).modified).toEqual([]);
   });
 

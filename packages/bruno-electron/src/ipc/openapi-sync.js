@@ -15,7 +15,7 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
-const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
+const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -565,6 +565,7 @@ const jsonNodeTypeChanged = (userVal, specVal, declared) => {
   if (userVal === null || userVal === undefined) return false;
   const userHasStructure = isPlainObject(userVal) || Array.isArray(userVal);
   if (userHasStructure && declaresOnlyScalars(declared)) return true;
+  if (declaresTypeOf(declared, userVal)) return false;
   if (isPlainObject(specVal)) return !isPlainObject(userVal);
   if (Array.isArray(specVal)) return !Array.isArray(userVal);
   return userHasStructure && declared === undefined;

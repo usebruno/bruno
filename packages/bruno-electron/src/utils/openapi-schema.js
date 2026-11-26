@@ -58,6 +58,15 @@ const declaresOnlyScalars = (node) => node !== undefined
   && node.schemas.some((schema) => typesOf(schema).some((type) => SCALAR_TYPES.includes(type)))
   && !node.schemas.some((schema) => allowsStructure(schema) || hasOpenAlternative(node.spec, schema));
 
+const jsonTypesOf = (value) => {
+  if (value === null) return ['null'];
+  if (Array.isArray(value)) return ['array'];
+  if (isPlainObject(value)) return ['object'];
+  return Number.isInteger(value) ? ['integer', 'number'] : [typeof value];
+};
+const declaresTypeOf = (node, value) => node !== undefined
+  && node.schemas.some((schema) => typesOf(schema).some((type) => jsonTypesOf(value).includes(type)));
+
 const isNullOnly = (schema) => (typesOf(schema).length > 0 && typesOf(schema).every((type) => type === 'null'))
   || (Array.isArray(schema.enum) && schema.enum.length > 0 && schema.enum.every((value) => value === null))
   || (Object.hasOwn(schema, 'const') && schema.const === null);
@@ -136,6 +145,7 @@ module.exports = {
   declaredChild,
   declaredItems,
   declaresOnlyScalars,
+  declaresTypeOf,
   keyLeavesShapeOpen,
   itemsLeaveShapeOpen,
   otherAlternativeKeys

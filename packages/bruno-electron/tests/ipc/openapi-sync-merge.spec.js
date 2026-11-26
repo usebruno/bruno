@@ -1366,6 +1366,18 @@ describe('compareRequestFields for a request a sync keeps', () => {
     expect(compare(json({ meta: '' }), json({ meta: { env: 'prod' } })).changes).toEqual(['body schema']);
   });
 
+  it('does not flag a value of another shape than the example when a schema in the body schema allows its type', () => {
+    const recipient = object({ email: string });
+    const recipients = declaredFor('application/json', { anyOf: [recipient, { type: 'array', items: recipient }] });
+    const message = declaredFor('application/json', { oneOf: [object({ kind: string, data: object({ id: string }) }), object({ kind: string, data: string })] });
+    const multiType = declaredFor('application/json', object({ data: { type: ['object', 'string'], properties: { id: string } } }));
+
+    expect(compare(json({ email: '' }), json([{ email: 'a@x.io' }]), recipients).hasDiff).toBe(false);
+    expect(compare(json({ kind: '', data: { id: '' } }), json({ kind: 'b', data: 'hello' }), message).hasDiff).toBe(false);
+    expect(compare(json({ data: { id: '' } }), json({ data: 'hello' }), multiType).hasDiff).toBe(false);
+    expect(compare(json({ email: '' }), json('a@x.io'), recipients).changes).toEqual(['body schema']);
+  });
+
   it('does not flag the object the user sends for a oneOf property the spec writes as ""', () => {
     const declared = declaredFor('application/json', object({ payment: { oneOf: [object({ iban: string }), object({ cardNumber: string })] } }));
     expect(compare(json({ payment: '' }), json({ payment: { iban: 'DE89' } }), declared).hasDiff).toBe(false);
@@ -1446,5 +1458,16 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
     const spec = item({ mode: 'json', json: '{"to":{"email":""},"owner":{"id":0}}' });
 
     expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true, declaredBody }).request.body.json)).toEqual({ to: [{ email: 'a@x.io' }], owner: { id: 0 } });
+  });
+
+  it('keeps a body of another shape than the example when the body schema allows its type, and restores one it does not', () => {
+    const recipient = { type: 'object', properties: { email: { type: 'string' } } };
+    const schema = { anyOf: [recipient, { type: 'array', items: recipient }] };
+    const declaredBody = helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } } }, 'POST', '/pets');
+    const spec = item({ mode: 'json', json: '{"email":""}' });
+    const reset = (json) => JSON.parse(helpers.mergeSpecIntoRequest(item({ mode: 'json', json }), spec, { restoreSpecTypes: true, declaredBody }).request.body.json);
+
+    expect(reset('[{"email":"a@x.io"}]')).toEqual([{ email: 'a@x.io' }]);
+    expect(reset('"a@x.io"')).toEqual({ email: '' });
   });
 });
