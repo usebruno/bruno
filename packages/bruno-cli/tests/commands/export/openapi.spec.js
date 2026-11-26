@@ -3,7 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const jsyaml = require('js-yaml');
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
-const exportCommand = require('../../../src/commands/export');
+const exportOpenApiCommand = require('../../../src/commands/export/openapi');
 const { EXIT_STATUS } = require('../../../src/constants');
 
 const FIXTURE = path.resolve(__dirname, 'fixtures/collection');
@@ -16,7 +16,7 @@ const mockExit = () => jest.spyOn(process, 'exit').mockImplementation((code) => 
 // The spec the app's Create API Spec writes for fixtures/collection, with no environment selected
 const APP_SPEC = path.resolve(__dirname, 'fixtures', 'collection.openapi.yaml');
 
-const runExport = (options) => exportCommand.handler({ type: 'openapi', ...options });
+const runExport = (options) => exportOpenApiCommand.handler(options);
 
 // operationIds are built from the request's absolute path, so keep only the part inside the collection
 const withRelativeOperationIds = (spec) => {
