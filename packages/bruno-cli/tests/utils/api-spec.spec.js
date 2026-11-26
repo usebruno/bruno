@@ -18,7 +18,7 @@ const folder = (name, items) => ({
   items
 });
 
-const collectionOf = (items, root = {}) => ({ pathname: collectionPath, root, items });
+const collectionOf = (items, root = {}, brunoConfig = {}) => ({ pathname: collectionPath, root, brunoConfig, items });
 
 describe('toApiSpecCollectionData', () => {
   it('flattens nested folders into a list of requests', () => {
@@ -43,6 +43,54 @@ describe('toApiSpecCollectionData', () => {
     const { requests } = toApiSpecCollectionData(collection, []);
 
     expect(requests.map((item) => item.name)).toEqual(['Z', 'nested', 'a-request', 'one', 'two']);
+  });
+
+  it('leaves out requests in folders the app never reads', () => {
+    const collection = collectionOf([
+      folder('.bruno', [request('internal', '.bruno', 'internal.bru')]),
+      folder('.svn', [request('svn', '.svn', 'svn.bru')]),
+      folder('.hg', [request('hg', '.hg', 'hg.bru')]),
+      folder('node_modules', [request('dependency', 'node_modules', 'pkg', 'dependency.bru')]),
+      request('users', 'users.bru')
+    ]);
+
+    const { requests } = toApiSpecCollectionData(collection, []);
+
+    expect(requests.map((item) => item.name)).toEqual(['users']);
+  });
+
+  it('leaves out requests under a folder named in the collection\'s ignore list', () => {
+    const collection = collectionOf(
+      [
+        folder('drafts', [request('draft', 'drafts', 'draft.bru'), folder('old', [request('older', 'drafts', 'old', 'older.bru')])]),
+        folder('drafts-final', [request('final', 'drafts-final', 'final.bru')]),
+        request('users', 'users.bru')
+      ],
+      {},
+      { ignore: ['drafts/'] }
+    );
+
+    const { requests } = toApiSpecCollectionData(collection, []);
+
+    expect(requests.map((item) => item.name)).toEqual(['final', 'users']);
+  });
+
+  it('leaves out requests that match a glob in the collection\'s ignore list', () => {
+    const collection = collectionOf(
+      [folder('api', [request('wip-users', 'api', 'wip-users.bru'), request('users', 'api', 'users.bru')]), request('wip-root', 'wip-root.bru')],
+      {},
+      { ignore: ['**/wip-*.bru'] }
+    );
+
+    const { requests } = toApiSpecCollectionData(collection, []);
+
+    expect(requests.map((item) => item.name)).toEqual(['users']);
+  });
+
+  it('keeps every request when the collection has no ignore list', () => {
+    const collection = collectionOf([folder('drafts', [request('draft', 'drafts', 'draft.bru')])], {}, undefined);
+
+    expect(toApiSpecCollectionData(collection, []).requests.map((item) => item.name)).toEqual(['draft']);
   });
 
   it('sets depth to the number of path segments below the collection root', () => {
@@ -92,6 +140,14 @@ describe('toApiSpecCollectionData', () => {
     const { envVariables } = toApiSpecCollectionData(collectionOf([]), environments);
 
     expect(envVariables).toEqual({ Local: localVariables, Prod: prodVariables });
+  });
+
+  it('orders environments by name, comparing character codes, so uppercase names come first', () => {
+    const environments = ['dev', 'Local', 'Prod', 'staging'].map((name) => ({ name, variables: [] }));
+
+    const { envVariables } = toApiSpecCollectionData(collectionOf([]), environments);
+
+    expect(Object.keys(envVariables)).toEqual(['Local', 'Prod', 'dev', 'staging']);
   });
 
   it('returns no environment variables when there are no environments', () => {

@@ -1,5 +1,5 @@
 import { find, map, filter, cloneDeep, each, concat } from 'lodash';
-import { parseQueryParams, buildQueryString as stringifyQueryParams, nextCopyName } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, nextCopyName, splitOnFirst } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { findItemForExampleEditor,
   getMockResponseUidFromItemUid,
@@ -7,7 +7,6 @@ import { findItemForExampleEditor,
   buildMockResponseEditorItem
 } from 'utils/mock-server/mock-responses/editor';
 import { parsePathParams } from 'utils/url';
-import { splitOnFirst } from '@usebruno/common/utils';
 import statusCodePhraseMap from 'components/ResponsePane/StatusCode/get-status-code-phrase';
 
 export const addResponseExample = (state, action) => {

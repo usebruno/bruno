@@ -1,5 +1,12 @@
 import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
-import { parseQueryParams, extractPromptVariables, getDataTypeFromValue, nextCopyName, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import {
+  parseQueryParams,
+  extractPromptVariables,
+  getDataTypeFromValue,
+  nextCopyName,
+  resolveEnvironmentInheritance,
+  splitOnFirst
+} from '@usebruno/common/utils';
 import { DEFAULT_HTTP_ITEM_SETTINGS } from '@usebruno/common';
 import { REQUEST_TYPES, DEFAULT_COLLECTION_FORMAT, VARIABLE_ADD_SCOPES } from 'utils/common/constants';
 import cloneDeep from 'lodash/cloneDeep';
@@ -94,7 +101,6 @@ import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sy
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { interpolateUrl, parsePathParams } from 'utils/url/index';
-import { splitOnFirst } from '@usebruno/common/utils';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import {
   getGlobalEnvironmentVariables,

@@ -3,6 +3,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { posixifyPath } = require('./filesystem');
 
+// bruno-cli/src/utils/api-spec.js repeats these folders and the `ignore` matching below for
+// `bru export openapi`; change both together
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
 

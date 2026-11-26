@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import jsyaml from 'js-yaml';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
@@ -28,7 +29,6 @@ import {
   DEFAULT_API_SPEC_EXTENSION,
   isApiSpecNameTaken
 } from './apiSpecSources';
-import jsyaml from 'js-yaml';
 
 const CreateApiSpec = ({ onClose }) => {
   const sourceRadios = [
@@ -226,7 +226,7 @@ const CreateApiSpec = ({ onClose }) => {
   const exportCollectionAsApiSpec = (values) => {
     const exported = brunoToOpenApi(values.apiSpecName, collectionSource.collectionData, values.environment);
 
-    return { content: jsyaml.dump(exported?.content || ''), warnings: exported?.warnings || [] };
+    return { content: jsyaml.dump(exported.content), warnings: exported.warnings };
   };
 
   const getSourceMemoryKey = (importFrom, collectionSource) => (

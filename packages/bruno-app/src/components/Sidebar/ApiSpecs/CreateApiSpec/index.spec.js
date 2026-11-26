@@ -35,7 +35,7 @@ jest.mock('utils/importers/common', () => ({
 }));
 
 jest.mock('@usebruno/converters', () => ({
-  brunoToOpenApi: jest.fn(() => ({ content: { openapi: '3.0.0' } }))
+  brunoToOpenApi: jest.fn(() => ({ content: { openapi: '3.0.0' }, warnings: [] }))
 }));
 
 jest.mock('hooks/useDefaultApiSpecLocation', () => jest.fn(() => '/home/dev/workspaces/team/apispec'));

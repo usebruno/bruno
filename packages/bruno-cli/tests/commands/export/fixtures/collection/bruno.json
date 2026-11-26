@@ -2,5 +2,8 @@
   "version": "1",
   "name": "My API",
   "type": "collection",
-  "collectionVersion": "2.1.0"
+  "collectionVersion": "2.1.0",
+  "ignore": [
+    "ignored"
+  ]
 }

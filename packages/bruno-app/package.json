@@ -35,6 +35,7 @@
     "@tiptap/react": "^2.11.2",
     "@tiptap/starter-kit": "^2.11.2",
     "@usebruno/common": "0.1.0",
+    "@usebruno/converters": "^0.1.0",
     "@usebruno/graphql-docs": "0.1.0",
     "@usebruno/schema": "0.7.0",
     "@xterm/addon-fit": "^0.10.0",
@@ -114,7 +115,6 @@
     "tiptap-markdown": "^0.8.10",
     "url": "^0.11.3",
     "xml-formatter": "^3.5.0",
-    "xml2js": "^0.6.2",
     "yup": "^0.32.11"
   },
   "devDependencies": {

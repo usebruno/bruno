@@ -1,6 +1,5 @@
 import { interpolate } from '@usebruno/common';
-import { parseQueryParams } from '@usebruno/common/utils';
-import { isValidUrl, splitOnFirst } from '@usebruno/common/utils';
+import { parseQueryParams, isValidUrl, splitOnFirst } from '@usebruno/common/utils';
 import each from 'lodash/each';
 import xml2js from 'xml2js';
 
@@ -91,7 +90,7 @@ const getEnabledVarsAsObject = (variables = []) => {
   return result;
 };
 
-const generateProperyShape = (obj) => {
+const generatePropertyShape = (obj) => {
   const data = {};
 
   // add 'type'
@@ -111,7 +110,7 @@ const generateProperyShape = (obj) => {
     const keys = Object.keys(obj);
     keys.forEach((key) => {
       const value = obj[key];
-      properties[key] = generateProperyShape(value);
+      properties[key] = generatePropertyShape(value);
     });
     if (keys.length) {
       data['properties'] = properties;
@@ -464,7 +463,7 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
             try {
               const componentId = getItemComponentId();
               const parsedJson = JSON.parse(body.json);
-              const schema = generateProperyShape(parsedJson);
+              const schema = generatePropertyShape(parsedJson);
               schema.example = parsedJson;
               components.schemas[componentId] = schema;
               components.requestBodies[componentId] = {
@@ -513,7 +512,7 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
                 break;
               }
               const componentId = getItemComponentId();
-              const xmlSchema = generateProperyShape(jsonResult);
+              const xmlSchema = generatePropertyShape(jsonResult);
               xmlSchema.example = jsonResult;
               components.schemas[componentId] = xmlSchema;
               components.requestBodies[componentId] = {
@@ -540,7 +539,7 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
             {
               const multipartFormProps = {};
               body.multipartForm.forEach((f) => {
-                const prop = generateProperyShape(f.value);
+                const prop = generatePropertyShape(f.value);
                 if (f.description) prop.description = f.description;
                 multipartFormProps[f.name] = prop;
               });
@@ -562,13 +561,13 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
             };
             break;
           }
-          case 'formUrlEncoded':{
+          case 'formUrlEncoded': {
             if (!body?.formUrlEncoded) break;
             const formUrlEncodedComponentId = getItemComponentId();
             {
               const formUrlEncodedProps = {};
               body.formUrlEncoded.forEach((f) => {
-                const prop = generateProperyShape(f.value);
+                const prop = generatePropertyShape(f.value);
                 if (f.description) prop.description = f.description;
                 formUrlEncodedProps[f.name] = prop;
               });
@@ -756,4 +755,4 @@ export default function brunoToOpenApi(name, collectionData, selectedEnvironment
     content: collectionToExport,
     warnings
   };
-};
+}

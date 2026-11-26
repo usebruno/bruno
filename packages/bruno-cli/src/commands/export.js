@@ -77,7 +77,12 @@ const exportOpenApi = async (collectionPath, outputFile) => {
   }
 
   global.brunoSkippedFiles = [];
-  const collection = createCollectionJsonFromPathname(collectionPath);
+  let collection;
+  try {
+    collection = createCollectionJsonFromPathname(collectionPath);
+  } catch (error) {
+    exitWithError(`Failed to read the collection at ${collectionPath}: ${error.message}`, EXIT_STATUS.ERROR_INVALID_FILE);
+  }
 
   let environments;
   try {

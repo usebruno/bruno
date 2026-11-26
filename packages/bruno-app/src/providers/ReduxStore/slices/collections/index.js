@@ -1,4 +1,4 @@
-import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
+import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance, splitOnFirst } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
@@ -17,7 +17,6 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams } from 'utils/url';
-import { splitOnFirst } from '@usebruno/common/utils';
 import { applyScriptEnvVars, getScriptModifiedKeys, preserveVariableUids } from 'utils/environments';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 import toast from 'react-hot-toast';
