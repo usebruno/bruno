@@ -26,7 +26,7 @@ const StatusBar = () => {
 
   useKeybinding('globalSearch', () => {
     setGlobalSearchOpen(true);
-    return false; // stop bubbling
+    return false;
   });
 
   const activeWorkspace = workspaces.find((w) => w.uid === activeWorkspaceUid);
