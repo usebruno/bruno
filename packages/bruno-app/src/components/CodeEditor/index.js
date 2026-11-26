@@ -9,6 +9,7 @@ import 'utils/codemirror/setup';
 import React, { createRef } from 'react';
 import { useSelector } from 'react-redux';
 import { debounce, isEqual } from 'lodash';
+import { prettifyJavaScriptString } from 'utils/common';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import { setupAutoComplete, showRootHints } from 'utils/codemirror/autocomplete';
 import { setupAiAutocomplete } from 'utils/codemirror/aiGhostText';
@@ -722,6 +723,20 @@ class CodeEditor extends React.Component {
   };
 
   _onBeforeChange = (editor, change) => {
+    if (this.props.prettifyOnPaste && !this.props.readOnly && change.origin === 'paste') {
+      const pastedText = change.text.join('\n');
+      // A standalone formatter can add punctuation that breaks an inline expression.
+      const before = editor.getLine(change.from.line).slice(0, change.from.ch);
+      const after = editor.getLine(change.to.line).slice(change.to.ch);
+      if (pastedText.trim() && !before.trim() && !after.trim()) {
+        const formattedText = prettifyJavaScriptString(pastedText);
+        const replacement = pastedText.endsWith('\n') ? formattedText : formattedText.replace(/\n$/, '');
+        if (replacement !== pastedText) {
+          change.update(null, null, replacement.split('\n'));
+        }
+      }
+    }
+
     if (!this.longLineMode && changeIntroducesLongLine(change, (line) => editor.getLine(line))) {
       // A freshly-introduced long line shouldn't silently stay in full mode
       // just because a prior, smaller long line was overridden.

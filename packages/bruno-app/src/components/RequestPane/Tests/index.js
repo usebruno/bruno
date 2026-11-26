@@ -49,6 +49,7 @@ const Tests = ({ item, collection }) => {
         fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
         mode="javascript"
+        prettifyOnPaste
         onRun={onRun}
         onSave={onSave}
         showHintsFor={['req', 'res', 'bru']}

@@ -57,6 +57,7 @@ const ScriptEditorPane = ({ item, collection, scriptType, value, onEdit, onRun, 
           fontSize={get(preferences, 'font.codeFontSize')}
           onEdit={onEdit}
           mode="javascript"
+          prettifyOnPaste
           onRun={onRun}
           onSave={onSave}
           showHintsFor={showHintsFor}
