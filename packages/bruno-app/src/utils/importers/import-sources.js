@@ -13,9 +13,14 @@ import { isWSDLCollection } from './wsdl-collection';
 const UNSUPPORTED_FORMAT = 'Unsupported collection format';
 const WORKSPACE_FILE = 'This is a Bruno workspace file, not a collection. Choose its folder to open the workspace.';
 const ZIP_FILE = /\.zip$/i;
+const XML_TEXT = /^\s*</;
+const XML_PROLOG_ITEM = /<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>/gi;
+const WSDL_ROOT = /^\s*<(?:wsdl:)?definitions[\s/>]/;
 export const HTTP_URL = /^https?:\/\//i;
 
 const isWorkspaceFile = (data) => data?.info?.type === 'workspace';
+
+const isWsdlText = (text) => WSDL_ROOT.test(text.replace(XML_PROLOG_ITEM, ''));
 
 const isOpenCollectionExport = (data) => isOpenCollection(data) && data.bundled !== false && !isWorkspaceFile(data);
 
@@ -119,7 +124,7 @@ export const readImportableFiles = (files) => {
 };
 
 const readImportUrl = async (url) => {
-  if (!isValidUrl(url)) {
+  if (/[\r\n]/.test(url) || !isValidUrl(url)) {
     throw new Error('Please enter a valid URL');
   }
   let fetched;
@@ -153,6 +158,12 @@ const parseRawText = (text) => {
 };
 
 const readRawText = async (text) => {
+  if (XML_TEXT.test(text)) {
+    if (!isWsdlText(text)) {
+      throw new Error(UNSUPPORTED_FORMAT);
+    }
+    return { rawData: text.trim(), type: 'wsdl' };
+  }
   const data = parseRawText(text);
   const type = detectImportFormat(data);
   if (!type) {
@@ -163,5 +174,5 @@ const readRawText = async (text) => {
 
 export const readImportText = (value) => {
   const text = value.trim();
-  return HTTP_URL.test(text) ? readImportUrl(text) : readRawText(text);
+  return HTTP_URL.test(text) ? readImportUrl(text) : readRawText(value);
 };

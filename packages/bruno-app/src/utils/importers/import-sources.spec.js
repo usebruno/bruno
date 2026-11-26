@@ -10,6 +10,7 @@ const swagger = { swagger: '2.0', info: { title: 'Orders', version: '1' }, paths
 const postman = { info: { name: 'Orders', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' }, item: [] };
 const insomnia = { _type: 'export', __export_format: 4, resources: [] };
 const openCollection = { opencollection: '1.0.0', info: { name: 'Orders' } };
+const brunoExport = { version: '1', name: 'Orders', items: [] };
 const wsdl = '<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"><wsdl:types/></wsdl:definitions>';
 const openApiYaml = 'openapi: 3.0.0\ninfo:\n  title: Orders\n  version: "1"\npaths: {}\n';
 const workspace = { opencollection: '1.0.0', info: { name: 'Petstore', type: 'workspace' }, collections: [], specs: [], docs: '' };
@@ -177,8 +178,11 @@ describe('import sources', () => {
       expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledWith({ url });
     });
 
-    it('refuses a malformed URL without fetching', async () => {
-      await expect(readImportText('http://')).rejects.toThrow('Please enter a valid URL');
+    it.each([
+      ['a malformed URL', 'http://'],
+      ['a URL followed by more lines', `${url}\nhttps://example.com/other.yaml`]
+    ])('refuses %s without fetching', async (_description, text) => {
+      await expect(readImportText(text)).rejects.toThrow('Please enter a valid URL');
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
     });
 
@@ -227,8 +231,13 @@ describe('import sources', () => {
     });
 
     it.each([
-      ['JSON', JSON.stringify(postman), postman, 'postman'],
-      ['YAML', openApiYaml, openApi, 'openapi']
+      ['Postman JSON', JSON.stringify(postman), postman, 'postman'],
+      ['OpenAPI YAML', openApiYaml, openApi, 'openapi'],
+      ['Swagger 2.0 JSON', JSON.stringify(swagger), swagger, 'openapi'],
+      ['Insomnia v4 JSON', JSON.stringify(insomnia), insomnia, 'insomnia'],
+      ['Insomnia v5 YAML', 'type: collection.insomnia.rest/5.0\nname: Orders\ncollection: []\n', { type: 'collection.insomnia.rest/5.0', name: 'Orders', collection: [] }, 'insomnia'],
+      ['OpenCollection YAML', 'opencollection: 1.0.0\ninfo:\n  name: Orders\n', openCollection, 'opencollection'],
+      ['Bruno JSON', JSON.stringify(brunoExport), brunoExport, 'bruno']
     ])('reads raw %s text without fetching', async (_description, text, data, type) => {
       await expect(readImportText(`\n${text}\n`)).resolves.toEqual({ rawData: data, type });
       expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
@@ -244,6 +253,34 @@ describe('import sources', () => {
 
     it('says when raw text is in no format it knows', async () => {
       await expect(readImportText('{"hello":"world"}')).rejects.toThrow('Unsupported collection format');
+    });
+
+    it('reads raw YAML whose every line is indented', async () => {
+      const indentedYaml = openApiYaml.split('\n').map((line) => (line ? `  ${line}` : line)).join('\n');
+
+      await expect(readImportText(`\n${indentedYaml}`)).resolves.toEqual({ rawData: openApi, type: 'openapi' });
+    });
+
+    it.each([
+      ['on its own', wsdl],
+      ['after an XML declaration and a comment', `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Orders -->\n${wsdl}`],
+      ['after a style sheet instruction and a DOCTYPE', `<?xml version="1.0"?>\n<?xml-stylesheet href="wsdl.xsl"?>\n<!DOCTYPE definitions>\n${wsdl}`],
+      ['without a namespace prefix', '<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"><types/></definitions>'],
+      ['with an empty root', '<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"/>']
+    ])('reads raw WSDL %s as text', async (_description, text) => {
+      await expect(readImportText(`\n  ${text}\n`)).resolves.toEqual({ rawData: text, type: 'wsdl' });
+      expect(fetchAndValidateApiSpecFromUrl).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a web page', '<html><body>definitions</body></html>'],
+      ['XML whose root is not definitions', '<?xml version="1.0"?>\n<catalog><definitions/></catalog>'],
+      ['XML that names definitions only in a comment', '<!-- <definitions> -->\n<catalog/>'],
+      ['XML whose root only starts with definitions', '<definitionsList/>'],
+      ['XML with a definitions root under another prefix', '<w:definitions xmlns:w="http://schemas.xmlsoap.org/wsdl/"/>'],
+      ['XML with a thousand comments before its root', `${'<!-- note -->'.repeat(1000)}<catalog/>`]
+    ])('says when raw XML is %s, not WSDL', async (_description, text) => {
+      await expect(readImportText(text)).rejects.toThrow('Unsupported collection format');
     });
   });
 

@@ -54,8 +54,9 @@ const renderPage = ({ preferences = {} } = {}) => {
 
 const textField = () => screen.getByTestId('import-page-text');
 const type = (value) => fireEvent.change(textField(), { target: { value } });
-const submit = () => fireEvent.submit(textField().closest('form'));
+const pressEnter = (options = {}) => fireEvent.keyDown(textField(), { key: 'Enter', ...options });
 const paste = (value) => fireEvent.paste(textField(), { clipboardData: { getData: () => value } });
+const select = (start, end) => textField().setSelectionRange(start, end);
 
 describe('ImportPage', () => {
   beforeEach(() => {
@@ -67,10 +68,10 @@ describe('ImportPage', () => {
     delete window.ipcRenderer;
   });
 
-  it('asks for a URL or raw JSON/YAML in a single-line field and offers to select files', () => {
+  it('asks for a URL or raw JSON/YAML in a multi-line field and offers to select files', () => {
     renderPage();
 
-    expect(textField()).toHaveAttribute('type', 'text');
+    expect(textField().tagName).toBe('TEXTAREA');
     expect(textField()).toHaveAttribute('spellcheck', 'false');
     expect(textField()).toHaveAttribute('placeholder', 'Paste a URL or raw JSON/YAML');
     expect(screen.getByRole('textbox', { name: 'Paste a URL or raw JSON/YAML' })).toBe(textField());
@@ -124,9 +125,9 @@ describe('ImportPage', () => {
     const { importFrom } = renderPage();
     type('  https://example.com/openapi.yaml ');
 
-    submit();
+    expect(pressEnter()).toBe(false);
 
-    await waitFor(() => expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml'));
+    await waitFor(() => expect(readImportText).toHaveBeenCalledWith('  https://example.com/openapi.yaml '));
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
   });
 
@@ -134,29 +135,72 @@ describe('ImportPage', () => {
     readImportText.mockReturnValue(new Promise(() => {}));
     renderPage();
 
-    submit();
+    expect(pressEnter()).toBe(false);
     type('   ');
-    submit();
+    pressEnter();
     type('https://example.com/orders.zip');
-    submit();
+    pressEnter();
     expect(readImportText).not.toHaveBeenCalled();
 
     type('https://example.com/openapi.yaml');
-    submit();
-    submit();
+    pressEnter();
+    pressEnter();
     expect(readImportText).toHaveBeenCalledTimes(1);
   });
 
-  it('loads pasted text right away, replacing what was in the field', async () => {
+  it.each([
+    ['Shift+Enter', { shiftKey: true }],
+    ['Enter while text is being composed', { isComposing: true }]
+  ])('leaves %s to the field instead of loading', (_description, options) => {
+    renderPage();
+    type('openapi: 3.0.0');
+
+    expect(pressEnter(options)).toBe(true);
+    expect(readImportText).not.toHaveBeenCalled();
+  });
+
+  it('loads text pasted into an empty field right away, keeping its lines', async () => {
     readImportText.mockResolvedValue(importData);
     const { importFrom } = renderPage();
-    type('https://example.com/old.json');
 
-    paste('\nopenapi: 3.0.0\ninfo:\n  title: Orders\n');
+    expect(paste('\r\nopenapi: 3.0.0\r\ninfo:\r\n  title: Orders\r\n')).toBe(false);
 
     expect(readImportText).toHaveBeenCalledWith('openapi: 3.0.0\ninfo:\n  title: Orders');
-    expect(textField()).toHaveValue('openapi: 3.0.0info:  title: Orders');
+    expect(textField()).toHaveValue('openapi: 3.0.0\ninfo:\n  title: Orders');
     await expect(importFrom.mock.results[0].value).resolves.toEqual(importData);
+  });
+
+  it('leaves text pasted next to what is in the field to the field, and loads it all on Enter', () => {
+    readImportText.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    type('https://example.com/');
+    select(20, 20);
+
+    expect(paste('openapi.yaml')).toBe(true);
+
+    expect(readImportText).not.toHaveBeenCalled();
+    expect(textField()).toHaveValue('https://example.com/');
+    expect(screen.getByTestId('import-page-enter-hint')).toBeInTheDocument();
+
+    type('https://example.com/openapi.yaml');
+    pressEnter();
+
+    expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml');
+  });
+
+  it.each([
+    ['holds only spaces', '   ', [3, 3]],
+    ['is replaced by the paste as a whole', 'https://example.com/old.json', [0, 28]]
+  ])('loads pasted text right away when the field %s', (_description, typed, [start, end]) => {
+    readImportText.mockReturnValue(new Promise(() => {}));
+    renderPage();
+    type(typed);
+    select(start, end);
+
+    expect(paste('https://example.com/openapi.yaml')).toBe(false);
+
+    expect(readImportText).toHaveBeenCalledWith('https://example.com/openapi.yaml');
+    expect(textField()).toHaveValue('https://example.com/openapi.yaml');
   });
 
   it('keeps a pasted ZIP URL in the field without loading it', () => {
@@ -177,7 +221,8 @@ describe('ImportPage', () => {
     expect(readImportText).not.toHaveBeenCalled();
 
     paste('https://example.com/openapi.yaml');
-    paste('https://example.com/other.yaml');
+    select(0, 32);
+    expect(paste('https://example.com/other.yaml')).toBe(true);
 
     expect(readImportText).toHaveBeenCalledTimes(1);
     expect(textField()).toHaveValue('https://example.com/openapi.yaml');

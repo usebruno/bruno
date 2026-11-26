@@ -15,6 +15,9 @@ import { importFixturePath } from './helpers';
 
 const postmanCollection = fs.readFileSync(importFixturePath('sample-postman.json'), 'utf8');
 const openApiSpec = fs.readFileSync(importFixturePath('sample-openapi.yaml'), 'utf8');
+const wsdlService = fs.readFileSync(path.resolve(__dirname, '../../import/wsdl/fixtures/wsdl.xml'), 'utf8');
+
+const linesOf = (count: number) => Array.from({ length: count }, (_, index) => `line ${index + 1}`).join('\n');
 
 const servedFiles: Record<string, string> = {
   '/postman.json': postmanCollection,
@@ -162,6 +165,134 @@ test.describe('Open collection modal: importing text and URLs', () => {
     await test.step('Verify the location modal opens for the spec', async () => {
       await expect(importLocators.locationModal()).toContainText('Sample API');
       await expect(importLocators.groupingDropdown()).toBeVisible();
+    });
+  });
+
+  test('the text field grows a line at a time up to five lines, then scrolls', async ({ pageWithUserData: page }) => {
+    const importPage = buildImportPageLocators(page);
+    const measureField = () => importPage.textInput().evaluate((field: HTMLTextAreaElement) => ({
+      height: field.offsetHeight,
+      lineHeight: parseFloat(getComputedStyle(field).lineHeight),
+      scrolls: field.scrollHeight > field.clientHeight
+    }));
+    const measureWithLines = async (count: number) => {
+      await importPage.textInput().fill(linesOf(count));
+      return measureField();
+    };
+
+    await test.step('Show the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+    });
+
+    const empty = await test.step('Measure the empty field', () => measureField());
+    const [one, three, five, eight] = await test.step('Fill in 1, 3, 5 and 8 lines and measure the field each time', async () => [
+      await measureWithLines(1),
+      await measureWithLines(3),
+      await measureWithLines(5),
+      await measureWithLines(8)
+    ]);
+
+    await test.step('Verify the field is one line high until there are more lines, then grows by a line each', () => {
+      expect(one.height).toBe(empty.height);
+      expect(three.height).toBe(one.height + 2 * one.lineHeight);
+      expect(five.height).toBe(one.height + 4 * one.lineHeight);
+      expect(five.scrolls).toBe(false);
+    });
+
+    await test.step('Verify the field stops at five lines and scrolls the rest', () => {
+      expect(eight.height).toBe(five.height);
+      expect(eight.scrolls).toBe(true);
+    });
+  });
+
+  test('Shift+Enter adds a line without loading the text', async ({ pageWithUserData: page }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const importPage = buildImportPageLocators(page);
+
+    await test.step('Type a line on the Import page and press Shift+Enter', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await importPage.textInput().pressSequentially('openapi: 3.0.0');
+      await importPage.textInput().press('Shift+Enter');
+      await importPage.textInput().pressSequentially('info: {}');
+    });
+
+    await test.step('Verify the text is on two lines and nothing is loaded', async () => {
+      await expect(importPage.textInput()).toHaveValue('openapi: 3.0.0\ninfo: {}');
+      await expect(importPage.loadingSpinner()).toBeHidden();
+      await expect(importLocators.locationModal()).toBeHidden();
+    });
+  });
+
+  test('text pasted into a field that already has text is added at the cursor and loads on Enter', async ({ pageWithUserData: page }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const importPage = buildImportPageLocators(page);
+    const collectionJson = JSON.stringify(JSON.parse(postmanCollection));
+    const typedLength = Math.floor(collectionJson.length / 2);
+
+    await test.step('Enter the first half of a Postman collection on the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await importPage.textInput().fill(collectionJson.slice(0, typedLength));
+    });
+
+    await test.step('Paste the second half at the end of the field', async () => {
+      await page.evaluate((text) => navigator.clipboard.writeText(text), collectionJson.slice(typedLength));
+      await importPage.textInput().press('ControlOrMeta+End');
+      await importPage.textInput().press('ControlOrMeta+V');
+    });
+
+    await test.step('Verify the field holds the whole collection and nothing is loaded yet', async () => {
+      await expect(importPage.textInput()).toHaveValue(collectionJson);
+      await expect(importPage.enterHint()).toHaveText('Enter to import');
+      await expect(importPage.loadingSpinner()).toBeHidden();
+      await expect(importLocators.locationModal()).toBeHidden();
+    });
+
+    await test.step('Press Enter in the text field', async () => {
+      await importPage.textInput().press('Enter');
+    });
+
+    await test.step('Verify the location modal opens for the collection', async () => {
+      await expect(importLocators.locationModal()).toContainText('Sample Postman Collection');
+    });
+  });
+
+  test('text pasted over everything in the field loads right away', async ({ pageWithUserData: page }) => {
+    const { import: importLocators } = buildCommonLocators(page);
+    const importPage = buildImportPageLocators(page);
+
+    await test.step('Enter some text on the Import page', async () => {
+      await showOpenCollectionModal(page, 'import');
+      await importPage.textInput().fill('https://example.com/old.json');
+    });
+
+    await test.step('Select all of it and paste the URL of a Postman collection over it', async () => {
+      await page.evaluate((text) => navigator.clipboard.writeText(text), `${server.url}/postman.json`);
+      await importPage.textInput().press('ControlOrMeta+A');
+      await importPage.textInput().press('ControlOrMeta+V');
+    });
+
+    await test.step('Verify the location modal opens for the collection', async () => {
+      await expect(importLocators.locationModal()).toContainText('Sample Postman Collection');
+    });
+  });
+
+  test('pasted WSDL loads right away and is imported', async ({ pageWithUserData: page, createTmpDir }) => {
+    const { import: importLocators, sidebar } = buildCommonLocators(page);
+    const collectionLocation = await createTmpDir('import-pasted-wsdl');
+
+    await pasteImportText(page, wsdlService);
+
+    await test.step('Verify the location modal opens for the WSDL collection', async () => {
+      await expect(importLocators.locationModal().getByText('WSDL Collection')).toBeVisible();
+    });
+
+    await test.step('Import into a temporary folder', async () => {
+      await importLocators.locationInput().fill(collectionLocation);
+      await importLocators.importButton().click();
+    });
+
+    await test.step('Verify the service is in the sidebar', async () => {
+      await expect(sidebar.collection('TestWSDLServiceXML')).toBeVisible();
     });
   });
 

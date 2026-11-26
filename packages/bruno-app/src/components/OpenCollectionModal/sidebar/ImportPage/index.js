@@ -7,7 +7,7 @@ import DropZone from '../../components/DropZone';
 import { useImportHandoff } from '../../components/ImportHandoff/context';
 import { isDraggingFiles } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
-import { isZipUrl } from './utils';
+import { isZipUrl, tidyPastedText } from './utils';
 
 const ACCEPTED_FILE_TYPES = [
   '.json',
@@ -38,19 +38,25 @@ const ImportPage = () => {
   const isZipText = isZipUrl(trimmedText);
 
   const loadText = (value) => {
-    if (value && !isZipUrl(value) && !isLoading) {
+    const trimmedValue = value.trim();
+    if (trimmedValue && !isZipUrl(trimmedValue) && !isLoading) {
       importFrom(loadImportText(value));
     }
   };
 
-  const submitText = (event) => {
+  const loadOnEnter = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
     event.preventDefault();
-    loadText(trimmedText);
+    loadText(text);
   };
 
   const pasteText = (event) => {
-    const pasted = event.clipboardData.getData('text').trim();
-    if (!pasted || isLoading) {
+    const { value, selectionStart, selectionEnd } = event.currentTarget;
+    const keptText = value.slice(0, selectionStart) + value.slice(selectionEnd);
+    const pasted = tidyPastedText(event.clipboardData.getData('text'));
+    if (keptText.trim() || !pasted || isLoading) {
       return;
     }
     event.preventDefault();
@@ -65,27 +71,25 @@ const ImportPage = () => {
 
   return (
     <StyledWrapper>
-      <form onSubmit={submitText}>
-        <div className="import-text-field">
-          <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
-          <input
-            type="text"
-            spellCheck={false}
-            placeholder="Paste a URL or raw JSON/YAML"
-            aria-label="Paste a URL or raw JSON/YAML"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onPaste={pasteText}
-            readOnly={isLoading}
-            data-testid="import-page-text"
-          />
-          {isLoading ? (
-            <span className="import-text-status" role="status" aria-label="Loading" data-testid="import-page-loading">
-              <IconLoader2 size={14} strokeWidth={2} className="import-text-spinner" aria-hidden="true" />
-            </span>
-          ) : null}
-        </div>
-      </form>
+      <div className="import-text-field">
+        <IconLink size={15} strokeWidth={1.75} aria-hidden="true" />
+        <textarea
+          spellCheck={false}
+          placeholder="Paste a URL or raw JSON/YAML"
+          aria-label="Paste a URL or raw JSON/YAML"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={loadOnEnter}
+          onPaste={pasteText}
+          readOnly={isLoading}
+          data-testid="import-page-text"
+        />
+        {isLoading ? (
+          <span className="import-text-status" role="status" aria-label="Loading" data-testid="import-page-loading">
+            <IconLoader2 size={14} strokeWidth={2} className="import-text-spinner" aria-hidden="true" />
+          </span>
+        ) : null}
+      </div>
 
       {isZipText ? (
         <div className="import-zip-warning" data-testid="import-page-zip-warning">

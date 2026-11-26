@@ -14,7 +14,17 @@ const StyledWrapper = styled.div`
   .import-text-field {
     ${iconInputStyles}
 
-    input {
+    textarea {
+      display: block;
+      height: auto;
+      min-height: 2rem;
+      max-height: 7rem;
+      padding-top: 0.3125rem;
+      padding-bottom: 0.3125rem;
+      line-height: 1.25rem;
+      field-sizing: content;
+      resize: none;
+      overflow-y: auto;
       border-color: ${(props) => props.theme.border.border0};
 
       &:focus {
