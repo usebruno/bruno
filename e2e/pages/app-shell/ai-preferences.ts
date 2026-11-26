@@ -32,7 +32,13 @@ export const buildAiPreferencesLocators = (page: Page) => ({
     noModelsNotice: () => page.getByTestId('ai-copilot-no-models'),
     /** The error shown inside the Copilot card */
     error: () => page.getByTestId('ai-provider-github-copilot').getByRole('alert')
-  }
+  },
+  compatEndpoint: (endpointId: string) => ({
+    card: () => page.getByTestId(`ai-endpoint-${endpointId}`),
+    header: () => page.getByTestId(`ai-endpoint-${endpointId}-header`),
+    testConnectionButton: () => page.getByTestId(`ai-endpoint-${endpointId}-test`),
+    feedback: () => page.getByTestId(`ai-endpoint-${endpointId}`).getByRole('status')
+  })
 });
 
 /**
@@ -59,5 +65,19 @@ export const expandCopilotCard = async (page: Page) => {
       await header.click();
     }
     await expect(header).toHaveAttribute('aria-expanded', 'true');
+  });
+};
+
+export const testCompatEndpointConnection = async (page: Page, endpointId: string) => {
+  await test.step(`Test the connection of endpoint "${endpointId}"`, async () => {
+    const { header, testConnectionButton } = buildAiPreferencesLocators(page).compatEndpoint(endpointId);
+    await expect(async () => {
+      if ((await header().getAttribute('aria-expanded')) !== 'true') {
+        await header().click();
+      }
+      await expect(header()).toHaveAttribute('aria-expanded', 'true', { timeout: 1000 });
+      await expect(testConnectionButton()).toBeEnabled({ timeout: 1000 });
+    }).toPass();
+    await testConnectionButton().click();
   });
 };

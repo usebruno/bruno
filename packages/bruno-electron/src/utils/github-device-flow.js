@@ -1,4 +1,5 @@
 const { setTimeout: sleep } = require('timers/promises');
+const { fetchWithCustomCa } = require('./fetch-with-custom-ca');
 
 const DEVICE_CODE_URL = 'https://github.com/login/device/code';
 const ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
@@ -29,7 +30,7 @@ const wait = (ms, signal) => sleep(ms, undefined, { signal }).catch(() => {
 
 const postForm = async (url, params, signal) => {
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  const response = await fetch(url, {
+  const response = await fetchWithCustomCa(url, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',

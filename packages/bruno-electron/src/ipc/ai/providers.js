@@ -1,5 +1,6 @@
 const { createOpenAI } = require('@ai-sdk/openai');
 const { createAnthropic } = require('@ai-sdk/anthropic');
+const { fetchWithCustomCa } = require('../../utils/fetch-with-custom-ca');
 const {
   COPILOT_PROVIDER_ID,
   COPILOT_PROVIDER_LABEL,
@@ -27,8 +28,8 @@ const PROVIDERS = {
     label: 'OpenAI',
     apiKeyPlaceholder: 'sk-...',
     apiKeyHelpUrl: 'https://platform.openai.com/api-keys',
-    createSdk: ({ apiKey }) => createOpenAI({ apiKey }),
-    validateApiKey: ({ apiKey }) => fetch('https://api.openai.com/v1/models', {
+    createSdk: ({ apiKey }) => createOpenAI({ apiKey, fetch: fetchWithCustomCa }),
+    validateApiKey: ({ apiKey }) => fetchWithCustomCa('https://api.openai.com/v1/models', {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(10000)
     })
@@ -38,8 +39,8 @@ const PROVIDERS = {
     label: 'Anthropic',
     apiKeyPlaceholder: 'sk-ant-...',
     apiKeyHelpUrl: 'https://console.anthropic.com/settings/keys',
-    createSdk: ({ apiKey }) => createAnthropic({ apiKey }),
-    validateApiKey: ({ apiKey }) => fetch('https://api.anthropic.com/v1/models', {
+    createSdk: ({ apiKey }) => createAnthropic({ apiKey, fetch: fetchWithCustomCa }),
+    validateApiKey: ({ apiKey }) => fetchWithCustomCa('https://api.anthropic.com/v1/models', {
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       signal: AbortSignal.timeout(10000)
     })
@@ -123,7 +124,7 @@ const getSdk = ({ providerId, apiKey, baseURL }) => {
   if (sdk) return sdk;
 
   if (isCompat) {
-    sdk = createOpenAI({ apiKey: effectiveKey, baseURL });
+    sdk = createOpenAI({ apiKey: effectiveKey, baseURL, fetch: fetchWithCustomCa });
   } else if (providerId === COPILOT_PROVIDER_ID) {
     sdk = createCopilotSdk({ token: apiKey, apiEndpoint: baseURL });
   } else {
@@ -322,7 +323,7 @@ const validateApiKeyForProvider = async ({ providerId, apiKey, aiPreferences }) 
     throw new Error('Endpoint Base URL is not configured');
   }
   const url = `${endpoint.baseURL.replace(/\/$/, '')}/models`;
-  return fetch(url, {
+  return fetchWithCustomCa(url, {
     headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
     signal: AbortSignal.timeout(10000)
   });
