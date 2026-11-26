@@ -11,6 +11,7 @@ import {
 } from './postman-package-detector';
 import { translatePostmanScript } from './postman-translations';
 import { aggregateScriptUsage, buildPreservedScriptsReport } from './postman-script-report';
+import { collectPackagesFromPostmanV3Collection, importPostmanV3Collection, isPostmanV3Collection } from './postman-v3-to-bruno';
 
 const { parseMaxRedirects } = utils;
 
@@ -1221,6 +1222,10 @@ const importPostmanV2Collection = async (collection, { useWorkers = false, prese
 
 const parsePostmanCollection = async (collection, { useWorkers = false, preserveScripts = false, logTranslationFailures = true }) => {
   try {
+    if (isPostmanV3Collection(collection)) {
+      return await importPostmanV3Collection(collection, { useWorkers, preserveScripts, logTranslationFailures });
+    }
+
     // Newer Postman exports wrap the collection in a { collection: { ... } } envelope
     const parsedCollection = collection.collection?.info ? collection.collection : collection;
 
@@ -1237,7 +1242,7 @@ const parsePostmanCollection = async (collection, { useWorkers = false, preserve
       return await importPostmanV2Collection(parsedCollection, { useWorkers, preserveScripts, logTranslationFailures });
     }
 
-    throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0 and v2.1 are supported.');
+    throw new Error('Unsupported Postman schema version. Only Postman Collection v2.0, v2.1 and v3 are supported.');
   } catch (err) {
     if (err instanceof Error) {
       throw err;
@@ -1254,7 +1259,9 @@ const postmanToBruno = async (postmanCollection, { useWorkers = false, preserveS
     const rawCollectionForScan = postmanCollection?.collection?.info
       ? postmanCollection.collection
       : postmanCollection;
-    const rawPackages = collectPackagesFromPostmanCollection(rawCollectionForScan);
+    const rawPackages = isPostmanV3Collection(rawCollectionForScan)
+      ? collectPackagesFromPostmanV3Collection(rawCollectionForScan)
+      : collectPackagesFromPostmanCollection(rawCollectionForScan);
 
     const { collection: parsedCollection, issues, scriptUsages } = await parsePostmanCollection(postmanCollection, { useWorkers, preserveScripts, logTranslationFailures });
     const transformedCollection = transformItemsInCollection(parsedCollection);
