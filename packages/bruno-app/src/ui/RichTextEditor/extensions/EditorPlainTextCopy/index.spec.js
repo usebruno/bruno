@@ -100,5 +100,18 @@ describe('EditorPlainTextCopy', () => {
       expect(hasRawBlock).toBe(true);
       expect(text).toBe('First paragraph.\n\ngreen apple\n\nLast paragraph.');
     });
+
+    it('keeps the line break of a br inside a raw HTML block', () => {
+      const editor = new Editor({
+        extensions: createExtensions(),
+        content: 'First paragraph.\n\n<div>green<br>apple</div>\n\nLast paragraph.',
+        editable: false
+      });
+      const { doc } = editor.state;
+      const slice = TextSelection.create(doc, 1, doc.content.size - 1).content();
+      const { text } = editor.view.serializeForClipboard(slice);
+      editor.destroy();
+      expect(text).toBe('First paragraph.\n\ngreen\napple\n\nLast paragraph.');
+    });
   });
 });

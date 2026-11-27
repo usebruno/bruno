@@ -6,12 +6,17 @@ import DOMPurify from 'dompurify';
 // text is what the node view renders: the DOMPurify-sanitized markup (same config as EditorRawHtmlBlock).
 const RAW_HTML_NODE_NAMES = new Set(['rawHtmlBlock', 'rawHtmlInline']);
 
+// Text nodes concatenate without separators, so line breaks and block boundaries are added before reading it.
+const BLOCK_SELECTOR = 'address,article,aside,blockquote,dd,div,dl,dt,figcaption,figure,footer,h1,h2,h3,h4,h5,h6,header,hr,li,main,nav,ol,p,pre,section,tr,ul';
+
 const leafText = (node) => {
   if (RAW_HTML_NODE_NAMES.has(node.type.name)) {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = DOMPurify.sanitize(node.attrs.html || '', { FORBID_TAGS: ['style'] });
+    wrapper.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
+    wrapper.querySelectorAll(BLOCK_SELECTOR).forEach((el) => el.append('\n'));
     // The stored html keeps the trailing newline of its markdown block; the block separator already supplies it.
-    return (wrapper.textContent || '').replace(/^\n+|\n+$/g, '');
+    return (wrapper.textContent || '').replace(/\n{2,}/g, '\n').replace(/^\n+|\n+$/g, '');
   }
   const specLeafText = node.type.spec.leafText;
   return typeof specLeafText === 'function' ? specLeafText(node) : '';
