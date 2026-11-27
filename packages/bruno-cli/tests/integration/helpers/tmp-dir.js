@@ -39,4 +39,26 @@ const removeTmpDir = (tmpDir) => {
   fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 };
 
-module.exports = { createTmpDir, copyFixtureToTmpDir, removeTmpDir };
+/**
+ * Tracks the temp copies a suite seeds, so one `afterEach` removes them all.
+ *
+ * @returns {{ seedFixture: (fixtureDir: string, tag: string) => string, removeSeededFixtures: () => void }}
+ */
+const createFixtureSeeder = () => {
+  let tmpDirs = [];
+
+  const seedFixture = (fixtureDir, tag) => {
+    const tmpDir = copyFixtureToTmpDir(fixtureDir, tag);
+    tmpDirs.push(tmpDir);
+    return tmpDir;
+  };
+
+  const removeSeededFixtures = () => {
+    tmpDirs.forEach(removeTmpDir);
+    tmpDirs = [];
+  };
+
+  return { seedFixture, removeSeededFixtures };
+};
+
+module.exports = { createTmpDir, copyFixtureToTmpDir, removeTmpDir, createFixtureSeeder };

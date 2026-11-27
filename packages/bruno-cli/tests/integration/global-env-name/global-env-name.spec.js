@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { runCli } = require('../helpers/run-cli');
 const { createCollectionFixture } = require('../helpers/collection-fixture');
-const { startLocalServer } = require('../helpers/environments');
+const { startLocalServer } = require('../helpers/local-server');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'workspace');
 
