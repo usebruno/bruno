@@ -1,5 +1,5 @@
 import { test, expect, Locator } from '../../playwright';
-import { closeAllCollections } from '../../pages';
+import { closeAllCollections, selectRichTextLine } from '../../pages';
 import { setupRequestDocs, clickDocsToolbarBtn } from './actions';
 
 test.describe('Rich Text Editor Edge Cases - Links', () => {
@@ -176,9 +176,9 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
 
       // Type a lot of lines to make the editor scrollable
       const lines = Array.from({ length: 150 }, (_, i) => `Line ${i}`).join('\n');
-      await page.keyboard.insertText('\n' + lines);
+      await page.keyboard.insertText(`\n${lines}\nBottom Link`);
 
-      await expect(prosemirror).toContainText('Line 149');
+      await expect(prosemirror).toHaveText(/Line 149\s*Bottom Link$/);
     });
 
     const link = prosemirror.locator('a[href="https://example.com"]');
@@ -229,22 +229,9 @@ test.describe('Rich Text Editor Edge Cases - Links', () => {
     });
 
     await test.step('Flipping (bottom of viewport)', async () => {
-      // Create a link at the very bottom
-      await prosemirror.click();
-
-      // Go to the end of the document
-      await prosemirror.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Control+End');
-
-      await page.keyboard.press('Enter');
-      await page.keyboard.type('Bottom Link');
-      await expect(prosemirror).toHaveText(/Line 149\s*Bottom Link$/);
-
-      // Select 'Bottom Link'
-      await page.keyboard.down('Shift');
-      for (let i = 0; i < 11; i++) {
-        await page.keyboard.press('ArrowLeft');
-      }
-      await page.keyboard.up('Shift');
+      // Select the last line directly. The document-end shortcut varies with the host keymap.
+      await selectRichTextLine(page, 'Bottom Link');
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString().trim())).toBe('Bottom Link');
 
       // Create link
       await clickDocsToolbarBtn(locators, 'Link');
