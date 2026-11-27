@@ -52,8 +52,8 @@ const petSpec = {
         summary: 'Create pet',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
-          { name: 'X-Request-Id', in: 'header', schema: string }
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 }, description: 'Page size' },
+          { name: 'X-Request-Id', in: 'header', schema: string, description: 'Trace id' }
         ],
         requestBody: {
           content: {
@@ -115,6 +115,8 @@ const petSpec = {
     }
   }
 };
+
+const withDebugHeader = (request) => ({ ...request, headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }] });
 
 const editCreatePet = (request) => ({
   ...request,
@@ -241,6 +243,21 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(keptByReset(readItem('Create pet'))).toEqual(kept);
   });
 
+  it('keeps the descriptions the user wrote for headers and params', async () => {
+    writeRequest('Create pet', (request) => withDebugHeader({
+      ...request,
+      params: request.params.map((param) => ({ ...param, description: 'My page size' })),
+      headers: request.headers.map((header) => ({ ...header, description: 'My trace id' }))
+    }));
+
+    await reset(await modifiedEndpoints());
+
+    const request = readRequest('Create pet');
+    expect(request.params.map(({ name, description }) => [name, description])).toEqual([['limit', 'My page size']]);
+    expect(request.headers.map(({ name, description }) => [name, description])).toEqual([['X-Request-Id', 'My trace id']]);
+    expect((await drift()).modified).toEqual([]);
+  });
+
   it('takes the spec\'s auth when the user changed the auth mode', async () => {
     writeRequest('Create pet', (request) => ({ ...request, auth: { mode: 'basic', basic: { username: 'me', password: 'secret' } } }));
 
@@ -358,7 +375,6 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
   });
 
   it('takes the spec\'s method back when the file\'s method changed after the endpoint was listed', async () => {
-    const withDebugHeader = (request) => ({ ...request, headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }] });
     writeRequest('Create pet', withDebugHeader);
     const listed = await modifiedEndpoints();
     writeRequest('Create pet', (request) => ({ ...withDebugHeader(request), method: 'PUT' }));
@@ -377,11 +393,7 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     ['a JSON object', '{\n  "name": "Fido",\n  "owner": {{owner}}\n}', '{\n  "name": "Fido",\n  "nickname": "",\n  "owner": {{owner}}\n}'],
     ['the whole body', '{{payload}}', '{{payload}}']
   ])('keeps a {{var}} written in place of %s, as the preview shows', async (_, json, expected) => {
-    writeRequest('Create pet', (request) => ({
-      ...request,
-      headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }],
-      body: { ...request.body, json }
-    }));
+    writeRequest('Create pet', (request) => ({ ...withDebugHeader(request), body: { ...request.body, json } }));
     const preview = await previewReset('POST:/pets');
 
     await reset(await modifiedEndpoints());
@@ -394,11 +406,7 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
   });
 
   it('restores a field of another type next to a {{var}} that Reset removes, so the endpoint is no longer listed', async () => {
-    writeRequest('Create pet', (request) => ({
-      ...request,
-      headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }],
-      body: { ...request.body, json: '{"name": "Fido", "owner": "seven", "junk": {{junk}}}' }
-    }));
+    writeRequest('Create pet', (request) => ({ ...withDebugHeader(request), body: { ...request.body, json: '{"name": "Fido", "owner": "seven", "junk": {{junk}}}' } }));
     const preview = await previewReset('POST:/pets');
 
     await reset(await modifiedEndpoints());
@@ -411,8 +419,7 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
 
   it('keeps a JSON body as written when Reset leaves its values as they are', async () => {
     writeRequest('Create pet', (request) => ({
-      ...request,
-      headers: [...request.headers, { name: 'X-Debug', value: '1', enabled: true }],
+      ...withDebugHeader(request),
       body: { ...request.body, json: '{\n    "owner": { "id": 9007199254740993 },\n    "name": "Fido",\n    "nickname": "Rex"\n}' }
     }));
     const written = readRequest('Create pet').body.json;

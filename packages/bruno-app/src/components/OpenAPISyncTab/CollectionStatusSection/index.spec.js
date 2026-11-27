@@ -7,8 +7,6 @@ import themes from 'themes/index';
 import openapiSyncReducer from 'providers/ReduxStore/slices/openapi-sync';
 import CollectionStatusSection from './index';
 
-jest.mock('react-hot-toast', () => ({ __esModule: true, default: { success: jest.fn(), error: jest.fn() } }));
-
 const collection = { uid: 'pets', pathname: '/collections/pets' };
 const createPet = { id: 'POST:/pets', method: 'POST', path: '/pets', name: 'Create pet', changes: '+1 headers', pathname: '/collections/pets/Create pet.bru' };
 const copy = { ...createPet, pathname: '/collections/pets/Create pet copy.bru' };

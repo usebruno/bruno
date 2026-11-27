@@ -1419,6 +1419,11 @@ describe('compareRequestFields for a request a sync keeps', () => {
 });
 
 describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
+  const string = { type: 'string' };
+  const object = (properties) => ({ type: 'object', properties });
+  const recipient = object({ email: string });
+  const recipients = { anyOf: [recipient, { type: 'array', items: recipient }] };
+  const declaredFor = (schema) => helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } } }, 'POST', '/pets');
   const item = (body) => ({ request: { method: 'POST', url: '{{baseUrl}}/pets', params: [], headers: [], body, auth: { mode: 'none' } } });
 
   it('keeps a JSON value the user changed to another type, unless the spec\'s types are restored', () => {
@@ -1427,6 +1432,20 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
 
     expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec).request.body.json)).toEqual({ name: 'Fido', owner: 'seven' });
     expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json)).toEqual({ name: 'Fido', owner: { id: 0 } });
+  });
+
+  it('takes the spec\'s descriptions of headers and params, unless the spec\'s types are restored', () => {
+    const withFields = (description) => ({
+      request: {
+        ...item({ mode: 'none' }).request,
+        params: [{ name: 'limit', value: '10', type: 'query', enabled: true, description }],
+        headers: [{ name: 'X-Request-Id', value: '1', enabled: true, description }]
+      }
+    });
+    const descriptionsOf = ({ request }) => [...request.params, ...request.headers].map(({ description }) => description);
+
+    expect(descriptionsOf(helpers.mergeSpecIntoRequest(withFields('Mine'), withFields('From the spec')))).toEqual(['From the spec', 'From the spec']);
+    expect(descriptionsOf(helpers.mergeSpecIntoRequest(withFields('Mine'), withFields('From the spec'), { restoreSpecTypes: true }))).toEqual(['Mine', 'Mine']);
   });
 
   it('keeps a multipart field the user switched between text and file, unless the spec\'s types are restored', () => {
@@ -1481,9 +1500,7 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
   });
 
   it('keeps a oneOf or anyOf part as written when the spec\'s types are restored', () => {
-    const recipient = { type: 'object', properties: { email: { type: 'string' } } };
-    const schema = { type: 'object', properties: { to: { anyOf: [recipient, { type: 'array', items: recipient }] }, owner: { type: 'object', properties: { id: { type: 'integer' } } } } };
-    const declaredBody = helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } } }, 'POST', '/pets');
+    const declaredBody = declaredFor(object({ to: recipients, owner: object({ id: { type: 'integer' } }) }));
     const user = item({ mode: 'json', json: '{"to":[{"email":"a@x.io"}],"owner":"seven"}' });
     const spec = item({ mode: 'json', json: '{"to":{"email":""},"owner":{"id":0}}' });
 
@@ -1491,9 +1508,7 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
   });
 
   it('keeps a body of another shape than the example when the body schema allows its type, and restores one it does not', () => {
-    const recipient = { type: 'object', properties: { email: { type: 'string' } } };
-    const schema = { anyOf: [recipient, { type: 'array', items: recipient }] };
-    const declaredBody = helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } } }, 'POST', '/pets');
+    const declaredBody = declaredFor(recipients);
     const spec = item({ mode: 'json', json: '{"email":""}' });
     const reset = (json) => JSON.parse(helpers.mergeSpecIntoRequest(item({ mode: 'json', json }), spec, { restoreSpecTypes: true, declaredBody }).request.body.json);
 

@@ -665,7 +665,7 @@ const MULTIPART_FIELD_TYPES = ['text', 'file'];
 const mergeFieldEntry = (specEntry, userEntry, previousEntry, restoreSpecTypes = false) => {
   const enabled = userEntry.enabled ?? specEntry.enabled;
   const typeDiffers = MULTIPART_FIELD_TYPES.includes(specEntry.type) && MULTIPART_FIELD_TYPES.includes(userEntry.type) && userEntry.type !== specEntry.type;
-  const description = specEntry.description || userEntry.description;
+  const description = restoreSpecTypes ? (userEntry.description || specEntry.description) : (specEntry.description || userEntry.description);
   const notes = {
     ...(description !== undefined ? { description } : {}),
     ...(userEntry.annotations !== undefined ? { annotations: userEntry.annotations } : {})
@@ -689,7 +689,8 @@ const mergeFieldEntry = (specEntry, userEntry, previousEntry, restoreSpecTypes =
  * enum, not with a value the spec dropped). Unless the key is an enum in the spec,
  * a disabled same-value entry yields to an enabled entry of the same key. A pair
  * keeps the user's value, `enabled`, `contentType` and annotations, and the user's
- * description when the spec has none. An enum value the user does not have yet
+ * description when the spec has none or, with restoreSpecTypes, whenever the user
+ * has one. An enum value the user does not have yet
  * comes in disabled while the user still has that param. A multipart field takes
  * the spec entry only when the spec switched it between text and file, or, with
  * restoreSpecTypes, when the user did. The spec defines membership: other user
@@ -871,7 +872,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
 
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   const previousRequest = previousSpecItem && (previousSpecItem.request || {});
-  const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey });
+  const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey, restoreSpecTypes });
   const inSpecMode = (existing, spec) => (restoreSpecTypes && isPlainObject(existing) && isPlainObject(spec) && hasSavedBlock(existing[spec.mode])
     ? { ...existing, mode: spec.mode }
     : existing);
@@ -891,7 +892,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
       body: withOtherModeBlocks(body, existingBody),
       auth: withOtherModeBlocks(auth, existingAuth),
       params,
-      headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey })
+      headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey, restoreSpecTypes })
     }
   };
 };
