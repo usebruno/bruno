@@ -344,4 +344,62 @@ describe('Proxy Preferences Migration', () => {
       expect(preferences.proxy.inherit).toBeUndefined();
     });
   });
+
+  describe('targetProtocols persistence & validation', () => {
+    it('should persist restricted targetProtocols when saving preferences', async () => {
+      await savePreferences({
+        proxy: {
+          source: 'manual',
+          config: {
+            protocol: 'http',
+            targetProtocols: { http: false, https: true },
+            hostname: '127.0.0.1',
+            port: 8080,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      });
+
+      const preferences = getPreferences();
+      expect(preferences.proxy.config.targetProtocols).toEqual({ http: false, https: true });
+    });
+
+    it('should omit targetProtocols when both http and https are enabled', async () => {
+      await savePreferences({
+        proxy: {
+          source: 'manual',
+          config: {
+            protocol: 'http',
+            targetProtocols: { http: true, https: true },
+            hostname: '127.0.0.1',
+            port: 8080,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      });
+
+      const preferences = getPreferences();
+      expect(preferences.proxy.config.targetProtocols).toBeUndefined();
+    });
+
+    it('should reject saving preferences when both http and https targetProtocols are false', async () => {
+      await expect(
+        savePreferences({
+          proxy: {
+            source: 'manual',
+            config: {
+              protocol: 'http',
+              targetProtocols: { http: false, https: false },
+              hostname: '127.0.0.1',
+              port: 8080,
+              auth: { username: '', password: '' },
+              bypassProxy: ''
+            }
+          }
+        })
+      ).rejects.toThrow('Select at least one protocol to proxy');
+    });
+  });
 });

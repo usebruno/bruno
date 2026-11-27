@@ -1,5 +1,5 @@
 import { OpenCollection } from "@opencollection/types";
-import { normalizeOpenApiSyncConfigs } from "@usebruno/common";
+import { normalizeOpenApiSyncConfigs, serializeProxyTargetProtocols } from "@usebruno/common";
 import { BrunoCollection, BrunoCollectionRoot, BrunoConfig, BrunoPresets, PemCertificate, Pkcs12Certificate } from "./types";
 import { fromOpenCollectionActions, fromOpenCollectionAuth, fromOpenCollectionHeaders, fromOpenCollectionScripts, fromOpenCollectionVariables } from "./common";
 import { uuid } from "../common";
@@ -14,6 +14,7 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
     presets?: BrunoPresets;
     scripts?: { flow?: unknown };
     openapi?: BrunoConfig['openapi'];
+    proxy?: { targetProtocols?: { http?: boolean; https?: boolean } };
   } | undefined;
 
   const ignoreList = brunoExtension && Array.isArray(brunoExtension.ignore)
@@ -71,10 +72,22 @@ const fromOpenCollectionConfig = (oc: OpenCollection): BrunoConfig => {
   }
 
   if (config.proxy) {
+    const rawTargetProtocols = brunoExtension?.proxy?.targetProtocols ?? (config.proxy.config as any)?.targetProtocols;
+    const serializedTargetProtocols = rawTargetProtocols
+      ? serializeProxyTargetProtocols(rawTargetProtocols)
+      : undefined;
     brunoConfig.proxy = {
       disabled: config.proxy.disabled,
       inherit: config.proxy.inherit,
       config: config.proxy.config
+        ? (() => {
+            const { targetProtocols: _ignoredTargetProtocols, ...cleanProxyConfig } = config.proxy.config as any;
+            return {
+              ...cleanProxyConfig,
+              ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {})
+            };
+          })()
+        : undefined
     };
   }
 

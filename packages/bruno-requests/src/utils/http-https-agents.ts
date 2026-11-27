@@ -9,6 +9,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { isEmpty, get, isUndefined, isNull } from 'lodash';
+import { isProxyEnabledForUrl, type ProxyTargetProtocols } from '@usebruno/common';
 import { getCACertificates } from './ca-cert';
 import { transformProxyConfig } from './proxy-util';
 import { getOrCreateHttpsAgent, getOrCreateHttpAgent } from './agent-cache';
@@ -36,6 +37,7 @@ type ProxyAuth = {
 type ProxyConfig = {
   enabled?: boolean | 'global';
   protocol?: string;
+  targetProtocols?: ProxyTargetProtocols;
   hostname?: string;
   port?: number | null;
   auth?: ProxyAuth;
@@ -493,7 +495,18 @@ async function createAgents({
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestUrl, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
+    const shouldProxyProtocol = isProxyEnabledForUrl(
+      get(proxyConfig, 'targetProtocols'),
+      requestUrl || (isHttpsRequest ? 'https://' : 'http://')
+    );
+    if (shouldProxy && !shouldProxyProtocol && timeline) {
+      timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `Proxy skipped: ${isHttpsRequest ? 'HTTPS' : 'HTTP'} traffic is not enabled in proxy settings`
+      });
+    }
+    if (shouldProxy && shouldProxyProtocol) {
       const proxyProtocol = get(proxyConfig, 'protocol');
       const proxyHostname = get(proxyConfig, 'hostname');
       const proxyPort = get(proxyConfig, 'port');

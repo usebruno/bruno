@@ -4,6 +4,8 @@
  * New format: { disabled?, inherit, config: { protocol, hostname, port, auth: { disabled?, ... }, ... } }
  */
 
+import { serializeProxyTargetProtocols, type ProxyTargetProtocols } from '@usebruno/common';
+
 interface OldProxyAuth {
   enabled?: boolean;
   username?: string;
@@ -13,6 +15,7 @@ interface OldProxyAuth {
 interface OldProxyConfig {
   enabled?: true | false | 'global';
   protocol?: string;
+  targetProtocols?: ProxyTargetProtocols;
   hostname?: string;
   port?: number | null;
   auth?: OldProxyAuth;
@@ -30,6 +33,7 @@ interface NewProxyConfig {
   inherit: boolean;
   config: {
     protocol: string;
+    targetProtocols?: ProxyTargetProtocols;
     hostname: string;
     port: number | null;
     auth: NewProxyAuth;
@@ -43,11 +47,15 @@ export const transformProxyConfig = (proxy: OldProxyConfig | NewProxyConfig | nu
   if (proxy.hasOwnProperty('enabled')) {
     const oldProxy = proxy as OldProxyConfig;
     const enabled = oldProxy.enabled;
+    const serializedTargetProtocols = oldProxy.targetProtocols
+      ? serializeProxyTargetProtocols(oldProxy.targetProtocols)
+      : undefined;
 
     const newProxy: NewProxyConfig = {
       inherit: true,
       config: {
         protocol: oldProxy.protocol || 'http',
+        ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {}),
         hostname: oldProxy.hostname || '',
         port: oldProxy.port || null,
         auth: {

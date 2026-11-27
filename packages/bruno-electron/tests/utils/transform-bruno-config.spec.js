@@ -566,5 +566,43 @@ describe('BrunoConfig Proxy Transform', () => {
 
       expect(afterSecondRead.proxy).toEqual(newConfig.proxy);
     });
+
+    test('should omit targetProtocols on save when both http and https are enabled and preserve when restricted', async () => {
+      const restricted = {
+        name: 'Test Collection',
+        proxy: {
+          inherit: false,
+          config: {
+            protocol: 'http',
+            targetProtocols: { http: false, https: true },
+            hostname: '127.0.0.1',
+            port: 8080,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      };
+
+      const savedRestricted = transformBrunoConfigBeforeSave(restricted);
+      expect(savedRestricted.proxy.config.targetProtocols).toEqual({ http: false, https: true });
+
+      const bothEnabled = {
+        name: 'Test Collection',
+        proxy: {
+          inherit: false,
+          config: {
+            protocol: 'http',
+            targetProtocols: { http: true, https: true },
+            hostname: '127.0.0.1',
+            port: 8080,
+            auth: { username: '', password: '' },
+            bypassProxy: ''
+          }
+        }
+      };
+
+      const savedDefault = transformBrunoConfigBeforeSave(bothEnabled);
+      expect(savedDefault.proxy.config.targetProtocols).toBeUndefined();
+    });
   });
 });

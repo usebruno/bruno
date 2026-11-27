@@ -2,6 +2,7 @@ const parseUrl = require('url').parse;
 const http = require('node:http');
 const https = require('node:https');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
+const { isProxyEnabledForUrl } = require('@usebruno/common');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const {
@@ -97,7 +98,8 @@ async function setupProxyAgents({
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
+    const shouldProxyProtocol = isProxyEnabledForUrl(get(proxyConfig, 'targetProtocols'), requestConfig.url);
+    if (shouldProxy && shouldProxyProtocol) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
       const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);

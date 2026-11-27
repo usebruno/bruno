@@ -264,3 +264,53 @@ describe('stringifyCollection — writing the collection version', () => {
     });
   });
 });
+
+describe('stringifyCollection / parseCollection — proxy targetProtocols', () => {
+  const baseRoot = {
+    meta: null,
+    request: { headers: [], auth: { mode: 'none' }, script: { req: null, res: null }, tests: null, vars: { req: [], res: [] } },
+    docs: null
+  } as any;
+
+  it('round-trips restricted targetProtocols via extensions.bruno.proxy and keeps config.proxy clean', () => {
+    const yml = stringifyCollection(baseRoot, {
+      name: 'c',
+      proxy: {
+        inherit: false,
+        config: {
+          protocol: 'http',
+          targetProtocols: { http: false, https: true },
+          hostname: '127.0.0.1',
+          port: 8080,
+          auth: { username: '', password: '' },
+          bypassProxy: ''
+        }
+      }
+    });
+
+    expect(yml).toMatch(/targetProtocols:/);
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.proxy.config.targetProtocols).toEqual({ http: false, https: true });
+  });
+
+  it('omits targetProtocols in YAML when both HTTP and HTTPS are enabled', () => {
+    const yml = stringifyCollection(baseRoot, {
+      name: 'c',
+      proxy: {
+        inherit: false,
+        config: {
+          protocol: 'http',
+          targetProtocols: { http: true, https: true },
+          hostname: '127.0.0.1',
+          port: 8080,
+          auth: { username: '', password: '' },
+          bypassProxy: ''
+        }
+      }
+    });
+
+    expect(yml).not.toMatch(/targetProtocols:/);
+    const { brunoConfig } = parseCollection(yml);
+    expect(brunoConfig.proxy.config.targetProtocols).toBeUndefined();
+  });
+});

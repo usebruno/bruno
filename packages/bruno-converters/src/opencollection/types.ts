@@ -191,6 +191,10 @@ export interface BrunoConfig {
     inherit?: boolean;
     config?: {
       protocol?: string;
+      targetProtocols?: {
+        http?: boolean;
+        https?: boolean;
+      };
       hostname?: string;
       port?: number;
       auth?: {

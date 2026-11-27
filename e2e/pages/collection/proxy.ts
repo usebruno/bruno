@@ -17,7 +17,9 @@ export const buildCollectionProxyLocators = (page: Page) => ({
   /** Protocol dropdown trigger; its text is the selected protocol label (e.g. 'SOCKS5') */
   protocol: () => page.getByTestId('collection-proxy-protocol'),
   /** "Proxy authentication" checkbox input */
-  authCheckbox: () => page.getByTestId('collection-proxy-auth')
+  authCheckbox: () => page.getByTestId('collection-proxy-auth'),
+  /** "Proxy traffic for" protocol checkbox input */
+  protocolCheckbox: (proto: 'http' | 'https') => page.getByTestId(`collection-proxy-protocol-${proto}`)
 });
 
 /** Read the selected collection proxy protocol label (e.g. 'HTTP', 'SOCKS5'). */

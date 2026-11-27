@@ -5,6 +5,7 @@ const { interpolateString } = require('../ipc/network/interpolate-string');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { isEmpty, get, isUndefined, isNull } = require('lodash');
+const { isProxyEnabledForUrl } = require('@usebruno/common');
 const {
   getOrCreateHttpsAgent,
   getOrCreateHttpAgent,
@@ -117,7 +118,15 @@ async function setupProxyAgents({
 
   if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(requestConfig.url, get(proxyConfig, 'bypassProxy', ''));
-    if (shouldProxy) {
+    const shouldProxyProtocol = isProxyEnabledForUrl(get(proxyConfig, 'targetProtocols'), requestConfig.url);
+    if (shouldProxy && !shouldProxyProtocol && timeline) {
+      timeline.push({
+        timestamp: new Date(),
+        type: 'info',
+        message: `Proxy skipped: ${isHttpsRequest ? 'HTTPS' : 'HTTP'} traffic is not enabled in proxy settings`
+      });
+    }
+    if (shouldProxy && shouldProxyProtocol) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
       const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);

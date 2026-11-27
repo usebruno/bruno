@@ -5,7 +5,7 @@ import type { ClientCertificate, PemCertificate, Pkcs12Certificate } from '@open
 import type { Variable } from '@opencollection/types/common/variables';
 import type { Action } from '@opencollection/types/common/actions';
 import type { Scripts } from '@opencollection/types/common/scripts';
-import { normalizeOpenApiSyncConfigs } from '@usebruno/common';
+import { normalizeOpenApiSyncConfigs, serializeProxyTargetProtocols } from '@usebruno/common';
 import { stringifyYml } from './utils';
 import { toOpenCollectionAuth } from './common/auth';
 import { toOpenCollectionHttpHeaders } from './common/headers';
@@ -289,6 +289,16 @@ const stringifyCollection = (collectionRoot: any, brunoConfig: any): string => {
         oc.extensions.bruno = {};
       }
       (oc.extensions.bruno as any).openapi = openApiEntries;
+    }
+
+    const serializedTargetProtocols = serializeProxyTargetProtocols(brunoConfig.proxy?.config?.targetProtocols);
+    if (serializedTargetProtocols) {
+      if (!oc.extensions.bruno) {
+        oc.extensions.bruno = {};
+      }
+      (oc.extensions.bruno as any).proxy = {
+        targetProtocols: serializedTargetProtocols
+      };
     }
 
     return stringifyYml(oc);

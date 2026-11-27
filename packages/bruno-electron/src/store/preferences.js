@@ -1,6 +1,7 @@
 const Yup = require('yup');
 const Store = require('electron-store');
 const { get, merge } = require('lodash');
+const { serializeProxyTargetProtocols } = require('@usebruno/common');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -151,6 +152,10 @@ const preferencesSchema = Yup.object().shape({
     }).optional(),
     config: Yup.object({
       protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+      targetProtocols: Yup.object({
+        http: Yup.boolean(),
+        https: Yup.boolean()
+      }).optional(),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(1).max(65535).nullable(),
       auth: Yup.object({
@@ -160,6 +165,18 @@ const preferencesSchema = Yup.object().shape({
       }).optional(),
       bypassProxy: Yup.string().optional().max(1024)
     }).required()
+  }).test('at-least-one-protocol', 'Select at least one protocol to proxy', function (proxyVal) {
+    if (proxyVal?.disabled || proxyVal?.source !== 'manual') {
+      return true;
+    }
+    const targetProtocols = proxyVal?.config?.targetProtocols;
+    if (targetProtocols && targetProtocols.http === false && targetProtocols.https === false) {
+      return this.createError({
+        path: 'proxy.config.targetProtocols',
+        message: 'Select at least one protocol to proxy'
+      });
+    }
+    return true;
   }),
   layout: Yup.object({
     responsePaneOrientation: Yup.string().oneOf(['horizontal', 'vertical'])
@@ -281,11 +298,15 @@ class PreferencesStore {
       const hasOldFormat = proxy.hasOwnProperty('enabled') || proxy.hasOwnProperty('mode');
 
       if (hasOldFormat) {
+        const serializedTargetProtocols = proxy.targetProtocols
+          ? serializeProxyTargetProtocols(proxy.targetProtocols)
+          : undefined;
         const newProxy = {
           source: 'inherit',
           pac: { source: '' },
           config: {
             protocol: proxy.protocol || 'http',
+            ...(serializedTargetProtocols ? { targetProtocols: serializedTargetProtocols } : {}),
             hostname: proxy.hostname || '',
             port: proxy.port || null,
             auth: {
@@ -391,6 +412,16 @@ const savePreferences = async (newPreferences) => {
     preferencesSchema
       .validate(newPreferences, { abortEarly: true })
       .then((validatedPreferences) => {
+        if (validatedPreferences?.proxy?.config?.targetProtocols) {
+          const serializedTargetProtocols = serializeProxyTargetProtocols(
+            validatedPreferences.proxy.config.targetProtocols
+          );
+          if (serializedTargetProtocols) {
+            validatedPreferences.proxy.config.targetProtocols = serializedTargetProtocols;
+          } else {
+            delete validatedPreferences.proxy.config.targetProtocols;
+          }
+        }
         preferencesStore.savePreferences(validatedPreferences);
         resolve();
       })
