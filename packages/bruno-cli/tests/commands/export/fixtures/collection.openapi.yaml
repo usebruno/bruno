@@ -43,6 +43,18 @@ paths:
       responses:
         '200':
           description: ''
+  /token:
+    post:
+      summary: token
+      operationId: token_bru
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:4000
 servers:
   - url: http://localhost:3000
     description: Base Server

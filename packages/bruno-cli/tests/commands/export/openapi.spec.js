@@ -51,6 +51,12 @@ const copyFixture = (destination) => {
   return destination;
 };
 
+const copyYmlFixtureWithoutEnvironments = (destination) => {
+  fs.cpSync(YML_FIXTURE, destination, { recursive: true });
+  fs.rmSync(path.join(destination, 'environments'), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  return destination;
+};
+
 describe('bru export openapi', () => {
   let originalCwd;
   let outDir;
@@ -103,7 +109,7 @@ describe('bru export openapi', () => {
     it('exports an OpenCollection (yml) collection', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: YML_FIXTURE, outputFile });
+      await runExport({ source: YML_FIXTURE, outputFile, env: 'Local' });
 
       expect(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('ymlcollection');
     });
@@ -251,18 +257,44 @@ describe('bru export openapi', () => {
   });
 
   describe('environment', () => {
-    it('uses the environment given by --env', async () => {
+    it('uses the environment given by --env for the base server and request URLs', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
       await runExport({ source: FIXTURE, outputFile, env: 'Prod' });
 
-      expect(readExportedSpec(outputFile).servers[0]).toEqual({ url: 'https://api.example.com', description: 'Base Server' });
+      const spec = readExportedSpec(outputFile);
+      expect(spec.servers[0]).toEqual({ url: 'https://api.example.com', description: 'Base Server' });
+      expect(spec.paths['/token'].post.servers).toEqual([{ url: 'https://auth.example.com' }]);
+    });
+
+    it('uses the environment given by --env in an OpenCollection (yml) collection', async () => {
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: YML_FIXTURE, outputFile, env: 'Prod' });
+
+      expect(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).servers).toEqual([
+        { url: 'https://api.example.com', description: 'Base Server' },
+        { url: 'http://localhost:3000', description: 'Local' },
+        { url: 'https://api.example.com', description: 'Prod' }
+      ]);
+    });
+
+    it('requires --env for an OpenCollection (yml) collection with environments', async () => {
+      const exitSpy = mockExit();
+
+      await expect(runExport({ source: YML_FIXTURE, outputFile: path.join(outDir, 'api.yaml') })).rejects.toThrow(
+        `exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`
+      );
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain('choose one with --env: Local, Prod');
     });
 
     it('exports a collection without environments when --env is not given', async () => {
+      const collectionPath = copyYmlFixtureWithoutEnvironments(path.join(outDir, 'yml-collection'));
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: YML_FIXTURE, outputFile });
+      await runExport({ source: collectionPath, outputFile });
 
       expect(fs.existsSync(outputFile)).toBe(true);
     });
@@ -301,8 +333,9 @@ describe('bru export openapi', () => {
 
     it('exits with the env-not-found code when --env is given for a collection without environments', async () => {
       const exitSpy = mockExit();
+      const collectionPath = copyYmlFixtureWithoutEnvironments(path.join(outDir, 'yml-collection'));
 
-      await expect(runExport({ source: YML_FIXTURE, outputFile: path.join(outDir, 'api.yaml'), env: 'Local' })).rejects.toThrow(
+      await expect(runExport({ source: collectionPath, outputFile: path.join(outDir, 'api.yaml'), env: 'Local' })).rejects.toThrow(
         `exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`
       );
 
@@ -343,7 +376,7 @@ describe('bru export openapi', () => {
       fs.writeFileSync(path.join(collectionPath, 'users.yaml'), requestYml.replace('name: request_1', 'name: users').replace(/url: .*/, 'url: https://api.example.com/users'));
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
       expect(Object.keys(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).paths)).toContain('/users');
     });
