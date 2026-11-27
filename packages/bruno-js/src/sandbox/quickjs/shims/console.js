@@ -1,3 +1,5 @@
+const { CONSOLE_METHODS } = require('../../../runtime/script-console');
+
 const addConsoleShimToContext = (vm, console) => {
   if (!console) return;
 
@@ -95,44 +97,24 @@ const addConsoleShimToContext = (vm, console) => {
 
   const consoleHandle = vm.newObject();
 
-  const logHandle = vm.newFunction('log', (...args) => {
-    const nativeArgs = args.map(dumpWithSerializers);
-    console?.log?.(...nativeArgs);
-  });
+  // Expose the full console surface (CONSOLE_METHODS) whatever shape the host
+  // console has, so a script never fails with "console.X is not a function". A
+  // method the host console does not implement becomes a no-op.
+  CONSOLE_METHODS.forEach((method) => {
+    const forward = console[method];
 
-  const debugHandle = vm.newFunction('debug', (...args) => {
-    const nativeArgs = args.map(dumpWithSerializers);
-    console?.debug?.(...nativeArgs);
+    const handle = vm.newFunction(method, (...args) => {
+      const nativeArgs = args.map(dumpWithSerializers);
+      if (typeof forward === 'function') {
+        forward(...nativeArgs);
+      }
+    });
+    vm.setProp(consoleHandle, method, handle);
+    handle.dispose();
   });
-
-  const infoHandle = vm.newFunction('info', (...args) => {
-    const nativeArgs = args.map(dumpWithSerializers);
-    console?.info?.(...nativeArgs);
-  });
-
-  const warnHandle = vm.newFunction('warn', (...args) => {
-    const nativeArgs = args.map(dumpWithSerializers);
-    console?.warn?.(...nativeArgs);
-  });
-
-  const errorHandle = vm.newFunction('error', (...args) => {
-    const nativeArgs = args.map(dumpWithSerializers);
-    console?.error?.(...nativeArgs);
-  });
-
-  vm.setProp(consoleHandle, 'log', logHandle);
-  vm.setProp(consoleHandle, 'debug', debugHandle);
-  vm.setProp(consoleHandle, 'info', infoHandle);
-  vm.setProp(consoleHandle, 'warn', warnHandle);
-  vm.setProp(consoleHandle, 'error', errorHandle);
 
   vm.setProp(vm.global, 'console', consoleHandle);
   consoleHandle.dispose();
-  logHandle.dispose();
-  debugHandle.dispose();
-  infoHandle.dispose();
-  warnHandle.dispose();
-  errorHandle.dispose();
 };
 
 module.exports = addConsoleShimToContext;

@@ -8,6 +8,7 @@ const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { createScopeSetter } = require('../runtime/scripted-entries');
+const { createScriptConsole } = require('../runtime/script-console');
 
 /**
  * Runs the gRPC lifecycle hooks
@@ -87,18 +88,7 @@ class GrpcScriptRuntime {
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        debug: customLogger('debug'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        error: customLogger('error')
-      };
+      context.console = createScriptConsole(onConsoleLog);
     }
 
     // A gRPC request can't run another request yet, so there is no `runRequestByItemPathname` to bind.

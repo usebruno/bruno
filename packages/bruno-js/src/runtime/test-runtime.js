@@ -10,6 +10,7 @@ const jsonwebtoken = require('jsonwebtoken');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
+const { createScriptConsole } = require('./script-console');
 
 class TestRuntime {
   constructor(props) {
@@ -88,18 +89,7 @@ class TestRuntime {
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        debug: customLogger('debug'),
-        error: customLogger('error')
-      };
+      context.console = createScriptConsole(onConsoleLog);
     }
 
     bindRunRequest(bru, runRequestByItemPathname);

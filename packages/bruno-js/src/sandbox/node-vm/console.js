@@ -82,10 +82,11 @@ function transformValue(value, seen = new WeakSet()) {
 function wrapConsoleWithSerializers(originalConsole) {
   if (!originalConsole) return originalConsole;
 
-  const methodsToWrap = ['log', 'debug', 'info', 'warn', 'error'];
   const wrappedConsole = { ...originalConsole };
 
-  for (const method of methodsToWrap) {
+  // Wrap every method the console exposes, so the extra logging methods (table,
+  // dir, trace, ...) serialize Set/Map like the five core ones do.
+  for (const method of Object.keys(originalConsole)) {
     if (typeof originalConsole[method] === 'function') {
       wrappedConsole[method] = (...args) => {
         const transformedArgs = args.map((arg) => transformValue(arg));
