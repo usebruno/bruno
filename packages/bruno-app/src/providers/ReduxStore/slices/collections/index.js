@@ -617,6 +617,12 @@ export const collectionsSlice = createSlice({
         collection.runtimeVariables = runtimeVariables;
       }
     },
+    clearRuntimeVariables: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.runtimeVariables = {};
+      }
+    },
     processEnvUpdateEvent: (state, action) => {
       const { collectionUid, processEnvVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -4350,6 +4356,7 @@ export const {
   cloneItem,
   scriptEnvironmentUpdateEvent,
   runtimeVariablesUpdateEvent,
+  clearRuntimeVariables,
   processEnvUpdateEvent,
   workspaceEnvUpdateEvent,
   setDotEnvVariables,
