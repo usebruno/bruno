@@ -150,6 +150,14 @@ const discriminatorValueOf = (alternative, mapping) => {
   return mappedKey ?? alternative.name;
 };
 
+const noAlternativeAllows = (node, value) => {
+  if (node === undefined || value === null || value === undefined) return false;
+  const alternatives = alternativesOf(node);
+  return alternatives.length > 0
+    && alternatives.every((alternative) => alternative.node.schemas.some((schema) => typesOf(schema).length > 0))
+    && !declaresTypeOf(node, value);
+};
+
 const missingDiscriminatorOf = (node, value) => {
   const discriminator = node === undefined ? undefined : discriminatorOf(node);
   if (discriminator === undefined || Object.hasOwn(value, discriminator.propertyName)) return undefined;
@@ -170,5 +178,6 @@ module.exports = {
   keyLeavesShapeOpen,
   itemsLeaveShapeOpen,
   otherAlternativeKeys,
+  noAlternativeAllows,
   missingDiscriminatorOf
 };

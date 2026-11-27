@@ -1378,6 +1378,18 @@ describe('compareRequestFields for a request a sync keeps', () => {
     expect(compare(json({ email: '' }), json('a@x.io'), recipients).changes).toEqual(['body schema']);
   });
 
+  it('flags a oneOf or anyOf part whose type none of its alternatives allows', () => {
+    const payment = { oneOf: [object({ iban: string }), object({ cardNumber: string })] };
+    const declared = declaredFor('application/json', object({ payment, payments: { type: 'array', items: payment }, extra: { oneOf: [object({ iban: string }), {}] } }));
+    const template = { payment: { iban: '' }, payments: [{ iban: '' }], extra: { iban: '' } };
+    const sent = (part) => json({ ...template, ...part });
+
+    expect(compare(json(template), sent({ payment: 'DE89' }), declared).changes).toEqual(['body schema']);
+    expect(compare(json(template), sent({ payments: ['DE89'] }), declared).changes).toEqual(['body schema']);
+    expect(compare(json(template), sent({ payment: null }), declared).hasDiff).toBe(false);
+    expect(compare(json(template), sent({ extra: 'anything' }), declared).hasDiff).toBe(false);
+  });
+
   it('does not flag the object the user sends for a oneOf property the spec writes as ""', () => {
     const declared = declaredFor('application/json', object({ payment: { oneOf: [object({ iban: string }), object({ cardNumber: string })] } }));
     expect(compare(json({ payment: '' }), json({ payment: { iban: 'DE89' } }), declared).hasDiff).toBe(false);
@@ -1434,13 +1446,13 @@ describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
     expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
   });
 
-  it('keeps the auth and body blocks of the modes not in use when the spec\'s types are restored', () => {
+  it('takes the spec\'s modes with the blocks the user saved for them, and keeps the other blocks, when the spec\'s types are restored', () => {
     const withAuth = ({ request }, auth) => ({ request: { ...request, auth } });
-    const user = withAuth(item({ mode: 'json', json: '{"name":"Fido"}', text: 'Saved text' }), { mode: 'basic', basic: { username: 'me', password: 'secret' }, bearer: { token: 'old' } });
+    const user = withAuth(item({ mode: 'text', text: 'Saved text', json: '{"name":"Fido"}' }), { mode: 'basic', basic: { username: 'me', password: 'secret' }, bearer: { token: 'old' } });
     const spec = withAuth(item({ mode: 'json', json: '{"name":""}', text: null, formUrlEncoded: [] }), { mode: 'bearer', bearer: { token: '{{token}}' }, basic: null });
     const merged = helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request;
 
-    expect(merged.auth).toEqual({ mode: 'bearer', bearer: { token: '{{token}}' }, basic: { username: 'me', password: 'secret' } });
+    expect(merged.auth).toEqual({ mode: 'bearer', bearer: { token: 'old' }, basic: { username: 'me', password: 'secret' } });
     expect(merged.body).toMatchObject({ mode: 'json', json: '{"name":"Fido"}', text: 'Saved text' });
   });
 

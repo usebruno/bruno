@@ -15,7 +15,7 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
-const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys, missingDiscriminatorOf } = require('../utils/openapi-schema');
+const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys, noAlternativeAllows, missingDiscriminatorOf } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -604,7 +604,7 @@ const jsonNodeTypeChanged = (userVal, specVal, declared) => {
  */
 const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false, restoreSpecTypes = false) => {
   if (!preserveValues) return specVal;
-  if (shapeOpen) return userVal;
+  if (shapeOpen) return restoreSpecTypes && !isMaskedBareVariable(userVal) && noAlternativeAllows(declared, userVal) ? specVal : userVal;
   if (restoreSpecTypes && !isMaskedBareVariable(userVal) && jsonNodeTypeChanged(userVal, specVal, declared)) return specVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
@@ -821,6 +821,12 @@ const mergeBody = (userBody, specBody, preserveValues = true, previousSpecBody, 
   return { ...userBody };
 };
 
+const hasSavedBlock = (block) => {
+  if (Array.isArray(block)) return block.length > 0;
+  if (typeof block === 'string') return block.trim() !== '';
+  return isPlainObject(block);
+};
+
 /**
  * Merge spec params/headers with existing user values.
  * Matches by name + value to correctly handle enum-expanded params (multiple entries with same name).
@@ -866,17 +872,24 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   const previousRequest = previousSpecItem && (previousSpecItem.request || {});
   const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey });
+  const inSpecMode = (existing, spec) => (restoreSpecTypes && isPlainObject(existing) && isPlainObject(spec) && hasSavedBlock(existing[spec.mode])
+    ? { ...existing, mode: spec.mode }
+    : existing);
   const withOtherModeBlocks = (merged, existing) => (restoreSpecTypes && isPlainObject(merged) && isPlainObject(existing)
     ? { ...merged, ..._.omit(existing, ['mode', merged.mode]) }
     : merged);
+  const existingBody = existingRequest.request?.body;
+  const existingAuth = existingRequest.request?.auth;
+  const body = mergeBody(inSpecMode(existingBody, specItem.request.body), specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes);
+  const auth = mergeAuth(inSpecMode(existingAuth, specItem.request.auth), specItem.request.auth, preserveValues);
   return {
     ...existingRequest,
     request: {
       ...existingRequest.request,
       url: preserveValues ? urlWithQueryParams(specItem.request.url, params, existingRequest.request?.url) : specItem.request.url,
       method: specItem.request.method,
-      body: withOtherModeBlocks(mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes), existingRequest.request?.body),
-      auth: withOtherModeBlocks(mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues), existingRequest.request?.auth),
+      body: withOtherModeBlocks(body, existingBody),
+      auth: withOtherModeBlocks(auth, existingAuth),
       params,
       headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey })
     }
@@ -949,10 +962,11 @@ const extractJsonKeys = (obj, prefix = '') => {
   return keys;
 };
 
-const jsonTypeChanged = (userVal, specVal, declared) => {
+const jsonTypeChanged = (userVal, specVal, declared, shapeOpen = false) => {
+  if (shapeOpen) return noAlternativeAllows(declared, userVal);
   if (jsonNodeTypeChanged(userVal, specVal, declared)) return true;
-  if (isPlainObject(specVal) && isPlainObject(userVal)) return Object.keys(specVal).some((key) => Object.hasOwn(userVal, key) && !keyLeavesShapeOpen(declared, key) && jsonTypeChanged(userVal[key], specVal[key], declaredChild(declared, key)));
-  if (Array.isArray(specVal) && Array.isArray(userVal)) return specVal.length > 0 && !itemsLeaveShapeOpen(declared) && userVal.some((item) => jsonTypeChanged(item, specVal[0], declaredItems(declared)));
+  if (isPlainObject(specVal) && isPlainObject(userVal)) return Object.keys(specVal).some((key) => Object.hasOwn(userVal, key) && jsonTypeChanged(userVal[key], specVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
+  if (Array.isArray(specVal) && Array.isArray(userVal)) return specVal.length > 0 && userVal.some((item) => jsonTypeChanged(item, specVal[0], declaredItems(declared), itemsLeaveShapeOpen(declared)));
   return false;
 };
 

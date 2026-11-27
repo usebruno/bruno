@@ -249,6 +249,16 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(readRequest('Create pet').auth).toMatchObject({ mode: 'bearer', bearer: { token: '{{token}}' } });
   });
 
+  it('takes the spec\'s auth mode with the token the file saved for it when the user changed the auth mode', async () => {
+    writeRequest('Create pet', (request) => ({ ...request, auth: { mode: 'basic', basic: { username: 'me', password: 'secret' }, bearer: { token: 'my-old-token' } } }));
+    const savedBearer = readRequest('Create pet').auth.bearer;
+
+    await reset(await modifiedEndpoints());
+
+    expect(readRequest('Create pet').auth).toMatchObject({ mode: 'bearer', bearer: savedBearer ?? { token: '{{token}}' } });
+    expect((await drift()).modified).toEqual([]);
+  });
+
   it('takes the spec\'s field for a body field the user changed to another type', async () => {
     writeRequest('Create pet', (request) => ({ ...request, body: { ...request.body, json: JSON.stringify({ name: 'Fido', nickname: 'Rex', owner: 'seven' }) } }));
     writeRequest('Upload photo', (request) => ({
@@ -413,6 +423,32 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     expect(readRequest('Create pet').headers.map(({ name }) => name)).toEqual(['X-Request-Id']);
     expect(readRequest('Create pet').body.json).toBe(written);
     expect(preview.newData.request.body.json).toBe(written);
+  });
+
+  it('restores a oneOf or anyOf part whose type none of its alternatives allows, so the endpoint is no longer listed', async () => {
+    writeRequest('Send mail', (request) => ({
+      ...request,
+      body: { ...request.body, json: JSON.stringify({ subject: 'Hi', to: 'a@x.io', payload: { kind: 'b', data: 'hello' } }, null, 2) }
+    }));
+    expect((await modifiedEndpoints()).map(({ id, changes }) => [id, changes])).toEqual([['POST:/mail', 'body schema']]);
+    const preview = await previewReset('POST:/mail');
+
+    await reset(await modifiedEndpoints());
+
+    const expected = { subject: 'Hi', to: { email: '' }, payload: { kind: 'b', data: 'hello' } };
+    expect(JSON.parse(readRequest('Send mail').body.json)).toEqual(expected);
+    expect(JSON.parse(preview.newData.request.body.json)).toEqual(expected);
+    expect((await drift()).modified).toEqual([]);
+  });
+
+  it('keeps a {{var}} written in place of a oneOf or anyOf part', async () => {
+    const json = '{\n  "subject": "Hi",\n  "to": {{recipients}},\n  "payload": {\n    "kind": "b",\n    "data": "hello"\n  }\n}';
+    writeRequest('Send mail', (request) => ({ ...request, headers: [{ name: 'X-Debug', value: '1', enabled: true }], body: { ...request.body, json } }));
+
+    await reset(await modifiedEndpoints());
+
+    expect(readRequest('Send mail').body.json).toBe(json);
+    expect((await drift()).modified).toEqual([]);
   });
 
   it('keeps a oneOf or anyOf part as written, and no longer lists the endpoint after Reset', async () => {
