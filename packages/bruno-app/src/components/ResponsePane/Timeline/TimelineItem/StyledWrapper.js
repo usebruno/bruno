@@ -113,9 +113,8 @@ const StyledWrapper = styled.div`
   .tl-header-url {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    user-select: text;
     font-family: ${(props) => props.theme.font?.mono || 'var(--font-family-mono)'};
     font-size: 13px;
     color: ${(props) => props.theme.text};
