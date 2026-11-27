@@ -9,27 +9,18 @@ const ScopeSection = ({ icon: Icon, sectionKey, title, pill, count, isDanger, ex
     onTitleClick();
   };
 
+  const handleToggleClick = (event) => {
+    event.stopPropagation();
+    onToggle();
+  };
+
   return (
     <StyledWrapper
       className={`${expanded ? 'expanded' : 'collapsed'}${isDanger ? ' is-danger' : ''}`}
       data-section-key={sectionKey}
       data-testid={testId}
     >
-      <div
-        role="button"
-        tabIndex={0}
-        className="section-header"
-        aria-expanded={expanded}
-        onClick={onToggle}
-        onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) return;
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onToggle();
-          }
-        }}
-        data-testid={`${testId}-header`}
-      >
+      <div className="section-header" onClick={onToggle} data-testid={`${testId}-header`}>
         <Icon size={14} strokeWidth={1.5} className="section-icon" />
         {onTitleClick ? (
           <button
@@ -46,9 +37,18 @@ const ScopeSection = ({ icon: Icon, sectionKey, title, pill, count, isDanger, ex
         )}
         <span className="section-count" data-testid="variables-section-count">{count}</span>
         {pill && <ScopePill label={pill.label} color={pill.color} />}
-        {expanded
-          ? <IconChevronUp size={14} strokeWidth={1.5} className="section-chevron" />
-          : <IconChevronDown size={14} strokeWidth={1.5} className="section-chevron" />}
+        <button
+          type="button"
+          className="section-chevron"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${title}`}
+          onClick={handleToggleClick}
+          data-testid={`${testId}-toggle`}
+        >
+          {expanded
+            ? <IconChevronUp size={14} strokeWidth={1.5} />
+            : <IconChevronDown size={14} strokeWidth={1.5} />}
+        </button>
       </div>
       {expanded && <div className="section-content">{children}</div>}
     </StyledWrapper>

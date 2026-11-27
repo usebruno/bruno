@@ -79,7 +79,12 @@ const StyledWrapper = styled.section`
   }
 
   .section-chevron {
+    display: flex;
     flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
     color: ${(props) => props.theme.colors.text.muted};
   }
 

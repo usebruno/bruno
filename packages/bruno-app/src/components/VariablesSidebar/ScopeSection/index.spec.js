@@ -27,15 +27,25 @@ const renderSection = () => {
 };
 
 describe('ScopeSection', () => {
-  it.each(['Enter', ' '])('toggles when "%s" is pressed on the header', (key) => {
+  it('toggles from the chevron button, which reports the expanded state', () => {
     const { onToggle } = renderSection();
-    fireEvent.keyDown(screen.getByTestId('section-header'), { key });
+    const toggle = screen.getByTestId('section-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAccessibleName('Collapse Collection Variable');
+    fireEvent.click(toggle);
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['Enter', ' '])('does not toggle when "%s" is pressed on the title', (key) => {
-    const { onToggle } = renderSection();
-    fireEvent.keyDown(screen.getByTestId('section-title'), { key });
+  it('opens the scope from the title without toggling', () => {
+    const { onToggle, onTitleClick } = renderSection();
+    fireEvent.click(screen.getByTestId('section-title'));
+    expect(onTitleClick).toHaveBeenCalledTimes(1);
     expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('keeps the title and the toggle as separate buttons', () => {
+    renderSection();
+    expect(screen.getByTestId('section-header')).not.toHaveAttribute('role');
+    expect(screen.getByTestId('section-title').closest('button, [role="button"]')).toBe(screen.getByTestId('section-title'));
   });
 });
