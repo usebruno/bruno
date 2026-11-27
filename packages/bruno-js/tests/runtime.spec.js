@@ -195,6 +195,21 @@ describe('runtime', () => {
         expect(result.envVariables.environmentToken).toBe('after');
         expect(result.globalEnvironmentVariables.globalToken).toBe('after');
       });
+
+      it.each(['nodevm', 'quickjs'])('should keep stopExecution when the script throws after calling it (%s)', async (sandbox) => {
+        const script = `
+          bru.runner.stopExecution();
+          throw new Error('Invalid input');
+        `;
+        const runtime = new ScriptRuntime({ runtime: sandbox });
+
+        const error = await runtime
+          .runRequestScript(script, { ...baseRequest }, {}, {}, '.', () => {}, process.env)
+          .catch((err) => err);
+
+        expect(error.message).toContain('Invalid input');
+        expect(error.partialResults.stopExecution).toBe(true);
+      });
     });
 
     describe('run-response-script', () => {

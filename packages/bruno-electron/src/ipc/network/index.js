@@ -1814,16 +1814,17 @@ const registerNetworkIpc = (mainWindow) => {
             const domainsWithCookiesPreRequest = await getDomainsWithCookies();
             mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesPreRequest)));
 
+            // Honor bru.runner.stopExecution() even if the script threw afterwards
+            if (preRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+
             if (preRequestError) {
               throw preRequestError;
             }
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
-            }
-
-            if (preRequestScriptResult?.stopExecution) {
-              stopRunnerExecution = true;
             }
 
             if (preRequestScriptResult?.skipRequest) {
