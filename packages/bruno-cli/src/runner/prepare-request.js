@@ -353,11 +353,13 @@ const prepareRequest = async (item = {}, collection = {}) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
+    // Default to application/json even for an empty body,
+    // otherwise axios sends application/x-www-form-urlencoded.
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/json';
+    }
     const jsonBody = request.body.json;
     if (jsonBody && jsonBody.length > 0) {
-      if (!contentTypeDefined) {
-        axiosRequest.headers['content-type'] = 'application/json';
-      }
       try {
         axiosRequest.data = decomment(jsonBody);
       } catch (error) {
