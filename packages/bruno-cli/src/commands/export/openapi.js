@@ -76,9 +76,7 @@ const exportOpenApi = async (collectionPath, outputFile) => {
     exitWithError(`Failed to read the collection at ${collectionPath}: ${error.message}`, EXIT_STATUS.ERROR_INVALID_FILE);
   }
 
-  // A config the reader could not parse is already listed in `skipped`; reading it again would only repeat the error
-  const configParsed = !collectionData.skipped.includes(collectionData.configFile);
-  const brunoConfig = configParsed ? (await readCollectionConfig(collectionPath)).brunoConfig : null;
+  const { brunoConfig } = collectionData;
   const collectionName = getCollectionName(brunoConfig, collectionPath);
   const outputPath = path.resolve(outputFile || `${collectionName}.yaml`);
   ensureOutputDirectory(outputPath);

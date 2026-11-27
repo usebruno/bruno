@@ -111,6 +111,8 @@ const readCollectionForApiSpec = async (collectionPath) => {
 
   return {
     configFile,
+    brunoConfig,
+    configParsed,
     requests,
     envVariables,
     collectionVariables,
