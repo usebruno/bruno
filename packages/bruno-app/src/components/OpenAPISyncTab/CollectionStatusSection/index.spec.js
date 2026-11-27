@@ -25,12 +25,12 @@ const renderSection = (modified = [createPet], expandedPathnames = modified.map(
       }
     }
   });
-  return render(
+  const sectionWith = (rows) => (
     <Provider store={store}>
       <ThemeProvider theme={themes.light}>
         <CollectionStatusSection
           collection={collection}
-          collectionDrift={{ modified, missing: [], localOnly: [] }}
+          collectionDrift={{ modified: rows, missing: [], localOnly: [] }}
           reloadDrift={jest.fn()}
           onOpenEndpoint={jest.fn()}
           onTabSelect={jest.fn()}
@@ -38,6 +38,8 @@ const renderSection = (modified = [createPet], expandedPathnames = modified.map(
       </ThemeProvider>
     </Provider>
   );
+  const { rerender } = render(sectionWith(modified));
+  return { showModified: (rows) => rerender(sectionWith(rows)) };
 };
 
 describe('CollectionStatusSection', () => {
@@ -80,5 +82,15 @@ describe('CollectionStatusSection', () => {
     expect(original).toHaveAttribute('aria-expanded', 'true');
     expect(duplicate).toHaveAttribute('aria-expanded', 'true');
     await waitFor(() => expect(window.ipcRenderer.invoke).toHaveBeenCalledTimes(2));
+  });
+
+  it('loads a fresh preview when a row\'s file now matches another endpoint', async () => {
+    const { showModified } = renderSection();
+    await waitFor(() => expect(window.ipcRenderer.invoke).toHaveBeenCalledTimes(1));
+
+    showModified([{ ...createPet, id: 'GET:/pets', method: 'GET' }]);
+
+    await waitFor(() => expect(window.ipcRenderer.invoke).toHaveBeenCalledTimes(2));
+    expect(window.ipcRenderer.invoke.mock.calls[1][1]).toMatchObject({ endpointId: 'GET:/pets', pathname: createPet.pathname });
   });
 });

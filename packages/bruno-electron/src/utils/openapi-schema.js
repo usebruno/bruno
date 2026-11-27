@@ -117,8 +117,10 @@ const matchesDiscriminator = (alternative, { propertyName, mapping }, value) => 
   return property !== undefined && property.schemas.some((schema) => (Array.isArray(schema.enum) && schema.enum.includes(value)) || schema.const === value);
 };
 
+const discriminatorOf = (node) => node.schemas.map((schema) => schema.discriminator).find((d) => isPlainObject(d) && typeof d.propertyName === 'string');
+
 const alternativeWrittenFor = (node, alternatives, value) => {
-  const discriminator = node.schemas.map((schema) => schema.discriminator).find((d) => isPlainObject(d) && typeof d.propertyName === 'string');
+  const discriminator = discriminatorOf(node);
   if (discriminator !== undefined && Object.hasOwn(value, discriminator.propertyName)) {
     const matched = alternatives.filter((alternative) => matchesDiscriminator(alternative, discriminator, value[discriminator.propertyName]));
     if (matched.length === 1) return matched[0];
@@ -128,13 +130,32 @@ const alternativeWrittenFor = (node, alternatives, value) => {
   return best > 0 && scores.indexOf(best) === scores.lastIndexOf(best) ? alternatives[scores.indexOf(best)] : undefined;
 };
 
-const otherAlternativeKeys = (node, value) => {
+const ownAlternativeOf = (node, value) => {
   const alternatives = node === undefined ? [] : alternativesOf(node);
-  const own = alternatives.length > 1 ? alternativeWrittenFor(node, alternatives, value) : undefined;
+  return { alternatives, own: alternatives.length > 1 ? alternativeWrittenFor(node, alternatives, value) : undefined };
+};
+
+const otherAlternativeKeys = (node, value) => {
+  const { alternatives, own } = ownAlternativeOf(node, value);
   if (own === undefined) return new Set();
   const inAlternatives = new Set(alternatives.flatMap((alternative) => alternative.node.schemas));
   const shared = { spec: node.spec, schemas: node.schemas.filter((schema) => !inAlternatives.has(schema)) };
   return new Set(declaredKeysOf(node).filter((key) => !declaresKey(own.node, key) && !declaresKey(shared, key)));
+};
+
+const discriminatorValueOf = (alternative, mapping) => {
+  const mappedKey = isPlainObject(mapping)
+    ? Object.keys(mapping).find((key) => typeof mapping[key] === 'string' && mapping[key].split('/').pop() === alternative.name)
+    : undefined;
+  return mappedKey ?? alternative.name;
+};
+
+const missingDiscriminatorOf = (node, value) => {
+  const discriminator = node === undefined ? undefined : discriminatorOf(node);
+  if (discriminator === undefined || Object.hasOwn(value, discriminator.propertyName)) return undefined;
+  const { own } = ownAlternativeOf(node, value);
+  const discriminatorValue = own === undefined ? undefined : discriminatorValueOf(own, discriminator.mapping);
+  return discriminatorValue === undefined ? undefined : { propertyName: discriminator.propertyName, value: discriminatorValue };
 };
 
 module.exports = {
@@ -148,5 +169,6 @@ module.exports = {
   declaresTypeOf,
   keyLeavesShapeOpen,
   itemsLeaveShapeOpen,
-  otherAlternativeKeys
+  otherAlternativeKeys,
+  missingDiscriminatorOf
 };

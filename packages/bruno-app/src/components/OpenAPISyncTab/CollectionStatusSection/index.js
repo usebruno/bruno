@@ -45,7 +45,7 @@ const CollectionStatusSection = ({
 
   const renderDriftRow = (endpoint, idx, actions) => (
     <ExpandableEndpointRow
-      key={endpoint.pathname || endpoint.id}
+      key={[endpoint.pathname, endpoint.id].join('|')}
       endpoint={endpoint}
       collectionPath={collection.pathname}
       showDecisions={false}

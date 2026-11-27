@@ -34,11 +34,18 @@ const OK = { 200: { description: 'OK' } };
 const string = { type: 'string' };
 const recipient = { type: 'object', properties: { email: string } };
 const message = { oneOf: [{ type: 'object', properties: { kind: string, data: { type: 'object', properties: { id: string } } } }, { type: 'object', properties: { kind: string, data: string } }] };
+const catOrDog = (discriminator) => ({ oneOf: [{ $ref: '#/components/schemas/Cat' }, { $ref: '#/components/schemas/Dog' }], discriminator });
 
 const petSpec = {
   openapi: '3.0.3',
   info: { title: 'Pets', version: '1' },
-  components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } } },
+  components: {
+    securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } },
+    schemas: {
+      Cat: { type: 'object', properties: { petType: string, meow: string } },
+      Dog: { type: 'object', properties: { petType: string, bark: string } }
+    }
+  },
   paths: {
     '/pets': {
       post: {
@@ -89,6 +96,20 @@ const petSpec = {
       post: {
         summary: 'Add recipients',
         requestBody: { content: { 'application/json': { schema: { anyOf: [recipient, { type: 'array', items: recipient }] } } } },
+        responses: OK
+      }
+    },
+    '/pets/adopt': {
+      post: {
+        summary: 'Adopt pet',
+        requestBody: { content: { 'application/json': { schema: catOrDog({ propertyName: 'petType', mapping: { cat: '#/components/schemas/Cat', dog: '#/components/schemas/Dog' } }) } } },
+        responses: OK
+      }
+    },
+    '/pets/rescue': {
+      post: {
+        summary: 'Rescue pet',
+        requestBody: { content: { 'application/json': { schema: catOrDog({ propertyName: 'petType' }) } } },
         responses: OK
       }
     }
@@ -408,6 +429,25 @@ describe.each(['bru', 'yml'])('Collection Changes reset in a %s collection', (fo
     const request = readRequest('Send mail');
     expect(request.headers).toEqual([]);
     expect(JSON.parse(request.body.json)).toEqual(body);
+    expect((await drift()).modified).toEqual([]);
+  });
+
+  it.each([
+    ['its mapping', 'Adopt pet', 'POST:/pets/adopt', 'dog'],
+    ['its schema name', 'Rescue pet', 'POST:/pets/rescue', 'Dog']
+  ])('fills a deleted discriminator from %s for the alternative the body is written for, so the endpoint is no longer listed', async (_, name, id, petType) => {
+    writeRequest(name, (request) => ({
+      ...request,
+      headers: [{ name: 'X-Debug', value: '1', enabled: true }],
+      body: { ...request.body, json: JSON.stringify({ bark: 'woof' }) }
+    }));
+    expect((await modifiedEndpoints()).map((endpoint) => [endpoint.id, endpoint.changes])).toEqual([[id, '+1 headers, body schema']]);
+    const preview = await previewReset(id);
+
+    await reset(await modifiedEndpoints());
+
+    expect(JSON.parse(readRequest(name).body.json)).toEqual({ petType, bark: 'woof' });
+    expect(JSON.parse(preview.newData.request.body.json)).toEqual({ petType, bark: 'woof' });
     expect((await drift()).modified).toEqual([]);
   });
 

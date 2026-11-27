@@ -15,7 +15,7 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
-const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
+const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys, missingDiscriminatorOf } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -609,9 +609,11 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shap
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
+    const missingDiscriminator = restoreSpecTypes ? missingDiscriminatorOf(declared, userVal) : undefined;
     const out = {};
     for (const key of Object.keys(specVal)) {
       if (Object.hasOwn(userVal, key)) setOwn(out, key, mergeJsonValues(userVal[key], specVal[key], preserveValues, declaredChild(declared, key), keyLeavesShapeOpen(declared, key), restoreSpecTypes));
+      else if (key === missingDiscriminator?.propertyName) setOwn(out, key, missingDiscriminator.value);
       else if (!otherBranchKeys.has(key)) setOwn(out, key, specVal[key]);
     }
     for (const key of Object.keys(userVal)) {
