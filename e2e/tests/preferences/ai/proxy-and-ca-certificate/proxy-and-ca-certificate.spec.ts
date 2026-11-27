@@ -4,7 +4,8 @@ import https from 'https';
 import net from 'net';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { test, expect } from '../../../../playwright';
+import type { ElectronApplication } from '@playwright/test';
+import { test, expect, closeElectronApp } from '../../../../playwright';
 import {
   buildCommonLocators,
   expandCopilotCard,
@@ -41,6 +42,7 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
   const requests = { modelList: 0 };
   const proxyTunnels = { opened: [] as string[], refused: [] as string[] };
   const tunnelSockets = new Set<net.Socket>();
+  const launchedApps: ElectronApplication[] = [];
 
   test.beforeAll(async () => {
     endpointServer = https.createServer(
@@ -113,6 +115,10 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
     proxyTunnels.refused.length = 0;
   });
 
+  test.afterEach(async () => {
+    await Promise.all(launchedApps.splice(0).map((app) => closeElectronApp(app)));
+  });
+
   const writePacFile = async (pacDir: string) => {
     const pacFilePath = path.join(pacDir, 'proxy.pac');
     await fs.promises.writeFile(
@@ -162,6 +168,7 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
             }
           : {}
     });
+    launchedApps.push(app);
     return waitForReadyPage(app);
   };
 

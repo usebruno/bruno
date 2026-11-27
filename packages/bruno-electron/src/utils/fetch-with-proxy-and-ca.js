@@ -1,6 +1,7 @@
 const http = require('node:http');
 const https = require('node:https');
 const { Readable } = require('node:stream');
+const { app } = require('electron');
 const { getHttpHttpsAgents } = require('@usebruno/requests');
 const { preferencesUtil } = require('../store/preferences');
 const { getCachedSystemProxy } = require('../store/system-proxy');
@@ -30,9 +31,25 @@ const toResponseHeaders = (rawHeaders) => {
   return headers;
 };
 
+const toRequestHeaders = (initHeaders) => {
+  const headers = new Headers(initHeaders);
+  if (!headers.has('user-agent')) {
+    headers.set('user-agent', `bruno-runtime/${app.getVersion()}`);
+  }
+  return Object.fromEntries(headers);
+};
+
+const describeRedirectTarget = (url, location) => {
+  try {
+    const target = new URL(location, url);
+    return `to ${target.origin}${target.pathname}`;
+  } catch (error) {
+    return 'to an invalid address';
+  }
+};
+
 const redirectError = (url, location) => {
-  const target = new URL(location, url);
-  return new Error(`${url.origin} redirected the request to ${target.origin}${target.pathname}. Redirects are not followed when a proxy or a custom CA certificate is in use. Update the URL to point to the final address.`);
+  return new Error(`${url.origin} redirected the request ${describeRedirectTarget(url, location)}. Redirects are not followed when a proxy or a custom CA certificate is in use. Update the URL to point to the final address.`);
 };
 
 const requestWithAgent = (url, init, agent) => new Promise((resolve, reject) => {
@@ -46,7 +63,7 @@ const requestWithAgent = (url, init, agent) => new Promise((resolve, reject) => 
   const transport = url.protocol === 'https:' ? https : http;
   const request = transport.request(url, {
     method: init.method || 'GET',
-    headers: Object.fromEntries(new Headers(init.headers)),
+    headers: toRequestHeaders(init.headers),
     agent
   });
 
