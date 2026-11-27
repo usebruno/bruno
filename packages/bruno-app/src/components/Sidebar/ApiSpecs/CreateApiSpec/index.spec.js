@@ -6,7 +6,7 @@ import { ThemeProvider } from 'styled-components';
 import themes from 'themes/index';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { createApiSpecFile } from 'providers/ReduxStore/slices/apiSpec';
-import { exportApiSpec } from 'utils/exporters/openapi-spec';
+import { brunoToOpenApi } from '@usebruno/converters';
 import { fetchAndValidateApiSpecFromUrl } from 'utils/importers/common';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
 import toast from 'react-hot-toast';
@@ -34,8 +34,8 @@ jest.mock('utils/importers/common', () => ({
   fetchAndValidateApiSpecFromUrl: jest.fn()
 }));
 
-jest.mock('utils/exporters/openapi-spec', () => ({
-  exportApiSpec: jest.fn(() => ({ content: 'openapi: 3.0.0' }))
+jest.mock('@usebruno/converters', () => ({
+  brunoToOpenApi: jest.fn(() => ({ content: { openapi: '3.0.0' }, warnings: [] }))
 }));
 
 jest.mock('hooks/useDefaultApiSpecLocation', () => jest.fn(() => '/home/dev/workspaces/team/apispec'));
@@ -322,7 +322,7 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
       'Could not load that collection. Pick a folder that contains a bruno.json or opencollection.yml.'
     ));
-    expect(exportApiSpec).not.toHaveBeenCalled();
+    expect(brunoToOpenApi).not.toHaveBeenCalled();
     expect(createApiSpecFile).not.toHaveBeenCalled();
     console.error.mockRestore();
   });
@@ -353,11 +353,14 @@ describe('CreateApiSpec — collection source', () => {
     await waitFor(() => expect(screen.getByText('Create')).toBeEnabled());
     await user.click(screen.getByText('Create'));
 
-    await waitFor(() => expect(exportApiSpec).toHaveBeenCalledTimes(1));
-    expect(exportApiSpec).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Billing- v2',
-      items: [{ name: 'list invoices' }]
-    }));
+    await waitFor(() => expect(brunoToOpenApi).toHaveBeenCalledTimes(1));
+    expect(brunoToOpenApi).toHaveBeenCalledWith(
+      'Billing- v2',
+      expect.objectContaining({
+        requests: [{ name: 'list invoices' }]
+      }),
+      ''
+    );
   });
 
   it('does not carry a failed submit\'s errors onto a source or tab just opened', async () => {
@@ -536,7 +539,7 @@ describe('CreateApiSpec — URL source', () => {
       '/home/dev/workspaces/team/apispec',
       YAML_SPEC
     ));
-    expect(exportApiSpec).not.toHaveBeenCalled();
+    expect(brunoToOpenApi).not.toHaveBeenCalled();
 
     expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledTimes(1);
     firstRender.unmount();
@@ -740,7 +743,7 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     await user.click(screen.getByText('Create'));
 
     await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('blank-name.yaml', DEFAULT_LOCATION, ''));
-    expect(exportApiSpec).not.toHaveBeenCalled();
+    expect(brunoToOpenApi).not.toHaveBeenCalled();
     expect(fetchAndValidateApiSpecFromUrl).toHaveBeenCalledTimes(1);
   });
 
@@ -756,7 +759,7 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     await user.click(screen.getByText('Create'));
 
     await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('Hotel Booking API.json', DEFAULT_LOCATION, JSON_SPEC));
-    expect(exportApiSpec).not.toHaveBeenCalled();
+    expect(brunoToOpenApi).not.toHaveBeenCalled();
   });
 
   it('creates a collection spec from the collection only, ignoring a URL fetched earlier', async () => {
@@ -770,8 +773,8 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     await pickPetstore(user);
     await user.click(screen.getByText('Create'));
 
-    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('Petstore.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0'));
-    expect(exportApiSpec).toHaveBeenCalledWith(expect.objectContaining({ items: [{ name: 'get pet' }] }));
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('Petstore.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0\n'));
+    expect(brunoToOpenApi).toHaveBeenCalledWith('Petstore', expect.objectContaining({ requests: [{ name: 'get pet' }] }), 'local');
   });
 
   it('creates from the browsed folder on the file system tab, not the workspace pick', async () => {
@@ -787,7 +790,7 @@ describe('CreateApiSpec — each source keeps its own data', () => {
     await waitFor(() => expect(screen.getByLabelText('Name')).toHaveValue('outside-collection'));
     await user.click(screen.getByText('Create'));
 
-    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('outside-collection.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0'));
-    expect(exportApiSpec).toHaveBeenCalledWith(expect.objectContaining({ items: [{ name: 'ping' }] }));
+    await waitFor(() => expect(createApiSpecFile).toHaveBeenCalledWith('outside-collection.yaml', DEFAULT_LOCATION, 'openapi: 3.0.0\n'));
+    expect(brunoToOpenApi).toHaveBeenCalledWith('outside-collection', expect.objectContaining({ requests: [{ name: 'ping' }] }), '');
   });
 });

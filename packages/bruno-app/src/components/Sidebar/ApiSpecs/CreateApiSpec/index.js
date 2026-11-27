@@ -3,14 +3,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import jsyaml from 'js-yaml';
 import Modal from 'components/Modal';
 import Portal from 'components/Portal';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { createApiSpecFile, openApiSpecTab } from 'providers/ReduxStore/slices/apiSpec';
-import { exportApiSpec } from 'utils/exporters/openapi-spec';
+import { brunoToOpenApi } from '@usebruno/converters';
 import path from 'utils/common/path';
 import { validateName, validateNameError } from 'utils/common/regex';
-import { buildSkippedFilesMessage, buildExportWarningsMessage, buildSpecVariables } from 'utils/common/apiSpec';
+import { buildSkippedFilesMessage, buildExportWarningsMessage } from 'utils/common/apiSpec';
 import { getWorkspaceCollections } from 'utils/collections';
 import { isHttpUrl } from 'utils/url/index';
 import useDefaultApiSpecLocation from 'hooks/useDefaultApiSpecLocation';
@@ -223,27 +224,9 @@ const CreateApiSpec = ({ onClose }) => {
   );
 
   const exportCollectionAsApiSpec = (values) => {
-    const { requests, envVariables, collectionVariables } = collectionSource.collectionData;
+    const exported = brunoToOpenApi(values.apiSpecName, collectionSource.collectionData, values.environment);
 
-    const variables = buildSpecVariables({
-      collectionVariables,
-      envVariables,
-      environment: values.environment
-    });
-
-    const environmentsList = Object.entries(envVariables || {}).map(([name, vars]) => ({
-      name,
-      variables: vars
-    }));
-
-    const exported = exportApiSpec({
-      name: values.apiSpecName,
-      variables,
-      items: requests,
-      environments: environmentsList
-    });
-
-    return { content: exported?.content || '', warnings: exported?.warnings || [] };
+    return { content: jsyaml.dump(exported.content), warnings: exported.warnings };
   };
 
   const getSourceMemoryKey = (importFrom, collectionSource) => (

@@ -3,6 +3,16 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { posixifyPath } = require('./filesystem');
 
+/**
+ * `bru export openapi` reads collections using the same helper function, with a copy of the following functions, in
+ * bruno-cli/src/utils/collection-walk.js. Keep the two in step, or the app and the CLI export different
+ * specs for the same collection.
+ *
+ * This function will be refactored to return a unified Collection Structure.
+ *
+ * @author @vasharma05-bruno
+ */
+
 const DENY_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', '.bruno']);
 const DEFAULT_DENYLIST = ['**/.DS_Store', '**/Thumbs.db'];
 
@@ -52,7 +62,9 @@ const walk = (root, denylist) => {
     if (visited.has(canonicalDir)) return;
     visited.add(canonicalDir);
 
-    const entries = fs.readdirSync(absDir, { withFileTypes: true });
+    // readdirSync order depends on the file system (NTFS ignores case, ext4 uses hash order), so sort by
+    // name to read a collection in the same order on every OS
+    const entries = fs.readdirSync(absDir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1));
     for (const entry of entries) {
       const childAbs = path.join(absDir, entry.name);
       const childRel = relDir ? path.join(relDir, entry.name) : entry.name;

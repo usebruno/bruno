@@ -28,6 +28,15 @@ const readCollectionConfig = async (collectionPath) => {
   }
 };
 
+/**
+ * `bru export openapi` reads collections with a copy of this function, in
+ * bruno-cli/src/utils/collection-reader.js. Keep the two in step, or the app and the CLI export different
+ * specs for the same collection.
+ *
+ * This function will be refactored to return a unified Collection Structure.
+ *
+ * @author @vasharma05-bruno
+ */
 const readCollectionForApiSpec = async (collectionPath) => {
   const { configFile, brunoConfig, configParsed } = await readCollectionConfig(collectionPath);
 

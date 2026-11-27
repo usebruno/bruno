@@ -98,6 +98,40 @@ Import Options:
 | --auth-placement          | Where to set the spec's auth: request (default) on each request, collection on the collection for requests to inherit |
 | --request-name-source     | Field used to name requests: summary (default), operationId, description or path. Missing fields fall back in that order |
 
+## Exporting Collections
+
+You can export a collection as an OpenAPI spec using the export command. Run from inside a collection, it writes `<collection-name>.yaml` to the current directory:
+
+```bash
+bru export openapi
+```
+
+You can also choose the collection and the output file:
+
+```bash
+bru export openapi --source ./my-collection --output-file api.yaml
+```
+
+Or use the shorter form with aliases. A `.json` output file is written as JSON:
+
+```bash
+bru export openapi -s ./my-collection -f api.json
+```
+
+If the collection has environments, choose one with `--env`. Its variables fill in the spec's base server and request URLs, as when you pick an environment in the app's Create API Spec:
+
+```bash
+bru export openapi --env Local
+```
+
+Export Options:
+
+| Option                    | Details                                            |
+| ------------------------- | -------------------------------------------------- |
+| --source, -s              | Path to the collection directory (defaults to the current directory) |
+| --output-file, -f         | Path to the output file: .json writes JSON; .yaml, .yml or no extension writes YAML (defaults to `<collection-name>.yaml`) |
+| --env                     | Environment to export with; required when the collection has environments |
+
 ## Command Line Options
 
 | Option                       | Details                                                                       |

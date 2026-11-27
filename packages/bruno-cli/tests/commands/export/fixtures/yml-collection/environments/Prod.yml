@@ -1,0 +1,4 @@
+name: Prod
+variables:
+  - name: baseUrl
+    value: https://api.example.com

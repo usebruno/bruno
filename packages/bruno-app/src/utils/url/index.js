@@ -94,31 +94,6 @@ export const parsePathParams = (url) => {
   return Array.from(foundParams).map((name) => ({ name, value: '' }));
 };
 
-export const splitOnFirst = (str, char) => {
-  if (!str || !str.length) {
-    return [str];
-  }
-
-  // Mask {{ }} template variables so their contents don't interfere with the search
-  const masked = str.replace(/\{\{.*?\}\}/g, (match) => '_'.repeat(match.length));
-  const index = masked.indexOf(char);
-
-  if (index === -1) {
-    return [str];
-  }
-
-  return [str.slice(0, index), str.slice(index + 1)];
-};
-
-export const isValidUrl = (url) => {
-  try {
-    new URL(url);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
-
 /**
  * `localhost:6000/x` becomes `http://localhost:6000/x`. A schemeless URL is sent over plain
  * HTTP, but `new URL()` and HAR generation both reject it, so callers that have to parse one

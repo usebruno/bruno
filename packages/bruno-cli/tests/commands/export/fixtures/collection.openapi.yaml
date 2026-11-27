@@ -1,0 +1,70 @@
+openapi: 3.0.0
+info:
+  title: My API-v2-test
+  version: 1.0.0
+paths:
+  /folder-1/one:
+    get:
+      summary: request_1
+      operationId: folder_1_request_1_bru
+      description: ''
+      tags:
+        - folder_1
+      responses:
+        '200':
+          description: ''
+  /folder-2/one:
+    get:
+      summary: request_1
+      operationId: folder_2_request_1_bru
+      description: ''
+      tags:
+        - folder_2
+      responses:
+        '200':
+          description: ''
+  /one:
+    get:
+      summary: request_1
+      operationId: request_1_bru
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+  /two:
+    get:
+      summary: request_2
+      operationId: request_2_bru
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+  /token:
+    post:
+      summary: token
+      operationId: token_bru
+      description: ''
+      tags:
+        - ''
+      responses:
+        '200':
+          description: ''
+      servers:
+        - url: http://localhost:4000
+servers:
+  - url: http://localhost:3000
+    description: Base Server
+  - url: http://localhost:3000
+    description: Local
+  - url: https://api.example.com
+    description: Prod
+  - url: https://dev.example.com
+    description: dev
+components:
+  schemas: {}
+  requestBodies: {}
+  securitySchemes: {}
