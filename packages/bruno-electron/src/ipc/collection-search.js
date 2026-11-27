@@ -19,6 +19,8 @@ const isFolderPathList = (paths) =>
   && paths.length <= MAX_FOLDERS_PER_SEARCH
   && paths.every((folderPath) => typeof folderPath === 'string' && path.isAbsolute(folderPath));
 
+const isOptionalBoolean = (value) => value === undefined || typeof value === 'boolean';
+
 const abortWhenPageIsGone = (sender, controller) => {
   const abort = () => controller.abort();
   PAGE_GONE_EVENTS.forEach((eventName) => sender.on(eventName, abort));
@@ -26,12 +28,15 @@ const abortWhenPageIsGone = (sender, controller) => {
 };
 
 const findInFolders = async (request, sender) => {
-  const { requestId, paths } = request || {};
+  const { requestId, paths, wholeRepository } = request || {};
   if (!isRequestId(requestId)) {
     throw new Error('A folder search needs a request id');
   }
   if (!isFolderPathList(paths)) {
     throw new Error(`A folder search needs 1 to ${MAX_FOLDERS_PER_SEARCH} absolute folder paths`);
+  }
+  if (!isOptionalBoolean(wholeRepository)) {
+    throw new Error('A folder search option must be true or false');
   }
   if (activeSearches.has(requestId)) {
     throw new Error(`Folder search ${requestId} is already running`);
@@ -43,7 +48,8 @@ const findInFolders = async (request, sender) => {
   try {
     return await findCollectionsInFolders(paths, {
       signal: controller.signal,
-      excludedFolders: [transientManager.getRootDirectory()]
+      excludedFolders: [transientManager.getRootDirectory()],
+      wholeRepository
     });
   } catch (error) {
     if (controller.signal.aborted) {

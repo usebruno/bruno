@@ -71,6 +71,28 @@ describe('collection search IPC', () => {
     });
   });
 
+  it('passes the whole repository option on', async () => {
+    findCollectionsInFolders.mockResolvedValue({ folders: [] });
+
+    await findInFolders({ requestId: 'search-6', paths: [pickedFolder], wholeRepository: true }, sender);
+
+    expect(findCollectionsInFolders).toHaveBeenCalledWith([pickedFolder], {
+      signal: expect.any(AbortSignal),
+      excludedFolders: ['/app-data/tmp/transient'],
+      wholeRepository: true
+    });
+  });
+
+  it.each([
+    ['a whole repository option that is not true or false', { wholeRepository: 'no' }],
+    ['a whole repository option that is null', { wholeRepository: null }]
+  ])('rejects a request with %s', async (_label, options) => {
+    await expect(findInFolders({ requestId: 'search-7', paths: [pickedFolder], ...options }, sender)).rejects.toThrow(
+      'A folder search option must be true or false'
+    );
+    expect(findCollectionsInFolders).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['no request', undefined],
     ['no request id', { paths: [pickedFolder] }],

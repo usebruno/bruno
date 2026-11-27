@@ -5,6 +5,7 @@ const initialState = {
   page: null,
   openingId: null,
   importLoadId: null,
+  pageBusy: false,
   chooseFolder: {
     status: 'idle',
     searchId: null,
@@ -71,6 +72,9 @@ export const openCollectionModalSlice = createSlice({
       if (state.openingId === action.payload) {
         state.openingId = null;
       }
+    },
+    pageBusyChanged: (state, action) => {
+      state.pageBusy = action.payload;
     }
   }
 });
@@ -88,7 +92,8 @@ export const {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  pageBusyChanged
 } = openCollectionModalSlice.actions;
 
 export default openCollectionModalSlice.reducer;

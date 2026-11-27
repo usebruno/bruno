@@ -1,41 +1,42 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { Fragment, useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFormik } from 'formik';
+import classnames from 'classnames';
 import * as Yup from 'yup';
 import {
   browseDirectory,
   cloneGitRepository,
-  fetchBranchesForRepositoryUrl,
-  openMultipleCollections,
-  scanForBrunoFiles
+  findCollectionsInClonedRepository,
+  openMultipleCollections
 } from 'providers/ReduxStore/slices/collections/actions';
 import { removeGitOperationProgress } from 'providers/ReduxStore/slices/app';
 import Modal from 'components/Modal';
 import SelectionFooter from 'components/SelectionFooter';
 import path, { getRelativePath } from 'utils/common/path';
 import Portal from 'components/Portal';
+import InlineLayout from './InlineLayout';
+import useBranchListing from './useBranchListing';
 import { IconRefresh, IconAlertCircle, IconBrandGit, IconChevronDown } from '@tabler/icons';
 import { uuid } from 'utils/common/index';
 import StyledWrapper from './StyledWrapper';
 import SelectionList from 'components/SelectionList';
 import Button from 'ui/Button';
 import Select from 'ui/Select';
-import { getRepoNameFromUrl } from 'utils/git';
+import { getRepoNameFromUrl, hasUrlCredentials, isGitRepositoryUrl, isPasteIntoUrlHost } from 'utils/git';
 import GitNotFoundModal from 'components/Git/GitNotFoundModal/index';
+import GitNotFoundMessage from 'components/Git/GitNotFoundMessage';
 import SkippedPathsWarning from 'components/SkippedPathsWarning';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 
-const EMPTY_BRANCH_LISTING = { branches: [], defaultBranch: '', loading: false, failed: false };
-
-const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null }) => {
+const CloneGitRepository = ({ onClose, onFinish, onOpenCollections, onBusyChange = () => {}, collectionRepositoryUrl = null, variant = 'modal' }) => {
   const [collectionPaths, setCollectionPaths] = useState([]);
   const [skippedCollectionPaths, setSkippedCollectionPaths] = useState([]);
   const [selectedCollectionPaths, setSelectedCollectionPaths] = useState([]);
   const [processUid, setProcessUid] = useState(uuid());
   const [steps, setSteps] = useState([]);
   const [view, setView] = useState('form');
-  const [branchListing, setBranchListing] = useState(EMPTY_BRANCH_LISTING);
+  const [hostPasteUrl, setHostPasteUrl] = useState(null);
 
   const progressData = useSelector((state) => state.app.gitOperationProgress[processUid]);
   const { gitVersion } = useSelector((state) => state.app);
@@ -61,23 +62,9 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     }
   }, [progressData]);
 
-  const loadBranches = async (url) => {
-    setBranchListing({ ...EMPTY_BRANCH_LISTING, loading: true });
-    try {
-      const { branches, defaultBranch } = await dispatch(fetchBranchesForRepositoryUrl(url));
-      setBranchListing({ branches, defaultBranch: defaultBranch || '', loading: false, failed: false });
-    } catch (error) {
-      console.error(error);
-      setBranchListing({ ...EMPTY_BRANCH_LISTING, failed: true });
-    }
-  };
-
   useEffect(() => {
     if (inputRef?.current) {
       inputRef.current.focus();
-    }
-    if (collectionRepositoryUrl) {
-      loadBranches(collectionRepositoryUrl);
     }
   }, []);
 
@@ -133,51 +120,94 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     );
   };
 
+  const scanError = () => {
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.step === 'scan' ? { ...step, title: 'Scan failed', completed: true, error: true } : step
+      )
+    );
+  };
+
+  const findClonedCollections = async (targetPath) => {
+    scanInProgress();
+    try {
+      const scanResult = await dispatch(findCollectionsInClonedRepository(targetPath));
+      scanFinished();
+      setCollectionPaths(scanResult?.items || []);
+      setSkippedCollectionPaths(scanResult?.skippedItems || []);
+    } catch (err) {
+      scanError();
+      console.error(err);
+    }
+  };
+
   const formik = useFormik({
-    enableReinitialize: true,
     initialValues: {
       repositoryUrl: collectionRepositoryUrl || '',
-      collectionLocation: defaultLocation,
+      collectionLocation: null,
       branch: ''
     },
     validationSchema: Yup.object({
-      repositoryUrl: Yup.string().required('Repository URL is required'),
-      collectionLocation: Yup.string().min(1, 'Location is required').required('Location is required')
+      repositoryUrl: Yup.string()
+        .trim()
+        .required('Repository URL is required')
+        .test('is-git-url', 'Please enter a valid git repository URL', (value) => Boolean(collectionRepositoryUrl) || isGitRepositoryUrl(value)),
+      collectionLocation: Yup.string()
+        .nullable()
+        .test('location-required', 'Location is required', (value) => Boolean(value === null ? defaultLocation : value))
     }),
     onSubmit: async (values) => {
+      onBusyChange(true);
       try {
         setView('progress');
         cloneInProgress();
-        const { repositoryUrl, collectionLocation, branch } = values;
-
+        const repositoryUrl = values.repositoryUrl.trim();
         const repoName = getRepoNameFromUrl(repositoryUrl);
-        const targetPath = path.join(collectionLocation, repoName);
+        const targetPath = path.join(values.collectionLocation ?? defaultLocation, repoName);
 
         await dispatch(
           cloneGitRepository({
             url: repositoryUrl,
             path: targetPath,
             processUid,
-            branch: branch || branchListing.defaultBranch
+            branch: values.branch || activeBranchListing.defaultBranch
           })
         );
 
         cloneFinished();
         dispatch(removeGitOperationProgress(processUid));
 
-        scanInProgress();
-        const scanResult = await dispatch(scanForBrunoFiles(targetPath));
-
-        scanFinished();
-        setCollectionPaths(scanResult?.items || []);
-        setSkippedCollectionPaths(scanResult?.skippedItems || []);
+        await findClonedCollections(targetPath);
       } catch (err) {
         cloneError();
         dispatch(removeGitOperationProgress(processUid));
         console.error(err);
+      } finally {
+        onBusyChange(false);
       }
     }
   });
+
+  const collectionLocation = formik.values.collectionLocation ?? defaultLocation;
+
+  const canListBranches = (url) =>
+    Boolean(collectionRepositoryUrl) || (url !== hostPasteUrl && isGitRepositoryUrl(url) && !hasUrlCredentials(url));
+  const activeBranchListing = useBranchListing(formik.values.repositoryUrl.trim(), { canList: canListBranches });
+
+  const handleRepositoryUrlChange = (e) => {
+    formik.handleChange(e);
+    formik.setFieldValue('branch', '', false);
+  };
+
+  const handleRepositoryUrlPaste = (e) => {
+    const { value, selectionStart, selectionEnd } = e.target;
+    const pastedText = e.clipboardData.getData('text');
+    setHostPasteUrl(
+      isPasteIntoUrlHost({ value, selectionStart, pastedText })
+        ? `${value.slice(0, selectionStart)}${pastedText}${value.slice(selectionEnd)}`.trim()
+        : null
+    );
+  };
 
   const browse = () => {
     dispatch(browseDirectory())
@@ -208,9 +238,9 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
     ));
   };
 
-  const isScanCompleted = () => steps.some((step) => step.step === 'scan' && step.completed);
+  const isScanCompleted = () => steps.some((step) => step.step === 'scan' && step.completed && !step.error);
 
-  const isConfirmDisabled = () => isScanCompleted() && collectionPaths?.length > 0 && selectedCollectionPaths?.length === 0;
+  const isConfirmDisabled = () => isScanCompleted() && collectionPaths.length > 0 && selectedCollectionPaths.length === 0;
 
   const isFooterHidden = () => steps.some((step) => !step.completed);
 
@@ -236,9 +266,9 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         </Button>
       );
     }
-    if (isScanCompleted() && collectionPaths?.length > 0) {
+    if (isScanCompleted() && collectionPaths.length > 0) {
       return (
-        <SelectionFooter>
+        <SelectionFooter data-testid="clone-git-selected-count">
           <span>{selectedCollectionPaths.length}</span> of {collectionPaths.length} selected
         </SelectionFooter>
       );
@@ -257,6 +287,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         break;
       case 'Open':
         if (collectionPaths.length > 0 && selectedCollectionPaths.length > 0) {
+          if (onOpenCollections) return onOpenCollections(selectedCollectionPaths);
           dispatch(openMultipleCollections(selectedCollectionPaths));
           onClose();
           onFinish();
@@ -270,30 +301,44 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
   const getConfirmText = () =>
     !steps.length
       ? 'Clone'
-      : steps.some((step) => !step.completed || step.error || (isScanCompleted() && !collectionPaths?.length))
+      : steps.some((step) => !step.completed || step.error || (isScanCompleted() && !collectionPaths.length))
         ? 'Close'
         : 'Open';
 
+  const isInline = variant === 'inline';
+
+  const handleInlineEnter = (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented || e.target.tagName !== 'INPUT' || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) {
+      return;
+    }
+    e.preventDefault();
+    handleConfirm();
+  };
+
   if (!gitVersion) {
-    return <GitNotFoundModal onClose={onClose} />;
+    return isInline ? <GitNotFoundMessage className="py-4" /> : <GitNotFoundModal onClose={onClose} />;
   }
 
+  const Outer = isInline ? Fragment : Portal;
+  const outerProps = isInline ? {} : { id: 'clone-repository-portal' };
+  const Layout = isInline ? InlineLayout : Modal;
+  const layoutProps = {
+    ...(isInline ? {} : { size: 'md', title: 'Clone Git Repository' }),
+    confirmText: getConfirmText(),
+    handleConfirm,
+    handleCancel: onClose,
+    confirmDisabled: isConfirmDisabled(),
+    hideFooter: isFooterHidden(),
+    hideCancel: isError() || (isScanCompleted() && !collectionPaths.length),
+    footerLeft: renderFooterLeft()
+  };
+
   return (
-    <Portal id="clone-repository-portal">
-      <Modal
-        size="md"
-        title="Clone Git Repository"
-        confirmText={getConfirmText()}
-        handleConfirm={handleConfirm}
-        handleCancel={onClose}
-        confirmDisabled={isConfirmDisabled()}
-        hideFooter={isFooterHidden()}
-        hideCancel={isError() || (isScanCompleted() && !collectionPaths?.length)}
-        footerLeft={renderFooterLeft()}
-      >
-        <StyledWrapper>
+    <Outer {...outerProps}>
+      <Layout {...layoutProps}>
+        <StyledWrapper className={isInline ? 'clone-inline flex flex-col flex-1 min-h-0' : undefined} data-testid="clone-git-repository-content">
           {view === 'form' && (
-            <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+            <form className="bruno-form" onSubmit={(e) => e.preventDefault()} onKeyDown={isInline ? handleInlineEnter : undefined}>
               <div>
                 {collectionRepositoryUrl
                   ? (
@@ -312,43 +357,52 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                   : (
                       <>
                         <label htmlFor="repository-url" className="flex items-center font-semibold">
-                          Git Repository URL
+                          Repository URL
                         </label>
-                        <input
-                          id="repository-url"
-                          type="text"
-                          name="repositoryUrl"
-                          ref={inputRef}
-                          className="block textbox mt-2 w-full"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          onChange={formik.handleChange}
-                          value={formik.values.repositoryUrl || ''}
-                        />
+                        <div className={classnames('mt-2', { 'icon-input-field': isInline })}>
+                          {isInline && <IconBrandGit size={15} strokeWidth={1.75} aria-hidden="true" />}
+                          <input
+                            id="repository-url"
+                            type="text"
+                            data-testid="clone-git-repository-url"
+                            name="repositoryUrl"
+                            ref={inputRef}
+                            className={classnames({ 'block textbox w-full': !isInline })}
+                            placeholder="https://github.com/org/repo"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                            onChange={handleRepositoryUrlChange}
+                            onPaste={handleRepositoryUrlPaste}
+                            value={formik.values.repositoryUrl || ''}
+                          />
+                        </div>
+                        <div className="text-muted text-xs mt-1" data-testid="clone-git-repository-url-hint">Any git host: GitHub, GitLab, Bitbucket or self-hosted.</div>
                       </>
                     )}
                 {formik.touched.repositoryUrl && formik.errors.repositoryUrl && (
-                  <div className="text-red-500">{formik.errors.repositoryUrl}</div>
+                  <div className="text-red-500" data-testid="clone-git-repository-url-error">{formik.errors.repositoryUrl}</div>
                 )}
                 <label htmlFor="collection-location" className="block font-semibold mt-3">
-                  Location
+                  Clone to location
                 </label>
-                <input
-                  id="collection-location"
-                  data-testid="clone-git-repository-location"
-                  type="text"
-                  name="collectionLocation"
-                  readOnly
-                  className="block textbox mt-2 w-full cursor-pointer"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  value={formik.values.collectionLocation || ''}
-                  onClick={browse}
-                />
+                <div className={classnames('mt-2', { 'icon-input-field no-icon': isInline })}>
+                  <input
+                    id="collection-location"
+                    data-testid="clone-git-repository-location"
+                    type="text"
+                    name="collectionLocation"
+                    readOnly
+                    className={classnames('cursor-pointer', { 'block textbox w-full': !isInline })}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    value={collectionLocation || ''}
+                    onClick={browse}
+                  />
+                </div>
                 {formik.touched.collectionLocation && formik.errors.collectionLocation && (
                   <div className="text-red-500">{formik.errors.collectionLocation}</div>
                 )}
@@ -360,19 +414,20 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 <Select
                   className="branch-select mt-5"
                   label="Branch"
-                  data={branchListing.branches}
-                  value={formik.values.branch || branchListing.defaultBranch}
+                  data={activeBranchListing.branches}
+                  value={formik.values.branch || activeBranchListing.defaultBranch}
                   onChange={(branch) => formik.setFieldValue('branch', branch || '')}
                   searchable
+                  fitToSpace={isInline}
                   allowDeselect={false}
-                  loading={branchListing.loading}
-                  rightSection={branchListing.loading ? undefined : <IconChevronDown size={12} strokeWidth={2} />}
-                  disabled={!branchListing.branches.length}
-                  placeholder={branchListing.loading ? 'Loading branches...' : 'Repository default'}
+                  loading={activeBranchListing.loading}
+                  rightSection={activeBranchListing.loading ? undefined : <IconChevronDown size={12} strokeWidth={2} />}
+                  disabled={!activeBranchListing.branches.length}
+                  placeholder={activeBranchListing.loading ? 'Loading branches...' : 'Repository default'}
                   nothingFoundMessage="No branches match your search"
                   data-testid="clone-git-repository-branch-select"
                 />
-                {branchListing.failed && (
+                {activeBranchListing.failed && (
                   <div className="text-muted text-xs mt-1">
                     Branches could not be listed for this repository. Cloning will use the default branch.
                   </div>
@@ -406,8 +461,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                 </div>
               )}
               {isScanCompleted() && (
-                <div className="w-full min-w-0 flex flex-col gap-3">
-                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
+                <div className={classnames('w-full min-w-0 flex flex-col gap-3', { 'flex-1 min-h-0': isInline })} data-testid="clone-git-scan-result">
                   {collectionPaths.length === 0 && (
                     <div className="scan-warning flex items-start gap-2">
                       <IconAlertCircle className="scan-warning-icon" size={18} strokeWidth={1.5} />
@@ -424,19 +478,21 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
                       onItemToggle={handleCollectionSelect}
                       getItemId={(collection) => collection.pathname}
                       renderItemTitle={(collection) => collection.name}
-                      renderItemDescription={(collection) => getRelativePath(formik.values.collectionLocation, collection.pathname)}
+                      renderItemDescription={(collection) => getRelativePath(collectionLocation, collection.pathname)}
                       visibleRows={8}
                       rowHeight={60}
                       rowGap={4}
+                      fillHeight={isInline}
                     />
                   )}
+                  <SkippedPathsWarning paths={skippedCollectionPaths} itemNoun="collections" />
                 </div>
               )}
             </>
           )}
         </StyledWrapper>
-      </Modal>
-    </Portal>
+      </Layout>
+    </Outer>
   );
 };
 

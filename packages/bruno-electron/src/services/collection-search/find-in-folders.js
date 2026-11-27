@@ -62,11 +62,20 @@ const summarizeFolder = async (folder, collections, isOnlyFolder) => {
   };
 };
 
-const findCollectionsInFolders = async (folderPaths, { signal, maxFolders = MAX_FOLDERS, excludedFolders = [] } = {}) => {
+const findCollectionsInFolders = async (
+  folderPaths,
+  { signal, maxFolders = MAX_FOLDERS, excludedFolders = [], wholeRepository = false } = {}
+) => {
   const excludedKeys = await Promise.all(
     excludedFolders.map(async (folderPath) => toPathKey(await getRealPath(folderPath).catch(() => folderPath)))
   );
-  const walker = new CollectionWalker({ signal, maxFolders, excludedKeys, skippedMountPoints: await getSkippedMountPoints() });
+  const walker = new CollectionWalker({
+    signal,
+    maxFolders,
+    excludedKeys,
+    wholeRepository,
+    skippedMountPoints: await getSkippedMountPoints()
+  });
 
   const folders = [];
   for (const folderPath of folderPaths) {

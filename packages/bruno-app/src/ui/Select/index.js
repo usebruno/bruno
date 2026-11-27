@@ -3,6 +3,7 @@ import Dropdown from 'components/Dropdown';
 import { IconCaretDown, IconX, IconLoader2 } from '@tabler/icons';
 import InputWrapper from 'ui/InputWrapper';
 import StyledWrapper from './StyledWrapper';
+import { createFitToSpaceModifiers } from './fitToSpace';
 
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
 const ACTION_KEYS = ['Enter'];
@@ -59,6 +60,7 @@ const sameWidthModifier = {
  * @param {string} props.label - Label text displayed above the select
  * @param {string} props.description - Description text displayed below the label
  * @param {string} props.className - Additional CSS class for the wrapper
+ * @param {boolean} props.fitToSpace - Opens the dropdown downward, past scrolling parents, and caps its height to the space left below the trigger in its clipping container (default: false)
  */
 const Select = ({
   data,
@@ -81,6 +83,7 @@ const Select = ({
   required = false,
   size = 'md',
   className,
+  fitToSpace = false,
   'data-testid': testId
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -364,12 +367,15 @@ const Select = ({
           placement="bottom-start"
           visible={isOpen}
           onClickOutside={handleClickOutside}
-          popperOptions={{ modifiers: [sameWidthModifier] }}
+          popperOptions={fitToSpace
+            ? { strategy: 'fixed', modifiers: [sameWidthModifier, ...createFitToSpaceModifiers(maxDropdownHeight)] }
+            : { modifiers: [sameWidthModifier] }}
           maxWidth="none"
         >
           <div
             ref={menuRef}
             role="listbox"
+            data-testid={testId ? `${testId}-listbox` : undefined}
             tabIndex={searchable ? undefined : -1}
             onKeyDown={searchable ? undefined : handleKeyDown}
             style={{ maxHeight: maxDropdownHeight, overflowY: 'auto', outline: 'none' }}

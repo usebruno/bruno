@@ -169,6 +169,14 @@ describe('open collection modal actions', () => {
       expect(browseDirectories).not.toHaveBeenCalled();
     });
 
+    it('switches pages while a clone runs on the Git page', () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      store.dispatch(openCollectionModal('recents'));
+
+      expect(modalState(store)).toMatchObject({ page: 'recents', pageBusy: true });
+    });
+
     it('starts Choose folder afresh and picks again when it was showing found collections', async () => {
       pickerReturns(Promise.resolve([]));
       const { store } = createStore({ modal: openOn('recents', { ...closedModal.chooseFolder, result: listResult }) });
@@ -445,6 +453,14 @@ describe('open collection modal actions', () => {
       expect(openMultipleCollections).not.toHaveBeenCalled();
     });
 
+    it('closes the modal and clears the busy flag while a clone runs', () => {
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      store.dispatch(closeOpenCollectionModal());
+
+      expect(modalState(store)).toMatchObject({ isOpen: false, pageBusy: false });
+    });
+
     it('cancels the search in the main process when the modal closes', () => {
       searchReturns(new Promise(() => {}));
       const { store } = createStore({ modal: openOn('choose-folder') });
@@ -562,6 +578,16 @@ describe('open collection modal actions', () => {
       expect(readImportableFile).toHaveBeenCalledWith(file);
       expect(modalState(store).page).toBe('import');
     });
+
+    it('reads a file named in a note while a clone runs on the Git page', async () => {
+      readImportableFile.mockResolvedValue(importData);
+      const { store } = createStore({ modal: { ...openOn('choose-folder'), pageBusy: true } });
+      const file = { path: '/work/openapi.yaml', name: 'openapi.yaml', format: 'openapi' };
+
+      await expect(store.dispatch(loadImportableFile(file))).resolves.toEqual(importData);
+
+      expect(modalState(store).page).toBe('import');
+    });
   });
 
   describe('openDroppedItems', () => {
@@ -618,6 +644,16 @@ describe('open collection modal actions', () => {
       await store.dispatch(openDroppedItems({ folderPaths: [], hasFolders: false, files: [] }));
 
       expect(modalState(store).page).toBe('recents');
+    });
+
+    it('searches a folder dropped while a clone runs on the Git page', async () => {
+      searchReturns(Promise.resolve(plainFolderResult));
+      const { store } = createStore({ modal: { ...openOn('git'), pageBusy: true } });
+
+      await store.dispatch(openDroppedItems({ folderPaths: ['/work'], hasFolders: true, files: [] }));
+
+      expect(callIpc).toHaveBeenCalledWith(FIND_IN_FOLDERS, expect.objectContaining({ paths: ['/work'] }));
+      expect(modalState(store).page).toBe('choose-folder');
     });
 
     it('ignores a drop while collections are opening', async () => {

@@ -128,4 +128,26 @@ describe('Modal', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
   });
+
+  it('styles textboxes in the modal content', () => {
+    renderWithTheme(
+      <Modal {...baseProps} handleCancel={() => {}} handleConfirm={() => {}}>
+        <input type="text" className="textbox" data-testid="textbox" />
+      </Modal>
+    );
+
+    expect(getComputedStyle(screen.getByTestId('textbox')).lineHeight).toBe('1.42857143');
+  });
+
+  it('styles checkboxes in the modal', () => {
+    renderWithTheme(
+      <Modal {...baseProps} handleCancel={() => {}} handleConfirm={() => {}}>
+        <input type="checkbox" className="checkbox" data-testid="checkbox" />
+      </Modal>
+    );
+
+    const style = getComputedStyle(screen.getByTestId('checkbox'));
+    expect(style.appearance).toBe('none');
+    expect(style.background).toBe('transparent');
+  });
 });

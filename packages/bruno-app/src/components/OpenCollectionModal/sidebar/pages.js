@@ -1,4 +1,5 @@
 import {
+  IconBrandGit,
   IconBrandSafari,
   IconClock,
   IconDatabase,
@@ -10,6 +11,8 @@ import ChooseFolderPage from './ChooseFolderPage';
 import ImportPage from './ImportPage';
 import RecentsPage from './RecentsPage';
 import MyComputerPage from './MyComputerPage';
+import GitPage from './GitPage';
+import { GIT_PAGE_ID } from './GitPage/constants';
 import RegistryPage from './RegistryPage';
 import ApiCatalogPage from './ApiCatalogPage';
 
@@ -24,6 +27,7 @@ import ApiCatalogPage from './ApiCatalogPage';
  * @property {React.ComponentType} icon - Tabler icon shown in the menu.
  * @property {'sources'} [group] - Pages in the group are listed under the Sources heading.
  * @property {React.ComponentType} component - Page body. It takes no props.
+ * @property {boolean} [keepMounted] - Stays mounted after its first visit and is only hidden on other pages, so its work keeps running.
  */
 
 /** @type {OpenCollectionPage[]} */
@@ -60,6 +64,16 @@ export const OPEN_COLLECTION_PAGES = [
     icon: IconDeviceLaptop,
     group: 'sources',
     component: MyComputerPage
+  },
+  {
+    id: GIT_PAGE_ID,
+    label: 'Git',
+    title: 'Git',
+    description: 'Clone a Git repository and open its collections',
+    icon: IconBrandGit,
+    group: 'sources',
+    component: GitPage,
+    keepMounted: true
   },
   {
     id: 'registry',

@@ -12,4 +12,5 @@ export * from './helpers';
 export * from './workspace';
 export * from './app';
 export * from './openapi-sync';
+export * from './git';
 export * from './data';

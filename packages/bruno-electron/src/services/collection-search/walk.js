@@ -11,6 +11,7 @@ const PRUNED_FOLDER_NAMES = new Set([
   'node_modules', 'bower_components', 'venv', '__pycache__', 'dist', 'build', 'target', 'out',
   'Library', 'AppData', '$Recycle.Bin', 'System Volume Information', 'Applications', 'CMakeFiles'
 ]);
+const ALWAYS_SKIPPED_FOLDER_NAMES = new Set(['.git', 'node_modules']);
 const LINUX_ROOT_SYSTEM_FOLDERS = new Set(['proc', 'sys', 'dev']);
 const PRUNED_FOLDER_SUFFIXES = ['.app', '.framework', '.xcodeproj'];
 
@@ -41,11 +42,12 @@ const isCollectionFolder = async (folderPath) => {
 };
 
 class CollectionWalker {
-  constructor({ signal, maxFolders, excludedKeys = [], skippedMountPoints = new Set() }) {
+  constructor({ signal, maxFolders, excludedKeys = [], skippedMountPoints = new Set(), wholeRepository = false }) {
     this.signal = signal;
     this.maxFolders = maxFolders;
     this.excludedKeys = excludedKeys;
     this.skippedMountKeys = new Set([...skippedMountPoints].map(toPathKey));
+    this.wholeRepository = wholeRepository;
     this.visitedKeys = new Set();
     this.collections = [];
     this.folderCount = 0;
@@ -104,17 +106,20 @@ class CollectionWalker {
       } catch (error) {
         this.unreadableFolderCount += 1;
       }
-      return [];
+      if (!this.wholeRepository) {
+        return [];
+      }
     }
 
     const children = entries
+      .filter((entry) => !this.wholeRepository || !ALWAYS_SKIPPED_FOLDER_NAMES.has(entry.name))
       .map((entry) => ({ entry, folderPath: path.join(folderPath, entry.name), realPath: path.join(realPath, entry.name) }))
       .filter((child) => !this.skippedMountKeys.has(toPathKey(child.realPath)));
     const isFolder = await Promise.all(children.map((child) => isRealFolder(child.entry, child.folderPath)));
     const subfolders = [];
     const skippedFolders = [];
     children.forEach((child, index) => {
-      if (isFolder[index] && !isPrunedFolderName(child.entry.name, realPath)) {
+      if (isFolder[index] && (this.wholeRepository || !isPrunedFolderName(child.entry.name, realPath))) {
         subfolders.push({ folderPath: child.folderPath, realPath: child.realPath });
       } else if (isFolder[index] || child.entry.isSymbolicLink()) {
         skippedFolders.push(child);

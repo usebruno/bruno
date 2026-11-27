@@ -10,7 +10,7 @@ const SkippedPathsWarning = ({ paths, itemNoun }) => {
   }
 
   return (
-    <StyledWrapper>
+    <StyledWrapper data-testid="skipped-paths-warning">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2">
           <IconAlertTriangle size={16} strokeWidth={1.5} className="scan-warning-icon" />
@@ -27,7 +27,7 @@ const SkippedPathsWarning = ({ paths, itemNoun }) => {
       {showDetails && (
         <ul className="scan-warning-list scrollbar-hover">
           {paths.map((pathname) => (
-            <li key={pathname}>
+            <li key={pathname} data-testid="skipped-paths-warning-item">
               <span className="scan-warning-path">{pathname}</span>
             </li>
           ))}

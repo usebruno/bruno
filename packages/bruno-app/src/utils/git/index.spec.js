@@ -1,4 +1,62 @@
-import { containsGitHubToken, getSafeGitRemoteUrls, isGitRepositoryUrl } from './index';
+import { containsGitHubToken, getSafeGitRemoteUrls, hasUrlCredentials, isGitRepositoryUrl, isPasteIntoUrlHost } from './index';
+
+describe('hasUrlCredentials', () => {
+  it.each([
+    ['https://ghp_token@github.com/acme/api.git', true],
+    ['https://user:pass@github.com/acme/api.git', true],
+    ['https://github_pat_11ABCDEFG0abcdefghij@github.com/acme/api.git', true],
+    ['https://glpat-abcdefghij1234567890@gitlab.com/acme/api.git', true],
+    ['https://ATBB1234567890abcdef@bitbucket.org/ws/repo.git', true],
+    ['https://abcdefghijklmnopqrstuvwxyz0123456789@dev.azure.com/org/project/_git/repo', true],
+    ['https://user:@github.com/acme/api.git', true],
+    ['ghp_token@github.com:acme/api.git', true],
+    ['ssh://ghp_token@github.com/acme/api.git', true],
+    ['  https://ghp_token@github.com/acme/api.git  ', true],
+    ['git+https://ghp_token@github.com/acme/api.git', true],
+    ['git://ghp_token@github.com/acme/api.git', true],
+    ['https://ghp_token@github.com:abc/acme/api.git', true],
+    ['https://ghp_token@github.com\\acme\\api.git', true],
+    ['ssh://git:ghp_token@github.com/acme/api.git', true],
+    ['user:pass@github.com:acme/api.git', true],
+    ['https:/ghp_token@github.com/acme/api.git', true],
+    ['https:ghp_token@github.com/acme/api.git', true],
+    ['https:///ghp_token@github.com/acme/api.git', true],
+    ['http:/user:pass@github.com/acme/api.git', true],
+    ['https://github.com/acme/api.git', false],
+    ['http://user@example.com/acme/api.git', false],
+    ['https://jdoe@bitbucket.org/ws/repo.git', false],
+    ['https://org@dev.azure.com/org/project/_git/repo', false],
+    ['  https://jdoe@bitbucket.org/ws/repo.git  ', false],
+    ['https://github.com/acme/api.git?ref=a@b', false],
+    ['ssh://git@github.com/acme/api.git', false],
+    ['git@github.com:acme/api.git', false],
+    ['github.com/acme/api', false],
+    ['', false],
+    [null, false]
+  ])('%p -> %p', (url, expected) => {
+    expect(hasUrlCredentials(url)).toBe(expected);
+  });
+});
+
+describe('isPasteIntoUrlHost', () => {
+  const URL = 'https://github.com/acme/api.git';
+  const HOST_START = 'https://'.length;
+  const HOST_END = 'https://github.com'.length;
+
+  it.each([
+    ['a token before the host', URL, HOST_START, 'ghp_abc123', true],
+    ['text in the middle of the host', URL, HOST_START + 3, 'abc', true],
+    ['text right after the host', URL, HOST_END, '.example', true],
+    ['a token before the host of a URL with spaces before it', `  ${URL}`, HOST_START + 2, 'ghp_abc123', true],
+    ['text after the host, in the path', URL, HOST_END + 1, 'org', false],
+    ['text with a path into the host', URL, HOST_START, 'gitlab.com/acme', false],
+    ['a whole URL into an empty field', '', 0, URL, false],
+    ['text into the scheme', URL, 2, 'x', false],
+    ['text into a URL without a scheme', 'git@github.com:acme/api.git', 4, 'ghp_abc123', false]
+  ])('%s -> %p', (_name, value, selectionStart, pastedText, expected) => {
+    expect(isPasteIntoUrlHost({ value, selectionStart, pastedText })).toBe(expected);
+  });
+});
 
 describe('containsGitHubToken', () => {
   test('should return true for a URL containing a GitHub token', () => {

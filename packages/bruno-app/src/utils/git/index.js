@@ -45,6 +45,45 @@ export const getSafeGitRemoteUrls = (remotes = []) => {
   return safeRemoteUrls || [];
 };
 
+const URL_WITH_SCHEME = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
+const SCP_LIKE_URL = /^([^@/\s]+)@[^:/\s]+:/;
+
+const TOKEN_PREFIX = /^(ghp_|gho_|ghu_|ghs_|ghr_|github_pat_|glpat-|gldt-|ATBB|ATATT)/;
+const MIN_TOKEN_LENGTH = 30;
+
+const isCredentialUser = (userInfo) => userInfo.includes(':') || TOKEN_PREFIX.test(userInfo) || userInfo.length >= MIN_TOKEN_LENGTH;
+
+// git still reads a user from URLs with a missing or extra slash, like https:/token@host
+const hasParsedNonSshUser = (url) => {
+  try {
+    const { user, protocol } = gitUrlParse(url);
+    return Boolean(user) && protocol !== 'ssh';
+  } catch {
+    return false;
+  }
+};
+
+export const hasUrlCredentials = (url) => {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  const trimmedUrl = url.trim();
+  const schemeMatch = URL_WITH_SCHEME.exec(trimmedUrl);
+  if (schemeMatch) {
+    const authority = schemeMatch[2];
+    const atIndex = authority.lastIndexOf('@');
+    if (atIndex !== -1) {
+      return isCredentialUser(authority.slice(0, atIndex));
+    }
+  } else {
+    const scpMatch = SCP_LIKE_URL.exec(trimmedUrl);
+    if (scpMatch && isCredentialUser(scpMatch[1])) {
+      return true;
+    }
+  }
+  return hasParsedNonSshUser(trimmedUrl);
+};
+
 export const isGitRepositoryUrl = (url) => {
   try {
     if (!url || typeof url !== 'string') {
@@ -60,4 +99,18 @@ export const isGitRepositoryUrl = (url) => {
   } catch {
     return false;
   }
+};
+
+export const isPasteIntoUrlHost = ({ value, selectionStart, pastedText }) => {
+  if (typeof value !== 'string' || typeof pastedText !== 'string' || pastedText.includes('/')) {
+    return false;
+  }
+  const trimmedValue = value.trimStart();
+  const match = URL_WITH_SCHEME.exec(trimmedValue);
+  if (!match) {
+    return false;
+  }
+  const hostStart = value.length - trimmedValue.length + match[1].length + '://'.length;
+  const hostEnd = hostStart + match[2].length;
+  return selectionStart >= hostStart && selectionStart <= hostEnd;
 };

@@ -3,8 +3,8 @@ import fs from 'fs';
 import os from 'os';
 import { test, expect, closeElectronApp } from '../../../playwright';
 import { switchWorkspace, buildCommonLocators, openCloneDialogFromImport } from '../../../pages';
-import { waitForReadyPage } from '../../../utils';
-import { currentGitBranch, hasGitInstalled, runGit } from './helpers';
+import { waitForReadyPage, hasGitInstalled, runGit } from '../../../utils';
+import { currentGitBranch } from './helpers';
 
 const initUserDataPath = path.join(__dirname, 'init-user-data');
 const fixturesPath = path.join(__dirname, 'fixtures');
