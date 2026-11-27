@@ -38,6 +38,24 @@ export interface GeneratedCollection {
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
 
+/** Write a flat YAML collection with named GET requests for a test fixture. */
+export const seedYamlCollection = async (dir: string, name: string, requestNames: string[]) => {
+  await generateCollectionRoot(dir, name, 'yml');
+  await Promise.all(requestNames.map((requestName, index) => fs.promises.writeFile(
+    path.join(dir, `${requestName}.yml`),
+    [
+      'info:',
+      `  name: ${JSON.stringify(requestName)}`,
+      '  type: http',
+      `  seq: ${index + 1}`,
+      'http:',
+      '  method: GET',
+      '  url: https://echo.usebruno.com',
+      ''
+    ].join('\n')
+  )));
+};
+
 /**
  * Generate a collection with the specified parameters
  */
