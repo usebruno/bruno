@@ -61,7 +61,7 @@ const jsonToExampleBru = (json) => {
     if (queryParams.length) {
       bru += '  params:query: {\n';
       bru += `${indentStringCustom(queryParams
-        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -69,7 +69,7 @@ const jsonToExampleBru = (json) => {
     if (pathParams.length) {
       bru += '  params:path: {\n';
       bru += `${indentStringCustom(pathParams
-        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
@@ -78,7 +78,7 @@ const jsonToExampleBru = (json) => {
   if (headers && headers.length) {
     bru += '  headers: {\n';
     bru += `${indentStringCustom(headers
-      .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `${item.enabled ? '' : '~'}${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n'), 4)}`;
     bru += '\n  }\n\n';
   }
@@ -112,11 +112,11 @@ const jsonToExampleBru = (json) => {
     bru += `  body:form-urlencoded: {\n`;
     const enabledValues = body.formUrlEncoded
       .filter((item) => item.enabled)
-      .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n');
     const disabledValues = body.formUrlEncoded
       .filter((item) => !item.enabled)
-      .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
+      .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
       .join('\n');
 
     if (enabledValues) {
@@ -192,7 +192,7 @@ const jsonToExampleBru = (json) => {
     if (responseHeaders && responseHeaders.length) {
       bru += '  headers: {\n';
       bru += `${indentStringCustom(responseHeaders
-        .map((item) => `${quoteKey(item.name)}: ${item.value}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n'), 4)}`;
       bru += '\n  }\n\n';
     }
