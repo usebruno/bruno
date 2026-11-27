@@ -84,3 +84,51 @@ describe('cookieJarWrapper.setCookie — __Host- prefix handling', () => {
     expect(found).toBeUndefined();
   });
 });
+
+describe('cookie expiry — Max-Age takes precedence over Expires', () => {
+  const PAST_EXPIRES = 'Thu, 01 Jan 2015 00:00:00 GMT';
+  const FUTURE_EXPIRES = 'Fri, 01 Jan 2100 00:00:00 GMT';
+
+  beforeEach(async () => {
+    await cookiesModule.jar().clear();
+  });
+
+  it('sends a cookie with a valid Max-Age even when Expires is in the past', () => {
+    cookiesModule.addCookieToJar(`session=abc; Max-Age=3600; Expires=${PAST_EXPIRES}; Path=/`, TEST_URL);
+
+    expect(cookiesModule.getCookieStringForUrl(TEST_URL)).toBe('session=abc');
+  });
+
+  it('lists a cookie with a valid Max-Age even when Expires is in the past', async () => {
+    cookiesModule.addCookieToJar(`session=abc; Max-Age=3600; Expires=${PAST_EXPIRES}; Path=/`, TEST_URL);
+
+    const domains = await cookiesModule.getDomainsWithCookies();
+    const domain = domains.find((d) => d.domain === 'example.com');
+    expect(domain).toBeDefined();
+    expect(domain!.cookies.map((c) => c.key)).toEqual(['session']);
+  });
+
+  it('does not send or list a cookie whose Max-Age is zero even when Expires is in the future', async () => {
+    cookiesModule.addCookieToJar(`session=abc; Max-Age=0; Expires=${FUTURE_EXPIRES}; Path=/`, TEST_URL);
+
+    expect(cookiesModule.getCookieStringForUrl(TEST_URL)).toBe('');
+    const domains = await cookiesModule.getDomainsWithCookies();
+    expect(domains.find((d) => d.domain === 'example.com')).toBeUndefined();
+  });
+
+  it('still drops a cookie without Max-Age whose Expires is in the past', async () => {
+    cookiesModule.addCookieToJar(`old=1; Expires=${PAST_EXPIRES}; Path=/`, TEST_URL);
+
+    expect(cookiesModule.getCookieStringForUrl(TEST_URL)).toBe('');
+    const domains = await cookiesModule.getDomainsWithCookies();
+    expect(domains.find((d) => d.domain === 'example.com')).toBeUndefined();
+  });
+
+  it('keeps session cookies that have neither Max-Age nor Expires', async () => {
+    cookiesModule.addCookieToJar('sid=xyz; Path=/', TEST_URL);
+
+    expect(cookiesModule.getCookieStringForUrl(TEST_URL)).toBe('sid=xyz');
+    const domains = await cookiesModule.getDomainsWithCookies();
+    expect(domains.find((d) => d.domain === 'example.com')!.cookies.map((c) => c.key)).toEqual(['sid']);
+  });
+});

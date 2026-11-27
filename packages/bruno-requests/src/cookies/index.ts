@@ -18,6 +18,13 @@ const addCookieToJar = (setCookieHeader: string, requestUrl: string): void => {
   });
 };
 
+// Max-Age takes precedence over Expires (RFC 6265 section 5.3), which tough-cookie's
+// expiryTime() already accounts for. Session cookies have no expiry time.
+const isCookieExpired = (cookie: Cookie): boolean => {
+  const expiryTime = cookie.expiryTime();
+  return expiryTime !== undefined && expiryTime <= Date.now();
+};
+
 const getCookiesForUrl = (url: string) => {
   return cookieJar.getCookiesSync(url, {
     secure: isPotentiallyTrustworthyOrigin(url)
@@ -28,7 +35,7 @@ const getCookieStringForUrl = (url: string): string => {
   const cookies = getCookiesForUrl(url);
   if (!Array.isArray(cookies) || !cookies.length) return '';
 
-  const validCookies = cookies.filter((cookie: any) => !cookie.expires || (cookie.expires as any) > Date.now());
+  const validCookies = cookies.filter((cookie) => !isCookieExpired(cookie));
   return validCookies.map((cookie) => cookie.cookieString()).join('; ');
 };
 
@@ -55,7 +62,7 @@ const getDomainsWithCookies = (): Promise<Array<{ domain: string; cookies: Cooki
 
       each(domains, (domain) => {
         const cookiesForDomain = domainCookieMap[domain];
-        const validCookies = cookiesForDomain.filter((cookie: any) => !cookie.expires || (cookie.expires as any) > Date.now());
+        const validCookies = cookiesForDomain.filter((cookie) => !isCookieExpired(cookie));
 
         if (validCookies.length) {
           domainsWithCookies.push({
