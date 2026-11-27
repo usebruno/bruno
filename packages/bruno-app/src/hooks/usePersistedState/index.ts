@@ -9,6 +9,22 @@ type Options<T> = {
 
 export { ScopedPersistenceProvider as PersistedScopeProvider, clearPersistedScope } from './PersistedScopeProvider';
 
+// Persisted UI state (scroll offsets, editor view state, ...) is non-critical,
+// so a full localStorage must never crash the app. On failure, drop the
+// existing `persisted::*` entries to free space and retry once.
+function safeSetItem(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('persisted::'))
+        .forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem(key, value);
+    } catch {}
+  }
+}
+
 export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetStateAction<T>>] {
   const scope = usePersistenceScope();
   const storageKey = scope ? `persisted::${scope}::${options.key}` : options.key;
@@ -48,13 +64,13 @@ export function usePersistedState<T>(options: Options<T>): [T, Dispatch<SetState
       if (typeof value === 'function') {
         setState((prev) => {
           _next = (value as (prev: T) => T)(prev);
-          localStorage.setItem(storageKey, JSON.stringify(_next));
+          safeSetItem(storageKey, JSON.stringify(_next));
           return _next;
         });
       } else {
         _next = value;
         setState(_next);
-        localStorage.setItem(storageKey, JSON.stringify(_next));
+        safeSetItem(storageKey, JSON.stringify(_next));
       }
     },
     [storageKey]
