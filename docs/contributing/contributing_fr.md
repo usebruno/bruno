@@ -6,7 +6,7 @@ Je suis content de voir que vous envisagez d'améliorer Bruno. Vous trouverez ci
 
 ### Technologies utilisées
 
-Bruno est basé sur NextJs et React. Nous utilisons aussi Electron pour embarquer la version ordinateur (ce qui permet les collections locales).
+Bruno utilise React pour l'interface et Electron pour l'application de bureau (ce qui permet les collections locales).
 
 Les librairies que nous utilisons :
 
@@ -21,38 +21,40 @@ Les librairies que nous utilisons :
 
 ### Dépendances
 
-Vous aurez besoin de [Node v20.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
+Vous aurez besoin de [Node.js](https://nodejs.org/en/) dans la version indiquée dans [`.nvmrc`](../../.nvmrc), ainsi que de npm. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
 
 ## Développement
 
-Bruno est développé comme une application _client lourd_. Vous devrez charger l'application en démarrant nextjs dans un premier terminal, puis démarre l'application Electron dans un second.
-
-### Dépendances
-
-- NodeJS v18
+Bruno est une application de bureau. L'interface utilise React, avec rsbuild pour la compilation et le serveur de développement.
 
 ### Développement local
 
+#### 1. Installation
+
 ```bash
-# utiliser node en version 18
+# utiliser la version de Node.js indiquée dans .nvmrc
 nvm use
 
-# installation des dépendances
-npm i --legacy-peer-deps
+# installer les dépendances et construire les paquets partagés
+npm run setup
+```
 
-# construction des docs graphql
-npm run build:graphql-docs
+`npm run setup` supprime les répertoires `node_modules` existants, installe les dépendances et les modules propres à la plateforme, construit les paquets partagés et prépare les bibliothèques du bac à sable JavaScript.
 
-# construction de bruno query
-npm run build:bruno-query
+#### 2. Démarrage de l'application
 
-# construction de bruno common
-npm run build:bruno-common
+```bash
+# démarrer l'interface React et Electron simultanément
+npm run dev
+```
 
-# démarrage de next (terminal 1)
+Vous pouvez aussi démarrer les deux processus séparément :
+
+```bash
+# démarrer l'interface React (terminal 1)
 npm run dev:web
 
-# démarrage du client lourd (terminal 2)
+# démarrer l'application Electron (terminal 2)
 npm run dev:electron
 ```
 
