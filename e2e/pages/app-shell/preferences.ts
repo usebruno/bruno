@@ -21,6 +21,8 @@ export const buildPreferencesLocators = (page: Page) => ({
   },
   /** Locators on the Keybindings tab, each takes the action id (e.g. `triggerAutocomplete`) */
   keybindings: {
+    /** The switch that turns all keybindings on or off; its checkbox is hidden, the label is clickable */
+    enabledToggle: () => page.getByTestId('keybindings-enabled-toggle'),
     row: (action: string) => page.getByTestId(`keybinding-row-${action}`),
     input: (action: string) => page.getByTestId(`keybinding-input-${action}`),
     resetButton: (action: string) => page.getByTestId(`keybinding-reset-${action}`)

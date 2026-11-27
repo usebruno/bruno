@@ -1,12 +1,15 @@
 import { expect, test } from '../../playwright';
 import { buildCommonLocators, closeAllCollections, createRequest } from '../../pages';
+import { buildGlobalSearchLocators, closeGlobalSearch } from '../../pages/app-shell/global-search';
 import {
   closePreferencesTab,
   collectionName,
   modifier,
   openKeybindingsTab,
   pressShortcut,
+  remapKeybinding,
   resetKeybindings,
+  setKeybindingsEnabled,
   setupBoundActionsData
 } from './helpers';
 
@@ -52,6 +55,38 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await page.getByTestId('global-search-input').click();
 
         await pressShortcut(page, 'Escape');
+      });
+    });
+
+    test.describe('Status bar Search button', () => {
+      test.afterEach(async ({ pageWithUserData: page }) => {
+        await setKeybindingsEnabled(page, true);
+      });
+
+      test('opens Global Search, not the action now bound to the default shortcut', async ({ pageWithUserData: page }) => {
+        const { environment } = buildCommonLocators(page);
+        const globalSearch = buildGlobalSearchLocators(page);
+        await remapKeybinding(page, 'globalSearch', 'Shift', 'KeyK');
+        await remapKeybinding(page, 'editEnvironment', modifier, 'KeyK');
+
+        await globalSearch.statusBarTrigger().click();
+
+        await expect(globalSearch.input()).toBeFocused();
+        await closeGlobalSearch(page);
+        await expect(environment.collectionEnvTab()).toHaveCount(0);
+      });
+
+      test('opens Global Search while keyboard shortcuts are turned off', async ({ pageWithUserData: page }) => {
+        const globalSearch = buildGlobalSearchLocators(page);
+        await setKeybindingsEnabled(page, false);
+
+        await pressShortcut(page, modifier, 'KeyK');
+        await expect(globalSearch.input()).toBeHidden();
+
+        await globalSearch.statusBarTrigger().click();
+
+        await expect(globalSearch.input()).toBeFocused();
+        await closeGlobalSearch(page);
       });
     });
 

@@ -79,6 +79,16 @@ export const resetKeybindings = async (page: Page) => {
   await closePreferencesTab(page);
 };
 
+export const setKeybindingsEnabled = async (page: Page, enabled: boolean) => {
+  const toggle = buildCommonLocators(page).preferences.keybindings.enabledToggle();
+  await openKeybindingsTab(page);
+  if ((await toggle.getByRole('checkbox').isChecked()) !== enabled) {
+    await toggle.locator('label').click();
+  }
+  await toggle.getByRole('checkbox', { checked: enabled }).waitFor({ state: 'attached' });
+  await closePreferencesTab(page);
+};
+
 export const closeTabByName = async (page: any, name: string | RegExp) => {
   const tab = page.locator('.request-tab').filter({ has: page.getByText(name, { exact: true }) });
   await tab.dblclick();
