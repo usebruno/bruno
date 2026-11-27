@@ -3,6 +3,22 @@ const fs = require('fs');
 const os = require('os');
 const jsyaml = require('js-yaml');
 const { describe, it, expect, beforeEach, afterEach } = require('@jest/globals');
+
+// Set by a test to make the exporter throw; every other test runs the real exporter
+let mockExporterError = null;
+jest.mock('@usebruno/converters', () => {
+  const actualConverters = jest.requireActual('@usebruno/converters');
+  return {
+    ...actualConverters,
+    brunoToOpenApi: (...args) => {
+      if (mockExporterError) {
+        throw mockExporterError;
+      }
+      return actualConverters.brunoToOpenApi(...args);
+    }
+  };
+});
+
 const exportOpenApiCommand = require('../../../src/commands/export/openapi');
 const { EXIT_STATUS } = require('../../../src/constants');
 
@@ -50,6 +66,7 @@ describe('bru export openapi', () => {
 
   afterEach(() => {
     process.chdir(originalCwd);
+    mockExporterError = null;
     jest.restoreAllMocks();
     fs.rmSync(outDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   });
@@ -303,6 +320,21 @@ describe('bru export openapi', () => {
 
       expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       expect(errorSpy.mock.calls.flat().join(' ')).toContain(blockingFile);
+      expect(logSpy).not.toHaveBeenCalled();
+    });
+
+    it('exits with the generic error code and writes nothing when the exporter fails', async () => {
+      const exitSpy = mockExit();
+      mockExporterError = new Error('cannot export request "Broken"');
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await expect(runExport({ source: FIXTURE, outputFile })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_GENERIC}`);
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_GENERIC);
+      const stderr = errorSpy.mock.calls.flat().join(' ');
+      expect(stderr).toContain('Failed to export the OpenAPI spec');
+      expect(stderr).toContain('cannot export request "Broken"');
+      expect(fs.existsSync(outputFile)).toBe(false);
       expect(logSpy).not.toHaveBeenCalled();
     });
 

@@ -82,4 +82,35 @@ describe('mount denylist', () => {
       fs.rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test('walk lists each folder\'s entries in name order, whatever order the file system returns them in', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const { walk } = require('./mount');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-walk-order-'));
+    const realReaddirSync = fs.readdirSync;
+    const readdirSpy = jest.spyOn(fs, 'readdirSync').mockImplementation((...args) => realReaddirSync(...args).reverse());
+
+    try {
+      fs.writeFileSync(path.join(root, 'dev.bru'), 'dev');
+      fs.writeFileSync(path.join(root, 'Local.bru'), 'local');
+      fs.writeFileSync(path.join(root, 'Prod.bru'), 'prod');
+      fs.mkdirSync(path.join(root, 'Users'));
+      fs.writeFileSync(path.join(root, 'Users', 'list.bru'), 'list');
+      fs.writeFileSync(path.join(root, 'Users', 'create.bru'), 'create');
+
+      const files = walk(root, resolveDenylist()).map((f) => f.relativePath);
+      expect(files).toEqual([
+        'Local.bru',
+        'Prod.bru',
+        path.join('Users', 'create.bru'),
+        path.join('Users', 'list.bru'),
+        'dev.bru'
+      ]);
+    } finally {
+      readdirSpy.mockRestore();
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

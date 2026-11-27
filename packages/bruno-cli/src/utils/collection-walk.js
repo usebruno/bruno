@@ -61,7 +61,9 @@ const walk = (root, denylist) => {
     if (visited.has(canonicalDir)) return;
     visited.add(canonicalDir);
 
-    const entries = fs.readdirSync(absDir, { withFileTypes: true });
+    // readdirSync order depends on the file system (NTFS ignores case, ext4 uses hash order), so sort by
+    // name to read a collection in the same order on every OS
+    const entries = fs.readdirSync(absDir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1));
     for (const entry of entries) {
       const childAbs = path.join(absDir, entry.name);
       const childRel = relDir ? path.join(relDir, entry.name) : entry.name;
