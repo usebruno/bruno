@@ -29,6 +29,41 @@ describe('insomnia-collection', () => {
       xml: null
     });
   });
+
+  it('should normalize lowercase request methods to uppercase', async () => {
+    const rawInsomnia = {
+      _type: 'export',
+      __export_format: 4,
+      resources: [
+        {
+          _id: 'wrk_1',
+          _type: 'workspace',
+          name: 'Workspace'
+        },
+        {
+          _id: 'req_lower',
+          _type: 'request',
+          parentId: 'wrk_1',
+          name: 'Lowercase Request',
+          method: 'post',
+          url: 'https://api.example.com/items',
+          parameters: []
+        },
+        {
+          _id: 'req_custom',
+          _type: 'request',
+          parentId: 'wrk_1',
+          name: 'Custom Method Request',
+          method: 'doWork',
+          url: 'https://api.example.com/custom',
+          parameters: []
+        }
+      ]
+    };
+    const brunoCollection = insomniaToBruno(rawInsomnia);
+    expect(brunoCollection.items[0].request.method).toBe('POST');
+    expect(brunoCollection.items[1].request.method).toBe('doWork');
+  });
 });
 
 const insomniaCollection = {

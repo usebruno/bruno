@@ -340,4 +340,121 @@ describe('makeAxiosInstance', () => {
       expect(calls[1].headers['Proxy-Authorization']).toBe('Bearer proxy-token');
     });
   });
+
+  describe('method case normalization', () => {
+    it('converts lowercase method to uppercase in request interceptor', async () => {
+      let capturedConfig = null;
+      const stubAdapter = (config) => {
+        capturedConfig = config;
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+      const instance = makeAxiosInstance();
+
+      await instance({
+        url: 'https://api.example.com/test',
+        method: 'post',
+        adapter: stubAdapter
+      });
+
+      expect(capturedConfig.method).toBe('POST');
+    });
+
+    it('changes method to uppercase GET when following 301/302/303 redirect', async () => {
+      function createRedirectingStub(redirectUrl, redirectStatus = 302) {
+        const calls = [];
+        const adapter = (config) => {
+          calls.push(config);
+          if (calls.length === 1) {
+            const err = new Error('Redirect ' + redirectStatus);
+            err.config = config;
+            err.response = {
+              status: redirectStatus,
+              statusText: 'Found',
+              headers: { location: redirectUrl },
+              data: {}
+            };
+            return Promise.reject(err);
+          }
+          return Promise.resolve({
+            data: { success: true },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config
+          });
+        };
+        adapter.getCalls = () => calls;
+        return adapter;
+      }
+
+      const stubAdapter = createRedirectingStub('https://api.example.com/target', 302);
+      const instance = makeAxiosInstance({ followRedirects: true });
+
+      await instance({
+        url: 'https://api.example.com/start',
+        method: 'post',
+        adapter: stubAdapter
+      });
+
+      const calls = stubAdapter.getCalls();
+      expect(calls.length).toBe(2);
+      expect(calls[1].method).toBe('GET');
+    });
+
+    it('preserves uppercase HEAD when following 301/302/303 redirect', async () => {
+      let redirectMethod = null;
+      const calls = [];
+      const stubAdapter = (config) => {
+        calls.push(config);
+        if (calls.length === 1) {
+          const err = new Error('Redirect 302');
+          err.config = config;
+          err.response = {
+            status: 302,
+            statusText: 'Found',
+            headers: { location: 'https://api.example.com/target' },
+            data: {}
+          };
+          return Promise.reject(err);
+        }
+        redirectMethod = config.method;
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+
+      const instance = makeAxiosInstance({ followRedirects: true });
+      await instance({
+        url: 'https://api.example.com/start',
+        method: 'head',
+        adapter: stubAdapter
+      });
+
+      expect(redirectMethod).toBe('HEAD');
+    });
+
+    it('preserves Axios default Content-Type for POST while respecting null suppression', async () => {
+      const capturedContentTypes = [];
+      const stubAdapter = (config) => {
+        capturedContentTypes.push(config.headers.getContentType());
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      };
+
+      const instance = makeAxiosInstance();
+      await instance({
+        url: 'https://api.example.com/upload',
+        method: 'post',
+        headers: { 'content-type': undefined },
+        data: Buffer.from('abc'),
+        adapter: stubAdapter
+      });
+      await instance({
+        url: 'https://api.example.com/suppressed',
+        method: 'post',
+        headers: { 'content-type': null },
+        adapter: stubAdapter
+      });
+
+      expect(capturedContentTypes[0]).toBe('application/x-www-form-urlencoded');
+      expect(capturedContentTypes[1]).toBeNull();
+    });
+  });
 });
