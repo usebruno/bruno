@@ -684,8 +684,8 @@ export interface Request {
    * Replace the request body.
    *
    * With a JSON content type, an object is serialized to JSON. Pass `{ raw: true }` to send `data`
-   * exactly as given. A `Buffer`, typed array (such as `Uint8Array`) or `DataView` is always sent
-   * as its bytes.
+   * exactly as given. A `Buffer`, typed array (such as `Uint8Array`), `DataView` or `ArrayBuffer`
+   * is always sent as its bytes.
    *
    * @param data - The new body.
    * @param options - `raw: true` skips JSON serialization.

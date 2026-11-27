@@ -148,7 +148,7 @@ const addBrunoRequestShimToContext = (vm, req) => {
   vm.setProp(reqObject, 'getBody', getBody);
   getBody.dispose();
 
-  // Wrapped by req.setBody below, which sends Buffers, typed arrays and DataViews to _setBinaryBody instead: vm.dump turns them into plain objects such as { type: 'Buffer', data: [...] } or { "0": 1, "1": 2 }
+  // Wrapped by req.setBody below, which sends Buffers, typed arrays, DataViews and ArrayBuffers to _setBinaryBody instead: vm.dump turns them into plain objects such as { type: 'Buffer', data: [...] } or { "0": 1, "1": 2 }
   let setBody = vm.newFunction('_setBody', function (data, options) {
     req.setBody(vm.dump(data), vm.dump(options));
   });
@@ -215,6 +215,10 @@ const addBrunoRequestShimToContext = (vm, req) => {
     globalThis.req.setBody = (data, options) => {
       if (ArrayBuffer.isView(data)) {
         globalThis.req._setBinaryBody(data.buffer, data.byteOffset, data.byteLength, options);
+        return;
+      }
+      if (data instanceof ArrayBuffer) {
+        globalThis.req._setBinaryBody(data, 0, data.byteLength, options);
         return;
       }
       globalThis.req._setBody(data, options);
