@@ -7,6 +7,7 @@ import EditorHardBreak from './EditorHardBreak';
 import { EditorKbd, EditorSuperscript } from './EditorInlineHtmlMarks';
 import EditorListKeyboard from './EditorListKeyboard';
 import EditorParagraph from './EditorParagraph';
+import EditorPlainTextCopy from './EditorPlainTextCopy';
 import { createEditorImage, createEditorLink } from './EditorRelativeAssets';
 import EditorRawHtmlBlock, { EditorRawHtmlInline, EditorRawHtmlTextBlock } from './EditorRawHtmlBlock';
 import EditorTable from './EditorTable';
@@ -106,6 +107,7 @@ const createExtensions = ({ allowHtml = true, collectionPath = '' } = {}) => [
   ...(allowHtml ? [EditorRawHtmlBlock, EditorRawHtmlInline, EditorRawHtmlTextBlock] : []),
   EditorKbd,
   EditorSuperscript,
+  EditorPlainTextCopy,
   createEditorLink(collectionPath).configure({
     openOnClick: 'whenNotEditable',
     autolink: true,
