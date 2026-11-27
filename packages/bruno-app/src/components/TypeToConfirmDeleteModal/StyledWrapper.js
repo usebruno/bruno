@@ -4,27 +4,27 @@ import { rgba } from 'polished';
 const StyledWrapper = styled.div`
   .modal-description {
     color: ${(props) => props.theme.text};
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
 
     strong {
       font-weight: 600;
     }
   }
 
-  .workspace-info-card {
+  .item-info-card {
     background-color: ${(props) => props.theme.modal.title.bg};
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 12px;
+    border-radius: ${(props) => props.theme.border.radius.sm};
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 
-  .workspace-name {
+  .item-name {
     font-weight: 500;
     color: ${(props) => props.theme.text};
-    margin-bottom: 4px;
+    margin-bottom: 0.25rem;
   }
 
-  .workspace-path {
+  .item-path {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.muted};
     word-break: break-all;
@@ -33,18 +33,18 @@ const StyledWrapper = styled.div`
   .warning-text {
     font-size: ${(props) => props.theme.font.size.sm};
     color: ${(props) => props.theme.colors.text.danger};
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
   }
 
   .delete-confirmation {
-    padding-top: 16px;
+    padding-top: 1rem;
     border-top: 1px solid ${(props) => props.theme.border.border0};
 
     label {
       display: block;
       font-size: ${(props) => props.theme.font.size.sm};
       color: ${(props) => props.theme.text};
-      margin-bottom: 8px;
+      margin-bottom: 0.5rem;
     }
 
     .delete-keyword {
@@ -52,19 +52,20 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.danger};
       font-family: monospace;
       background-color: ${(props) => rgba(props.theme.colors.text.danger, 0.1)};
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 2px 0.375rem;
+      border-radius: ${(props) => props.theme.border.radius.sm};
     }
 
     input {
       width: 100%;
-      padding: 8px 12px;
+      padding: 0.5rem 0.75rem;
       font-size: ${(props) => props.theme.font.size.sm};
       border: 1px solid ${(props) => props.theme.input.border};
-      border-radius: 6px;
+      border-radius: ${(props) => props.theme.border.radius.base};
       background-color: ${(props) => props.theme.input.bg};
       color: ${(props) => props.theme.text};
       outline: none;
+      transition: border-color 0.15s ease;
 
       &::placeholder {
         color: ${(props) => props.theme.colors.text.muted};

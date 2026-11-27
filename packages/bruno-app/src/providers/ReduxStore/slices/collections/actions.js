@@ -117,7 +117,7 @@ import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { selectActiveWorkspace, selectCollectionsWithOpenTabs } from 'src/selectors/collections';
-import { getNeighbourCollectionUid } from 'utils/tabs';
+import { getNeighbourCollectionUid, getWorkspaceTab } from 'utils/tabs';
 import { updateSettingsSelectedTab } from './index';
 import { migrationStarted, migrationCancelRequested, migrationEnded } from 'providers/ReduxStore/slices/collection-migration';
 import { flushSnapshotNow } from 'providers/ReduxStore/middlewares/snapshot/middleware';
@@ -2789,6 +2789,33 @@ export const selectSidebarRange = ({ uid, searchText }) => (dispatch, getState) 
   dispatch(setSidebarSelection(visibleUids.slice(start, end + 1)));
 };
 
+const getActiveCollectionBeforeClose = (state, isClosing) => {
+  const activeTab = find(state.tabs?.tabs, (t) => t.uid === state.tabs?.activeTabUid);
+  const workspace = activeTab && isClosing(activeTab) && state.workspaces ? selectActiveWorkspace(state) : null;
+  if (!workspace) return null;
+  return {
+    collectionUid: activeTab.collectionUid,
+    workspace,
+    switcherOrder: [workspace.scratchCollectionUid, ...selectCollectionsWithOpenTabs(state).map((c) => c.uid)]
+  };
+};
+
+const focusNeighbourOfClosedCollection = (closedCollection) => (dispatch, getState) => {
+  if (!closedCollection) return;
+  const { collectionUid, workspace, switcherOrder } = closedCollection;
+  const tabsOf = (uid) => getState().tabs.tabs.filter((t) => t.collectionUid === uid);
+  if (tabsOf(collectionUid).length > 0) return;
+
+  const neighbourUid = getNeighbourCollectionUid(switcherOrder, collectionUid, (uid) => tabsOf(uid).length > 0);
+  if (neighbourUid) {
+    const neighbourTabs = tabsOf(neighbourUid);
+    const isAfterClosed = switcherOrder.indexOf(neighbourUid) > switcherOrder.indexOf(collectionUid);
+    dispatch(focusTab({ uid: (isAfterClosed ? neighbourTabs[0] : last(neighbourTabs)).uid }));
+  } else if (workspace.scratchCollectionUid && collectionUid !== workspace.scratchCollectionUid) {
+    dispatch(addTab(getWorkspaceTab(workspace.scratchCollectionUid, 'workspaceOverview')));
+  }
+};
+
 export const removeCollection = (collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -2818,8 +2845,10 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
         return ipcRenderer.invoke('renderer:get-collection-workspaces', collection.pathname);
       })
       .then((remainingWorkspaces) => {
+        const closedCollection = getActiveCollectionBeforeClose(getState(), (t) => t.collectionUid === collectionUid);
         // Close tabs for this collection
         dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(focusNeighbourOfClosedCollection(closedCollection));
 
         // Remove collection from workspace in Redux state
         if (activeWorkspace) {
@@ -2877,7 +2906,9 @@ export const moveCollectionToWorkspace = (collectionUid) => (dispatch, getState)
         collectionName: collection.name
       })
       .then(async (result) => {
+        const closedCollection = getActiveCollectionBeforeClose(getState(), (t) => t.collectionUid === collectionUid);
         dispatch(closeAllCollectionTabs({ collectionUid }));
+        dispatch(focusNeighbourOfClosedCollection(closedCollection));
         dispatch(removeCollectionFromWorkspace({
           workspaceUid: activeWorkspace.uid,
           collectionLocation: collection.pathname
@@ -3799,7 +3830,7 @@ export const ensureActiveTabInCurrentWorkspace = () => (dispatch, getState) => {
  * openapi-sync tab that's about to close — collected BEFORE the close so we can
  * still read the closing tabs' collectionUids from state.
  */
-export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
+export const closeTabs = ({ tabUids, reopenable }) => async (dispatch, getState) => {
   const { ipcRenderer } = window;
   const state = getState();
   const collections = state.collections.collections;
@@ -3823,35 +3854,20 @@ export const closeTabs = ({ tabUids }) => async (dispatch, getState) => {
     }
   });
 
-  const activeTab = find(state.tabs?.tabs, (t) => t.uid === state.tabs?.activeTabUid);
-  const closedActiveCollectionUid = activeTab && tabUids.includes(activeTab.uid) ? activeTab.collectionUid : null;
-  const workspace = closedActiveCollectionUid && state.workspaces ? selectActiveWorkspace(state) : null;
-  const switcherOrder = workspace
-    ? [workspace.scratchCollectionUid, ...selectCollectionsWithOpenTabs(state).map((c) => c.uid)]
-    : [];
+  const closedCollection = getActiveCollectionBeforeClose(state, (t) => tabUids.includes(t.uid));
 
   const closingOpenApiSyncCollectionUids = (state.tabs?.tabs || [])
     .filter((t) => tabUids.includes(t.uid) && t.type === 'openapi-sync' && t.collectionUid)
     .map((t) => t.collectionUid);
 
   // Close the tabs first
-  await dispatch(_closeTabs({ tabUids }));
+  await dispatch(_closeTabs({ tabUids, reopenable }));
 
   // Clear persisted scope AFTER unmount — otherwise useTrackScroll's cleanup flush
   // would rewrite scroll position to localStorage right after we cleared it.
   each(tabUids, (tabUid) => clearPersistedScope(tabUid));
 
-  const tabsOf = (collectionUid) => getState().tabs.tabs.filter((t) => t.collectionUid === collectionUid);
-  if (workspace && tabsOf(closedActiveCollectionUid).length === 0) {
-    const neighbourUid = getNeighbourCollectionUid(switcherOrder, closedActiveCollectionUid, (uid) => tabsOf(uid).length > 0);
-    if (neighbourUid) {
-      const neighbourTabs = tabsOf(neighbourUid);
-      const isAfterClosed = switcherOrder.indexOf(neighbourUid) > switcherOrder.indexOf(closedActiveCollectionUid);
-      dispatch(focusTab({ uid: (isAfterClosed ? neighbourTabs[0] : last(neighbourTabs)).uid }));
-    } else if (workspace.scratchCollectionUid && closedActiveCollectionUid !== workspace.scratchCollectionUid) {
-      dispatch(addTab({ uid: `${workspace.scratchCollectionUid}-overview`, collectionUid: workspace.scratchCollectionUid, type: 'workspaceOverview' }));
-    }
-  }
+  dispatch(focusNeighbourOfClosedCollection(closedCollection));
 
   // After close, the reducer may have set active tab to one from another workspace. Ensure it belongs to this workspace: its overview if open, else the start page.
   // Dispatch is synchronous; state is already updated by _closeTabs above.
@@ -3933,7 +3949,9 @@ export const migrateCollectionToYml = (collectionUid) => async (dispatch, getSta
   };
 
   dispatch(migrationStarted());
+  const closedCollection = getActiveCollectionBeforeClose(getState(), (t) => t.collectionUid === collectionUid);
   dispatch(closeAllCollectionTabs({ collectionUid }));
+  dispatch(focusNeighbourOfClosedCollection(closedCollection));
   dispatch(ensureActiveTabInCurrentWorkspace());
   // Flush the snapshot while the collection is still in the store: its entry serializes
   // with the now-empty tab list, replacing any stale .bru tabs on disk for the active

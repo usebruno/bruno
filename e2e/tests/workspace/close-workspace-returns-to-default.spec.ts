@@ -62,8 +62,8 @@ test.describe('Close workspace returns to default workspace', () => {
         await expect(workspaceActionsTrigger).toBeVisible({ timeout: 10000 });
         await workspaceActionsTrigger.click();
         await locators.dropdown.item('Remove').click();
-        await expect(locators.modal.byTitle('Close Workspace')).toBeVisible({ timeout: 5000 });
-        await locators.modal.button('Close').click();
+        await expect(locators.modal.byTitle('Remove Workspace')).toBeVisible({ timeout: 5000 });
+        await locators.modal.button('Remove').click();
       });
 
       await test.step('App returns to My Workspace, header reads "My Workspace", and ColA reloads', async () => {

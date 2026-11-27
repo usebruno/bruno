@@ -75,8 +75,8 @@ test.describe('Closable workspace tabs', () => {
       await test.step('Closing the workspace returns to the default workspace, not the crash screen', async () => {
         await collectionHeader.workspaceActionsTrigger().click();
         await collectionHeader.workspaceActionsItem('remove').click();
-        await expect(modal.byTitle('Close Workspace')).toBeVisible();
-        await modal.button('Close').click();
+        await expect(modal.byTitle('Remove Workspace')).toBeVisible();
+        await modal.button('Remove').click();
 
         await expect(appCrashScreen()).toHaveCount(0);
         await expect(titleBar.activeWorkspaceName()).toHaveText('My Workspace');

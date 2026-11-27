@@ -1,7 +1,7 @@
 const { ipcMain } = require('electron');
 const pty = require('@lydell/node-pty');
 const os = require('os');
-const path = require('path');
+const { isPathInsideFolder } = require('../utils/workspace-config');
 const isDev = require('electron-is-dev');
 
 class TerminalManager {
@@ -163,6 +163,20 @@ class TerminalManager {
           console.error('Failed to cleanup terminal:', error);
         }
       }
+    }
+  }
+
+  killSessionsInside(folderPath) {
+    for (const [sessionId, terminal] of this.terminals.entries()) {
+      if (!isPathInsideFolder(folderPath, terminal.cwd)) {
+        continue;
+      }
+      try {
+        terminal.pty.kill();
+      } catch (error) {
+        console.error('Failed to kill terminal:', error);
+      }
+      this.terminals.delete(sessionId);
     }
   }
 

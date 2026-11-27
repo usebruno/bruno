@@ -8,6 +8,7 @@ const isDev = require('electron-is-dev');
 const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE, removeGitMetadata } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
+const { deleteWorkspaceFolder } = require('../utils/delete-workspace');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
@@ -27,6 +28,7 @@ const {
   reorderWorkspaceCollections,
   getWorkspaceCollections,
   getWorkspaceCollectionPathsInsideFolder,
+  isPathInsideFolder,
   getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
@@ -53,7 +55,7 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefau
   return config;
 };
 
-const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
+const registerWorkspaceIpc = (mainWindow, workspaceWatcher, terminalManager) => {
   const lastOpenedWorkspaces = new LastOpenedWorkspaces();
 
   ipcMain.handle('renderer:create-workspace',
@@ -297,33 +299,25 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
-  ipcMain.handle('renderer:delete-workspace', async (event, workspacePath) => {
-    if (!workspacePath) {
-      throw new Error('Workspace path is required');
+  ipcMain.handle('renderer:delete-workspace', (event, workspacePath) => deleteWorkspaceFolder({
+    workspacePath,
+    openWorkspacePaths: lastOpenedWorkspaces.getAll(),
+    defaultWorkspacePath: defaultWorkspaceManager.getDefaultWorkspacePath(),
+    beforeDelete: async () => {
+      const collectionPaths = [...new Set([
+        ...getWorkspaceCollectionPathsInsideFolder(workspacePath),
+        ...require('../app/collection-watcher').getWatchedPaths().filter((watchPath) => isPathInsideFolder(workspacePath, watchPath))
+      ])];
+      for (const collectionPath of collectionPaths) {
+        await detachCollection(collectionPath);
+      }
+      if (workspaceWatcher) {
+        workspaceWatcher.removeWatcher(workspacePath);
+      }
+      terminalManager.killSessionsInside(workspacePath);
+      return collectionPaths;
     }
-    if (getWorkspaceUid(workspacePath) === defaultWorkspaceManager.getDefaultWorkspaceUid()) {
-      throw new Error('Cannot delete the default workspace');
-    }
-    if (!fs.existsSync(workspacePath)) {
-      return { success: true };
-    }
-    validateWorkspacePath(workspacePath);
-
-    // Stop watching the collections stored inside the folder before their files disappear
-    for (const collectionPath of getWorkspaceCollectionPathsInsideFolder(workspacePath)) {
-      await detachCollection(collectionPath);
-    }
-    if (workspaceWatcher) {
-      workspaceWatcher.removeWatcher(workspacePath);
-    }
-
-    try {
-      await fs.promises.rm(workspacePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-    return { success: true };
-  });
+  }));
 
   ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
     try {

@@ -7,10 +7,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences, showManageWorkspacePage, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
 import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
 import { closeConsole, openConsole } from 'providers/ReduxStore/slices/logs';
-import { createWorkspaceWithUniqueName, openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { openWorkspaceDialog, switchWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import useCreateWorkspace from 'hooks/useCreateWorkspace';
 import { sortWorkspaces, toggleWorkspacePin } from 'utils/workspaces';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import get from 'lodash/get';
+import { getWorkspaceTab } from 'utils/tabs';
 
 import Bruno from 'components/Bruno';
 import MenuDropdown from 'ui/MenuDropdown';
@@ -127,7 +128,7 @@ const AppTitleBar = () => {
     return sortWorkspaces(workspaces, preferences);
   }, [workspaces, preferences]);
 
-  const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
+  const { createWorkspace: handleCreateWorkspace, isCreateWorkspaceModalOpen, closeCreateWorkspaceModal } = useCreateWorkspace();
   const [importWorkspaceModalOpen, setImportWorkspaceModalOpen] = useState(false);
 
   const WorkspaceName = forwardRef((props, ref) => {
@@ -142,7 +143,7 @@ const AppTitleBar = () => {
   const handleHomeClick = () => {
     const scratchCollectionUid = activeWorkspace?.scratchCollectionUid;
     if (scratchCollectionUid) {
-      dispatch(addTab({ uid: `${scratchCollectionUid}-overview`, collectionUid: scratchCollectionUid, type: 'workspaceOverview' }));
+      dispatch(addTab(getWorkspaceTab(scratchCollectionUid, 'workspaceOverview')));
     }
   };
 
@@ -163,20 +164,6 @@ const AppTitleBar = () => {
       toast.error(error.message || 'Failed to open workspace');
     }
   };
-
-  const handleCreateWorkspace = useCallback(async () => {
-    const defaultLocation = get(preferences, 'general.defaultLocation', '');
-    if (!defaultLocation) {
-      setCreateWorkspaceModalOpen(true);
-      return;
-    }
-
-    try {
-      await dispatch(createWorkspaceWithUniqueName(defaultLocation));
-    } catch (error) {
-      toast.error(error?.message || 'Failed to create workspace');
-    }
-  }, [preferences, dispatch]);
 
   const handleManageWorkspaces = () => {
     dispatch(showManageWorkspacePage());
@@ -269,8 +256,8 @@ const AppTitleBar = () => {
 
   return (
     <StyledWrapper data-testid="app-titlebar" className={`app-titlebar ${osClass} ${isFullScreen ? 'fullscreen' : ''}`}>
-      {createWorkspaceModalOpen && (
-        <CreateWorkspace onClose={() => setCreateWorkspaceModalOpen(false)} />
+      {isCreateWorkspaceModalOpen && (
+        <CreateWorkspace onClose={closeCreateWorkspaceModal} />
       )}
       {importWorkspaceModalOpen && (
         <ImportWorkspace onClose={() => setImportWorkspaceModalOpen(false)} />

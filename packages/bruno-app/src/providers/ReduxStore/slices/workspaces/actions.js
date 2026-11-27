@@ -8,12 +8,13 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot, closeTabs as closeTabsAndDeleteTransientFiles } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, closeTabs, focusTab } from '../tabs';
+import { getWorkspaceTab } from 'utils/tabs';
 import { isDisabledMockServerTab, restoreCollectionTabs } from '../mock-server/actions';
 import {
   API_SPEC_TAB_TYPE,
@@ -736,15 +737,13 @@ export const switchWorkspace = (workspaceUid) => {
 
         const activeApiSpecTabUid = getApiSpecTabUid(scratchCollection.uid, workspaceSnapshot?.activeApiSpecTabPathname);
         requestedApiSpecTabUid = reopenedApiSpecTabUids.has(activeApiSpecTabUid) ? activeApiSpecTabUid : null;
+        (workspaceSnapshot?.workspaceTabs || []).forEach((type) => {
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, type)));
+        });
+
         requestedWorkspaceTabType = workspaceSnapshot?.activeWorkspaceTabType;
-        const requestedWorkspaceTabSuffix = WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType];
-        if (requestedWorkspaceTabSuffix) {
-          const requestedWorkspaceTabUid = `${scratchCollection.uid}-${requestedWorkspaceTabSuffix}`;
-          dispatch(addTab({
-            uid: requestedWorkspaceTabUid,
-            collectionUid: scratchCollection.uid,
-            type: requestedWorkspaceTabType
-          }));
+        if (WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType]) {
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, requestedWorkspaceTabType)));
         }
       }
 
@@ -779,11 +778,11 @@ export const switchWorkspace = (workspaceUid) => {
         if (activeTab && !isDisabledMockServerTab(getState(), activeTab)) {
           dispatch(addTab(activeTab));
         } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
-          dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, 'workspaceOverview')));
         }
       } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
         // No active collection, focus the workspace overview tab
-        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+        dispatch(addTab(getWorkspaceTab(scratchCollection.uid, 'workspaceOverview')));
       }
 
       if (requestedApiSpecTabUid) {
@@ -1163,18 +1162,24 @@ export const closeWorkspaceAction = (workspaceUid, { deleteFiles = false } = {})
       let innerCollectionUids = new Set();
       let folderDeleteError = null;
       if (deleteFiles) {
-        const workspaceFolder = `${normalizePath(workspace.pathname)}/`;
-        innerCollectionUids = new Set(getState().collections.collections
-          .filter((c) => normalizePath(c.pathname).startsWith(workspaceFolder))
-          .map((c) => c.uid));
-
         const result = await ipcRenderer.invoke('renderer:delete-workspace', workspace.pathname);
         folderDeleteError = result?.success === false ? result.error : null;
+
+        const detachedPaths = new Set((result?.detachedPaths || []).map((p) => normalizePath(p)));
+        innerCollectionUids = new Set(getState().collections.collections
+          .filter((c) => detachedPaths.has(normalizePath(c.pathname)))
+          .map((c) => c.uid));
       }
 
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
 
       if (workspace.scratchCollectionUid) {
+        const scratchTabUids = getState().tabs.tabs
+          .filter((t) => t.collectionUid === workspace.scratchCollectionUid)
+          .map((t) => t.uid);
+        if (scratchTabUids.length) {
+          await dispatch(closeTabsAndDeleteTransientFiles({ tabUids: scratchTabUids, reopenable: false }));
+        }
         dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
       }
 

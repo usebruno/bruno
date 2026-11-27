@@ -5,7 +5,7 @@ export const buildDeleteWorkspaceModalLocators = (page: Page) => {
 
   return {
     modal,
-    confirmInput: () => modal().getByPlaceholder('delete'),
+    confirmInput: () => page.getByTestId('delete-workspace-modal-confirm-input'),
     submitButton: () => page.getByTestId('delete-workspace-modal-submit-btn')
   };
 };

@@ -614,14 +614,16 @@ const getWorkspaceCollections = (workspacePath) => {
   return resolveAndFilterWorkspaceCollections(workspacePath, config.collections);
 };
 
+const isPathInsideFolder = (folderPath, targetPath) => {
+  const relative = targetPath ? path.relative(folderPath, targetPath) : '..';
+  const isOutside = relative === '..' || relative.startsWith(`..${path.sep}`);
+  return !isOutside && !path.isAbsolute(relative);
+};
+
 const getWorkspaceCollectionPathsInsideFolder = (workspacePath) => {
   return getWorkspaceCollections(workspacePath)
     .map((collection) => collection.path)
-    .filter((collectionPath) => {
-      const relative = collectionPath ? path.relative(workspacePath, collectionPath) : '..';
-      const isOutside = relative === '..' || relative.startsWith(`..${path.sep}`);
-      return !isOutside && !path.isAbsolute(relative);
-    });
+    .filter((collectionPath) => isPathInsideFolder(workspacePath, collectionPath));
 };
 
 const getUnopenableWorkspaceCollections = (workspacePath) => {
@@ -777,6 +779,7 @@ const getWorkspaceUid = (workspacePath) => {
 };
 
 module.exports = {
+  isPathInsideFolder,
   makeRelativePath,
   normalizeCollectionEntry,
   validateWorkspacePath,

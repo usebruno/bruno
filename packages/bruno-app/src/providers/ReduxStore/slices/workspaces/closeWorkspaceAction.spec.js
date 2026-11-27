@@ -2,6 +2,11 @@ jest.mock('nanoid', () => ({
   customAlphabet: () => () => 'mock-uid'
 }));
 
+jest.mock('providers/ReduxStore/slices/collections/actions', () => ({
+  ...jest.requireActual('providers/ReduxStore/slices/collections/actions'),
+  closeTabs: jest.fn((payload) => ({ type: 'test/closeTabsAndDeleteTransientFiles', payload }))
+}));
+
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
   default: { error: jest.fn(), success: jest.fn() }
@@ -69,6 +74,21 @@ describe('closeWorkspaceAction', () => {
     expect(dispatch).toHaveBeenCalledWith(removeCollection({ collectionUid: 'scratch-1' }));
   });
 
+  it('closes the scratch collection\'s tabs, deleting unsaved request files, before removing it', async () => {
+    const closing = { uid: 'ws-1', name: 'Team WS', type: 'local', pathname: '/team', scratchCollectionUid: 'scratch-1' };
+    const tabs = [
+      { uid: 'scratch-1-overview', collectionUid: 'scratch-1', type: 'workspaceOverview' },
+      { uid: 'untitled-1', collectionUid: 'scratch-1', type: 'http-request' },
+      { uid: 'other', collectionUid: 'payments', type: 'http-request' }
+    ];
+    const { dispatched } = await run({ closing, activeWorkspaceUid: 'ws-1', tabs });
+
+    const closeIndex = dispatched.findIndex((a) => a?.type === 'test/closeTabsAndDeleteTransientFiles');
+    const removeIndex = dispatched.findIndex((a) => a?.type === typeOf(removeCollection));
+    expect(dispatched[closeIndex].payload).toEqual({ tabUids: ['scratch-1-overview', 'untitled-1'], reopenable: false });
+    expect(closeIndex).toBeLessThan(removeIndex);
+  });
+
   it('does not remove any scratch collection when the workspace has none', async () => {
     const closing = { uid: 'ws-1', name: 'Team WS', type: 'local', pathname: '/team' };
     const { dispatched } = await run({ closing, activeWorkspaceUid: 'ws-1' });
@@ -133,7 +153,7 @@ describe('closeWorkspaceAction with deleteFiles', () => {
   });
 
   it('still removes the workspace and its collections when the folder is only partly deleted', async () => {
-    window.ipcRenderer.invoke.mockResolvedValueOnce({ success: false, error: 'EBUSY: resource busy' });
+    window.ipcRenderer.invoke.mockResolvedValueOnce({ success: false, error: 'EBUSY: resource busy', detachedPaths: ['/team/collections/api'] });
     const toast = require('react-hot-toast').default;
     const collections = [{ uid: 'inner', pathname: '/team/collections/api' }];
     const tabs = [{ uid: 'inner-tab', collectionUid: 'inner' }];
@@ -147,11 +167,13 @@ describe('closeWorkspaceAction with deleteFiles', () => {
     expect(toast.error).toHaveBeenCalledWith('Removed "Team WS", but some of its files couldn\'t be deleted');
   });
 
-  it('removes only the collections and tabs stored inside the deleted folder', async () => {
+  it('removes exactly the collections the main process detached', async () => {
+    window.ipcRenderer.invoke.mockResolvedValueOnce({ success: true, detachedPaths: ['/team/collections/api'] });
     const collections = [
       { uid: 'inner', pathname: '/team/collections/api' },
       { uid: 'outside', pathname: '/elsewhere/legacy' },
-      { uid: 'sibling', pathname: '/team-2/api' }
+      { uid: 'sibling', pathname: '/team-2/api' },
+      { uid: 'not-detached', pathname: '/team/collections/kept-by-main' }
     ];
     const tabs = [
       { uid: 'inner-tab', collectionUid: 'inner' },
@@ -164,5 +186,6 @@ describe('closeWorkspaceAction with deleteFiles', () => {
     const removedUids = dispatched.filter((a) => a?.type === typeOf(removeCollection)).map((a) => a.payload.collectionUid);
     expect(removedUids).not.toContain('outside');
     expect(removedUids).not.toContain('sibling');
+    expect(removedUids).not.toContain('not-detached');
   });
 });

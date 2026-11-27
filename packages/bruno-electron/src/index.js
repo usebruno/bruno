@@ -556,7 +556,7 @@ app.on('ready', async () => {
   registerYmlMigrationIpc(mainWindow, collectionWatcher);
   registerPreferencesIpc(mainWindow, collectionWatcher);
   registerSnapshotIpc();
-  registerWorkspaceIpc(mainWindow, workspaceWatcher);
+  registerWorkspaceIpc(mainWindow, workspaceWatcher, terminalManager);
   registerApiSpecIpc(mainWindow, apiSpecWatcher);
   registerNotificationsIpc(mainWindow, collectionWatcher);
   registerFilesystemIpc(mainWindow);

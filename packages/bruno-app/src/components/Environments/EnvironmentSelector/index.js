@@ -4,6 +4,7 @@ import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { getWorkspaceTab } from 'utils/tabs';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
@@ -231,7 +232,7 @@ const EnvironmentSelector = ({ collection, isWorkspace = false }) => {
   const openGlobalEnvironmentsTab = () => {
     dispatch(
       addTab(isWorkspace
-        ? { uid: `${collection.uid}-environments`, collectionUid: collection.uid, type: 'workspaceEnvironments' }
+        ? getWorkspaceTab(collection.uid, 'workspaceEnvironments')
         : { uid: `${collection.uid}-global-environment-settings`, collectionUid: collection.uid, type: 'global-environment-settings' })
     );
   };

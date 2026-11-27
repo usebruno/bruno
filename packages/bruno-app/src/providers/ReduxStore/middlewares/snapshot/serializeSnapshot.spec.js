@@ -211,6 +211,23 @@ describe('serializeSnapshot API spec tabs', () => {
   });
 });
 
+describe('serializeSnapshot workspace tabs', () => {
+  it('remembers open Overview and Environments tabs even when a request is active', async () => {
+    const state = makeState();
+    state.workspaces.workspaces[0].scratchCollectionUid = 'scratch-1';
+    state.tabs.tabs = [
+      ...state.tabs.tabs,
+      { uid: 'scratch-1-overview', collectionUid: 'scratch-1', type: 'workspaceOverview' },
+      { uid: 'scratch-1-environments', collectionUid: 'scratch-1', type: 'workspaceEnvironments' }
+    ];
+    state.tabs.activeTabUid = 'req-1';
+
+    const snapshot = await serializeSnapshot(state, { getExistingSnapshot: async () => null });
+
+    expect(snapshot.workspaces[0].workspaceTabs).toEqual(['workspaceOverview', 'workspaceEnvironments']);
+  });
+});
+
 describe('serializeSnapshot collection environment preservation', () => {
   it('creates a safe first-run snapshot when no existing snapshot is available', async () => {
     const snapshot = await serializeSnapshot(makeState(), {
