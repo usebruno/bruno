@@ -38,7 +38,7 @@ describe('bru export', () => {
 
     const spec = jsyaml.load(fs.readFileSync(outputFile, 'utf8'));
     expect(spec.openapi).toBe('3.0.0');
-    expect(spec.info.title).toBe('My API');
+    expect(spec.info.title).toBe('My API-v2-test');
   });
 
   it('passes the short -s and -f options to the openapi export', async () => {
@@ -46,7 +46,7 @@ describe('bru export', () => {
 
     await yargs().command(exportCommand).parseAsync(['export', 'openapi', '-s', FIXTURE, '-f', outputFile]);
 
-    expect(JSON.parse(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('My API');
+    expect(JSON.parse(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('My API-v2-test');
   });
 
   it('rejects an export format it does not support', () => {

@@ -110,7 +110,7 @@ describe('mount denylist', () => {
       ]);
     } finally {
       readdirSpy.mockRestore();
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     }
   });
 });
