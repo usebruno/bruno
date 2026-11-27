@@ -11,6 +11,15 @@ const {
   walk
 } = require('../../utils/mount');
 
+const isMissingDirectory = async (directoryPath) => {
+  try {
+    const stat = await fs.promises.stat(directoryPath);
+    return !stat.isDirectory();
+  } catch (err) {
+    return err.code === 'ENOENT' || err.code === 'ENOTDIR';
+  }
+};
+
 // TODO: Check for trigger (ON UPDATE) and then see if we can use that to update updated_at
 
 class FileIndex {
@@ -69,6 +78,37 @@ class FileIndex {
 
   clearCollection(collectionPath) {
     this.#statements.execute('file_index_clear_collection', { collection_path: collectionPath });
+  }
+
+  async pruneMissingCollections() {
+    const collectionPaths = this.#statements.execute('file_index_collection_paths').map((row) => row.collectionPath);
+    const missingFlags = await Promise.all(collectionPaths.map(isMissingDirectory));
+    const missing = collectionPaths.filter((_, i) => missingFlags[i]);
+    if (missing.length === 0) return missing;
+
+    this.transaction(() => {
+      for (const collectionPath of missing) this.clearCollection(collectionPath);
+    });
+    return missing;
+  }
+
+  moveCollection(fromPath, toPath) {
+    if (fromPath === toPath) return;
+    const rows = this.#statements.execute('file_index_relative_paths_for_collection', {
+      collection_path: fromPath
+    });
+
+    this.transaction(() => {
+      this.clearCollection(toPath);
+      for (const { relativePath } of rows) {
+        this.#statements.execute('file_index_move_entry', {
+          collection_path: fromPath,
+          new_collection_path: toPath,
+          relative_path: relativePath,
+          id: idForAbsolutePath(path.join(toPath, relativePath))
+        });
+      }
+    });
   }
 
   entries(collectionPath, options = {}) {

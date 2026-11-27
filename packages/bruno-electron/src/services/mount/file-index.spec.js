@@ -14,6 +14,7 @@ jest.mock('../sqlite', () => ({
 const { createDatabase } = require('@usebruno/sqlite');
 const { getStatements, transaction } = require('../sqlite');
 const { FileIndex } = require('./file-index');
+const { idForAbsolutePath } = require('../../utils/mount');
 
 describe('FileIndex denylist', () => {
   let collectionPath;
@@ -94,5 +95,127 @@ describe('FileIndex denylist', () => {
       path.join('hidden', 'request.bru'),
       'visible.bru'
     ].sort());
+  });
+});
+
+describe('FileIndex stale collection cleanup', () => {
+  let rootPath;
+  let index;
+  let db;
+
+  const makeCollection = (name, files) => {
+    const collectionPath = path.join(rootPath, name);
+    fs.mkdirSync(collectionPath, { recursive: true });
+    for (const [relativePath, content] of Object.entries(files)) {
+      fs.writeFileSync(path.join(collectionPath, relativePath), content);
+      index.stageParsed(collectionPath, path.join(collectionPath, relativePath), { name: relativePath });
+    }
+    return collectionPath;
+  };
+
+  const ids = (collectionPath) =>
+    db._db
+      .prepare('SELECT relative_path AS relativePath, id FROM file_index_entries WHERE collection_path = ? ORDER BY relative_path')
+      .all(collectionPath)
+      .map((row) => ({ ...row }));
+
+  beforeEach(() => {
+    rootPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-file-index-cleanup-'));
+    const opened = createDatabase(':memory:');
+    db = opened.db;
+    getStatements.mockReturnValue(opened.statements);
+    transaction.mockImplementation((callback) => opened.db._transaction(callback));
+    index = new FileIndex();
+  });
+
+  afterEach(() => {
+    db.close();
+    fs.rmSync(rootPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  });
+
+  describe('pruneMissingCollections', () => {
+    test('clears rows only for collections whose folder no longer exists', async () => {
+      const kept = makeCollection('kept', { 'a.bru': 'a' });
+      const deleted = makeCollection('deleted', { 'b.bru': 'b' });
+      fs.rmSync(deleted, { recursive: true, force: true });
+
+      const pruned = await index.pruneMissingCollections();
+
+      expect(pruned).toEqual([deleted]);
+      expect([...index.entries(kept).keys()]).toEqual(['a.bru']);
+      expect(index.entries(deleted).size).toBe(0);
+    });
+
+    test('clears rows for a collection path that is now a file', async () => {
+      const replaced = makeCollection('replaced', { 'a.bru': 'a' });
+      fs.rmSync(replaced, { recursive: true, force: true });
+      fs.writeFileSync(replaced, 'not a directory');
+
+      expect(await index.pruneMissingCollections()).toEqual([replaced]);
+      expect(index.entries(replaced).size).toBe(0);
+    });
+
+    test('keeps rows when the folder cannot be checked for a reason other than being missing', async () => {
+      const unreadable = makeCollection('unreadable', { 'a.bru': 'a' });
+      const realStat = fs.promises.stat;
+      const statSpy = jest.spyOn(fs.promises, 'stat').mockImplementation((target, ...rest) => {
+        if (target === unreadable) {
+          return Promise.reject(Object.assign(new Error('permission denied'), { code: 'EACCES' }));
+        }
+        return realStat(target, ...rest);
+      });
+
+      try {
+        expect(await index.pruneMissingCollections()).toEqual([]);
+      } finally {
+        statSpy.mockRestore();
+      }
+      expect([...index.entries(unreadable).keys()]).toEqual(['a.bru']);
+    });
+  });
+
+  describe('moveCollection', () => {
+    test('moves every row to the new path and recomputes ids from it', () => {
+      const from = makeCollection('from', { 'a.bru': 'a', 'b.bru': 'b' });
+      const to = path.join(rootPath, 'to');
+
+      index.moveCollection(from, to);
+
+      expect(index.entries(from).size).toBe(0);
+      expect([...index.entries(to).keys()].sort()).toEqual(['a.bru', 'b.bru']);
+      expect(ids(to)).toEqual([
+        { relativePath: 'a.bru', id: idForAbsolutePath(path.join(to, 'a.bru')) },
+        { relativePath: 'b.bru', id: idForAbsolutePath(path.join(to, 'b.bru')) }
+      ]);
+    });
+
+    test('replaces rows already stored under the new path', () => {
+      const from = makeCollection('from', { 'a.bru': 'a' });
+      const to = makeCollection('to', { 'stale.bru': 'stale', 'a.bru': 'old' });
+
+      index.moveCollection(from, to);
+
+      expect([...index.entries(to).keys()]).toEqual(['a.bru']);
+      expect(index.entries(to).get('a.bru').raw).toBe('a');
+    });
+
+    test('lets a mount at the new path reuse the moved rows without reparsing', async () => {
+      const from = makeCollection('from', { 'a.bru': 'a', 'b.bru': 'b' });
+      const to = path.join(rootPath, 'to');
+      fs.renameSync(from, to);
+
+      index.moveCollection(from, to);
+      const { added, updated, removed } = await index.status(to);
+
+      expect({ added, updated, removed }).toEqual({ added: [], updated: [], removed: [] });
+    });
+
+    test('leaves rows untouched when both paths are the same', () => {
+      const same = makeCollection('same', { 'a.bru': 'a' });
+
+      index.moveCollection(same, same);
+
+      expect([...index.entries(same).keys()]).toEqual(['a.bru']);
+    });
   });
 });

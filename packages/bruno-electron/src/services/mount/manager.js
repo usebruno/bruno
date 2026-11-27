@@ -162,6 +162,14 @@ class MountManager {
     this.#getIndex().clearCollection(path.resolve(collectionPath));
   }
 
+  moveCollectionIndex(fromPath, toPath) {
+    this.#getIndex().moveCollection(path.resolve(fromPath), path.resolve(toPath));
+  }
+
+  pruneMissingCollectionIndexes() {
+    return this.#getIndex().pruneMissingCollections();
+  }
+
   async #reconcile(entry) {
     const denylist = entry.brunoConfig?.ignore || [];
     const { added, updated, removed } = await this.#getIndex().status(entry.collectionPath, { denylist });

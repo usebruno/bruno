@@ -31,7 +31,8 @@ const {
   normalizeCollectionEntry,
   validateWorkspacePath,
   validateWorkspaceDirectory,
-  getWorkspaceUid
+  getWorkspaceUid,
+  isCollectionInAnyOpenWorkspace
 } = require('../utils/workspace-config');
 
 const DEFAULT_WORKSPACE_NAME = 'My Workspace';
@@ -569,7 +570,9 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
         const collectionWatcher = require('../app/collection-watcher');
         collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
         await require('./mount').unmount(collectionUid).catch(() => {});
-        require('./mount').clearCollectionIndex(collectionPath);
+        if (deleteFiles || !isCollectionInAnyOpenWorkspace(collectionPath)) {
+          require('./mount').clearCollectionIndex(collectionPath);
+        }
         require('../store/bruno-config').clearBrunoConfig(collectionUid);
         require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
       }

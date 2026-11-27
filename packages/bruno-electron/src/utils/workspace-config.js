@@ -757,6 +757,28 @@ const removeApiSpecFromWorkspace = async (workspacePath, apiSpecPath) => {
   });
 };
 
+const isCollectionInAnyWorkspace = (workspacePaths, collectionPath) => {
+  const target = path.normalize(collectionPath);
+  return workspacePaths.filter(Boolean).some((workspacePath) => {
+    if (!hasWorkspaceFile(workspacePath)) return false;
+    try {
+      const config = readWorkspaceConfig(workspacePath);
+      return resolveWorkspaceCollectionPaths(workspacePath, config.collections).some(
+        (collection) => path.normalize(collection.path) === target
+      );
+    } catch (error) {
+      return true;
+    }
+  });
+};
+
+const isCollectionInAnyOpenWorkspace = (collectionPath) => {
+  const { defaultWorkspaceManager } = require('../store/default-workspace');
+  const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
+  const workspacePaths = [defaultWorkspaceManager.getDefaultWorkspacePath(), ...new LastOpenedWorkspaces().getAll()];
+  return isCollectionInAnyWorkspace(workspacePaths, collectionPath);
+};
+
 const getWorkspaceUid = (workspacePath) => {
   const { defaultWorkspaceManager } = require('../store/default-workspace');
   const defaultWorkspacePath = defaultWorkspaceManager.getDefaultWorkspacePath();
@@ -795,6 +817,8 @@ module.exports = {
   hasWorkspaceFile,
   generateYamlContent,
   getWorkspaceUid,
+  isCollectionInAnyWorkspace,
+  isCollectionInAnyOpenWorkspace,
   writeWorkspaceFileAtomic,
   isValidCollectionEntry,
   isValidSpecEntry
