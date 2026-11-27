@@ -108,6 +108,35 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
     expect(logs[1].args[0]).toMatch(/^token: \d+(\.\d+)?ms$/);
   });
 
+  it('should keep the first start when console.time is called twice', async () => {
+    const script = `
+      console.time('phase');
+      await bru.sleep(60);
+      console.time('phase');
+      console.timeEnd('phase');
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs).toHaveLength(1);
+    const elapsed = Number(logs[0].args[0].match(/^phase: (\d+)ms$/)[1]);
+    expect(elapsed).toBeGreaterThanOrEqual(40);
+  });
+
+  it('should forward extra arguments to console.timeLog', async () => {
+    const script = `
+      console.time('phase');
+      console.timeLog('phase', { completed: 3 });
+      console.timeEnd('phase');
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs).toHaveLength(2);
+    expect(logs[0].args[0]).toMatch(/^phase: \d+(\.\d+)?ms$/);
+    expect(logs[0].args[1]).toEqual({ completed: 3 });
+  });
+
   it('should reset counters with console.countReset', async () => {
     const script = `
       console.count('hits');

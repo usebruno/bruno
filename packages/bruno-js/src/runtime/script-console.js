@@ -88,7 +88,10 @@ const createScriptConsole = (onConsoleLog) => {
     profileEnd: () => {},
     table: (...args) => log(...args),
     time: (label = 'default') => {
-      timers.set(label, Date.now());
+      // A second start for a running timer keeps the original start, like Node.
+      if (!timers.has(label)) {
+        timers.set(label, Date.now());
+      }
     },
     timeEnd: (label = 'default') => {
       const startedAt = timers.get(label);
@@ -98,12 +101,12 @@ const createScriptConsole = (onConsoleLog) => {
       timers.delete(label);
       log(`${label}: ${Date.now() - startedAt}ms`);
     },
-    timeLog: (label = 'default') => {
+    timeLog: (label = 'default', ...args) => {
       const startedAt = timers.get(label);
       if (startedAt === undefined) {
         return;
       }
-      log(`${label}: ${Date.now() - startedAt}ms`);
+      log(`${label}: ${Date.now() - startedAt}ms`, ...args);
     },
     // No DevTools timeline in the sandbox.
     timeStamp: () => {},
