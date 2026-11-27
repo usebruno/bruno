@@ -427,6 +427,8 @@ const prepareRequest = async (item, collection = {}, abortController) => {
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
+    // Default to application/json even for an empty body,
+    // otherwise axios sends application/x-www-form-urlencoded.
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }

@@ -41,6 +41,27 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 
+  describe('Empty JSON body', () => {
+    it.each([undefined, ''])('Sets content-type application/json when the json body is %p', async (json) => {
+      const request = { method: 'POST', url: 'test-domain', body: { mode: 'json', json }, auth: { mode: 'none' } };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.headers['content-type']).toBe('application/json');
+    });
+
+    it('Keeps a content-type header the user has set', async () => {
+      const request = {
+        method: 'POST',
+        url: 'test-domain',
+        body: { mode: 'json', json: '' },
+        headers: [{ name: 'Content-Type', value: 'application/vnd.api+json', enabled: true }],
+        auth: { mode: 'none' }
+      };
+      const result = await prepareRequest({ request, collection: { pathname: '' } });
+      expect(result.headers).toHaveProperty('Content-Type', 'application/vnd.api+json');
+      expect(result.headers).not.toHaveProperty('content-type');
+    });
+  });
+
   describe('Header entries', () => {
     it('Should emit headerEntries in row order with disabled rows flagged, and one entry per enabled name', async () => {
       const request = {
