@@ -127,8 +127,7 @@ const Cache = () => {
         <div className="cache-item-body">
           <div className="cache-item-body-text">
             <p className="cache-item-description">
-              Lets you find requests in collections you haven't opened yet. Clearing it means search results from
-              unopened collections may be unavailable until it's rebuilt.
+              Clear cached search data used to speed up searches across collections. Your next search may take longer, but your collections and requests will remain unaffected
             </p>
             <p className="cache-item-size">
               Cache size <strong data-testid="search-index-size">{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
