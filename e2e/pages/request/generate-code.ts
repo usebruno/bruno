@@ -3,9 +3,21 @@ import { selectRequestPaneTab, buildRequestLocators } from './pane';
 import { buildModalLocators } from '../shared-ui/modal';
 import { readEditorValue } from '../shared-ui/autocomplete';
 
+/**
+ * Locators for the Generate Code dialog.
+ * @param page - The page object
+ */
+const buildGenerateCodeLocators = (page: Page) => ({
+  dialog: () => page.getByRole('dialog'),
+  codeEditor: () => page.getByRole('dialog').locator('.editor-content .CodeMirror').first(),
+  copyButton: () => page.getByRole('dialog').getByRole('button', { name: 'Copy to clipboard' }),
+  interpolateToggle: () => page.getByTestId('interpolate-vars-toggle')
+});
+
 const buildLocators = (page: Page) => ({
   request: buildRequestLocators(page),
-  modal: buildModalLocators(page)
+  modal: buildModalLocators(page),
+  generateCode: buildGenerateCodeLocators(page)
 });
 
 /**
@@ -16,7 +28,7 @@ const buildLocators = (page: Page) => ({
  */
 const readGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Read generated snippet', async () => {
-    const codeEditor = page.locator('.editor-content .CodeMirror').first();
+    const codeEditor = buildGenerateCodeLocators(page).codeEditor();
     await expect(codeEditor).toBeVisible();
     await page.waitForFunction(() =>
       Boolean((document.querySelector('.editor-content .CodeMirror') as any)?.CodeMirror?.getValue())
@@ -32,10 +44,10 @@ const readGeneratedSnippet = async (page: Page): Promise<string> => {
  */
 const getGeneratedSnippet = async (page: Page): Promise<string> => {
   return await test.step('Open Generate Code dialog and read snippet', async () => {
-    const { request } = buildLocators(page);
+    const { request, generateCode } = buildLocators(page);
 
     await request.generateCodeButton().click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(generateCode.dialog()).toBeVisible();
 
     return await readGeneratedSnippet(page);
   });
@@ -50,7 +62,7 @@ const getGeneratedSnippet = async (page: Page): Promise<string> => {
  */
 const setInterpolateVariables = async (page: Page, enabled: boolean) => {
   await test.step(`Set Interpolate Variables ${enabled ? 'ON' : 'OFF'}`, async () => {
-    const toggle = page.getByTestId('interpolate-vars-toggle');
+    const toggle = buildGenerateCodeLocators(page).interpolateToggle();
     await expect(toggle).toBeVisible();
     if ((await toggle.isChecked()) !== enabled) {
       await toggle.setChecked(enabled);
@@ -95,4 +107,4 @@ const setUrlEncoding = async (page: Page, enabled: boolean) => {
   });
 };
 
-export { getGeneratedSnippet, readGeneratedSnippet, setInterpolateVariables, closeGenerateCodeDialog, setUrlEncoding };
+export { buildGenerateCodeLocators, getGeneratedSnippet, readGeneratedSnippet, setInterpolateVariables, closeGenerateCodeDialog, setUrlEncoding };
