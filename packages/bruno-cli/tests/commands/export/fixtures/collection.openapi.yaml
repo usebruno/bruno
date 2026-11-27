@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: My API
+  title: My API-v2-test
   version: 1.0.0
 paths:
   /folder-1/one:

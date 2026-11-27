@@ -63,7 +63,7 @@ describe('bru export openapi', () => {
 
       const spec = jsyaml.load(fs.readFileSync(outputFile, 'utf8'));
       expect(spec.openapi).toBe('3.0.0');
-      expect(spec.info.title).toBe('My API');
+      expect(spec.info.title).toBe('My API-v2-test');
       expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
     });
 
@@ -72,7 +72,7 @@ describe('bru export openapi', () => {
 
       await runExport({ source: FIXTURE, outputFile: 'api.yaml' });
 
-      expect(jsyaml.load(fs.readFileSync(path.join(outDir, 'api.yaml'), 'utf8')).info.title).toBe('My API');
+      expect(jsyaml.load(fs.readFileSync(path.join(outDir, 'api.yaml'), 'utf8')).info.title).toBe('My API-v2-test');
     });
 
     it('resolves a relative --source against the current directory', async () => {
@@ -126,7 +126,7 @@ describe('bru export openapi', () => {
 
       await runExport({ source: FIXTURE });
 
-      expect(fs.existsSync(path.join(outDir, 'My API.yaml'))).toBe(true);
+      expect(fs.existsSync(path.join(outDir, 'My API-v2-test.yaml'))).toBe(true);
     });
 
     it('writes JSON when the output file ends in .json', async () => {
