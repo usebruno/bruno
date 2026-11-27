@@ -439,38 +439,53 @@ describe('scanLocations', () => {
     expect(collections).toEqual([{ path: path.join(oneDrive, 'Team API'), name: 'Team API', mtime: 0, locationId: 'onedrive' }]);
   });
 
-  it('lists a recent outside every location under its stored name', async () => {
+  it('lists a recent outside every location only when the whole computer is searched, under its stored name', async () => {
     const recent = makeBruCollection('Manifest name', 'elsewhere', 'api');
     makeFolder('work');
+    const recents = [{ path: recent, name: 'Stored name' }];
+
+    const { collections: withoutComputer, statuses } = await scan({ locations: [location('work', 'work')], recents });
+    const { collections: withComputer } = await scan({ locations: [location('work', 'work'), computerAt('system')], recents });
+
+    expect(withoutComputer).toEqual([]);
+    expect(statuses).toEqual([{ id: 'work', status: 'done', found: 0 }]);
+    expect(withComputer).toEqual([{ path: recent, name: 'Stored name', mtime: mtimeOf(recent), locationId: 'recents' }]);
+  });
+
+  it('credits a recent that the walk skips to the innermost location that holds it', async () => {
+    const recent = makeBruCollection('Manifest name', 'work', '.archive', 'api');
 
     const { collections, statuses } = await scan({
-      locations: [location('work', 'work')],
+      locations: [location('all', ''), location('work', 'work')],
       recents: [{ path: recent, name: 'Stored name' }]
     });
 
-    expect(collections).toEqual([{ path: recent, name: 'Stored name', mtime: mtimeOf(recent), locationId: 'recents' }]);
-    expect(statuses).toEqual([{ id: 'work', status: 'done', found: 0 }]);
+    expect(collections).toEqual([{ path: recent, name: 'Stored name', mtime: mtimeOf(recent), locationId: 'work' }]);
+    expect(statuses).toEqual([
+      { id: 'all', status: 'done', found: 0 },
+      { id: 'work', status: 'done', found: 1 }
+    ]);
   });
 
-  it('checks recents with no locations and leaves out recents that are gone or no longer collections', async () => {
-    const recent = makeBruCollection('Manifest name', 'api');
-    const plainFolder = makeFolder('plain-folder');
+  it('leaves out recents that are gone or no longer collections', async () => {
+    const recent = makeBruCollection('Manifest name', 'work', '.archive', 'api');
+    const plainFolder = makeFolder('work', '.archive', 'plain-folder');
 
     const { collections, statuses } = await scan({
-      locations: [],
+      locations: [location('work', 'work')],
       recents: [
-        { path: path.join(tempDir, 'gone'), name: 'Gone' },
+        { path: path.join(tempDir, 'work', '.archive', 'gone'), name: 'Gone' },
         { path: plainFolder, name: 'Plain folder' },
         { path: recent, name: 'Stored name' }
       ]
     });
 
-    expect(collections).toEqual([{ path: recent, name: 'Stored name', mtime: mtimeOf(recent), locationId: 'recents' }]);
-    expect(statuses).toEqual([]);
+    expect(collections).toEqual([{ path: recent, name: 'Stored name', mtime: mtimeOf(recent), locationId: 'work' }]);
+    expect(statuses).toEqual([{ id: 'work', status: 'done', found: 1 }]);
   });
 
   it('leaves out a recent that disappears right after it is read, while the locations finish', async () => {
-    const recent = makeBruCollection('Manifest name', 'elsewhere', 'api');
+    const recent = makeBruCollection('Manifest name', 'work', '.archive', 'api');
     const kept = makeBruCollection('Kept', 'work', 'kept');
     deleteAfterReading(recent);
 
@@ -492,15 +507,11 @@ describe('scanLocations', () => {
     const { collections, statuses } = await scan({
       locations: [location('work', 'work')],
       recents: [{ path: link, name: 'Stored name' }],
-      onCollection: (row) => {
-        if (row.locationId === 'recents') {
-          releaseWalk();
-        }
-      }
+      onCollection: () => releaseWalk()
     });
 
     expect(collections).toEqual([
-      { path: link, name: 'Stored name', mtime: mtimeOf(collection), locationId: 'recents' },
+      { path: link, name: 'Stored name', mtime: mtimeOf(collection), locationId: 'work' },
       { path: link, name: 'Manifest name', mtime: mtimeOf(collection), locationId: 'work' }
     ]);
     expect(statuses).toEqual([{ id: 'work', status: 'done', found: 1 }]);
@@ -653,6 +664,23 @@ describe('scanLocations', () => {
       ]);
     });
 
+    it('walks the Desktop, Documents and Downloads in a cloud sync folder that a location holds, as the whole computer does', async () => {
+      const oneDrive = makeFolder('system', 'Users', 'me', 'OneDrive');
+      const dropbox = makeFolder('elsewhere', 'Dropbox');
+      const desktopApi = makeBruCollection('Desktop API', 'system', 'Users', 'me', 'OneDrive', 'Desktop', 'api');
+      makeBruCollection('Shared API', 'system', 'Users', 'me', 'OneDrive', 'Shared', 'api');
+      makeBruCollection('Dropbox documents API', 'elsewhere', 'Dropbox', 'Documents', 'api');
+      findCloudFolders.mockResolvedValue({ syncFolders: [oneDrive, dropbox], placeholderFolders: [] });
+      const knownFolders = [path.join(oneDrive, 'Desktop'), path.join(dropbox, 'Documents')];
+      const readdir = jest.spyOn(fsPromises, 'readdir');
+
+      const { collections, statuses } = await scan({ locations: [location('users', 'system', 'Users')], platform: 'linux', knownFolders });
+
+      expect(ownedPaths(collections)).toEqual([[desktopApi, 'users']]);
+      expect(statuses).toEqual([{ id: 'users', status: 'done', found: 1 }]);
+      expect(readdir.mock.calls.map(([target]) => target)).not.toContain(oneDrive);
+    });
+
     it('builds the Windows prunes from the drive letters of the locations, without reading the mount table', async () => {
       const env = { SystemRoot: 'C:\\Windows' };
 
@@ -759,13 +787,11 @@ describe('scanLocations', () => {
       const readdir = jest.spyOn(fsPromises, 'readdir');
 
       const { collections, statuses } = await scan({ locations: [computerAt('system')], platform: 'linux', knownFolders });
-      const { collections: withoutComputer } = await scan({ locations: [location('users', 'system', 'Users')], platform: 'linux', knownFolders });
 
       expect(ownedPaths(collections)).toEqual([[desktopApi, 'computer'], [downloadsApi, 'computer']].sort());
       expect(statuses).toEqual([{ id: 'computer', status: 'done', found: 2 }]);
       expect(readdir.mock.calls.filter(([target]) => target === desktop)).toHaveLength(1);
       expect(readdir.mock.calls.map(([target]) => target)).not.toContain(oneDrive);
-      expect(ownedPaths(withoutComputer)).toEqual([[downloadsApi, 'users']]);
     });
 
     it('walks a Documents folder that links into a cloud sync folder', async () => {
@@ -780,6 +806,27 @@ describe('scanLocations', () => {
       const { collections } = await scan({ locations: [computerAt('system')], platform: 'linux', knownFolders: [documentsLink] });
 
       expect(ownedPaths(collections)).toEqual([[path.join(documentsLink, 'api'), 'computer']]);
+    });
+
+    it('credits what its roots and the home folder find inside a location to that location, which counts the same as without the whole computer', async () => {
+      const system = makeFolder('system');
+      const meApi = makeBruCollection('Me API', 'system', 'Users', 'me', 'api');
+      const toolApi = makeBruCollection('Tool API', 'system', 'Users', 'tools', 'api');
+      const serverApi = makeBruCollection('Server API', 'system', 'srv', 'api');
+      planWholeComputer.mockReturnValue(planOf({ roots: [system, path.join(system, 'Users', 'tools')] }));
+      const users = location('users', 'system', 'Users');
+      const home = { ...location('home', 'system', 'Users', 'me'), kind: 'home' };
+
+      const { statuses: withoutComputer } = await scan({ locations: [users], platform: 'linux' });
+      const { collections, statuses } = await scan({ locations: [users, home, computerAt('system')], platform: 'linux' });
+
+      expect(ownedPaths(collections)).toEqual([[meApi, 'users'], [toolApi, 'users'], [serverApi, 'computer']].sort());
+      expect(statuses).toEqual([
+        { id: 'users', status: 'done', found: 2 },
+        { id: 'home', status: 'done', found: 0 },
+        { id: 'computer', status: 'done', found: 1 }
+      ]);
+      expect(withoutComputer).toEqual([{ id: 'users', status: 'done', found: 2 }]);
     });
 
     it('leaves a root that is also another location to that location, which walks it once under the whole computer prunes', async () => {
@@ -827,9 +874,9 @@ describe('scanLocations', () => {
     fs.writeFileSync(path.join(mixed, 'bruno.json'), JSON.stringify({ name: 'Mixed bru name' }));
     const local = makeBruCollection('Local name', 'cloud', 'local-api');
     const outside = makeBruCollection('Outside name', 'work', 'api');
-    const recentInCloud = makeBruCollection('Recent manifest name', 'elsewhere', 'cloud', 'recent-api');
+    const recentInCloud = makeBruCollection('Recent manifest name', 'cloud', '.archive', 'recent-api');
     const datalessFiles = [path.join(offline, 'bruno.json'), path.join(mixed, 'bruno.json'), path.join(recentInCloud, 'bruno.json')];
-    findCloudFolders.mockResolvedValue({ syncFolders: [], placeholderFolders: [path.join(tempDir, 'cloud'), path.join(tempDir, 'elsewhere', 'cloud')] });
+    findCloudFolders.mockResolvedValue({ syncFolders: [], placeholderFolders: [path.join(tempDir, 'cloud')] });
     isDatalessFile.mockImplementation(async (filePath) => datalessFiles.includes(filePath));
     const open = jest.spyOn(fsPromises, 'open');
 
@@ -869,20 +916,26 @@ describe('scanLocations', () => {
     const open = jest.spyOn(fsPromises, 'open');
 
     const { collections, statuses } = await scan({
-      locations: [location('local-api', 'OneDrive', 'local-api'), location('cloud-api', 'OneDrive', 'cloud-api'), location('work', 'work')],
+      locations: [
+        location('local-api', 'OneDrive', 'local-api'),
+        location('cloud-api', 'OneDrive', 'cloud-api'),
+        location('work', 'work'),
+        location('all', '')
+      ],
       recents: [{ path: localRecent, name: 'Recent stored name' }, { path: cloudRecent, name: 'Cloud recent stored name' }],
       platform: 'win32'
     });
 
     expect(byPath(collections)).toEqual([
       { path: local, name: 'Local name', mtime: mtimeOf(local), locationId: 'local-api' },
-      { path: localRecent, name: 'Recent stored name', mtime: mtimeOf(localRecent), locationId: 'recents' },
+      { path: localRecent, name: 'Recent stored name', mtime: mtimeOf(localRecent), locationId: 'all' },
       { path: outside, name: 'Outside name', mtime: mtimeOf(outside), locationId: 'work' }
     ].sort((first, second) => first.path.localeCompare(second.path)));
     expect(statuses).toEqual([
       { id: 'local-api', status: 'done', found: 1 },
       { id: 'cloud-api', status: 'done', found: 0 },
-      { id: 'work', status: 'done', found: 1 }
+      { id: 'work', status: 'done', found: 1 },
+      { id: 'all', status: 'done', found: 1 }
     ]);
     expect(findCloudOnlyFiles.mock.calls.flatMap(([filePaths]) => filePaths).sort()).toEqual([
       path.join(local, 'bruno.json'),

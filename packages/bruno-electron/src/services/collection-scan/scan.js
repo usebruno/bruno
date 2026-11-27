@@ -12,6 +12,7 @@ const CONCURRENCY = 16;
 const RECENTS_CONCURRENCY = 4;
 const CLOUD_CHECK_BATCH_SIZE = 25;
 const RECENTS_LOCATION_ID = 'recents';
+const WHOLE_COMPUTER_KINDS = new Set(['home', 'computer']);
 
 const DRIVE_ROOT = /^[A-Za-z]:\\$/;
 
@@ -37,6 +38,8 @@ const toFolderDepth = (realPath) => path.relative(path.parse(realPath).root, rea
 const withTrailingSeparator = (folderPath) => (folderPath.endsWith(path.sep) ? folderPath : `${folderPath}${path.sep}`);
 
 const isComputerLocation = (location) => location.kind === 'computer';
+
+const isWholeComputerLocation = (location) => WHOLE_COMPUTER_KINDS.has(location.kind);
 
 const isCollectionManifest = (entry) => hasCollectionConfig([entry]);
 
@@ -102,7 +105,7 @@ const scanLocations = async ({
   const [syncFolderKeyList, placeholderFolderKeys, knownFolderKeys] = await Promise.all([
     Promise.all(cloudFolders.syncFolders.map(toRealPathKeyWithoutOpening)),
     Promise.all(cloudFolders.placeholderFolders.map(toRealPathKeyWithoutOpening)),
-    Promise.all((searchesComputer ? knownFolders : []).map(toRealPathKeyWithoutOpening))
+    Promise.all(knownFolders.map(toRealPathKeyWithoutOpening))
   ]);
   const syncFolderKeys = new Set(syncFolderKeyList);
   const isInsideSyncFolder = (key) => syncFolderKeyList.some((syncKey) => isSameOrInside(syncKey, key));
@@ -113,8 +116,12 @@ const scanLocations = async ({
   const planPruneKeys = plan.prunePaths.map(toResolvedPathKey);
   const isInsidePlanPrune = (rootPath) => planPruneKeys.some((pruneKey) => isSameOrInside(pruneKey, toResolvedPathKey(rootPath)));
   const prunedKeys = new Set(searchesComputer ? [...planPruneKeys, ...plan.mountPrunePaths.map(toResolvedPathKey)] : planPruneKeys);
-  const planRoots = searchesComputer ? [...plan.roots, ...plan.volumeRoots, ...cloudKnownFolders] : plan.roots.filter(isInsidePlanPrune);
+  const planRoots = searchesComputer
+    ? [...plan.roots, ...plan.volumeRoots, ...cloudKnownFolders]
+    : [...plan.roots.filter(isInsidePlanPrune), ...cloudKnownFolders];
   const roots = toRoots({ locations, planRoots });
+  const listedLocations = locations.filter((location) => !isWholeComputerLocation(location));
+  const creditOf = (folderPath, fallbackLocationId) => innermostLocationOf(listedLocations, folderPath)?.id ?? fallbackLocationId;
   const rootKeys = new Set(roots.map((root) => toResolvedPathKey(root.path)));
   const walkedRootKeys = new Set();
   const statuses = new Map();
@@ -211,10 +218,10 @@ const scanLocations = async ({
     const { folderPath, realPath, isRoot, locationId } = job;
     const key = toPathKey(realPath);
     const earlierRow = emitted.get(key);
-    if (earlierRow && earlierRow.locationId !== RECENTS_LOCATION_ID) {
+    if (earlierRow && !earlierRow.fromRecents) {
       return;
     }
-    const row = { path: earlierRow ? earlierRow.path : folderPath, locationId };
+    const row = { path: earlierRow ? earlierRow.path : folderPath, locationId: creditOf(folderPath, locationId) };
     emitted.set(key, row);
     if (!earlierRow && isRoot && (await fs.lstat(folderPath).catch(() => null))?.isSymbolicLink()) {
       row.path = realPath;
@@ -320,7 +327,11 @@ const scanLocations = async ({
     if (emitted.has(key)) {
       return;
     }
-    const row = { path: recentPath, locationId: RECENTS_LOCATION_ID };
+    const owner = innermostLocationOf(listedLocations, recentPath) || innermostLocationOf(listedLocations, realPath);
+    if (!owner && !searchesComputer) {
+      return;
+    }
+    const row = { path: recentPath, locationId: owner ? owner.id : RECENTS_LOCATION_ID, fromRecents: true };
     emitted.set(key, row);
     await reportIfOnDisk({ row, folderPath: recentPath, manifestPaths: manifestNames.map((manifestName) => path.join(realPath, manifestName)), name });
   };
