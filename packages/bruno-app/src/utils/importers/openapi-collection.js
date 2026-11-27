@@ -38,5 +38,5 @@ export const buildOpenApiSyncBrunoConfig = (collection, { sourceUrl, groupBy, au
   type: 'collection',
   ignore: ['node_modules', '.git'],
   ...collection.brunoConfig,
-  openapi: [{ sourceUrl, groupBy, authPlacement, requestNameSource, autoCheck: true, autoCheckInterval: 5 }]
+  openapi: [{ sourceUrl, groupBy, authPlacement, requestNameSource }]
 });

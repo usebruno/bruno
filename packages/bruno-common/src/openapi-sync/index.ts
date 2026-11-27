@@ -17,8 +17,8 @@ interface OpenApiSyncConfig {
   requestNameSource?: RequestNameSource;
   lastSyncDate?: string;
   specHash?: string;
-  autoCheck: boolean;
-  autoCheckInterval: number;
+  autoCheck?: boolean;
+  autoCheckInterval?: number;
 }
 
 const SUPPORTED_GROUP_BY = ['tags', 'path'];
@@ -41,7 +41,8 @@ export const normalizeOpenApiSyncConfigs = (entries: unknown): OpenApiSyncConfig
     ...(REQUEST_NAME_SOURCES.includes(entry.requestNameSource) && { requestNameSource: entry.requestNameSource }),
     ...(entry.lastSyncDate && { lastSyncDate: entry.lastSyncDate }),
     ...(entry.specHash && { specHash: entry.specHash }),
-    autoCheck: entry.autoCheck !== false,
-    autoCheckInterval: entry.autoCheckInterval || 5
+    // Auto check settings live in app data; kept only when an older file has them, never added.
+    ...(typeof entry.autoCheck === 'boolean' && { autoCheck: entry.autoCheck }),
+    ...(typeof entry.autoCheckInterval === 'number' && { autoCheckInterval: entry.autoCheckInterval })
   }));
 };

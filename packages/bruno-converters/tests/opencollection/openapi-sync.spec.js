@@ -37,7 +37,7 @@ describe('brunoToOpenCollection (export): openapi sync config', () => {
     expect(oc.extensions.bruno.openapi).toEqual([syncConfig]);
   });
 
-  it('omits sync metadata that is absent and defaults the auto-check fields', () => {
+  it('omits sync metadata that is absent and adds no auto-check defaults', () => {
     const oc = brunoToOpenCollection({
       name: 'Petstore',
       brunoConfig: { openapi: [{ sourceUrl: 'https://example.com/openapi.json', groupBy: 'path' }] },
@@ -46,16 +46,14 @@ describe('brunoToOpenCollection (export): openapi sync config', () => {
     expect(oc.extensions.bruno.openapi).toEqual([
       {
         sourceUrl: 'https://example.com/openapi.json',
-        groupBy: 'path',
-        autoCheck: true,
-        autoCheckInterval: 5
+        groupBy: 'path'
       }
     ]);
   });
 });
 
 describe('openCollectionToBruno (import): openapi sync config', () => {
-  it('reads the sync config back, defaulting the auto-check fields', () => {
+  it('reads the sync config back without adding auto-check defaults', () => {
     const { brunoConfig } = openCollectionToBruno({
       opencollection: '1.0.0',
       info: { name: 'Petstore' },
@@ -64,9 +62,7 @@ describe('openCollectionToBruno (import): openapi sync config', () => {
     expect(brunoConfig.openapi).toEqual([
       {
         sourceUrl: 'https://example.com/openapi.json',
-        groupBy: 'tags',
-        autoCheck: true,
-        autoCheckInterval: 5
+        groupBy: 'tags'
       }
     ]);
   });

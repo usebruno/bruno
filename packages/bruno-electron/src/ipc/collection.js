@@ -89,6 +89,7 @@ const { cancelOAuth2AuthorizationRequest, isOauth2AuthorizationRequestInProgress
 const { findUniqueFolderName } = require('../utils/collection-import');
 const { renameEnvironmentExtendsReferences } = require('../utils/environments');
 const { saveSpecAndUpdateMetadata, cleanupSpecFilesForCollection } = require('./openapi-sync');
+const { approveOpenApiSyncSource } = require('./openapi-sync-sources');
 const {
   validateWorkspacePath,
   normalizeCollectionEntry,
@@ -1550,6 +1551,8 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             : JSON.stringify(rawOpenAPISpec, null, 2);
           const syncMetadata = await saveSpecAndUpdateMetadata({ collectionPath, specContent });
           brunoConfig.openapi[0] = { ...brunoConfig.openapi[0], ...syncMetadata };
+          // Importing from a spec is the user choosing this source.
+          approveOpenApiSyncSource({ collectionPath });
         }
 
         const { size, filesCount } = await getCollectionStats(collectionPath);

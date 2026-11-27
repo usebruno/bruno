@@ -119,7 +119,7 @@ describe('ImportCollectionLocation collection auth placement', () => {
 
     expect(convertOpenapiToBruno).toHaveBeenCalledWith(openApiSpec, expect.objectContaining({ groupBy: 'tags', authPlacement: 'collection' }));
     expect(collection.brunoConfig.openapi).toEqual([
-      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement: 'collection', requestNameSource: 'summary', autoCheck: true, autoCheckInterval: 5 }
+      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement: 'collection', requestNameSource: 'summary' }
     ]);
   });
 
@@ -195,7 +195,7 @@ describe('ImportCollectionLocation naming requests', () => {
 
     expect(convertOpenapiToBruno).toHaveBeenCalledWith(openApiSpec, expect.objectContaining({ requestNameSource: 'operationId' }));
     expect(collection.brunoConfig.openapi).toEqual([
-      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement: 'request', requestNameSource: 'operationId', autoCheck: true, autoCheckInterval: 5 }
+      { sourceUrl: 'https://example.com/openapi.json', groupBy: 'tags', authPlacement: 'request', requestNameSource: 'operationId' }
     ]);
   });
 

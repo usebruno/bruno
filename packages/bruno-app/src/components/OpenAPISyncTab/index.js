@@ -13,11 +13,16 @@ import CollectionStatusSection from './CollectionStatusSection';
 import ConnectionSettingsModal from './ConnectionSettingsModal';
 import DisconnectSyncModal from './DisconnectSyncModal';
 import OverviewSection from './OverviewSection';
+import SourceApprovalBanner from './SourceApprovalBanner';
+import Button from 'ui/Button';
 import useOpenAPISync from './hooks/useOpenAPISync';
 
 const OpenAPISyncTab = ({ collection }) => {
   const {
     sourceUrl, setSourceUrl,
+    sourceState,
+    isSourceApproved,
+    isReviewingSource,
     isLoading,
     error, setError,
     fileNotFound,
@@ -30,6 +35,9 @@ const OpenAPISyncTab = ({ collection }) => {
     handleConnect,
     handleDisconnect,
     handleSaveSettings,
+    handleApproveSource,
+    handleDismissSource,
+    retrySourceState,
     openEndpointInTab,
     reloadDrift
   } = useOpenAPISync(collection);
@@ -37,6 +45,7 @@ const OpenAPISyncTab = ({ collection }) => {
   const dispatch = useDispatch();
   const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
   const isConfigured = !!openApiSyncConfig?.sourceUrl;
+  const needsSourceReview = isConfigured && (sourceState?.status === 'pending' || sourceState?.status === 'dismissed');
 
   const handleViewSpec = () => {
     dispatch(addTab({
@@ -112,63 +121,98 @@ const OpenAPISyncTab = ({ collection }) => {
               onOpenDisconnect={() => setShowDisconnectModal(true)}
               onCheck={checkForUpdates}
               isLoading={isLoading}
+              isSourceApproved={isSourceApproved}
             />
 
-            <ResponsiveTabs
-              tabs={syncTabs}
-              activeTab={activeTab}
-              onTabSelect={setActiveTab}
-            />
+            {needsSourceReview && (
+              <SourceApprovalBanner
+                sourceState={sourceState}
+                isBusy={isReviewingSource}
+                onApprove={handleApproveSource}
+                onDismiss={handleDismissSource}
+              />
+            )}
 
-            {activeTab === 'overview' && (
-              <div className="sync-tab-content">
-                <OverviewSection
-                  collection={collection}
-                  storedSpec={storedSpec}
-                  collectionDrift={collectionDrift}
-                  specDrift={specDrift}
-                  remoteDrift={remoteDrift}
-                  onTabSelect={setActiveTab}
-                  error={error}
-                  onOpenSettings={() => setShowSettingsModal(true)}
-                />
+            {sourceState?.status === 'error' && (
+              <div className="sync-review-empty-state mt-5" data-testid="openapi-sync-source-error">
+                <h4>Couldn’t read the sync source</h4>
+                <Button
+                  color="secondary"
+                  size="sm"
+                  className="mt-3"
+                  onClick={retrySourceState}
+                  data-testid="openapi-sync-source-retry"
+                >
+                  Retry
+                </Button>
               </div>
             )}
 
-            {activeTab === 'collection-changes' && (
-              <div className="sync-tab-content">
-
-                <CollectionStatusSection
-                  collection={collection}
-                  collectionDrift={collectionDrift}
-                  reloadDrift={reloadDrift}
-                  specDrift={specDrift}
-                  storedSpec={storedSpec}
-                  lastSyncDate={openApiSyncConfig?.lastSyncDate}
-                  onOpenEndpoint={openEndpointInTab}
-                  isLoading={isDriftLoading || isLoading}
-                  onTabSelect={setActiveTab}
-                />
+            {!isSourceApproved && !needsSourceReview && sourceState?.status !== 'error' && (
+              <div className="sync-review-empty-state mt-5" data-testid="openapi-sync-source-loading">
+                <p>Loading the sync source...</p>
               </div>
             )}
 
-            {activeTab === 'spec-updates' && (
-              <div className="sync-tab-content">
-                <SpecStatusSection
-                  collection={collection}
-                  sourceUrl={sourceUrl}
-                  isLoading={isLoading}
-                  error={error}
-                  setError={setError}
-                  fileNotFound={fileNotFound}
-                  specDrift={specDrift}
-                  storedSpec={storedSpec}
-                  collectionDrift={collectionDrift}
-                  remoteDrift={remoteDrift}
-                  onCheck={checkForUpdates}
-                  onOpenSettings={() => setShowSettingsModal(true)}
+            {isSourceApproved && (
+              <>
+                <ResponsiveTabs
+                  tabs={syncTabs}
+                  activeTab={activeTab}
+                  onTabSelect={setActiveTab}
                 />
-              </div>
+
+                {activeTab === 'overview' && (
+                  <div className="sync-tab-content">
+                    <OverviewSection
+                      collection={collection}
+                      storedSpec={storedSpec}
+                      collectionDrift={collectionDrift}
+                      specDrift={specDrift}
+                      remoteDrift={remoteDrift}
+                      onTabSelect={setActiveTab}
+                      error={error}
+                      onOpenSettings={() => setShowSettingsModal(true)}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'collection-changes' && (
+                  <div className="sync-tab-content">
+
+                    <CollectionStatusSection
+                      collection={collection}
+                      collectionDrift={collectionDrift}
+                      reloadDrift={reloadDrift}
+                      specDrift={specDrift}
+                      storedSpec={storedSpec}
+                      lastSyncDate={openApiSyncConfig?.lastSyncDate}
+                      onOpenEndpoint={openEndpointInTab}
+                      isLoading={isDriftLoading || isLoading}
+                      onTabSelect={setActiveTab}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'spec-updates' && (
+                  <div className="sync-tab-content">
+                    <SpecStatusSection
+                      collection={collection}
+                      sourceUrl={sourceUrl}
+                      isLoading={isLoading}
+                      error={error}
+                      setError={setError}
+                      fileNotFound={fileNotFound}
+                      specDrift={specDrift}
+                      storedSpec={storedSpec}
+                      collectionDrift={collectionDrift}
+                      remoteDrift={remoteDrift}
+                      onCheck={checkForUpdates}
+                      onOpenSettings={() => setShowSettingsModal(true)}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

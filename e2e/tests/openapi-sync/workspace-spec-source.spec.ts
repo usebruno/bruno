@@ -11,7 +11,7 @@ import {
   pickWorkspaceSpec,
   waitForWorkspaceMenuFocus
 } from '../../pages/openapi-sync';
-import { waitForReadyPage } from '../../utils';
+import { waitForReadyPage, seedApprovedSyncSource } from '../../utils';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
@@ -61,9 +61,11 @@ const seedWorkspace = async (createTmpDir: (tag?: string) => Promise<string>, op
 
   const collectionPath = path.join(workspacePath, 'collections', 'pets-collection');
   fs.mkdirSync(collectionPath, { recursive: true });
-  const openapi = connectedSource
-    ? [{ sourceUrl: connectedSource({ workspacePath, collectionPath, outsideSpecPath }), groupBy: 'tags', autoCheck: false }]
-    : undefined;
+  const connectedSourceUrl = connectedSource?.({ workspacePath, collectionPath, outsideSpecPath });
+  const openapi = connectedSourceUrl ? [{ sourceUrl: connectedSourceUrl, groupBy: 'tags' }] : undefined;
+  if (connectedSourceUrl) {
+    seedApprovedSyncSource(userDataPath, collectionPath, connectedSourceUrl);
+  }
 
   if (format === 'yml') {
     fs.writeFileSync(path.join(collectionPath, 'opencollection.yml'), jsyaml.dump({

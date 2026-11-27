@@ -227,6 +227,8 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const hasEnvironmentDraft = tab.type === 'environment-settings' && collection?.environmentsDraft;
   const globalEnvironmentDraft = useSelector((state) => state.globalEnvironments.globalEnvironmentDraft);
   const hasGlobalEnvironmentDraft = (tab.type === 'global-environment-settings' || tab.type === 'workspaceEnvironments') && globalEnvironmentDraft;
+  const syncSourceStatus = useSelector((state) => state.openapiSync?.sourceStates?.[tab.collectionUid]?.status);
+  const needsSourceReview = tab.type === 'openapi-sync' && Boolean(collection?.brunoConfig?.openapi?.[0]?.sourceUrl) && syncSourceStatus === 'pending';
 
   const apiSpec = useSelector((state) => (
     tab.type === 'api-spec' ? findApiSpecByPathname(state.apiSpec.apiSpecs, tab.apiSpecPathname) : null
@@ -584,7 +586,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         ) : tab.type === 'api-spec' ? (
           <SpecialTab handleCloseClick={handleCloseApiSpec} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} tabName={apiSpecTabName} hasDraft={hasApiSpecDraft} />
         ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} />
+          <SpecialTab handleCloseClick={handleCloseClick} handleDoubleClick={() => dispatch(makeTabPermanent({ uid: tab.uid }))} type={tab.type} needsAttention={needsSourceReview} />
         )}
       </StyledWrapper>
     );

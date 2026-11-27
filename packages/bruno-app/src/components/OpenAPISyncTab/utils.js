@@ -1,5 +1,7 @@
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
 
+export const AUTO_CHECK_INTERVALS = [5, 15, 30, 60];
+
 /**
  * Count the number of HTTP endpoints in an OpenAPI spec.
  * Returns null if the spec has no paths (e.g. spec is null/undefined).

@@ -208,6 +208,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   }, [isRenamingWorkspace, handleCancelWorkspaceRename, currentWorkspace?.isCreating]);
 
   const collectionUpdates = useSelector((state) => state.openapiSync?.collectionUpdates || {});
+  const syncSourceStatus = useSelector((state) => state.openapiSync?.sourceStates?.[collection?.uid]?.status);
   const { theme } = useTheme();
 
   if (!collection) {
@@ -216,6 +217,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   const hasOpenApiSyncConfigured = collection?.brunoConfig?.openapi?.[0]?.sourceUrl;
   const hasOpenApiUpdates = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.hasUpdates;
+  const isOpenApiSourcePending = hasOpenApiSyncConfigured && syncSourceStatus === 'pending';
+  // A check result belongs to the approved source; once it is pending or dismissed the result is stale.
+  const showOpenApiCheckResult = syncSourceStatus === 'approved';
   const hasOpenApiError = hasOpenApiSyncConfigured && collectionUpdates[collection.uid]?.error;
 
   // Count tabs for the current collection
@@ -779,14 +783,18 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               {/* OpenAPI Sync - standalone only when configured and beta enabled */}
               {hasOpenApiSyncConfigured && (
                 <ToolHint
-                  text={hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
+                  text={isOpenApiSourcePending ? 'OpenAPI sync source needs review' : !showOpenApiCheckResult ? 'OpenAPI' : hasOpenApiError ? 'OpenAPI Error' : hasOpenApiUpdates ? 'OpenAPI Updates Available' : 'OpenAPI'}
                   toolhintId="OpenApiSyncToolhintId"
                   place="bottom"
                 >
                   <ActionIcon onClick={viewOpenApiSync} aria-label="OpenAPI" size="sm" className="relative">
                     <OpenAPISyncIcon size={15} />
-                    {(hasOpenApiUpdates || hasOpenApiError) && (
-                      <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: hasOpenApiError ? theme.status.danger.text : theme.status.warning.text }} />
+                    {(isOpenApiSourcePending || (showOpenApiCheckResult && (hasOpenApiUpdates || hasOpenApiError))) && (
+                      <span
+                        className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: hasOpenApiError && !isOpenApiSourcePending ? theme.status.danger.text : theme.status.warning.text }}
+                        data-testid={isOpenApiSourcePending ? 'openapi-sync-source-pending-dot' : undefined}
+                      />
                     )}
                   </ActionIcon>
                 </ToolHint>

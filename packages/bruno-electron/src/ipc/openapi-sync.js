@@ -23,6 +23,7 @@ const { getEnvVars } = require('../utils/collection');
 const { getProcessEnvVars } = require('../store/process-env');
 const { getCertsAndProxyConfig } = require('./network/cert-utils');
 const { makeAxiosInstance } = require('./network/axios-instance');
+const { isSourceApproved, forgetSource } = require('../services/openapi-sync-sources');
 const jsyaml = require('js-yaml');
 
 /**
@@ -173,11 +174,20 @@ const isValidOpenApiSpec = (spec) => {
  * Handles proxy/cert resolution for remote URLs.
  * Returns { content, spec } on success, or { error, errorCode? } on failure.
  */
-const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl, environmentContext = {} }) => {
+const fetchSpecFromSource = async ({ collectionUid, collectionPath, sourceUrl: rawSourceUrl, environmentContext = {} }) => {
+  // Trimmed like the approval key, so the approved source is the one that gets read.
+  const sourceUrl = typeof rawSourceUrl === 'string' ? rawSourceUrl.trim() : rawSourceUrl;
   const { activeEnvironmentUid, environments = [], runtimeVariables = {}, globalEnvironmentVariables = {} } = environmentContext;
 
   if (!isValidHttpUrl(sourceUrl) && !isLocalFilePath(sourceUrl)) {
     return { error: 'Invalid source: only http/https URLs and local file paths are allowed' };
+  }
+
+  if (!collectionPath || !isSourceApproved(sourceApprovalArgs(collectionPath, sourceUrl))) {
+    return {
+      error: 'This sync source isn’t approved on this computer yet. Review it in the OpenAPI Sync tab.',
+      errorCode: 'SOURCE_NOT_APPROVED'
+    };
   }
 
   let content;
@@ -285,6 +295,26 @@ const loadBrunoConfig = (collectionPath) => {
   }
 
   return { format, brunoConfig, collectionRoot };
+};
+
+const toSourceKey = (collectionPath, sourceUrl) =>
+  (typeof sourceUrl === 'string' && sourceUrl.trim() ? resolveSourceUrl(collectionPath, sourceUrl.trim()) : null);
+
+// The sync config and last synced source feed the one-time migration of sources synced here before.
+// Without a sourceUrl, the source is the one the collection file points at.
+const sourceApprovalArgs = (collectionPath, sourceUrl) => {
+  let syncConfig = null;
+  try {
+    syncConfig = loadBrunoConfig(collectionPath).brunoConfig?.openapi?.[0] || null;
+  } catch {
+    syncConfig = null;
+  }
+  return {
+    collectionPath,
+    sourceKey: toSourceKey(collectionPath, sourceUrl === undefined ? syncConfig?.sourceUrl : sourceUrl),
+    syncConfig,
+    syncedSourceKey: getSpecEntryForUrl(collectionPath)?.sourceUrl
+  };
 };
 
 /**
@@ -445,6 +475,7 @@ const cleanupSpecFilesForCollection = (collectionPath) => {
     delete meta[collectionPath];
     saveSpecMetadata(meta);
   }
+  forgetSource(collectionPath);
 };
 
 /**
@@ -1925,7 +1956,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
       // Merge new config into existing entry (allowlist keys only)
-      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
+      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash'];
       const sanitizedConfig = {};
       for (const key of allowedKeys) {
         if (key in config) {
@@ -1948,13 +1979,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];
-      if (existingEntry) {
-        brunoConfig.openapi = [{ ...existingEntry, ...sanitizedConfig }];
-      } else {
-        if (!('autoCheck' in sanitizedConfig)) sanitizedConfig.autoCheck = true;
-        if (!('autoCheckInterval' in sanitizedConfig)) sanitizedConfig.autoCheckInterval = 5;
-        brunoConfig.openapi = [sanitizedConfig];
-      }
+      brunoConfig.openapi = [existingEntry ? { ...existingEntry, ...sanitizedConfig } : sanitizedConfig];
 
       // Save updated config
       await saveBrunoConfig(collectionPath, format, brunoConfig, collectionRoot);
@@ -2027,6 +2052,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
       delete meta[collectionPath];
       saveSpecMetadata(meta);
+      forgetSource(collectionPath);
 
       return { success: true };
     } catch (error) {
@@ -2134,6 +2160,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 module.exports = registerOpenAPISyncIpc;
 module.exports.saveSpecAndUpdateMetadata = saveSpecAndUpdateMetadata;
 module.exports.cleanupSpecFilesForCollection = cleanupSpecFilesForCollection;
+module.exports.sourceApprovalArgs = sourceApprovalArgs;
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV === 'test') {
@@ -2147,6 +2174,7 @@ if (process.env.NODE_ENV === 'test') {
     mergeBody,
     mergeSpecIntoRequest,
     declaredBodyOf,
+    fetchSpecFromSource,
     compareRequestFields,
     specConversionOptions,
     ensureTagFolder

@@ -4,7 +4,7 @@ import { fireEvent } from '@testing-library/react';
 import { renderWithWorkspaceSpecs } from 'components/OpenAPISyncTab/testUtils';
 import OverviewSection from './index';
 
-const renderOverview = (syncConfig) => renderWithWorkspaceSpecs(
+const renderOverview = ({ autoCheck, autoCheckInterval, ...syncConfig } = {}) => renderWithWorkspaceSpecs(
   <OverviewSection
     collection={{
       uid: 'pets-api',
@@ -13,7 +13,9 @@ const renderOverview = (syncConfig) => renderWithWorkspaceSpecs(
     }}
     onTabSelect={jest.fn()}
     onOpenSettings={jest.fn()}
-  />
+  />,
+  [],
+  { sourceStates: { 'pets-api': { status: 'approved', autoCheck: autoCheck !== false, autoCheckInterval: autoCheckInterval || 5 } } }
 );
 
 const detailItem = (getByText, label) => getByText(label).closest('.spec-detail-item');

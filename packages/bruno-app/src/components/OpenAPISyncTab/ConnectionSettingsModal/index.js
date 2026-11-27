@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import Button from 'ui/Button';
 import Modal from 'components/Modal';
@@ -8,6 +9,7 @@ import { findApiSpecByPathname } from 'utils/api-specs';
 import useWorkspaceApiSpecs from 'hooks/useWorkspaceApiSpecs';
 import SpecSourcePicker from 'components/OpenAPISyncTab/SpecSourcePicker';
 import { isSpecSourceReady } from 'components/OpenAPISyncTab/SpecSourcePicker/utils';
+import { AUTO_CHECK_INTERVALS } from 'components/OpenAPISyncTab/utils';
 
 const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
   const source = (sourceUrl || '').trim();
@@ -23,18 +25,18 @@ const resolveInitialSource = (sourceUrl, collectionPath, workspaceSpecs) => {
 };
 
 const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, onClose }) => {
-  const openApiSyncConfig = collection?.brunoConfig?.openapi?.[0];
+  const sourceState = useSelector((state) => state.openapiSync?.sourceStates?.[collection.uid]);
   const workspaceSpecs = useWorkspaceApiSpecs();
   const [editedSource, setEditedSource] = useState(null);
+  // Saving an unedited source must not approve one the file switched to while the modal was open.
+  const [shownSource] = useState(sourceState?.source);
   // Recomputed every render until the first edit, so specs that load after the modal opens still select the Workspace tab.
   const initialSource = resolveInitialSource(sourceUrl, collection?.pathname, workspaceSpecs);
   const { mode, sources } = editedSource || initialSource;
   const editSource = (update) => setEditedSource((current) => update(current || initialSource));
-  const [autoCheck, setAutoCheck] = useState(openApiSyncConfig?.autoCheck !== false);
-  const [checkInterval, setCheckInterval] = useState(openApiSyncConfig?.autoCheckInterval || 5);
+  const [autoCheck, setAutoCheck] = useState(sourceState?.status === 'approved' ? sourceState.autoCheck : true);
+  const [checkInterval, setCheckInterval] = useState(sourceState?.autoCheckInterval || 5);
   const [isSaving, setIsSaving] = useState(false);
-
-  const intervals = [5, 15, 30, 60];
 
   const effectiveSource = sources[mode].trim();
   const canSave = isSpecSourceReady(mode, effectiveSource, workspaceSpecs);
@@ -42,7 +44,12 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave({ sourceUrl: effectiveSource, autoCheck, autoCheckInterval: checkInterval });
+      await onSave({
+        sourceUrl: effectiveSource,
+        autoCheck,
+        autoCheckInterval: checkInterval,
+        ...(!editedSource && { expectedSource: shownSource })
+      });
       onClose();
     } catch (_) {
       // caller (handleSaveSettings) already shows a toast on failure
@@ -98,7 +105,7 @@ const ConnectionSettingsModal = ({ collection, sourceUrl, onSave, onDisconnect, 
             <div className="settings-field">
               <label className="settings-label">Check interval</label>
               <div className="interval-buttons">
-                {intervals.map((mins) => (
+                {AUTO_CHECK_INTERVALS.map((mins) => (
                   <button
                     key={mins}
                     type="button"

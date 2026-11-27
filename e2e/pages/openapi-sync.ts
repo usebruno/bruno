@@ -25,6 +25,16 @@ export const buildOpenApiSyncLocators = (page: Page) => {
     overviewBanner: () => page.getByTestId('openapi-sync-overview-banner'),
     specStatusBanner: () => page.getByTestId('openapi-sync-spec-status'),
 
+    sourceApproval: {
+      banner: () => page.getByTestId('openapi-sync-source-approval'),
+      url: () => page.getByTestId('openapi-sync-source-url'),
+      warning: () => page.getByTestId('openapi-sync-source-warning'),
+      approveButton: () => page.getByTestId('openapi-sync-source-approve'),
+      dismissButton: () => page.getByTestId('openapi-sync-source-dismiss'),
+      headerDot: () => page.getByTestId('openapi-sync-source-pending-dot'),
+      tabDot: () => page.getByTestId('openapi-sync-tab-pending-dot')
+    },
+
     headerMenu: () => page.getByTestId('openapi-sync-header-menu'),
     editSettingsItem: () => page.getByTestId('openapi-sync-header-menu-settings'),
     settingsModal,

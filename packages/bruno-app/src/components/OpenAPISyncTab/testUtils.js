@@ -16,9 +16,10 @@ const toWorkspacesState = (specs) => ({
   workspaces: [{ uid: 'ws', apiSpecs: specs.map((spec) => ({ path: spec.pathname })) }]
 });
 
-export const renderWithWorkspaceSpecs = (ui, specs = []) => {
+export const renderWithWorkspaceSpecs = (ui, specs = [], { sourceStates = {} } = {}) => {
   const store = configureStore({
     reducer: {
+      openapiSync: (state = { sourceStates }) => state,
       workspaces: (state = toWorkspacesState(specs), action) => (
         action.type === SET_SPECS ? toWorkspacesState(action.specs) : state
       ),
