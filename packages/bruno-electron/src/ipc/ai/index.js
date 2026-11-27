@@ -166,6 +166,7 @@ const registerAiIpc = (mainWindow) => {
 
     try {
       const res = await validateApiKeyForProvider({ providerId, apiKey, aiPreferences: aiPrefs });
+      await res.body?.cancel().catch(() => {});
       if (res.ok) {
         return { ok: true };
       }

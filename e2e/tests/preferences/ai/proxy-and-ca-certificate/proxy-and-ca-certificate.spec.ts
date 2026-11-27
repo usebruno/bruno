@@ -21,6 +21,7 @@ const UNUSED_PAC_URL = 'http://pac.invalid/proxy.pac';
 type ProxyMode = 'off' | 'manual' | 'pac' | 'system';
 
 type LaunchOptions = {
+  sslVerification?: boolean;
   customCaEnabled?: boolean;
   customCaFilePath?: string;
   proxy?: ProxyMode;
@@ -30,7 +31,7 @@ type LaunchOptions = {
 };
 
 test.describe('AI provider requests, the proxy and the custom CA certificate', () => {
-  const certsDir = path.join(__dirname, '../../../request/post-quantum-key-exchange/certs');
+  const certsDir = path.join(__dirname, 'certs');
   const selfSignedCertPath = path.join(certsDir, 'localhost.crt');
   const initUserDataPath = path.join(__dirname, 'init-user-data');
 
@@ -125,6 +126,7 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
   const launchApp = async (
     launchElectronApp,
     {
+      sslVerification = true,
       customCaEnabled = true,
       customCaFilePath = selfSignedCertPath,
       proxy: proxyMode = 'off',
@@ -140,6 +142,7 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
     const app = await launchElectronApp({
       initUserDataPath,
       templateVars: {
+        sslVerification: String(sslVerification),
         customCaEnabled: String(customCaEnabled),
         customCaFilePath: customCaFilePath.split(path.sep).join('/'),
         endpointPort: String(endpointPort),
@@ -174,6 +177,19 @@ test.describe('AI provider requests, the proxy and the custom CA certificate', (
   test.describe('Custom CA certificate', () => {
     test('trusts an endpoint signed by the custom CA certificate', async ({ launchElectronApp }) => {
       const page = await openAiPreferencesWith(launchElectronApp, { customCaEnabled: true });
+      const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
+
+      await testCompatEndpointConnection(page, ENDPOINT_ID);
+
+      await test.step('The connection succeeds and the endpoint received the request', async () => {
+        await expect(feedback()).toHaveText('Connection successful');
+        expect(requests.modelList).toBe(1);
+        expect(proxyTunnels.opened).toHaveLength(0);
+      });
+    });
+
+    test('trusts the endpoint without a custom CA certificate when SSL verification is off', async ({ launchElectronApp }) => {
+      const page = await openAiPreferencesWith(launchElectronApp, { sslVerification: false, customCaEnabled: false });
       const { feedback } = buildCommonLocators(page).ai.compatEndpoint(ENDPOINT_ID);
 
       await testCompatEndpointConnection(page, ENDPOINT_ID);
