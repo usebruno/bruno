@@ -1,0 +1,11 @@
+info:
+  name: graphql-request
+  type: graphql
+  seq: 2
+
+graphql:
+  method: POST
+  url: '{{host}}/graphql'
+  body:
+    query: |-
+      query { __typename }

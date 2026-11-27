@@ -1,0 +1,8 @@
+info:
+  name: http-request
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: '{{host}}/http'
