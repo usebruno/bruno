@@ -12,6 +12,13 @@ const hashFileAsync = async (absPath) => sha256(await fs.promises.readFile(absPa
 const idForAbsolutePath = (absolutePath) => sha256(posixifyPath(absolutePath)).slice(0, 21);
 const uidForSeed = (seed) => sha256(seed).slice(0, 21);
 
+// null when absolutePath is not inside root
+const relativePathWithin = (root, absolutePath) => {
+  const relativePath = path.relative(root, absolutePath);
+  const escapesRoot = relativePath === '..' || relativePath.startsWith(`..${path.sep}`);
+  return escapesRoot || path.isAbsolute(relativePath) ? null : relativePath;
+};
+
 const resolveDenylist = (patterns) => [...DEFAULT_DENYLIST, ...(patterns || [])];
 
 const GLOB_METACHAR = /[*?[\]{}]/;
@@ -84,8 +91,8 @@ const walk = (root, denylist) => {
   return out;
 };
 
-const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'opencollection.yml']);
-const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml']);
+const COLLECTION_ROOT_BASENAMES = new Set(['collection.bru', 'collection.yml', 'collection.yaml', 'opencollection.yml']);
+const FOLDER_ROOT_BASENAMES = new Set(['folder.bru', 'folder.yml', 'folder.yaml']);
 const BRUNO_CONFIG_BASENAME = 'bruno.json';
 const ENVIRONMENTS_DIR = 'environments';
 
@@ -121,11 +128,13 @@ module.exports = {
   FOLDER_ROOT_BASENAMES,
   BRUNO_CONFIG_BASENAME,
   ENVIRONMENTS_DIR,
+  DENY_DIRS,
   hashFile,
   hashFileAsync,
   posixifyPath,
   idForAbsolutePath,
   uidForSeed,
+  relativePathWithin,
   resolveDenylist,
   isDenied,
   walk,

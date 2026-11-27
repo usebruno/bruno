@@ -6,6 +6,7 @@ const {
   hashFileAsync,
   posixifyPath,
   idForAbsolutePath,
+  relativePathWithin,
   resolveDenylist,
   isDenied,
   walk
@@ -107,15 +108,15 @@ class FileIndex {
     });
   }
 
-  stageParsed(collectionPath, absolutePath, data) {
+  stageParsed(collectionPath, absolutePath, data, version) {
     const target = this.#resolveTarget(collectionPath, absolutePath);
     if (!target) return;
-    const stat = fs.statSync(absolutePath, { bigint: true });
+    const { mtime, hash } = version ?? { mtime: fs.statSync(absolutePath, { bigint: true }).mtimeNs, hash: hashFile(absolutePath) };
     this.stage(target.root, {
       op: 'add',
       relativePath: target.relativePath,
-      mtime: stat.mtimeNs,
-      hash: hashFile(absolutePath),
+      mtime,
+      hash,
       raw: fs.readFileSync(absolutePath, 'utf8'),
       data
     });
@@ -128,11 +129,8 @@ class FileIndex {
   }
 
   #resolveTarget(collectionPath, absolutePath) {
-    const root = collectionPath;
-    const relativePath = path.relative(root, absolutePath);
-    const escapesRoot = relativePath === '..' || relativePath.startsWith(`..${path.sep}`);
-    if (escapesRoot || path.isAbsolute(relativePath)) return null;
-    return { root, relativePath };
+    const relativePath = relativePathWithin(collectionPath, absolutePath);
+    return relativePath === null ? null : { root: collectionPath, relativePath };
   }
 
   transaction(callback) {

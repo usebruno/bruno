@@ -57,9 +57,15 @@ describe('flattenSidebarTree', () => {
     it('drops a collection with no matching request', () => {
       expect(flatten([loaded(collection('C', [request('health')]))], { searchText: 'zzz' })).toHaveLength(0);
     });
-    it('includes a folder only if it has a matching descendant', () => {
+    it('includes a folder if it has a matching descendant', () => {
       const c = collection('C', [folder('match', [request('login')]), folder('nomatch', [request('health')])]);
       expect(names(flatten([loaded(c)], { searchText: 'login' }).filter((x) => x.kind === 'folder'))).toEqual(['match']);
+    });
+    it('includes a folder when its own name matches, even with no matching requests', () => {
+      const c = collection('C', [folder('Accounts', [request('charge')]), folder('Other', [request('health')])]);
+      const rows = flatten([loaded(c)], { searchText: 'account' });
+      expect(names(rows.filter((x) => x.kind === 'folder'))).toEqual(['Accounts']);
+      expect(names(rows.filter((x) => x.kind === 'request'))).toEqual([]);
     });
     it('hides apps and empty-cta while searching', () => {
       const k = kinds(flatten([loaded(collection('C', [app('a'), request('login')]))], { searchText: 'login' }));
