@@ -41,7 +41,7 @@ const ORDERS = `${WORKSPACE_PATH}/orders.yaml`;
 
 let workspaceApiSpecPaths = [];
 
-const snapshotWith = ({ apiSpecTabs = [], activeApiSpecTabPathname = null }) => ({
+const snapshotWith = ({ apiSpecTabs = [], activeApiSpecTabPathname = null, workspaceTabs }) => ({
   version: '0.0.1',
   activeWorkspacePath: WORKSPACE_PATH,
   extras: { devTools: { open: false, activeTab: '', tabs: {} } },
@@ -54,6 +54,7 @@ const snapshotWith = ({ apiSpecTabs = [], activeApiSpecTabPathname = null }) => 
       sorting: 'default',
       apiSpecTabs,
       activeApiSpecTabPathname,
+      ...(workspaceTabs ? { workspaceTabs } : {}),
       collections: []
     }
   ],
@@ -273,5 +274,40 @@ describe('reopening API spec tabs on Windows, where file paths ignore case', () 
     await store.dispatch(switchWorkspace(WORKSPACE_UID));
 
     expect(specTabPaths(store)).toEqual([WORKSPACE_SPELLING]);
+  });
+});
+
+describe('reopening the workspace\'s own tabs when a workspace is opened', () => {
+  let switchWorkspace;
+
+  beforeAll(async () => {
+    window.ipcRenderer = { invoke: jest.fn(mockIpcInvoke) };
+    ({ switchWorkspace } = await import('./actions'));
+  });
+
+  const workspaceTabTypes = (store) =>
+    store.getState().tabs.tabs
+      .filter((tab) => tab.type === 'workspaceOverview' || tab.type === 'workspaceEnvironments')
+      .map((tab) => tab.type)
+      .sort();
+
+  it('reopens Overview and Environments that were open in the background', async () => {
+    workspaceApiSpecPaths = [];
+    snapshot = snapshotWith({ workspaceTabs: ['workspaceOverview', 'workspaceEnvironments'] });
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(workspaceTabTypes(store)).toEqual(['workspaceEnvironments', 'workspaceOverview']);
+  });
+
+  it('does not reopen Environments when it was closed', async () => {
+    workspaceApiSpecPaths = [];
+    snapshot = snapshotWith({ workspaceTabs: ['workspaceOverview'] });
+    const store = createStore();
+
+    await store.dispatch(switchWorkspace(WORKSPACE_UID));
+
+    expect(workspaceTabTypes(store)).toEqual(['workspaceOverview']);
   });
 });

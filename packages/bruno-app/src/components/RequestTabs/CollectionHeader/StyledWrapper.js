@@ -67,19 +67,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .workspace-actions-trigger {
-    cursor: pointer;
-    opacity: 0.6;
-    padding: 4px;
-    border-radius: 4px;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
-
-    &:hover {
-      opacity: 1;
-      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
-    }
-  }
-
   .workspace-rename-container {
     display: flex;
     align-items: center;

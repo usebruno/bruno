@@ -8,12 +8,13 @@ import {
   updateWorkspaceLoadingState,
   setWorkspaceScratchCollection
 } from '../workspaces';
-import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot } from '../collections/actions';
+import { createCollection, openMultipleCollections, openScratchCollectionEvent, mountCollection, hydrateCollectionWithUiStateSnapshot, closeTabs as closeTabsAndDeleteTransientFiles } from '../collections/actions';
 import { removeCollection, addTransientDirectory, updateCollectionMountStatus, expandCollection, sortCollections } from '../collections';
 import { sanitizeName } from 'utils/common/regex';
 import { clearCollectionState } from '../openapi-sync';
 import { updateGlobalEnvironments } from '../global-environments';
 import { addTab, closeTabs, focusTab } from '../tabs';
+import { getWorkspaceTab } from 'utils/tabs';
 import { isDisabledMockServerTab, restoreCollectionTabs } from '../mock-server/actions';
 import {
   API_SPEC_TAB_TYPE,
@@ -553,6 +554,13 @@ export const hydrateSnapshotForOpenedCollection = (collectionPathname) => {
       }
     }
 
+    if (!getState().tabs.activeTabUid) {
+      const restoredTab = getState().tabs.tabs.find((t) => t.collectionUid === collection.uid);
+      if (restoredTab) {
+        dispatch(focusTab({ uid: restoredTab.uid }));
+      }
+    }
+
     dispatch(markSnapshotCollectionHydrated({ pathname: collection.pathname }));
     maybeCompleteSnapshotHydrationSession(dispatch, getState);
   };
@@ -700,11 +708,8 @@ export const switchWorkspace = (workspaceUid) => {
       let requestedWorkspaceTabType = null;
       let requestedApiSpecTabUid = null;
 
-      // Add workspace tabs
+      // Restore workspace tabs
       if (scratchCollection?.uid) {
-        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
-        dispatch(addTab({ uid: `${scratchCollection.uid}-environments`, collectionUid: scratchCollection.uid, type: 'workspaceEnvironments' }));
-
         const workspaceApiSpecPathsByKey = new Map(
           (getState().workspaces.workspaces.find((w) => w.uid === workspaceUid)?.apiSpecs || [])
             .map((apiSpec) => normalizePath(apiSpec?.path))
@@ -732,15 +737,13 @@ export const switchWorkspace = (workspaceUid) => {
 
         const activeApiSpecTabUid = getApiSpecTabUid(scratchCollection.uid, workspaceSnapshot?.activeApiSpecTabPathname);
         requestedApiSpecTabUid = reopenedApiSpecTabUids.has(activeApiSpecTabUid) ? activeApiSpecTabUid : null;
+        (workspaceSnapshot?.workspaceTabs || []).forEach((type) => {
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, type)));
+        });
+
         requestedWorkspaceTabType = workspaceSnapshot?.activeWorkspaceTabType;
-        const requestedWorkspaceTabSuffix = WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType];
-        if (requestedWorkspaceTabSuffix) {
-          const requestedWorkspaceTabUid = `${scratchCollection.uid}-${requestedWorkspaceTabSuffix}`;
-          dispatch(addTab({
-            uid: requestedWorkspaceTabUid,
-            collectionUid: scratchCollection.uid,
-            type: requestedWorkspaceTabType
-          }));
+        if (WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[requestedWorkspaceTabType]) {
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, requestedWorkspaceTabType)));
         }
       }
 
@@ -775,11 +778,11 @@ export const switchWorkspace = (workspaceUid) => {
         if (activeTab && !isDisabledMockServerTab(getState(), activeTab)) {
           dispatch(addTab(activeTab));
         } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
-          dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+          dispatch(addTab(getWorkspaceTab(scratchCollection.uid, 'workspaceOverview')));
         }
       } else if (scratchCollection?.uid && !requestedWorkspaceTabType && !requestedApiSpecTabUid) {
         // No active collection, focus the workspace overview tab
-        dispatch(addTab({ uid: `${scratchCollection.uid}-overview`, collectionUid: scratchCollection.uid, type: 'workspaceOverview' }));
+        dispatch(addTab(getWorkspaceTab(scratchCollection.uid, 'workspaceOverview')));
       }
 
       if (requestedApiSpecTabUid) {
@@ -1146,7 +1149,7 @@ export const renameWorkspaceAction = (workspaceUid, newName) => {
   };
 };
 
-export const closeWorkspaceAction = (workspaceUid) => {
+export const closeWorkspaceAction = (workspaceUid, { deleteFiles = false } = {}) => {
   return async (dispatch, getState) => {
     try {
       const { workspaces } = getState().workspaces;
@@ -1156,9 +1159,27 @@ export const closeWorkspaceAction = (workspaceUid) => {
         throw new Error('Workspace not found');
       }
 
+      let innerCollectionUids = new Set();
+      let folderDeleteError = null;
+      if (deleteFiles) {
+        const result = await ipcRenderer.invoke('renderer:delete-workspace', workspace.pathname);
+        folderDeleteError = result?.success === false ? result.error : null;
+
+        const detachedPaths = new Set((result?.detachedPaths || []).map((p) => normalizePath(p)));
+        innerCollectionUids = new Set(getState().collections.collections
+          .filter((c) => detachedPaths.has(normalizePath(c.pathname)))
+          .map((c) => c.uid));
+      }
+
       await ipcRenderer.invoke('renderer:close-workspace', workspace.pathname);
 
       if (workspace.scratchCollectionUid) {
+        const scratchTabUids = getState().tabs.tabs
+          .filter((t) => t.collectionUid === workspace.scratchCollectionUid)
+          .map((t) => t.uid);
+        if (scratchTabUids.length) {
+          await dispatch(closeTabsAndDeleteTransientFiles({ tabUids: scratchTabUids, reopenable: false }));
+        }
         dispatch(removeCollection({ collectionUid: workspace.scratchCollectionUid }));
       }
 
@@ -1171,8 +1192,25 @@ export const closeWorkspaceAction = (workspaceUid) => {
           await dispatch(switchWorkspace(defaultWorkspace.uid));
         }
       }
+
+      if (deleteFiles) {
+        const innerTabUids = getState().tabs.tabs.filter((t) => innerCollectionUids.has(t.collectionUid)).map((t) => t.uid);
+        if (innerTabUids.length) {
+          dispatch(closeTabs({ tabUids: innerTabUids, reopenable: false }));
+        }
+        innerCollectionUids.forEach((collectionUid) => {
+          dispatch(removeCollection({ collectionUid }));
+          dispatch(clearCollectionState({ collectionUid }));
+        });
+      }
+
+      if (folderDeleteError) {
+        console.error(`Could not fully delete workspace folder ${workspace.pathname}:`, folderDeleteError);
+        toast.error(`Removed "${workspace.name}", but some of its files couldn't be deleted`);
+        return { filesLeftOnDisk: true };
+      }
     } catch (error) {
-      toast.error(error.message || 'Failed to close workspace');
+      toast.error(error.message || (deleteFiles ? 'Failed to delete workspace' : 'Failed to close workspace'));
       throw error;
     }
   };

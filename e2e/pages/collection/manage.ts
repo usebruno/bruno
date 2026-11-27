@@ -254,7 +254,7 @@ export const deleteCollectionFromOverview = async (page: Page, collectionName: s
     await deleteModal.waitFor({ state: 'visible', timeout: 5000 });
 
     // Type 'delete' to confirm
-    await deleteModal.locator('#delete-confirm-input').fill('delete');
+    await page.getByTestId('delete-collection-modal-confirm-input').fill('delete');
 
     // Click the Delete button
     await deleteModal.getByRole('button', { name: 'Delete', exact: true }).click();

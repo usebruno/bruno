@@ -4,6 +4,7 @@ import Dropdown from 'components/Dropdown';
 import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { getWorkspaceTab } from 'utils/tabs';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import toast from 'react-hot-toast';
@@ -181,10 +182,10 @@ const DropdownTrigger = forwardRef(({ collectionEnv, globalEnv }, ref) => {
   );
 });
 
-const EnvironmentSelector = ({ collection }) => {
+const EnvironmentSelector = ({ collection, isWorkspace = false }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const [activeTab, setActiveTab] = useState('collection');
+  const [activeTab, setActiveTab] = useState(isWorkspace ? 'global' : 'collection');
   const [showCreateGlobalModal, setShowCreateGlobalModal] = useState(false);
   const [showImportGlobalModal, setShowImportGlobalModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -228,15 +229,26 @@ const EnvironmentSelector = ({ collection }) => {
       });
   };
 
-  const handleSettingsClick = () => {
-    const isCollection = activeTab === 'collection';
+  const openGlobalEnvironmentsTab = () => {
     dispatch(
-      addTab({
-        uid: `${collection.uid}-${isCollection ? 'environment' : 'global-environment'}-settings`,
-        collectionUid: collection.uid,
-        type: isCollection ? 'environment-settings' : 'global-environment-settings'
-      })
+      addTab(isWorkspace
+        ? getWorkspaceTab(collection.uid, 'workspaceEnvironments')
+        : { uid: `${collection.uid}-global-environment-settings`, collectionUid: collection.uid, type: 'global-environment-settings' })
     );
+  };
+
+  const handleSettingsClick = () => {
+    if (activeTab === 'collection') {
+      dispatch(
+        addTab({
+          uid: `${collection.uid}-environment-settings`,
+          collectionUid: collection.uid,
+          type: 'environment-settings'
+        })
+      );
+    } else {
+      openGlobalEnvironmentsTab();
+    }
     hideDropdown();
   };
 
@@ -280,7 +292,12 @@ const EnvironmentSelector = ({ collection }) => {
         >
           {/* Tab Headers */}
           <div className="tab-header flex pt-3 pb-2 px-3">
-            {TABS.map((tab) => (
+            {isWorkspace ? (
+              <div className="tab-title" data-testid="env-title-global">
+                <IconWorld size={16} strokeWidth={1.5} />
+                Global Environments
+              </div>
+            ) : TABS.map((tab) => (
               <button
                 key={tab.id}
                 className={`tab-button whitespace-nowrap pb-[0.375rem] border-b-[0.125rem] bg-transparent flex align-center cursor-pointer transition-all duration-200 mr-[1.25rem] ${
@@ -321,7 +338,7 @@ const EnvironmentSelector = ({ collection }) => {
       {showCreateGlobalModal && (
         <CreateGlobalEnvironment
           onClose={() => setShowCreateGlobalModal(false)}
-          onEnvironmentCreated={() => openEnvironmentSettingsTab('global-environment')}
+          onEnvironmentCreated={openGlobalEnvironmentsTab}
         />
       )}
 
@@ -329,7 +346,7 @@ const EnvironmentSelector = ({ collection }) => {
         <ImportEnvironmentModal
           type="global"
           onClose={() => setShowImportGlobalModal(false)}
-          onEnvironmentCreated={() => openEnvironmentSettingsTab('global-environment')}
+          onEnvironmentCreated={openGlobalEnvironmentsTab}
         />
       )}
 

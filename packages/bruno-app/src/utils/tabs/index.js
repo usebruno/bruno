@@ -1,4 +1,6 @@
 import find from 'lodash/find';
+import findLast from 'lodash/findLast';
+import { WORKSPACE_TAB_UID_SUFFIX_BY_TYPE } from 'utils/snapshot';
 
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request') && ['http-request', 'graphql-request', 'grpc-request', 'ws-request'].includes(item.type);
@@ -17,3 +19,15 @@ export const getActiveScriptTab = (scriptPaneTab, requestScript) => {
   const hasPreRequestScript = requestScript && requestScript.trim().length > 0;
   return hasPreRequestScript ? 'pre-request' : 'post-response';
 };
+
+export const getNeighbourCollectionUid = (orderedUids, closedUid, hasTabs) => {
+  const index = orderedUids.indexOf(closedUid);
+  if (index === -1) return null;
+  return find(orderedUids.slice(index + 1), hasTabs) || findLast(orderedUids.slice(0, index), hasTabs) || null;
+};
+
+export const getWorkspaceTab = (scratchCollectionUid, type) => ({
+  uid: `${scratchCollectionUid}-${WORKSPACE_TAB_UID_SUFFIX_BY_TYPE[type]}`,
+  collectionUid: scratchCollectionUid,
+  type
+});

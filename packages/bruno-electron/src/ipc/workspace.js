@@ -8,6 +8,7 @@ const isDev = require('electron-is-dev');
 const { createDirectory, isDirectory, mkdirUnique, sanitizeName, writeFile, DEFAULT_GITIGNORE, removeGitMetadata } = require('../utils/filesystem');
 const yaml = require('js-yaml');
 const LastOpenedWorkspaces = require('../store/last-opened-workspaces');
+const { deleteWorkspaceFolder } = require('../utils/delete-workspace');
 const { defaultWorkspaceManager } = require('../store/default-workspace');
 const { globalEnvironmentsManager } = require('../store/workspace-environments');
 const { globalEnvironmentsStore } = require('../store/global-environments');
@@ -26,6 +27,8 @@ const {
   clearCollectionGitRemote,
   reorderWorkspaceCollections,
   getWorkspaceCollections,
+  getWorkspaceCollectionPathsInsideFolder,
+  isPathInsideFolder,
   getUnopenableWorkspaceCollections,
   resolveAndFilterWorkspaceCollections,
   normalizeCollectionEntry,
@@ -52,7 +55,7 @@ const prepareWorkspaceConfigForClient = (workspaceConfig, workspacePath, isDefau
   return config;
 };
 
-const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
+const registerWorkspaceIpc = (mainWindow, workspaceWatcher, terminalManager) => {
   const lastOpenedWorkspaces = new LastOpenedWorkspaces();
 
   ipcMain.handle('renderer:create-workspace',
@@ -270,6 +273,17 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
     }
   });
 
+  const detachCollection = async (collectionPath) => {
+    const { generateUidBasedOnHash } = require('../utils/common');
+    const collectionUid = generateUidBasedOnHash(collectionPath);
+    const collectionWatcher = require('../app/collection-watcher');
+    collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
+    await require('./mount').unmount(collectionUid).catch(() => {});
+    require('./mount').clearCollectionIndex(collectionPath);
+    require('../store/bruno-config').clearBrunoConfig(collectionUid);
+    require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+  };
+
   ipcMain.handle('renderer:close-workspace', async (event, workspacePath) => {
     try {
       lastOpenedWorkspaces.remove(workspacePath);
@@ -284,6 +298,26 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       throw error;
     }
   });
+
+  ipcMain.handle('renderer:delete-workspace', (event, workspacePath) => deleteWorkspaceFolder({
+    workspacePath,
+    openWorkspacePaths: lastOpenedWorkspaces.getAll(),
+    defaultWorkspacePath: defaultWorkspaceManager.getDefaultWorkspacePath(),
+    beforeDelete: async () => {
+      const collectionPaths = [...new Set([
+        ...getWorkspaceCollectionPathsInsideFolder(workspacePath),
+        ...require('../app/collection-watcher').getWatchedPaths().filter((watchPath) => isPathInsideFolder(workspacePath, watchPath))
+      ])];
+      for (const collectionPath of collectionPaths) {
+        await detachCollection(collectionPath);
+      }
+      if (workspaceWatcher) {
+        workspaceWatcher.removeWatcher(workspacePath);
+      }
+      terminalManager.killSessionsInside(workspacePath);
+      return collectionPaths;
+    }
+  }));
 
   ipcMain.handle('renderer:export-workspace', async (event, workspacePath, workspaceName) => {
     try {
@@ -561,17 +595,7 @@ const registerWorkspaceIpc = (mainWindow, workspaceWatcher) => {
       const result = await removeCollectionFromWorkspace(workspacePath, collectionPath);
 
       if (result.removedCollection) {
-        // Detach and clear every cache keyed by this collection's (deterministic, path-derived)
-        // uid — otherwise re-adding the same folder later resurfaces a stale mount/config/uid
-        // cache instead of loading it fresh.
-        const { generateUidBasedOnHash } = require('../utils/common');
-        const collectionUid = generateUidBasedOnHash(collectionPath);
-        const collectionWatcher = require('../app/collection-watcher');
-        collectionWatcher.removeWatcher(collectionPath, mainWindow, collectionUid);
-        await require('./mount').unmount(collectionUid).catch(() => {});
-        require('./mount').clearCollectionIndex(collectionPath);
-        require('../store/bruno-config').clearBrunoConfig(collectionUid);
-        require('../cache/requestUids').clearRequestUidsForCollection(collectionPath);
+        await detachCollection(collectionPath);
       }
 
       if (deleteFiles && result.removedCollection && fs.existsSync(collectionPath)) {

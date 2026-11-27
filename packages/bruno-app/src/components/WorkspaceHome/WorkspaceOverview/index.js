@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconPlus, IconFolder, IconDownload } from '@tabler/icons';
 import { importCollection, importCollectionFromZip } from 'providers/ReduxStore/slices/collections/actions';
-import { setIsCreatingCollection, setIsOpeningCollection, toggleSidebarCollapse } from 'providers/ReduxStore/slices/app';
-import { setLocalStorageValue, SIDEBAR_COLLAPSED_KEY } from 'utils/common/localStorage';
-import toast from 'react-hot-toast';
+import { setIsOpeningCollection } from 'providers/ReduxStore/slices/app';
+import useCreateCollectionInWorkspace from 'hooks/useCreateCollectionInWorkspace';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import BulkImportCollectionLocation from 'components/Sidebar/BulkImportCollectionLocation';
@@ -19,7 +18,6 @@ import StyledWrapper from './StyledWrapper';
 const WorkspaceOverview = ({ workspace }) => {
   const dispatch = useDispatch();
   const { globalEnvironments } = useSelector((state) => state.globalEnvironments);
-  const { sidebarCollapsed, isCreatingCollection } = useSelector((state) => state.app);
 
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -32,29 +30,7 @@ const WorkspaceOverview = ({ workspace }) => {
 
   const workspaceEnvironmentsCount = globalEnvironments?.length || 0;
 
-  const handleCreateCollection = async () => {
-    if (isCreatingCollection) {
-      return;
-    }
-
-    if (!workspace?.pathname) {
-      toast.error('Workspace path not found');
-      return;
-    }
-
-    try {
-      const { ipcRenderer } = window;
-      await ipcRenderer.invoke('renderer:ensure-collections-folder', workspace.pathname);
-      if (sidebarCollapsed) {
-        dispatch(toggleSidebarCollapse());
-        setLocalStorageValue(SIDEBAR_COLLAPSED_KEY, false);
-      }
-      dispatch(setIsCreatingCollection(true));
-    } catch (error) {
-      console.error('Error ensuring collections folder exists:', error);
-      toast.error('Error preparing workspace for collection creation');
-    }
-  };
+  const { createCollection: handleCreateCollection, isCreatingCollection } = useCreateCollectionInWorkspace(workspace);
 
   const handleOpenCollection = () => {
     dispatch(setIsOpeningCollection(true));

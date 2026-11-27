@@ -39,4 +39,31 @@ describe('restoreTabs', () => {
 
     expect(next.tabs.map((t) => t.type)).toEqual(['collection-settings']);
   });
+
+  it('does not replace the start page when a collection loads its saved tabs', () => {
+    const next = reducer(
+      { tabs: [], activeTabUid: null, recentlyClosedTabs: [] },
+      restoreTabs({
+        collection: { uid: 'col1', format: 'yml', items: [] },
+        tabs: [{ type: 'collection-settings', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+
+    expect(next.tabs).toHaveLength(1);
+    expect(next.activeTabUid).toBeNull();
+  });
+
+  it('refocuses the collection when its own active tab was replaced by the restore', () => {
+    const next = reducer(
+      { tabs: [{ uid: 'col1', collectionUid: 'col1', type: 'collection-settings' }], activeTabUid: 'col1', recentlyClosedTabs: [] },
+      restoreTabs({
+        collection: { uid: 'col1', format: 'yml', items: [] },
+        tabs: [{ type: 'collection-settings', accessor: 'type', permanent: true }],
+        activeTab: null
+      })
+    );
+
+    expect(next.activeTabUid).toBe('col1');
+  });
 });

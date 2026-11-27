@@ -5,7 +5,8 @@ import {
   selectActiveWorkspace,
   makeSelectCollectionWithGlobals,
   makeSelectInvalidItemCountForCollection,
-  makeSelectInvalidItemCountForFolder
+  makeSelectInvalidItemCountForFolder,
+  selectCollectionsWithOpenTabs
 } from './collections';
 
 const request = (uid, name) => ({ uid, name, type: 'http-request', request: { url: `/${name}` } });
@@ -196,5 +197,31 @@ describe('selectors/collections', () => {
     it('returns 0 when folder items are omitted', () => {
       expect(makeSelectInvalidItemCountForFolder()(buildState(), 'col-a', undefined)).toBe(0);
     });
+  });
+});
+
+describe('selectCollectionsWithOpenTabs', () => {
+  const state = {
+    workspaces: {
+      activeWorkspaceUid: 'ws',
+      workspaces: [{ uid: 'ws', scratchCollectionUid: 'scratch', collections: [{ path: '/payments' }, { path: '/users' }] }]
+    },
+    collections: {
+      collections: [
+        { uid: 'payments', pathname: '/payments', mountStatus: 'mounted', name: 'Payments' },
+        { uid: 'users', pathname: '/users', mountStatus: 'mounted', name: 'Users' }
+      ]
+    },
+    tabs: { tabs: [{ uid: 'u1', collectionUid: 'users' }, { uid: 'p1', collectionUid: 'payments' }], activeTabUid: 'u1' }
+  };
+
+  it('lists collections in the order their first tab was opened', () => {
+    expect(selectCollectionsWithOpenTabs(state)).toEqual([{ uid: 'users', name: 'Users' }, { uid: 'payments', name: 'Payments' }]);
+  });
+
+  it('returns the same list when only unrelated state changes', () => {
+    const first = selectCollectionsWithOpenTabs(state);
+    const second = selectCollectionsWithOpenTabs({ ...state, tabs: { ...state.tabs, activeTabUid: 'p1' } });
+    expect(second).toBe(first);
   });
 });

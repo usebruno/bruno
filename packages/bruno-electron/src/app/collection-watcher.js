@@ -917,6 +917,10 @@ class CollectionWatcher {
     return this.watchers[watchPath];
   }
 
+  getWatchedPaths() {
+    return Object.keys(this.watchers).filter((watchPath) => this.watchers[watchPath]);
+  }
+
   removeWatcher(watchPath, win, collectionUid) {
     const existingWatcher = this.watchers[watchPath];
     if (existingWatcher) {

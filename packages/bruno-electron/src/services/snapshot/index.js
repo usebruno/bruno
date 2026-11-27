@@ -96,6 +96,7 @@ const workspaceSchema = yup.object({
   sorting: yup.mixed().oneOf(['alphabetical', 'reverseAlphabetical', 'default']),
   apiSpecTabs: yup.array().of(yup.string()).optional(),
   activeApiSpecTabPathname: yup.string().nullable(),
+  workspaceTabs: yup.array().of(yup.string().oneOf(WORKSPACE_TAB_TYPES)).optional(),
   collections: yup.array().of(yup.string()).optional()
 });
 
@@ -231,6 +232,7 @@ class SnapshotManager {
       d.activeWorkspaceTabType = undefined;
       d.apiSpecTabs = undefined;
       d.activeApiSpecTabPathname = undefined;
+      d.workspaceTabs = undefined;
       return d;
     }));
     this.store.set('collections', (this.store.store?.collections ?? []).map((d) => {
@@ -528,6 +530,9 @@ class SnapshotManager {
       activeApiSpecTabPathname: typeof workspace.activeApiSpecTabPathname === 'string'
         ? workspace.activeApiSpecTabPathname
         : null,
+      workspaceTabs: Array.isArray(workspace.workspaceTabs)
+        ? workspace.workspaceTabs.filter((type) => WORKSPACE_TAB_TYPES.includes(type))
+        : [],
       collections
     };
   }

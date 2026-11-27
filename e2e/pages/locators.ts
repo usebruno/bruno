@@ -30,6 +30,8 @@ import { buildSetAsVariableLocators } from './variable/set-as-variable';
 import { buildDevToolsLocators } from './app-shell/devtools';
 import { buildVariablesTabLocators } from './variable/variables-tab';
 import { buildWorkspaceOverviewLocators } from './workspace/workspace-overview';
+import { buildStartPageLocators } from './workspace/start-page';
+import { buildDeleteWorkspaceModalLocators } from './workspace/delete-workspace-modal';
 import { buildManageWorkspaceLocators } from './workspace/manage-workspace';
 import { buildCreateWorkspaceModalLocators } from './workspace/create-workspace-modal';
 import { buildTitleBarLocators } from './app-shell/title-bar';
@@ -94,6 +96,9 @@ export const buildCommonLocators = (page: Page) => ({
   openPreferences: () => page.getByRole('button', { name: 'Open Preferences' }),
   sidebar: buildSidebarLocators(page),
   workspaceOverview: buildWorkspaceOverviewLocators(page),
+  startPage: buildStartPageLocators(page),
+  appCrashScreen: () => page.getByText('Oops! Something went wrong'),
+  deleteWorkspaceModal: buildDeleteWorkspaceModalLocators(page),
   manageWorkspace: buildManageWorkspaceLocators(page),
   createWorkspaceModal: buildCreateWorkspaceModalLocators(page),
   cloneGitRepository: buildCloneGitRepositoryLocators(page),

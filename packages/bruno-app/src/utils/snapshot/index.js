@@ -173,6 +173,9 @@ const normalizeWorkspaceSnapshotEntry = (pathname, entry = {}) => {
     activeApiSpecTabPathname: typeof entry.activeApiSpecTabPathname === 'string'
       ? normalizePath(entry.activeApiSpecTabPathname) || null
       : null,
+    workspaceTabs: Array.isArray(entry.workspaceTabs)
+      ? entry.workspaceTabs.filter((type) => WORKSPACE_TAB_TYPES.has(type))
+      : [],
     collections
   };
 };
@@ -268,6 +271,7 @@ export const hydrateSnapshotLookups = (snapshot = {}) => {
         activeWorkspaceTabType: workspace.activeWorkspaceTabType,
         apiSpecTabs: workspace.apiSpecTabs,
         activeApiSpecTabPathname: workspace.activeApiSpecTabPathname,
+        workspaceTabs: workspace.workspaceTabs,
         collections: workspace.collections
       };
 

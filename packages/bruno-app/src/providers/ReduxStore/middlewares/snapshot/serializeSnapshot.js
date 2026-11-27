@@ -142,6 +142,7 @@ export const serializeSnapshot = async (state, options = {}) => {
     let activeWorkspaceTabType = null;
     let apiSpecTabs = [];
     let activeApiSpecTabPathname = null;
+    let workspaceTabs = [];
 
     if (isActiveWorkspace) {
       const activeTab = tabs.tabs.find((t) => t.uid === tabs.activeTabUid);
@@ -164,6 +165,10 @@ export const serializeSnapshot = async (state, options = {}) => {
       }
 
       if (workspace.scratchCollectionUid) {
+        workspaceTabs = tabs.tabs
+          .filter((t) => t.collectionUid === workspace.scratchCollectionUid && WORKSPACE_TAB_TYPES.has(t.type))
+          .map((t) => t.type);
+
         apiSpecTabs = tabs.tabs
           .filter((t) => (
             t.collectionUid === workspace.scratchCollectionUid
@@ -186,6 +191,7 @@ export const serializeSnapshot = async (state, options = {}) => {
       activeWorkspaceTabType = existingWorkspace?.activeWorkspaceTabType || null;
       apiSpecTabs = existingWorkspace?.apiSpecTabs || [];
       activeApiSpecTabPathname = existingWorkspace?.activeApiSpecTabPathname || null;
+      workspaceTabs = existingWorkspace?.workspaceTabs || [];
     }
 
     const workspaceSorting = isActiveWorkspace
@@ -200,6 +206,7 @@ export const serializeSnapshot = async (state, options = {}) => {
       activeWorkspaceTabType,
       apiSpecTabs,
       activeApiSpecTabPathname,
+      workspaceTabs,
       collections: [...workspaceCollectionPaths]
     });
   });

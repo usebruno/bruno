@@ -18,33 +18,38 @@ import {
   IconFileOff,
   IconCode,
   IconAppWindow,
-  IconTransform
+  IconTransform,
+  IconHome,
+  IconTerminal2,
+  IconTrash
 } from '@tabler/icons';
 import IconSparkles from 'components/Icons/IconSparkles';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
-import { switchWorkspace, renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
+import { renameWorkspaceAction, exportWorkspaceAction, confirmWorkspaceCreation, cancelWorkspaceCreation } from 'providers/ReduxStore/slices/workspaces/actions';
 import { updateWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import { showInFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { toggleCollectionFileMode } from 'providers/ReduxStore/slices/collections';
 import { toggleAiSidebar } from 'providers/ReduxStore/slices/chat';
 import { showMigrateToYmlModal } from 'providers/ReduxStore/slices/collection-migration';
-import { findItemInCollection, findItemInCollectionByPathname, getWorkspaceCollections } from 'utils/collections';
+import { findItemInCollection, findItemInCollectionByPathname } from 'utils/collections';
 import get from 'lodash/get';
-import isEqual from 'lodash/isEqual';
-import { selectCollections, selectActiveWorkspace } from 'src/selectors/collections';
+import { selectActiveWorkspace, selectCollectionsWithOpenTabs } from 'src/selectors/collections';
 import { selectActiveTab, selectActiveTabUid, selectTabCountsByCollection, selectFirstTabUidByCollection } from 'src/selectors/tab';
 import { addTab, focusTab, setTabAppPreview } from 'providers/ReduxStore/slices/tabs';
+import { getWorkspaceTab } from 'utils/tabs';
 import { uuid } from 'utils/common';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import MenuDropdown from 'ui/MenuDropdown';
-import CloseWorkspace from 'components/Sidebar/CloseWorkspace';
+import RemoveWorkspace from 'components/ManageWorkspace/DeleteWorkspace';
+import DeleteWorkspaceFolder from './DeleteWorkspaceFolder';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import ToolHint from 'components/ToolHint';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 import ActionIcon from 'ui/ActionIcon';
 import { getRevealInFolderLabel } from 'utils/common/platform';
+import { openDevtoolsAndSwitchToTerminal } from 'utils/terminal';
 import classNames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme';
@@ -75,14 +80,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   // Get the current active workspace
   const currentWorkspace = useSelector(selectActiveWorkspace);
 
-  const mountedCollections = useSelector((state) =>
-    getWorkspaceCollections({
-      collections: selectCollections(state),
-      workspaces: state.workspaces.workspaces,
-      activeWorkspace: selectActiveWorkspace(state)
-    })
-      .filter((c) => c.mountStatus === 'mounted')
-      .map((c) => ({ uid: c.uid, name: c.name })), isEqual);
+  const collectionsWithOpenTabs = useSelector(selectCollectionsWithOpenTabs);
 
   // Per-collection tab counts (switcher badges) and first open tab (focused
   // when switching to that collection).
@@ -114,7 +112,8 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const [isRenamingWorkspace, setIsRenamingWorkspace] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState('');
   const [workspaceNameError, setWorkspaceNameError] = useState('');
-  const [closeWorkspaceModalOpen, setCloseWorkspaceModalOpen] = useState(false);
+  const [removeWorkspaceModalOpen, setRemoveWorkspaceModalOpen] = useState(false);
+  const [workspaceToDelete, setWorkspaceToDelete] = useState(null);
   const [createWorkspaceModalOpen, setCreateWorkspaceModalOpen] = useState(false);
   const [showCreateMockServerModal, setShowCreateMockServerModal] = useState(false);
 
@@ -149,7 +148,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const switcherRef = useRef();
-  const workspaceActionsRef = useRef();
   const workspaceNameInputRef = useRef(null);
   const workspaceRenameContainerRef = useRef(null);
   const openingAdvancedRef = useRef(false);
@@ -159,7 +157,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const isSavingRef = useRef(false);
 
   const onSwitcherCreate = (ref) => (switcherRef.current = ref);
-  const onWorkspaceActionsCreate = (ref) => (workspaceActionsRef.current = ref);
 
   // Auto-enter rename mode when workspace is newly created
   useEffect(() => {
@@ -237,11 +234,14 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   const DisplayIcon = isScratchCollection ? IconCategory : IconBox;
 
   // Switcher handlers
-  const handleSwitchToWorkspace = (workspaceUid) => {
+  const handleSwitchToWorkspace = () => {
     switcherRef.current?.hide();
-    if (workspaceUid) {
-      dispatch(switchWorkspace(workspaceUid));
-    }
+    const scratchCollectionUid = currentWorkspace.scratchCollectionUid;
+    if (!scratchCollectionUid) return;
+    const existingTabUid = firstTabUidByCollection[scratchCollectionUid];
+    dispatch(existingTabUid
+      ? focusTab({ uid: existingTabUid })
+      : addTab(getWorkspaceTab(scratchCollectionUid, 'workspaceOverview')));
   };
 
   const handleSwitchToCollection = (targetCollection) => {
@@ -341,23 +341,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
 
   // Workspace action handlers (only used when isScratchCollection is true)
   const handleRenameWorkspaceClick = () => {
-    workspaceActionsRef.current?.hide();
     setIsRenamingWorkspace(true);
     setWorkspaceNameInput(currentWorkspace?.name || '');
     setWorkspaceNameError('');
   };
 
-  const handleCloseWorkspaceClick = () => {
-    workspaceActionsRef.current?.hide();
+  const handleRemoveWorkspaceClick = () => {
     if (currentWorkspace?.type === 'default') {
-      toast.error('Cannot close the default workspace');
+      toast.error('Cannot remove the default workspace');
       return;
     }
-    setCloseWorkspaceModalOpen(true);
+    setRemoveWorkspaceModalOpen(true);
   };
 
   const handleShowInFolder = () => {
-    workspaceActionsRef.current?.hide();
     const pathname = currentWorkspace?.pathname;
     if (pathname) {
       dispatch(showInFolder(pathname)).catch(() => {
@@ -367,7 +364,6 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
   };
 
   const handleExportWorkspace = () => {
-    workspaceActionsRef.current?.hide();
     const uid = currentWorkspace?.uid;
     if (!uid) return;
 
@@ -503,23 +499,43 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
     && currentWorkspace.type !== 'default'
     && !isRenamingWorkspace;
 
+  const workspaceMenuItems = [
+    {
+      id: 'overview',
+      label: 'Workspace Overview',
+      leftSection: IconHome,
+      onClick: () => dispatch(addTab(getWorkspaceTab(collection.uid, 'workspaceOverview')))
+    },
+    { id: 'rename', label: 'Rename', leftSection: IconEdit, onClick: handleRenameWorkspaceClick },
+    { id: 'reveal', label: getRevealInFolderLabel(), leftSection: IconFolder, onClick: handleShowInFolder },
+    {
+      id: 'terminal',
+      label: 'Open in Terminal',
+      leftSection: IconTerminal2,
+      onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, currentWorkspace.pathname)
+    },
+    { id: 'export', label: 'Export', leftSection: IconUpload, onClick: handleExportWorkspace },
+    { id: 'remove', label: 'Remove', leftSection: IconX, onClick: handleRemoveWorkspaceClick },
+    { id: 'delete', label: 'Delete', leftSection: IconTrash, className: 'delete-item', onClick: () => setWorkspaceToDelete(currentWorkspace) }
+  ];
+
   const handleDisplayIconClick = (e) => {
-    const uid = isScratchCollection ? `${collection.uid}-overview` : collection.uid;
-    const type = isScratchCollection ? 'workspaceOverview' : 'collection-settings';
-    dispatch(addTab({
-      uid: uid,
-      collectionUid: collection.uid,
-      type: type
-    }));
+    dispatch(addTab(isScratchCollection
+      ? getWorkspaceTab(collection.uid, 'workspaceOverview')
+      : { uid: collection.uid, collectionUid: collection.uid, type: 'collection-settings' }));
   };
 
   return (
     <StyledWrapper data-testid="collection-header">
-      {closeWorkspaceModalOpen && currentWorkspace?.uid && (
-        <CloseWorkspace
-          workspaceUid={currentWorkspace.uid}
-          onClose={() => setCloseWorkspaceModalOpen(false)}
+      {removeWorkspaceModalOpen && currentWorkspace?.uid && (
+        <RemoveWorkspace
+          workspace={currentWorkspace}
+          onClose={() => setRemoveWorkspaceModalOpen(false)}
         />
+      )}
+
+      {workspaceToDelete && (
+        <DeleteWorkspaceFolder workspace={workspaceToDelete} onClose={() => setWorkspaceToDelete(null)} />
       )}
 
       {createWorkspaceModalOpen && (
@@ -544,6 +560,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                   ref={workspaceNameInputRef}
                   type="text"
                   className="workspace-name-input"
+                  data-testid="workspace-inline-name-input"
                   value={workspaceNameInput}
                   onChange={handleWorkspaceNameChange}
                   onKeyDown={handleWorkspaceNameKeyDown}
@@ -607,7 +624,7 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                         className={classNames('dropdown-item', {
                           'dropdown-item-active': isScratchCollection
                         })}
-                        onClick={() => handleSwitchToWorkspace(currentWorkspace.uid)}
+                        onClick={handleSwitchToWorkspace}
                       >
                         <div className="dropdown-icon">
                           <IconCategory size={16} strokeWidth={1.5} />
@@ -622,11 +639,11 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
                     </>
                   )}
 
-                  {mountedCollections.length > 0 && (
+                  {collectionsWithOpenTabs.length > 0 && (
                     <>
                       <div className="dropdown-separator" />
                       <div className="label-item">Collections</div>
-                      {mountedCollections.map((col) => {
+                      {collectionsWithOpenTabs.map((col) => {
                         const colTabCount = getTabCount(col.uid);
                         return (
                           <div
@@ -652,44 +669,9 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               </Dropdown>
             </div>
           )}
-
-          {/* Workspace actions dropdown */}
-          {showWorkspaceActions && (
-            <Dropdown
-              placement="bottom-start"
-              onCreate={onWorkspaceActionsCreate}
-              appendTo={() => document.body}
-              icon={<IconDots size={18} strokeWidth={1.5} data-testid="workspace-actions-trigger" className="workspace-actions-trigger" />}
-            >
-              <div className="dropdown-item" onClick={handleRenameWorkspaceClick}>
-                <div className="dropdown-icon">
-                  <IconEdit size={16} strokeWidth={1.5} />
-                </div>
-                <span>Rename</span>
-              </div>
-              <div className="dropdown-item" onClick={handleShowInFolder}>
-                <div className="dropdown-icon">
-                  <IconFolder size={16} strokeWidth={1.5} />
-                </div>
-                <span>{getRevealInFolderLabel()}</span>
-              </div>
-              <div className="dropdown-item" onClick={handleExportWorkspace}>
-                <div className="dropdown-icon">
-                  <IconUpload size={16} strokeWidth={1.5} />
-                </div>
-                <span>Export</span>
-              </div>
-              <div className="dropdown-item" onClick={handleCloseWorkspaceClick}>
-                <div className="dropdown-icon">
-                  <IconX size={16} strokeWidth={1.5} />
-                </div>
-                <span>Close</span>
-              </div>
-            </Dropdown>
-          )}
         </div>
 
-        <div className="header-actions flex gap-1.5 items-center">
+        <div className="header-actions flex gap-1.5 items-center" data-testid="collection-header-actions">
           {!isScratchCollection && (
             <>
               {appAvailable && (
@@ -808,6 +790,20 @@ const CollectionHeader = ({ collection, isScratchCollection }) => {
               {/* Environment Selector - always visible */}
               <span>
                 <EnvironmentSelector collection={collection} />
+              </span>
+            </>
+          )}
+          {isScratchCollection && (
+            <>
+              {showWorkspaceActions && (
+                <MenuDropdown items={workspaceMenuItems} placement="bottom-end" data-testid="workspace-actions">
+                  <ActionIcon label="More actions" size="sm" data-testid="workspace-actions-trigger" style={{ border: `1px solid ${theme.border.border1}`, borderRadius: theme.border.radius.base, width: 24, marginRight: 4, marginLeft: 4 }}>
+                    <IconDots size={16} strokeWidth={1.5} />
+                  </ActionIcon>
+                </MenuDropdown>
+              )}
+              <span>
+                <EnvironmentSelector collection={collection} isWorkspace />
               </span>
             </>
           )}

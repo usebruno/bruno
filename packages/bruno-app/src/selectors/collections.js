@@ -3,7 +3,8 @@ import {
   countInvalidItems,
   findCollectionByUid,
   getGlobalEnvironmentVariables,
-  getGlobalEnvironmentVariablesMasked
+  getGlobalEnvironmentVariablesMasked,
+  getWorkspaceCollections
 } from 'utils/collections/index';
 
 /**
@@ -38,6 +39,19 @@ export const selectActiveWorkspace = (state) => {
   const { workspaces, activeWorkspaceUid } = state.workspaces;
   return workspaces?.find((w) => w.uid === activeWorkspaceUid);
 };
+
+export const selectCollectionsWithOpenTabs = createSelector(
+  [selectCollections, (state) => state.workspaces.workspaces, selectActiveWorkspace, (state) => state.tabs.tabs],
+  (collections, workspaces, activeWorkspace, tabs) => {
+    const collectionsByUid = new Map(getWorkspaceCollections({ collections, workspaces, activeWorkspace })
+      .filter((c) => c.mountStatus === 'mounted')
+      .map((c) => [c.uid, c]));
+
+    return [...new Set(tabs.map((t) => t.collectionUid))]
+      .filter((uid) => collectionsByUid.has(uid))
+      .map((uid) => ({ uid, name: collectionsByUid.get(uid).name }));
+  }
+);
 
 const selectGlobalEnvironments = (state) => state.globalEnvironments.globalEnvironments;
 const selectActiveGlobalEnvironmentUid = (state) => state.globalEnvironments.activeGlobalEnvironmentUid;

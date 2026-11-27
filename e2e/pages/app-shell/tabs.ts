@@ -18,6 +18,7 @@ export const buildRequestTabsLocators = (page: Page) => ({
   collectionSettingsTab: () =>
     page.locator('.request-tab').filter({ has: page.locator('.tab-label', { hasText: 'Collection' }) }),
   activeRequestTab: () => page.locator('.request-tab.active'),
+  workspaceTab: (type: 'workspaceOverview' | 'workspaceEnvironments') => page.getByTestId(`request-tab-${type}`),
   leftChevron: () => page.getByLabel('Left Chevron'),
   scrollContainer: () => page.locator('.tabs-scroll-container'),
   activeRequestTabLabel: () => page.locator('.request-tab.active').getByTestId('request-tab-label'),
@@ -25,7 +26,10 @@ export const buildRequestTabsLocators = (page: Page) => ({
   requestTabMenuItem: (key: string) => page.getByTestId(`menu-dropdown-${key}`),
   activeRequestTabMethod: () => page.locator('.request-tab.active .tab-method'),
   closeTab: (requestName: string) => page.locator('.request-tab').filter({ hasText: requestName }).getByTestId('request-tab-close-icon'),
-  closableTabs: () => page.locator('.request-tab').filter({ has: page.getByTestId('request-tab-close-icon') }),
+  // Workspace tabs (Overview, Environments) are closable but not part of a collection's tabs
+  closableTabs: () => page.locator('.request-tab')
+    .filter({ has: page.getByTestId('request-tab-close-icon') })
+    .filter({ hasNot: page.getByTestId('request-tab-workspaceOverview').or(page.getByTestId('request-tab-workspaceEnvironments')) }),
   closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
   draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),

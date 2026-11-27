@@ -18,7 +18,7 @@ import {
 
 import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
-import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
+import { savePreferences, setIsCreatingCollection, setIsImportingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
 import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
@@ -50,21 +50,23 @@ const CollectionsSection = () => {
   const store = useStore();
   const collectionSortOrder = useSelector(selectCollectionSortOrder);
   const isCreatingCollection = useSelector((state) => state.app.isCreatingCollection);
+  const isImportingCollection = useSelector((state) => state.app.isImportingCollection);
   const preferences = useSelector((state) => state.app.preferences);
   const [collectionsToClose, setCollectionsToClose] = useState([]);
 
   const [importData, setImportData] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [advancedCreateName, setAdvancedCreateName] = useState('');
-  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [showCloneGitModal, setShowCloneGitModal] = useState(false);
   const [gitRepositoryUrl, setGitRepositoryUrl] = useState(null);
   const { postmanPackagePrompt, clearPostmanPackagePrompt, handleImportResolved } = usePostmanPackagePrompt();
 
+  const closeImportCollectionModal = () => dispatch(setIsImportingCollection(false));
+
   // Import collection shortcut
   useKeybinding('importCollection', () => {
-    setImportCollectionModalOpen(true);
+    dispatch(setIsImportingCollection(true));
     return false;
   });
   const getKeybindingDisplayText = useKeybindingDisplayText();
@@ -99,7 +101,7 @@ const CollectionsSection = () => {
   };
 
   const handleImportCollection = ({ rawData, type, repositoryUrl, ...rest }) => {
-    setImportCollectionModalOpen(false);
+    closeImportCollectionModal();
 
     if (type === 'git-repository') {
       setGitRepositoryUrl(repositoryUrl);
@@ -259,7 +261,7 @@ const CollectionsSection = () => {
       label: 'Import collection',
       shortcut: getKeybindingDisplayText('importCollection'),
       onClick: () => {
-        setImportCollectionModalOpen(true);
+        dispatch(setIsImportingCollection(true));
       }
     }
   ];
@@ -338,7 +340,7 @@ const CollectionsSection = () => {
           onDismiss={handleDismissWelcomeModal}
           onImportCollection={() => {
             handleDismissWelcomeModal();
-            setImportCollectionModalOpen(true);
+            dispatch(setIsImportingCollection(true));
           }}
           onCreateCollection={() => {
             handleDismissWelcomeModal();
@@ -363,9 +365,9 @@ const CollectionsSection = () => {
           initialCollectionName={advancedCreateName}
         />
       )}
-      {importCollectionModalOpen && (
+      {isImportingCollection && (
         <ImportCollection
-          onClose={() => setImportCollectionModalOpen(false)}
+          onClose={closeImportCollectionModal}
           handleSubmit={handleImportCollection}
         />
       )}
