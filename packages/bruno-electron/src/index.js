@@ -58,7 +58,7 @@ const registerOpenAPISyncIpc = require('./ipc/openapi-sync');
 const registerMockServerIpc = require('./ipc/mock-server');
 const registerAiIpc = require('./ipc/ai');
 const registerAiAutocompleteIpc = require('./ipc/ai/autocomplete');
-const { registerMountIpc } = require('./ipc/mount');
+const { registerMountIpc, pruneMissingCollectionIndexes } = require('./ipc/mount');
 const { registerSqliteIpc } = require('./ipc/sqlite');
 const sqliteService = require('./services/sqlite');
 const { clearAllRunnerResponses } = require('./services/runner-exchange');
@@ -569,6 +569,7 @@ app.on('ready', async () => {
   registerMountIpc();
   sqliteService.openDatabase();
   clearAllRunnerResponses().catch((err) => console.warn('[runner] failed to clear stored responses', err));
+  pruneMissingCollectionIndexes().catch((err) => console.warn('[mount] failed to prune stale file cache entries', err));
   registerSqliteIpc();
   appDocuments.handleProtocol();
   registerAppDocumentIpc(appDocuments, mainWindow);

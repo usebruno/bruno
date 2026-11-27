@@ -93,7 +93,8 @@ const {
   validateWorkspacePath,
   normalizeCollectionEntry,
   addCollectionToWorkspace,
-  removeCollectionFromWorkspace
+  removeCollectionFromWorkspace,
+  isCollectionInAnyOpenWorkspace
 } = require('../utils/workspace-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -395,6 +396,12 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         console.error('Error remapping request uids after move:', error);
       }
 
+      try {
+        require('./mount').moveCollectionIndex(collectionPath, newPath);
+      } catch (error) {
+        console.error('Error moving the file cache after move:', error);
+      }
+
       // Register the collection at its new path in workspace.yml
       try {
         await addCollectionToWorkspace(
@@ -413,6 +420,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const movedFilePath = restoredFilePath.replace(collectionPath, newPath);
             moveRequestUid(movedFilePath, restoredFilePath);
           }
+          require('./mount').moveCollectionIndex(newPath, collectionPath);
         } catch (rollbackError) {
           console.error('Failed to roll back collection move:', rollbackError);
         }
@@ -1396,6 +1404,14 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       } catch (error) {
         console.error('Error removing collection from workspace.yml:', error);
       }
+    }
+
+    try {
+      if (!isCollectionInAnyOpenWorkspace(collectionPath)) {
+        require('./mount').clearCollectionIndex(collectionPath);
+      }
+    } catch (error) {
+      console.error('Error clearing the file cache for removed collection:', error);
     }
 
     // Clean up AppData spec files for this collection

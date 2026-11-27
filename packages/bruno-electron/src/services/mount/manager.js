@@ -139,27 +139,18 @@ class MountManager {
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
     await destroyPool({ force }).catch(() => {});
-    if (this.#index) {
-      this.#index.close();
-      this.#index = null;
-    }
-  }
-
-  getCacheSize() {
-    try {
-      return fs.statSync(this.#getIndex().dbPath).size;
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return 0;
-      throw err;
-    }
-  }
-
-  clearCache() {
-    this.#getIndex().clear();
   }
 
   clearCollectionIndex(collectionPath) {
     this.#getIndex().clearCollection(path.resolve(collectionPath));
+  }
+
+  moveCollectionIndex(fromPath, toPath) {
+    this.#getIndex().moveCollection(path.resolve(fromPath), path.resolve(toPath));
+  }
+
+  pruneMissingCollectionIndexes() {
+    return this.#getIndex().pruneMissingCollections();
   }
 
   async #reconcile(entry) {

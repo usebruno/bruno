@@ -63,6 +63,20 @@ jest.mock('@usebruno/filestore', () => ({
   stringifyCollection: jest.fn(async () => 'mock-collection-stringified')
 }));
 
+jest.mock('./mount', () => ({
+  unmount: jest.fn(async () => {}),
+  clearCollectionIndex: jest.fn(),
+  moveCollectionIndex: jest.fn()
+}));
+
+jest.mock('../utils/workspace-config', () => ({
+  ...jest.requireActual('../utils/workspace-config'),
+  validateWorkspacePath: jest.fn(),
+  addCollectionToWorkspace: jest.fn(async () => {}),
+  removeCollectionFromWorkspace: jest.fn(async () => {}),
+  isCollectionInAnyOpenWorkspace: jest.fn(() => false)
+}));
+
 const fsPromises = require('node:fs').promises;
 jest.spyOn(fsPromises, 'writeFile').mockImplementation(async () => {});
 jest.spyOn(fsPromises, 'readFile').mockImplementation(async () => 'mock-content');
@@ -72,6 +86,8 @@ const registerCollectionsIpc = require('./collection');
 
 const { copyPathTo, posixifyPath } = require('../utils/filesystem');
 const { moveRequestUid } = require('../cache/requestUids');
+const { clearCollectionIndex, moveCollectionIndex } = require('./mount');
+const { addCollectionToWorkspace, isCollectionInAnyOpenWorkspace } = require('../utils/workspace-config');
 
 describe('IPC collection handlers', () => {
   let mainWindow;
@@ -80,6 +96,79 @@ describe('IPC collection handlers', () => {
     jest.clearAllMocks();
     mainWindow = { webContents: { send: jest.fn() } };
     registerCollectionsIpc(mainWindow, {});
+  });
+
+  describe('renderer:remove-collection', () => {
+    const collectionPath = path.join(os.tmpdir(), 'fake', 'collection');
+
+    beforeEach(() => {
+      registerCollectionsIpc(mainWindow, { removeWatcher: jest.fn() });
+    });
+
+    it('clears the file cache when no open workspace still lists the collection', async () => {
+      isCollectionInAnyOpenWorkspace.mockReturnValue(false);
+
+      await ipcMain._getHandler('renderer:remove-collection')({}, collectionPath, 'collection-uid', '/workspace');
+
+      expect(isCollectionInAnyOpenWorkspace).toHaveBeenCalledWith(collectionPath);
+      expect(clearCollectionIndex).toHaveBeenCalledWith(collectionPath);
+    });
+
+    it('keeps the file cache when another workspace still lists the collection', async () => {
+      isCollectionInAnyOpenWorkspace.mockReturnValue(true);
+
+      await ipcMain._getHandler('renderer:remove-collection')({}, collectionPath, 'collection-uid', '/workspace');
+
+      expect(clearCollectionIndex).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('renderer:move-collection-to-workspace', () => {
+    let rootPath;
+    let collectionPath;
+    let workspacePath;
+
+    beforeEach(() => {
+      rootPath = fs.mkdtempSync(path.join(os.tmpdir(), 'bruno-move-collection-'));
+      collectionPath = path.join(rootPath, 'external', 'api');
+      workspacePath = path.join(rootPath, 'workspace');
+      fs.mkdirSync(collectionPath, { recursive: true });
+      fs.mkdirSync(workspacePath, { recursive: true });
+      fs.writeFileSync(path.join(collectionPath, 'bruno.json'), '{}');
+      registerCollectionsIpc(mainWindow, { removeWatcher: jest.fn() });
+    });
+
+    afterEach(() => {
+      fs.rmSync(rootPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    });
+
+    const move = () =>
+      ipcMain._getHandler('renderer:move-collection-to-workspace')({}, {
+        workspacePath,
+        collectionPath,
+        collectionUid: 'collection-uid',
+        collectionName: 'API'
+      });
+
+    it('moves the file cache to the new collection path', async () => {
+      const { newPath } = await move();
+
+      expect(moveCollectionIndex).toHaveBeenCalledTimes(1);
+      expect(moveCollectionIndex).toHaveBeenCalledWith(collectionPath, newPath);
+    });
+
+    it('moves the file cache back when registering the new path fails', async () => {
+      addCollectionToWorkspace.mockRejectedValueOnce(new Error('workspace.yml is read-only'));
+
+      await expect(move()).rejects.toThrow('workspace.yml is read-only');
+
+      const newPath = path.join(workspacePath, 'collections', 'api');
+      expect(moveCollectionIndex.mock.calls).toEqual([
+        [collectionPath, newPath],
+        [newPath, collectionPath]
+      ]);
+      expect(fs.existsSync(path.join(collectionPath, 'bruno.json'))).toBe(true);
+    });
   });
 
   describe('renderer:move-item', () => {

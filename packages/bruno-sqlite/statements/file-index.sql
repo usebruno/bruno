@@ -38,3 +38,17 @@ DELETE FROM file_index_entries;
 -- name: file_index_size :one
 SELECT COALESCE(SUM(content_bytes), 0) AS bytes
 FROM file_index_entries;
+
+-- name: file_index_collection_paths :many
+SELECT DISTINCT collection_path AS collectionPath
+FROM file_index_entries;
+
+-- name: file_index_relative_paths_for_collection :many
+SELECT relative_path AS relativePath
+FROM file_index_entries
+WHERE collection_path = @collection_path;
+
+-- name: file_index_move_entry :exec
+UPDATE file_index_entries
+SET collection_path = @new_collection_path, id = @id, updated_at = unixepoch()
+WHERE collection_path = @collection_path AND relative_path = @relative_path;
