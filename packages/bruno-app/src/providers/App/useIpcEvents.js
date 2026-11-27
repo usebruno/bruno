@@ -17,6 +17,7 @@ import {
 } from 'providers/ReduxStore/slices/tabs';
 import {
   brunoConfigUpdateEvent,
+  collectionAddBatchEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
   collectionChangeFileEvent,
@@ -68,6 +69,9 @@ const useIpcEvents = () => {
       if (window.__IS_DEV__) {
         console.log(type);
         console.log(val);
+      }
+      if (type === 'addBatch') {
+        dispatch(collectionAddBatchEvent({ events: val }));
       }
       if (type === 'addDir') {
         dispatch(

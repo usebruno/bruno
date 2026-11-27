@@ -12,13 +12,13 @@ const getMethodText = (item, { isGrpc, isWS, isGraphQL }) => {
   if (isGrpc) return 'grpc';
   if (isWS) return 'ws';
   if (isGraphQL) return 'gql';
-  return item.request.method.length > 5
-    ? item.request.method.substring(0, 3)
-    : item.request.method;
+  const method = item.request?.method;
+  if (!method) return '';
+  return method.length > 5 ? method.substring(0, 3) : method;
 };
 
-const getClassname = (method = '', { isGrpc, isWS, isGraphQL }) => {
-  method = method.toLocaleLowerCase();
+const getClassname = (method, { isGrpc, isWS, isGraphQL }) => {
+  method = (typeof method === 'string' ? method : '').toLocaleLowerCase();
   return classnames('mr-1', {
     'method-get': method === 'get',
     'method-post': method === 'post',
@@ -40,7 +40,7 @@ const RequestMethod = ({ item }) => {
 
   const flags = getMethodFlags(item);
   const methodText = getMethodText(item, flags);
-  const className = getClassname(item.request.method, flags);
+  const className = getClassname(item.request?.method, flags);
 
   return (
     <StyledWrapper>

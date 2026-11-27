@@ -52,6 +52,10 @@ const Wrapper = styled.div`
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+
+    .search-match {
+      color: ${(props) => props.theme.primary.solid};
+    }
   }
 
   .indent-block {

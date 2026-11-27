@@ -38,6 +38,7 @@ import RemoveCollections from '../RemoveCollections';
 import MoveToWorkspace from '../MoveToWorkspace';
 import { isPathExternalToBasePath } from 'utils/common/path';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
+import highlightSearchMatch from 'components/Sidebar/Collections/highlightSearchMatch';
 import { getSortedDraggedItems } from 'utils/collections';
 import { isTabForItemActive } from 'src/selectors/tab';
 import { makeSelectInvalidItemCountForCollection } from 'src/selectors/collections';
@@ -60,7 +61,7 @@ import CreateMockServerModal from 'components/MockServer/CreateMockServerModal';
 import useSidebarSelectionClick from 'hooks/useSidebarSelectionClick';
 import { startBlockedDragTracking } from 'utils/dragBlockedCursor';
 
-const CollectionRow = ({ collection, searchText, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
+const CollectionRow = ({ collection, searchText, isSearchCollapsed, toggleSearchCollection, openBulkMenu, children, isCollectionMultiDragDisabled, multiDragCollections }) => {
   const isMockServerEnabled = useIsMockServerEnabled();
   const { dropdownContainerRef } = useSidebarAccordion();
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -76,7 +77,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const [dropType, setDropType] = useState(null);
   const [isKeyboardFocused, setIsKeyboardFocused] = useState(false);
   const dispatch = useDispatch();
-  const isLoading = collection.isLoading;
+  const isLoading = collection.isLoading || collection.mountStatus === 'mounting';
   const selectInvalidItemCount = useMemo(makeSelectInvalidItemCountForCollection, []);
   const invalidItemCount = useSelector((state) => selectInvalidItemCount(state, collection.uid));
   const collectionRef = useRef(null);
@@ -141,7 +142,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
-  const collectionIsCollapsed = hasSearchText ? false : collection.collapsed;
+  const collectionIsCollapsed = hasSearchText ? isSearchCollapsed : collection.collapsed;
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -184,6 +185,10 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   const handleCollectionCollapse = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    if (hasSearchText) {
+      toggleSearchCollection(collection.uid);
+      return;
+    }
     ensureCollectionIsMounted();
     dispatch(toggleCollection(collection.uid));
   };
@@ -600,7 +605,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
             />
           </ActionIcon>
           <div className="ml-1 min-w-0" id="sidebar-collection-name" title={collection.name}>
-            {collection.name}
+            {highlightSearchMatch(collection.name, searchText)}
           </div>
           <InvalidFilesBadge count={invalidItemCount} collectionUid={collection.uid} rowUid={collection.uid} />
           {isLoading ? <IconLoader2 className="animate-spin flex-shrink-0 mx-1 ml-auto" size={18} strokeWidth={1.5} /> : null}

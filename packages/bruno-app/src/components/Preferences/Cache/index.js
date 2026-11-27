@@ -4,12 +4,14 @@ import { savePreferences, clearHttpHttpsAgentCache } from 'providers/ReduxStore/
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
 import { IconEraser } from '@tabler/icons';
-import useFileCache from 'hooks/useFileCache';
+import useCacheSize from 'hooks/useCacheSize';
 import { useTheme } from 'providers/Theme';
 import ToggleSwitch from 'components/ToggleSwitch';
 import ActionIcon from 'ui/ActionIcon';
 import StyledWrapper from './StyledWrapper';
 import { formatSize } from 'utils/common';
+
+const fileIndexBytes = (row) => row?.bytes ?? null;
 
 const Cache = () => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -19,7 +21,15 @@ const Cache = () => {
   const fileCacheEnabled = get(preferences, 'cache.file.enabled', false);
   const sslSessionEnabled = get(preferences, 'cache.sslSession.enabled', false);
 
-  const { size: fileCacheSize, clear: clearFileCache } = useFileCache();
+  const { size: fileCacheSize, clear: clearFileCache } = useCacheSize({
+    sizeChannel: 'datastore:file-index:file_index_size',
+    clearChannel: 'datastore:file-index:file_index_clear',
+    toSize: fileIndexBytes
+  });
+  const { size: searchIndexSize, clear: clearSearchIndex } = useCacheSize({
+    sizeChannel: 'renderer:get-search-index-size',
+    clearChannel: 'renderer:clear-search-index'
+  });
 
   const persist = (next) => {
     dispatch(savePreferences({ ...preferences, cache: next })).catch(() => {
@@ -51,6 +61,15 @@ const Cache = () => {
       toast.success('File cache cleared');
     } catch (error) {
       toast.error('Failed to clear file cache');
+    }
+  };
+
+  const handleClearSearchIndex = async () => {
+    try {
+      await clearSearchIndex();
+      toast.success('Search cache cleared');
+    } catch (error) {
+      toast.error(`Failed to clear search cache: ${error?.message || error}`);
     }
   };
 
@@ -92,6 +111,31 @@ const Cache = () => {
             label="Clear cache"
             onClick={handleClearFileCache}
             disabled={!fileCacheSize}
+            colorOnHover={theme.colors.text.danger}
+          >
+            <IconEraser size={16} strokeWidth={1.5} />
+          </ActionIcon>
+        </div>
+      </div>
+
+      <div className="cache-item" data-testid="cache-item-search-index">
+        <div className="cache-item-header">
+          <div className="cache-item-title-group">
+            <span className="cache-item-title">Search cache</span>
+          </div>
+        </div>
+        <div className="cache-item-body">
+          <div className="cache-item-body-text">
+            <p className="cache-item-description">
+              Clear cached search data used to speed up searches across collections. Your next search may take longer, but your collections and requests will remain unaffected
+            </p>
+            <p className="cache-item-size">
+              Cache size <strong data-testid="search-index-size">{searchIndexSize == null ? '—' : formatSize(searchIndexSize)}</strong>
+            </p>
+          </div>
+          <ActionIcon
+            label="Clear search cache"
+            onClick={handleClearSearchIndex}
             colorOnHover={theme.colors.text.danger}
           >
             <IconEraser size={16} strokeWidth={1.5} />

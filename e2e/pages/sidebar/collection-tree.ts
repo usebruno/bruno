@@ -110,6 +110,7 @@ export const buildSidebarLocators = (page: Page) => {
     sidebarContainer: () => page.getByTestId('sidebar'),
     searchToggle: () => page.getByTestId('sidebar-search-toggle'),
     searchInput: () => page.getByTestId('sidebar-search-input'),
+    searchMatchCount: () => page.getByTestId('sidebar-search-match-count'),
     searchClear: () => page.getByTestId('sidebar-search-clear-icon'),
 
     // Modals opened from a sidebar row's "..." menu.
@@ -521,3 +522,30 @@ export const openRequestInFolder = async (page: Page, folderName: string, reques
     await requestRow.click();
   });
 };
+
+/**
+ * Clears the sidebar search index and waits until it is empty, so a search test starts from a
+ * known state.
+ */
+export const getSearchIndexSize = (page: Page) =>
+  page.evaluate(() => window.ipcRenderer.invoke('renderer:get-search-index-size'));
+
+export const clearSearchIndex = async (page: Page) => {
+  await test.step('Clear the search index', async () => {
+    await page.evaluate(() => window.ipcRenderer.invoke('renderer:clear-search-index'));
+    await expect.poll(() => getSearchIndexSize(page)).toBe(0);
+  });
+};
+
+/**
+ * Resolves once the named collection's row shows its loading spinner. Start it before the action
+ * that triggers the mount: a large mount can block the main process, and with it every Playwright
+ * command, until the mount is done — so the spinner is watched for inside the page instead.
+ */
+export const waitForCollectionSpinner = (page: Page, name: string, timeout?: number) =>
+  page.waitForFunction(
+    (collectionName) => [...document.querySelectorAll('[data-testid="sidebar-collection-row"]')]
+      .some((row) => row.textContent?.includes(collectionName) && row.querySelector('.animate-spin')),
+    name,
+    { timeout }
+  );
