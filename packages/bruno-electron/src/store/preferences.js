@@ -245,7 +245,9 @@ const preferencesSchema = Yup.object().shape({
     }).optional()
   }).optional(),
   response: Yup.object({
-    maxPreviewSizeMB: Yup.number().positive('Number must be greater than 0')
+    maxPreviewSizeMB: Yup.number()
+      .positive('Number must be greater than 0')
+      .test('isFinite', 'Max response size must be a finite number', (value) => value === undefined || Number.isFinite(value))
   })
 });
 

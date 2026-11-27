@@ -51,4 +51,19 @@ describe('Timeline Response', () => {
       response: { status: 404, statusText: 'Not Found', size, headers: { 'x-a': '1' }, duration: 40 }
     });
   });
+
+  it('keeps the stored body id of a held-back runner response so it can still be saved', () => {
+    renderResponse({ response: { status: 200, data: null, dataBuffer: null, size: 5 * 1024 * 1024 + 1, storedRequestUid: 'run-1' } });
+
+    expect(bodyProps().item.response.storedRequestUid).toBe('run-1');
+  });
+
+  it('does not carry the parent response\'s stored body id onto another entry', () => {
+    renderResponse({
+      item: { uid: 'item-1', response: { status: 200, size: 5 * 1024 * 1024 + 1, storedRequestUid: 'run-1' } },
+      response: { status: 200, data: { token: 'abc' }, size: 15 }
+    });
+
+    expect(bodyProps().item.response).not.toHaveProperty('storedRequestUid');
+  });
 });

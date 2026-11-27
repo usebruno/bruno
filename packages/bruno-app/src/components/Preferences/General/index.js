@@ -72,6 +72,9 @@ const General = () => {
         .test('isPositive', 'Number must be greater than 0', (value) => {
           return value === undefined || Number(value) > 0;
         })
+        .test('isFinite', 'Max response size must be a finite number', (value) => {
+          return value === undefined || Number.isFinite(value);
+        })
     })
   });
 
