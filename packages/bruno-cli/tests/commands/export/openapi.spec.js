@@ -29,7 +29,7 @@ const mockExit = () => jest.spyOn(process, 'exit').mockImplementation((code) => 
   throw new Error(`exit:${code}`);
 });
 
-// The spec the app's Create API Spec writes for fixtures/collection, with no environment selected
+// The spec the app's Create API Spec writes for fixtures/collection, with the Local environment selected
 const APP_SPEC = path.resolve(__dirname, 'fixtures', 'collection.openapi.yaml');
 
 const runExport = (options) => exportOpenApiCommand.handler(options);
@@ -76,7 +76,7 @@ describe('bru export openapi', () => {
       process.chdir(FIXTURE);
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ outputFile });
+      await runExport({ outputFile, env: 'Local' });
 
       const spec = jsyaml.load(fs.readFileSync(outputFile, 'utf8'));
       expect(spec.openapi).toBe('3.0.0');
@@ -87,7 +87,7 @@ describe('bru export openapi', () => {
     it('exports the collection given by --source, from any directory', async () => {
       process.chdir(outDir);
 
-      await runExport({ source: FIXTURE, outputFile: 'api.yaml' });
+      await runExport({ source: FIXTURE, outputFile: 'api.yaml', env: 'Local' });
 
       expect(jsyaml.load(fs.readFileSync(path.join(outDir, 'api.yaml'), 'utf8')).info.title).toBe('My API-v2-test');
     });
@@ -95,7 +95,7 @@ describe('bru export openapi', () => {
     it('resolves a relative --source against the current directory', async () => {
       process.chdir(path.dirname(FIXTURE));
 
-      await runExport({ source: 'collection', outputFile: path.join(outDir, 'api.yaml') });
+      await runExport({ source: 'collection', outputFile: path.join(outDir, 'api.yaml'), env: 'Local' });
 
       expect(fs.existsSync(path.join(outDir, 'api.yaml'))).toBe(true);
     });
@@ -110,20 +110,21 @@ describe('bru export openapi', () => {
   });
 
   describe('output', () => {
-    it('writes the same YAML the app produces for the collection, with no environment selected', async () => {
+    it('writes the same YAML the app produces for the collection and environment', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(jsyaml.dump(readExportedSpec(outputFile))).toBe(readAppSpecYaml());
     });
 
-    it('lists every environment\'s base URL as a server, in the order the app reads them', async () => {
+    it('lists the selected environment\'s base URL first, then every environment\'s, in the order the app reads them', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(readExportedSpec(outputFile).servers).toEqual([
+        { url: 'http://localhost:3000', description: 'Base Server' },
         { url: 'http://localhost:3000', description: 'Local' },
         { url: 'https://api.example.com', description: 'Prod' },
         { url: 'https://dev.example.com', description: 'dev' }
@@ -133,7 +134,7 @@ describe('bru export openapi', () => {
     it('leaves out requests in folders listed in the collection\'s ignore setting', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(Object.keys(readExportedSpec(outputFile).paths)).not.toContain('/hidden');
     });
@@ -141,7 +142,7 @@ describe('bru export openapi', () => {
     it('writes <sanitized-collection-name>.yaml to the current directory when --output-file is not given', async () => {
       process.chdir(outDir);
 
-      await runExport({ source: FIXTURE });
+      await runExport({ source: FIXTURE, env: 'Local' });
 
       expect(fs.existsSync(path.join(outDir, 'My API-v2-test.yaml'))).toBe(true);
     });
@@ -149,7 +150,7 @@ describe('bru export openapi', () => {
     it('writes JSON when the output file ends in .json', async () => {
       const outputFile = path.join(outDir, 'api.json');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       const content = fs.readFileSync(outputFile, 'utf8');
       expect(withRelativeOperationIds(JSON.parse(content))).toEqual(jsyaml.load(readAppSpecYaml()));
@@ -159,7 +160,7 @@ describe('bru export openapi', () => {
     it.each(['api.yaml', 'api.yml', 'api.YAML', 'api'])('writes YAML for %s', async (fileName) => {
       const outputFile = path.join(outDir, fileName);
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(jsyaml.dump(readExportedSpec(outputFile))).toBe(readAppSpecYaml());
     });
@@ -178,7 +179,7 @@ describe('bru export openapi', () => {
     it('creates missing parent directories of the output file', async () => {
       const outputFile = path.join(outDir, 'nested', 'deeper', 'api.yaml');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(fs.existsSync(outputFile)).toBe(true);
     });
@@ -187,7 +188,7 @@ describe('bru export openapi', () => {
       const outputFile = path.join(outDir, 'api.yaml');
       fs.writeFileSync(outputFile, 'old content');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(fs.readFileSync(outputFile, 'utf8')).not.toContain('old content');
     });
@@ -195,7 +196,7 @@ describe('bru export openapi', () => {
     it('reports the output path on success', async () => {
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: FIXTURE, outputFile });
+      await runExport({ source: FIXTURE, outputFile, env: 'Local' });
 
       expect(logSpy.mock.calls.flat().join(' ')).toContain(outputFile);
     });
@@ -208,7 +209,7 @@ describe('bru export openapi', () => {
       );
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
       expect(fs.existsSync(outputFile)).toBe(true);
       expect(errorSpy.mock.calls.flat().join(' ')).toContain('Warning: bad-json: Failed to parse JSON in request body');
@@ -219,7 +220,7 @@ describe('bru export openapi', () => {
       fs.writeFileSync(path.join(collectionPath, 'broken.bru'), 'meta {\n  name: broken\n');
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
       expect(fs.existsSync(outputFile)).toBe(true);
       const logged = errorSpy.mock.calls.flat().join(' ');
@@ -231,9 +232,9 @@ describe('bru export openapi', () => {
       fs.writeFileSync(path.join(collectionPath, 'environments', 'Broken.bru'), 'vars {\n  unterminated');
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
-      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Local', 'Prod', 'dev']);
+      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Base Server', 'Local', 'Prod', 'dev']);
       expect(errorSpy.mock.calls.flat().join(' ')).toContain(path.join('environments', 'Broken.bru'));
     });
 
@@ -242,10 +243,71 @@ describe('bru export openapi', () => {
       fs.writeFileSync(path.join(collectionPath, 'bruno.json'), '{ not json');
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
       expect(jsyaml.load(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('my-collection');
       expect(errorSpy.mock.calls.flat().join(' ')).toContain('could not be parsed and were left out of the spec: bruno.json');
+    });
+  });
+
+  describe('environment', () => {
+    it('uses the environment given by --env', async () => {
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: FIXTURE, outputFile, env: 'Prod' });
+
+      expect(readExportedSpec(outputFile).servers[0]).toEqual({ url: 'https://api.example.com', description: 'Base Server' });
+    });
+
+    it('exports a collection without environments when --env is not given', async () => {
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await runExport({ source: YML_FIXTURE, outputFile });
+
+      expect(fs.existsSync(outputFile)).toBe(true);
+    });
+
+    it('exits with the env-not-found code and lists the environments when the collection has some and --env is not given', async () => {
+      const exitSpy = mockExit();
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await expect(runExport({ source: FIXTURE, outputFile })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`);
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain('choose one with --env: Local, Prod, dev');
+      expect(fs.existsSync(outputFile)).toBe(false);
+    });
+
+    it('treats an empty --env as not given', async () => {
+      const exitSpy = mockExit();
+
+      await expect(runExport({ source: FIXTURE, outputFile: path.join(outDir, 'api.yaml'), env: '' })).rejects.toThrow(
+        `exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`
+      );
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    });
+
+    it('exits with the env-not-found code and lists the environments when --env does not match one', async () => {
+      const exitSpy = mockExit();
+      const outputFile = path.join(outDir, 'api.yaml');
+
+      await expect(runExport({ source: FIXTURE, outputFile, env: 'local' })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`);
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain('Environment not found: local (available: Local, Prod, dev)');
+      expect(fs.existsSync(outputFile)).toBe(false);
+    });
+
+    it('exits with the env-not-found code when --env is given for a collection without environments', async () => {
+      const exitSpy = mockExit();
+
+      await expect(runExport({ source: YML_FIXTURE, outputFile: path.join(outDir, 'api.yaml'), env: 'Local' })).rejects.toThrow(
+        `exit:${EXIT_STATUS.ERROR_ENV_NOT_FOUND}`
+      );
+
+      expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+      expect(errorSpy.mock.calls.flat().join(' ')).toContain('Environment not found: Local (the collection has no environments)');
     });
   });
 
@@ -256,7 +318,7 @@ describe('bru export openapi', () => {
       fs.writeFileSync(path.join(collectionPath, 'ignored', 'broken.bru'), 'not valid bru {{{{');
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
       expect(Object.keys(readExportedSpec(outputFile).paths)).not.toContain('/hidden');
       expect(errorSpy.mock.calls.flat().join(' ')).not.toContain('could not be parsed');
@@ -269,9 +331,9 @@ describe('bru export openapi', () => {
       fs.writeFileSync(configPath, JSON.stringify({ ...config, ignore: [...config.ignore, 'environments/Prod.bru'] }));
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await runExport({ source: collectionPath, outputFile });
+      await runExport({ source: collectionPath, outputFile, env: 'Local' });
 
-      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Local', 'dev']);
+      expect(readExportedSpec(outputFile).servers.map((server) => server.description)).toEqual(['Base Server', 'Local', 'dev']);
     });
 
     it('reads .yaml request files in an OpenCollection collection', async () => {
@@ -316,7 +378,7 @@ describe('bru export openapi', () => {
       fs.writeFileSync(blockingFile, '');
       const outputFile = path.join(blockingFile, 'api.yaml');
 
-      await expect(runExport({ source: FIXTURE, outputFile })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR}`);
+      await expect(runExport({ source: FIXTURE, outputFile, env: 'Local' })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR}`);
 
       expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       expect(errorSpy.mock.calls.flat().join(' ')).toContain(blockingFile);
@@ -328,7 +390,7 @@ describe('bru export openapi', () => {
       mockExporterError = new Error('cannot export request "Broken"');
       const outputFile = path.join(outDir, 'api.yaml');
 
-      await expect(runExport({ source: FIXTURE, outputFile })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_GENERIC}`);
+      await expect(runExport({ source: FIXTURE, outputFile, env: 'Local' })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_GENERIC}`);
 
       expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_GENERIC);
       const stderr = errorSpy.mock.calls.flat().join(' ');
@@ -343,7 +405,7 @@ describe('bru export openapi', () => {
       const outputFile = path.join(outDir, 'taken');
       fs.mkdirSync(outputFile);
 
-      await expect(runExport({ source: FIXTURE, outputFile })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_GENERIC}`);
+      await expect(runExport({ source: FIXTURE, outputFile, env: 'Local' })).rejects.toThrow(`exit:${EXIT_STATUS.ERROR_GENERIC}`);
 
       expect(exitSpy).toHaveBeenCalledWith(EXIT_STATUS.ERROR_GENERIC);
       expect(errorSpy).toHaveBeenCalled();

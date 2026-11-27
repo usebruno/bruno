@@ -45,6 +45,8 @@ paths:
           description: ''
 servers:
   - url: http://localhost:3000
+    description: Base Server
+  - url: http://localhost:3000
     description: Local
   - url: https://api.example.com
     description: Prod

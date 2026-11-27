@@ -31,9 +31,14 @@ const builder = (yargs) => {
       describe: 'Path to the output file; .json writes JSON, .yaml, .yml or no extension writes YAML (defaults to <collection-name>.yaml)',
       type: 'string'
     })
+    .option('env', {
+      describe: 'Environment to export with; required when the collection has environments',
+      type: 'string'
+    })
     .example('$0 export openapi', 'Export the collection in the current directory to <collection-name>.yaml')
     .example('$0 export openapi --source ./my-collection --output-file api.yaml', 'Export a collection to a YAML file')
-    .example('$0 export openapi -s ./my-collection -f api.json', 'Export a collection to a JSON file');
+    .example('$0 export openapi -s ./my-collection -f api.json', 'Export a collection to a JSON file')
+    .example('$0 export openapi --env Local', 'Export with the Local environment\'s variables');
 };
 
 const exitWithError = (message, exitCode) => {
@@ -57,7 +62,23 @@ const ensureOutputDirectory = (outputPath) => {
 // Named the way the app's Create API Spec names it: the collection's name, or the folder's when it has none
 const getCollectionName = (brunoConfig, collectionPath) => sanitizeName(brunoConfig?.name || path.basename(collectionPath));
 
-const exportOpenApi = async (collectionPath, outputFile) => {
+// The app always exports a collection that has environments with one of them selected, so the CLI asks for one too
+const getEnvironmentName = (env, envVariables) => {
+  const environmentNames = Object.keys(envVariables);
+  if (!env) {
+    if (environmentNames.length > 0) {
+      exitWithError(`This collection has environments, choose one with --env: ${environmentNames.join(', ')}`, EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+    }
+    return '';
+  }
+  if (!environmentNames.includes(env)) {
+    const available = environmentNames.length > 0 ? `available: ${environmentNames.join(', ')}` : 'the collection has no environments';
+    exitWithError(`Environment not found: ${env} (${available})`, EXIT_STATUS.ERROR_ENV_NOT_FOUND);
+  }
+  return env;
+};
+
+const exportOpenApi = async (collectionPath, outputFile, env) => {
   if (!isDirectory(collectionPath)) {
     exitWithError(`Collection not found: ${collectionPath}`, EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
   }
@@ -77,13 +98,14 @@ const exportOpenApi = async (collectionPath, outputFile) => {
   }
 
   const { brunoConfig } = collectionData;
+  const selectedEnvironmentName = getEnvironmentName(env, collectionData.envVariables);
   const collectionName = getCollectionName(brunoConfig, collectionPath);
   const outputPath = path.resolve(outputFile || `${collectionName}.yaml`);
   ensureOutputDirectory(outputPath);
 
   let exported;
   try {
-    exported = brunoToOpenApi(collectionName, collectionData, '');
+    exported = brunoToOpenApi(collectionName, collectionData, selectedEnvironmentName);
   } catch (error) {
     exitWithError(`Failed to export the OpenAPI spec: ${error.message}`, EXIT_STATUS.ERROR_GENERIC);
   }
@@ -103,9 +125,9 @@ const exportOpenApi = async (collectionPath, outputFile) => {
 };
 
 const handler = async (argv) => {
-  const { source, outputFile } = argv;
+  const { source, outputFile, env } = argv;
 
-  await exportOpenApi(path.resolve(source || process.cwd()), outputFile);
+  await exportOpenApi(path.resolve(source || process.cwd()), outputFile, env);
 };
 
 module.exports = {

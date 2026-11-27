@@ -34,7 +34,7 @@ describe('bru export', () => {
   it('runs the openapi export for `export openapi`', async () => {
     const outputFile = path.join(outDir, 'api.yaml');
 
-    await yargs().command(exportCommand).parseAsync(['export', 'openapi', '--source', FIXTURE, '--output-file', outputFile]);
+    await yargs().command(exportCommand).parseAsync(['export', 'openapi', '--source', FIXTURE, '--output-file', outputFile, '--env', 'Local']);
 
     const spec = jsyaml.load(fs.readFileSync(outputFile, 'utf8'));
     expect(spec.openapi).toBe('3.0.0');
@@ -44,7 +44,7 @@ describe('bru export', () => {
   it('passes the short -s and -f options to the openapi export', async () => {
     const outputFile = path.join(outDir, 'api.json');
 
-    await yargs().command(exportCommand).parseAsync(['export', 'openapi', '-s', FIXTURE, '-f', outputFile]);
+    await yargs().command(exportCommand).parseAsync(['export', 'openapi', '-s', FIXTURE, '-f', outputFile, '--env', 'Local']);
 
     expect(JSON.parse(fs.readFileSync(outputFile, 'utf8')).info.title).toBe('My API-v2-test');
   });

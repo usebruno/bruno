@@ -118,12 +118,19 @@ Or use the shorter form with aliases. A `.json` output file is written as JSON:
 bru export openapi -s ./my-collection -f api.json
 ```
 
+If the collection has environments, choose one with `--env`. Its variables fill in the spec's base server and request URLs, as when you pick an environment in the app's Create API Spec:
+
+```bash
+bru export openapi --env Local
+```
+
 Export Options:
 
 | Option                    | Details                                            |
 | ------------------------- | -------------------------------------------------- |
 | --source, -s              | Path to the collection directory (defaults to the current directory) |
 | --output-file, -f         | Path to the output file: .json writes JSON; .yaml, .yml or no extension writes YAML (defaults to `<collection-name>.yaml`) |
+| --env                     | Environment to export with; required when the collection has environments |
 
 ## Command Line Options
 
