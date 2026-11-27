@@ -20,7 +20,7 @@ const registerSqliteIpc = () => {
 
   ipcMain.handle('datastore:runner_responses:get_runner_response', (_event, params) => {
     const request_uid = requireUid(params?.request_uid, 'request_uid');
-    return readRunnerExchange(request_uid);
+    return readRunnerExchange(request_uid, params.max_preview_size_mb);
   });
 
   ipcMain.handle('datastore:runner_responses:delete_runner_responses_for_collection', (_event, params) => {

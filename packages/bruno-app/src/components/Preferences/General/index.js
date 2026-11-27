@@ -10,6 +10,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { IconTrash, IconUpload } from '@tabler/icons';
 import path from 'utils/common/path';
+import { DEFAULT_MAX_PREVIEW_SIZE_MB } from 'utils/common/constants';
 import { SettingsGroup, CheckboxSetting, SettingsField } from '../SettingsLayout';
 
 const General = () => {
@@ -59,7 +60,22 @@ const General = () => {
     oauth2: Yup.object({
       useSystemBrowser: Yup.boolean()
     }),
-    defaultLocation: Yup.string().max(1024)
+    defaultLocation: Yup.string().max(1024),
+    response: Yup.object({
+      maxPreviewSizeMB: Yup.mixed()
+        .transform((value, originalValue) => {
+          return originalValue === '' ? undefined : Number(originalValue);
+        })
+        .test('isNumber', 'Max response size must be a number', (value) => {
+          return value === undefined || !isNaN(value);
+        })
+        .test('isPositive', 'Number must be greater than 0', (value) => {
+          return value === undefined || Number(value) > 0;
+        })
+        .test('isFinite', 'Max response size must be a finite number', (value) => {
+          return value === undefined || Number.isFinite(value);
+        })
+    })
   });
 
   const formik = useFormik({
@@ -82,7 +98,10 @@ const General = () => {
       oauth2: {
         useSystemBrowser: get(preferences, 'request.oauth2.useSystemBrowser', false)
       },
-      defaultLocation: get(preferences, 'general.defaultLocation', '')
+      defaultLocation: get(preferences, 'general.defaultLocation', ''),
+      response: {
+        maxPreviewSizeMB: get(preferences, 'response.maxPreviewSizeMB', DEFAULT_MAX_PREVIEW_SIZE_MB)
+      }
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -122,6 +141,9 @@ const General = () => {
         },
         general: {
           defaultLocation: newPreferences.defaultLocation
+        },
+        response: {
+          maxPreviewSizeMB: newPreferences.response.maxPreviewSizeMB
         }
       }))
       .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
@@ -185,6 +207,7 @@ const General = () => {
   const autoSaveIntervalTouched = get(formik.touched, 'autoSave.interval', false);
   const autoSaveError = autoSaveIntervalTouched ? formik.errors.autoSave?.interval : undefined;
   const timeoutError = formik.touched.timeout ? formik.errors.timeout : undefined;
+  const maxPreviewSizeError = formik.touched.response?.maxPreviewSizeMB ? formik.errors.response?.maxPreviewSizeMB : undefined;
 
   return (
     <StyledWrapper className="w-full">
@@ -324,6 +347,24 @@ const General = () => {
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
               value={formik.values.timeout}
+            />
+          </SettingsField>
+        </SettingsGroup>
+
+        <SettingsGroup title="Response">
+          <SettingsField label="Max Response Size (in MB)" htmlFor="maxPreviewSizeMB" error={maxPreviewSizeError}>
+            <input
+              id="maxPreviewSizeMB"
+              type="text"
+              name="response.maxPreviewSizeMB"
+              className="textbox numeric-input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.response.maxPreviewSizeMB}
             />
           </SettingsField>
         </SettingsGroup>

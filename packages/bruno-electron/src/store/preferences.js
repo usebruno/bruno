@@ -106,6 +106,9 @@ const defaultPreferences = {
       customRedactedHeaders: [],
       customRedactedVariables: []
     }
+  },
+  response: {
+    maxPreviewSizeMB: 10
   }
 };
 
@@ -240,7 +243,12 @@ const preferencesSchema = Yup.object().shape({
       customRedactedHeaders: Yup.array().of(Yup.string().max(200)).max(200),
       customRedactedVariables: Yup.array().of(Yup.string().max(200)).max(200)
     }).optional()
-  }).optional()
+  }).optional(),
+  response: Yup.object({
+    maxPreviewSizeMB: Yup.number()
+      .positive('Number must be greater than 0')
+      .test('isFinite', 'Max response size must be a finite number', (value) => value === undefined || Number.isFinite(value))
+  })
 });
 
 class PreferencesStore {
@@ -400,6 +408,13 @@ const savePreferences = async (newPreferences) => {
   });
 };
 
+const DEFAULT_MAX_PREVIEW_SIZE_MB = 10;
+
+const toMaxPreviewSizeMB = (value, fallback) => {
+  const megabytes = Number(value);
+  return value !== null && value !== '' && Number.isFinite(megabytes) && megabytes > 0 ? megabytes : fallback;
+};
+
 const preferencesUtil = {
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
@@ -458,11 +473,15 @@ const preferencesUtil = {
     } catch (err) {
       console.error('Failed to save preferences in markAsLaunched:', err);
     }
+  },
+  getMaxPreviewSizeMB: () => {
+    return toMaxPreviewSizeMB(get(getPreferences(), 'response.maxPreviewSizeMB'), DEFAULT_MAX_PREVIEW_SIZE_MB);
   }
 };
 
 module.exports = {
   getPreferences,
   savePreferences,
-  preferencesUtil
+  preferencesUtil,
+  toMaxPreviewSizeMB
 };

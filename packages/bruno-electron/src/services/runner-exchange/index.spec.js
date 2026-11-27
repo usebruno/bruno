@@ -13,7 +13,12 @@ jest.mock('electron', () => ({
 
 jest.mock('../sqlite', () => ({ getStatements: jest.fn(), getFiles: jest.fn(), withSecureDelete: jest.fn((callback) => callback()) }));
 
-const { MAX_RENDERABLE_RESPONSE_BYTES } = require('./index');
+jest.mock('../../store/preferences', () => ({
+  ...jest.requireActual('../../store/preferences'),
+  preferencesUtil: { getMaxPreviewSizeMB: jest.fn(() => 50) }
+}));
+
+const MAX_PREVIEW_SIZE_BYTES = 50 * 1024 * 1024;
 
 const EVENT_DATA = { collectionUid: 'col-1', itemUid: 'item-1' };
 
@@ -165,10 +170,34 @@ describe('runner-exchange service', () => {
       expect(responseReceived.data).toEqual(JSON.parse(body));
     });
 
-    it('returns a body right at the renderable limit', async () => {
-      await storeWithBodySize(MAX_RENDERABLE_RESPONSE_BYTES);
+    it('returns a body right at the max preview size', async () => {
+      await storeWithBodySize(MAX_PREVIEW_SIZE_BYTES);
 
       expect((await readRunnerExchange('run-1')).responseReceived.dataBuffer).toBe(Buffer.from(body).toString('base64'));
+    });
+
+    it('holds back a body over a lowered max preview size preference', async () => {
+      require('../../store/preferences').preferencesUtil.getMaxPreviewSizeMB.mockReturnValue(10);
+      await storeWithBodySize(20 * 1024 * 1024);
+
+      const { responseReceived } = await readRunnerExchange('run-1');
+
+      expect(responseReceived.dataBuffer).toBeNull();
+      expect(responseReceived.storedRequestUid).toBe('run-1');
+    });
+
+    it('uses the max preview size the caller passes over the stored preference', async () => {
+      await storeWithBodySize(20 * 1024 * 1024);
+
+      expect((await readRunnerExchange('run-1', 10)).responseReceived.dataBuffer).toBeNull();
+      expect((await readRunnerExchange('run-1', 30)).responseReceived.dataBuffer).toBe(Buffer.from(body).toString('base64'));
+    });
+
+    it.each([null, '', 'abc', 0, -5, NaN, Infinity])('falls back to the stored preference when the caller passes %p', async (requested) => {
+      require('../../store/preferences').preferencesUtil.getMaxPreviewSizeMB.mockReturnValue(10);
+      await storeWithBodySize(20 * 1024 * 1024);
+
+      expect((await readRunnerExchange('run-1', requested)).responseReceived.dataBuffer).toBeNull();
     });
   });
 
@@ -178,7 +207,7 @@ describe('runner-exchange service', () => {
     beforeEach(async () => {
       await roundTrip({ requestSent: REQUEST_SENT, responseReceived: responseWithBody(body) });
       const { stat } = opened.files;
-      jest.spyOn(opened.files, 'stat').mockImplementation((id) => ({ ...stat.call(opened.files, id), size: MAX_RENDERABLE_RESPONSE_BYTES + 1 }));
+      jest.spyOn(opened.files, 'stat').mockImplementation((id) => ({ ...stat.call(opened.files, id), size: MAX_PREVIEW_SIZE_BYTES + 1 }));
       jest.spyOn(opened.files, 'read');
     });
 
@@ -330,7 +359,7 @@ describe('runner-exchange service', () => {
       const body = JSON.stringify({ items: Array.from({ length: 20 }, (_, i) => ({ id: i })) });
       await roundTrip({ requestSent: REQUEST_SENT, responseReceived: responseWithBody(body) });
       const { stat } = opened.files;
-      jest.spyOn(opened.files, 'stat').mockImplementation((id) => ({ ...stat.call(opened.files, id), size: MAX_RENDERABLE_RESPONSE_BYTES + 1 }));
+      jest.spyOn(opened.files, 'stat').mockImplementation((id) => ({ ...stat.call(opened.files, id), size: MAX_PREVIEW_SIZE_BYTES + 1 }));
 
       expect((await readRunnerExchange('run-1')).responseReceived.storedRequestUid).toBe('run-1');
 

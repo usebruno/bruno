@@ -1,9 +1,9 @@
 const { copyFile, writeFile } = require('node:fs/promises');
 const { safeParseJSON, safeStringifyJSON, parseDataFromResponse } = require('../../utils/common');
 const { getStatements, getFiles, withSecureDelete } = require('../sqlite');
+const { preferencesUtil, toMaxPreviewSizeMB } = require('../../store/preferences');
 
 const JSON_CONTENT_TYPE = 'application/json';
-const MAX_RENDERABLE_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 const getContentType = (headers) => {
   const entries = headers && typeof headers === 'object' ? Object.entries(headers) : [];
@@ -69,11 +69,12 @@ const getBodySize = (row) => {
   return getFiles().stat(row.body_file_id)?.size ?? 0;
 };
 
-const readRunnerExchange = async (requestUid) => {
+const readRunnerExchange = async (requestUid, maxPreviewSizeMB) => {
   const row = getStatements().execute('get_runner_response', { request_uid: requestUid });
   if (!row) return null;
 
-  const isDownloadOnly = getBodySize(row) > MAX_RENDERABLE_RESPONSE_BYTES;
+  const previewLimitMB = toMaxPreviewSizeMB(maxPreviewSizeMB, preferencesUtil.getMaxPreviewSizeMB());
+  const isDownloadOnly = getBodySize(row) > previewLimitMB * 1024 * 1024;
   const [request, response, body] = await Promise.all([
     readPayload(row.request_file_id, row.request_data),
     readPayload(row.response_file_id, row.response_data),
@@ -127,7 +128,6 @@ const clearAllRunnerResponses = () =>
   });
 
 module.exports = {
-  MAX_RENDERABLE_RESPONSE_BYTES,
   storeRunnerExchange,
   readRunnerExchange,
   saveRunnerResponseBody,
