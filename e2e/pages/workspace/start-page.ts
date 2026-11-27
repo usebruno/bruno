@@ -1,6 +1,6 @@
 import { Page } from '../../playwright';
 
-type StartLink = 'overview' | 'import' | 'open' | 'clone';
+type StartLink = 'overview' | 'open-or-import' | 'import' | 'open' | 'clone';
 type CreateButton = 'http' | 'graphql' | 'grpc' | 'ws' | 'workspace' | 'collection' | 'environment' | 'api-spec' | 'mock-server';
 
 export const buildStartPageLocators = (page: Page) => ({

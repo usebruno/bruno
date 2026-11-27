@@ -23,20 +23,21 @@ test.describe('Start page', () => {
         await closeOverview();
       });
 
-      await test.step('"Open workspace overview" reopens Overview', async () => {
+      await test.step('"Workspace overview" reopens Overview', async () => {
         await startPage.link('overview').click();
         await expect(overviewTab).toBeVisible();
         await closeOverview();
       });
 
-      await test.step('"Import collection" opens the import dialog', async () => {
+      await test.step('"Open or import collection" → "Import collection" opens the import dialog', async () => {
+        await startPage.link('open-or-import').click();
         await startPage.link('import').click();
         await expect(modal.byTitle('Import Collection')).toBeVisible();
         await modal.closeButton().click();
         await expect(modal.byTitle('Import Collection')).toHaveCount(0);
       });
 
-      await test.step('"Clone a Git repository" opens the clone dialog', async () => {
+      await test.step('"Clone a collection from Git" opens the clone dialog', async () => {
         await startPage.link('clone').click();
         await expect(modal.byTitle('Clone Git Repository')).toBeVisible();
         await modal.closeButton().click();

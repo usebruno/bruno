@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   IconFiles,
   IconGitBranch,
   IconLock,
   IconBook,
-  IconArrowsExchange,
   IconBrandGithub,
   IconBrandDiscord,
   IconHome,
@@ -23,6 +22,7 @@ import {
 } from '@tabler/icons';
 import Bruno from 'components/Bruno';
 import ToolHint from 'components/ToolHint';
+import Dropdown from 'components/Dropdown';
 import CreateTransientRequest from 'components/CreateTransientRequest';
 import CloneGitRepository from 'components/Sidebar/CloneGitRespository';
 import CreateWorkspace from 'components/WorkspaceSidebar/CreateWorkspace';
@@ -41,35 +41,30 @@ import StyledWrapper from './StyledWrapper';
 
 const VALUE_POINTS = [
   { icon: IconFiles, title: 'Collections stored as files',
-    text: 'Every request, folder and environment is a plain file on your computer, in an open format.' },
+    text: 'Each collection is a folder on your computer. Requests inside it are plain files, in an open format.' },
 
   { icon: IconGitBranch, title: 'Collaborate through Git',
     text: 'Branch, commit and review collections like code, with any Git provider your team already uses.' },
 
   { icon: IconLock, title: 'Private by design',
-    text: 'No sign-up, no login, no cloud. Your collections and secrets live only where you keep them.' }
+    text: 'No sign-up, no login, no cloud. Your work isn\'t tied to an account, and your data never reaches us.' }
 ];
 
 const HELP_LINKS = [
   { id: 'docs',
     icon: IconBook,
     label: 'Documentation',
-    url: 'https://docs.usebruno.com' },
-
-  { id: 'switching',
-    icon: IconArrowsExchange,
-    label: 'Switching from other tools',
-    url: 'https://docs.usebruno.com/get-started/import-export-data/import-collections' },
-
-  { id: 'github',
-    icon: IconBrandGithub,
-    label: 'Ask on GitHub Discussions',
-    url: 'https://github.com/usebruno/bruno/discussions' },
+    url: 'https://link.usebruno.com/docs' },
 
   { id: 'discord',
     icon: IconBrandDiscord,
     label: 'Ask the community on Discord',
-    url: 'https://discord.com/invite/KgcZUncpjq' }
+    url: 'https://link.usebruno.com/discord' },
+
+  { id: 'github',
+    icon: IconBrandGithub,
+    label: 'Suggest a feature or report an issue',
+    url: 'https://github.com/usebruno/bruno/issues/new/choose' }
 ];
 
 const StartPage = ({ workspace }) => {
@@ -107,16 +102,24 @@ const StartPage = ({ workspace }) => {
       : [])
   ];
 
+  const linkMenuRef = useRef();
   const startLinks = [
     scratchCollectionUid && {
       id: 'overview',
       icon: IconHome,
-      label: 'Open workspace overview',
+      label: 'Workspace overview',
       onClick: () => dispatch(addTab(getWorkspaceTab(scratchCollectionUid, 'workspaceOverview')))
     },
-    { id: 'import', icon: IconDownload, label: 'Import collection', onClick: () => dispatch(setIsImportingCollection(true)) },
-    { id: 'open', icon: IconFolder, label: 'Open collection folder', onClick: () => dispatch(setIsOpeningCollection(true)) },
-    { id: 'clone', icon: IconGitBranch, label: 'Clone a Git repository', onClick: () => setShowCloneGitModal(true) }
+    {
+      id: 'open-or-import',
+      icon: IconFolder,
+      label: 'Open or import collection',
+      menu: [
+        { id: 'open', icon: IconFolder, label: 'Open collection folder', onClick: () => dispatch(setIsOpeningCollection(true)) },
+        { id: 'import', icon: IconDownload, label: 'Import collection', onClick: () => dispatch(setIsImportingCollection(true)) }
+      ]
+    },
+    { id: 'clone', icon: IconGitBranch, label: 'Clone a collection from Git', onClick: () => setShowCloneGitModal(true) }
   ].filter(Boolean);
 
   const renderCreateButton = ({ id, icon: Icon, label, onClick }) => (
@@ -150,7 +153,7 @@ const StartPage = ({ workspace }) => {
             <div className="brand-tagline mt-1">The open source local-first, git-native, lightweight API client.</div>
           </div>
 
-          <div className="w-full grid grid-cols-[repeat(auto-fit,minmax(12.5rem,1fr))] gap-3 mb-9 text-left">
+          <div className="w-full grid grid-cols-[repeat(auto-fit,minmax(12.5rem,1fr))] gap-3 mb-[2.625rem] text-left">
             {VALUE_POINTS.map(({ icon: Icon, title, text }) => (
               <div className="value-point py-3.5 px-4" key={title}>
                 <div className="value-point-title flex items-center gap-2 font-semibold mb-1.5">
@@ -165,12 +168,36 @@ const StartPage = ({ workspace }) => {
           <div className="flex flex-wrap justify-center gap-x-20 gap-y-8 text-left">
             <div>
               <div className="section-title mb-2.5">Start</div>
-              {startLinks.map(({ id, icon: Icon, label, onClick }) => (
-                <button type="button" className="link flex items-center gap-2 py-[0.3125rem]" key={id} data-testid={`start-page-${id}`} onClick={onClick}>
-                  <Icon size={16} strokeWidth={1.5} />
-                  {label}
-                </button>
-              ))}
+              {startLinks.map(({ id, icon: Icon, label, onClick, menu }) => {
+                const link = (
+                  <button type="button" className="link flex items-center gap-2 py-[0.3125rem]" key={id} data-testid={`start-page-${id}`} onClick={onClick}>
+                    <Icon size={16} strokeWidth={1.5} />
+                    {label}
+                  </button>
+                );
+                if (!menu) return link;
+
+                return (
+                  <Dropdown key={id} icon={link} placement="bottom-start" onCreate={(ref) => (linkMenuRef.current = ref)}>
+                    {menu.map((item) => (
+                      <div
+                        key={item.id}
+                        className="dropdown-item"
+                        data-testid={`start-page-${item.id}`}
+                        onClick={() => {
+                          linkMenuRef.current?.hide();
+                          item.onClick();
+                        }}
+                      >
+                        <div className="dropdown-icon">
+                          <item.icon size={16} strokeWidth={1.5} />
+                        </div>
+                        <span className="dropdown-label">{item.label}</span>
+                      </div>
+                    ))}
+                  </Dropdown>
+                );
+              })}
             </div>
             <div>
               <div className="section-title mb-2.5">Help</div>
@@ -189,7 +216,7 @@ const StartPage = ({ workspace }) => {
             </div>
           </div>
 
-          <div className="section-title mt-8 mb-2.5">Or create new</div>
+          <div className="section-title mt-[2.625rem] mb-2.5">Or create new</div>
           <div className="flex flex-wrap justify-center gap-1">
             {requestItems.map(renderCreateButton)}
             {requestItems.length > 0 && <span className="create-divider self-center w-px h-[1.125rem] mx-1.5" aria-hidden="true" />}

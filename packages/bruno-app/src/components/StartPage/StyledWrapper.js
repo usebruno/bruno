@@ -12,7 +12,7 @@ const StyledWrapper = styled.div`
   }
 
   .value-point {
-    border: 1px solid ${(props) => props.theme.border.border1};
+    border: 1px solid ${(props) => props.theme.border.border0};
     border-radius: ${(props) => props.theme.border.radius.base};
   }
 
