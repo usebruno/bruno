@@ -90,6 +90,7 @@ jest.mock('@usebruno/common', () => {
 const { ScriptRuntime } = require('@usebruno/js');
 const { makeAxiosInstance } = require('../../src/utils/axios-instance');
 const prepareRequest = require('../../src/runner/prepare-request');
+const { interpolateString } = require('../../src/runner/interpolate-string');
 const { runSingleRequest } = require('../../src/runner/run-single-request');
 
 const baseItem = {
@@ -234,5 +235,64 @@ describe('runSingleRequest: duration and size fields (issue #7352)', () => {
     expect(result.response.duration).toBe(0);
     expect(result.response.size).toBe(0);
     expect(result.response.responseTime).toBe(0);
+  });
+});
+
+describe('runSingleRequest: API key query parameter interpolation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('interpolates API key names and values from collection, folder, and request variables', async () => {
+    const request = {
+      method: 'GET',
+      url: 'https://example.com/api',
+      headers: {},
+      data: null,
+      settings: {},
+      apiKeyAuthValueForQueryParams: {
+        placement: 'queryparams',
+        key: '{{COLLECTION_KEY}}',
+        value: '{{FOLDER_VALUE}}-{{REQUEST_VALUE}}'
+      },
+      collectionVariables: { COLLECTION_KEY: 'api-key' },
+      folderVariables: { FOLDER_VALUE: 'folder' },
+      requestVariables: { REQUEST_VALUE: 'request' }
+    };
+    prepareRequest.mockResolvedValue(request);
+    interpolateString.mockImplementation((value, interpolationOptions) =>
+      value.replace(/\{\{(\w+)\}\}/g, (match, name) =>
+        interpolationOptions.requestVariables?.[name]
+        ?? interpolationOptions.folderVariables?.[name]
+        ?? interpolationOptions.collectionVariables?.[name]
+        ?? match
+      )
+    );
+    const response = {
+      status: 200,
+      statusText: 'OK',
+      headers: { get: () => null, delete: jest.fn() },
+      data: '{}',
+      request: { protocol: 'https:', host: 'example.com', path: '/api?api-key=folder-request' }
+    };
+    const axiosRequest = jest.fn().mockResolvedValue(response);
+    makeAxiosInstance.mockReturnValue(axiosRequest);
+
+    await runSingleRequest(...baseArgs);
+
+    expect(axiosRequest).toHaveBeenCalledWith(expect.objectContaining({
+      url: 'https://example.com/api?api-key=folder-request'
+    }));
+    expect(interpolateString).toHaveBeenCalledWith(
+      '{{COLLECTION_KEY}}',
+      expect.objectContaining({ collectionVariables: request.collectionVariables })
+    );
+    expect(interpolateString).toHaveBeenCalledWith(
+      '{{FOLDER_VALUE}}-{{REQUEST_VALUE}}',
+      expect.objectContaining({
+        folderVariables: request.folderVariables,
+        requestVariables: request.requestVariables
+      })
+    );
   });
 });
