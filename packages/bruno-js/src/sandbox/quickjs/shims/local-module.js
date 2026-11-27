@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { marshallToVm } = require('../utils');
+const { isRelativePathOutsideRoot } = require('../../../utils/path');
 
 const OUTSIDE_COLLECTION_ERROR = 'Access to files outside of the collectionPath is not allowed.';
 const moduleNotFoundError = (filename) => `Cannot find module ${filename}`;
@@ -37,7 +38,7 @@ const createLocalModuleLoaderHandle = (vm, collectionPath) => {
     const relativePath = path.relative(realCollectionPath, filePath);
 
     // Ensure the resolved file path is inside the collectionPath
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    if (isRelativePathOutsideRoot(relativePath)) {
       throw new Error(OUTSIDE_COLLECTION_ERROR);
     }
 

@@ -1,5 +1,6 @@
 const path = require('node:path');
 const nodeModule = require('node:module');
+const { isRelativePathOutsideRoot } = require('../../utils/path');
 
 /**
  * Check if a module is a Node.js builtin
@@ -21,7 +22,7 @@ function isPathWithinAllowedRoots(normalizedPath, additionalContextRootsAbsolute
   return additionalContextRootsAbsolute.some((allowedRoot) => {
     const normalizedAllowedRoot = path.normalize(allowedRoot);
     const relativePath = path.relative(normalizedAllowedRoot, normalizedPath);
-    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+    return !isRelativePathOutsideRoot(relativePath);
   });
 }
 
