@@ -116,18 +116,6 @@ export const closeAllTabs = async (page: Page) => {
       await unsavedChangesModal.button('Don\'t Save').click();
       await expect(unsavedChangesModal.root()).toBeHidden();
     }
-
-    // Handle "Unsaved Transient Requests" modal if it appears
-    const discardAllButton = page.getByRole('button', { name: 'Discard All' });
-    if (await discardAllButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await discardAllButton.click();
-    }
-
-    const saveTransientModal = page.getByTestId('save-transient-request-modal');
-    if (await saveTransientModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await saveTransientModal.getByRole('button', { name: 'Cancel' }).click();
-      await expect(saveTransientModal).toBeHidden();
-    }
   });
 };
 
