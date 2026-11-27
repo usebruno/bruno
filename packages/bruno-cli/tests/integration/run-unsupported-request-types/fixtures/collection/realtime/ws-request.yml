@@ -1,0 +1,15 @@
+info:
+  name: ws-request
+  type: websocket
+  seq: 2
+
+websocket:
+  url: '{{host}}/ws'
+  message:
+    - title: message 1
+      message:
+        type: json
+        data: |-
+          {
+            "ping": true
+          }

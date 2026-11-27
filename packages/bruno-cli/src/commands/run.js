@@ -47,8 +47,19 @@ const printGenericTable = (headers, rows, title) => {
   console.log(table.toString());
 };
 
-const printRunSummary = (results) => {
+const UNSUPPORTED_REQUESTS_MESSAGE = 'WebSocket and gRPC requests are not supported in CLI';
+const UNSUPPORTED_REQUEST_TYPES = ['grpc-request', 'ws-request'];
+
+const isUnsupportedRequest = (item) => UNSUPPORTED_REQUEST_TYPES.includes(item.type);
+
+const printRunSummary = (results, { unsupportedCount = 0 } = {}) => {
   const summary = getRunnerSummary(results);
+
+  if (!results.length) {
+    const message = unsupportedCount > 0 ? UNSUPPORTED_REQUESTS_MESSAGE : 'No requests found';
+    console.log('\n' + chalk.yellow(message) + '\n');
+    return summary;
+  }
 
   const duration = Math.round(
     results.reduce((acc, res) => acc + (res.runDuration || 0), 0) * 1000
@@ -82,6 +93,11 @@ const printRunSummary = (results) => {
   ];
 
   printGenericTable(headers, rows, '📊 Execution Summary');
+
+  if (unsupportedCount > 0) {
+    const noun = unsupportedCount === 1 ? 'request' : 'requests';
+    console.log(chalk.yellow(`Ignored ${unsupportedCount} ${noun}. ${UNSUPPORTED_REQUESTS_MESSAGE}\n`));
+  }
 
   return summary;
 };
@@ -731,6 +747,10 @@ const handler = async function (argv) {
       });
     }
 
+    const totalBeforeUnsupportedFilter = requestItems.length;
+    requestItems = requestItems.filter((item) => !isUnsupportedRequest(item));
+    const unsupportedCount = totalBeforeUnsupportedFilter - requestItems.length;
+
     const runtime = getJsSandboxRuntime(sandbox);
 
     const collectionRootFile = collection.format === 'yml' ? 'opencollection.yml' : 'collection.bru';
@@ -809,6 +829,11 @@ const handler = async function (argv) {
         }
         const requestItem = cloneDeep(findItemInCollection(collection, itemPathname));
         if (requestItem) {
+          if (isUnsupportedRequest(requestItem)) {
+            resolve({ status: 'skipped' });
+            return;
+          }
+
           const res = await runSingleRequest(
             requestItem,
             collectionPath,
@@ -960,10 +985,12 @@ const handler = async function (argv) {
     const skippedFileResults = createSkippedFileResults(global.brunoSkippedFiles || [], collectionPath);
     results.push(...skippedFileResults);
 
-    const summary = printRunSummary(results);
+    const summary = printRunSummary(results, { unsupportedCount });
     const runCompletionTime = new Date().toISOString();
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
-    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+    if (results.length) {
+      console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+    }
 
     // Extract environment name from envVars if available
     const environmentName = envVars?.__name__ || null;

@@ -1,0 +1,15 @@
+info:
+  name: grpc-request
+  type: grpc
+  seq: 1
+
+grpc:
+  url: '{{host}}'
+  method: /hello.HelloService/SayHello
+  methodType: unary
+  message:
+    - title: message 1
+      message: |-
+        {
+          "greeting": "bruno"
+        }

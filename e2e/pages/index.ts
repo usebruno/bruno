@@ -11,6 +11,7 @@ export * from './runner';
 export * from './app-shell/ai-preferences';
 export * from './app-shell/preferences';
 export * from './app-shell/tabs';
+export * from './app-shell/unsaved-changes-modal';
 
 // collection
 export * from './collection/collection-run';

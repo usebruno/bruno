@@ -1,6 +1,8 @@
 import reducer, {
   showOpenCollectionModal,
   showOpenCollectionPage,
+  importLoadStarted,
+  importLoadEnded,
   hideOpenCollectionModal,
   folderPickStarted,
   folderSearchStarted,
@@ -30,6 +32,7 @@ describe('openCollectionModal slice', () => {
       isOpen: false,
       page: null,
       openingId: null,
+      importLoadId: null,
       chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
     });
   });
@@ -117,6 +120,22 @@ describe('openCollectionModal slice', () => {
 
     expect(reducer(opening, collectionsOpeningEnded('opening-0'))).toBe(opening);
     expect(reducer(opening, collectionsOpeningEnded('opening-1')).openingId).toBeNull();
+  });
+
+  describe('importLoadId', () => {
+    const importLoadId = (actions) => applyActions([showOpenCollectionModal('import'), ...actions]).importLoadId;
+
+    it('tracks the load that is running', () => {
+      expect(importLoadId([importLoadStarted('load-1')])).toBe('load-1');
+      expect(importLoadId([importLoadStarted('load-1'), importLoadEnded()])).toBeNull();
+    });
+
+    it('forgets the load when the page changes but not when the same page is shown again', () => {
+      const loading = [importLoadStarted('load-1')];
+
+      expect(importLoadId([...loading, showOpenCollectionPage('import')])).toBe('load-1');
+      expect(importLoadId([...loading, showOpenCollectionPage('recents')])).toBeNull();
+    });
   });
 
   it('hideOpenCollectionModal resets everything so the next open starts fresh', () => {

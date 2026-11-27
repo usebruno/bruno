@@ -98,6 +98,8 @@ const grpcResponse = {
 
 const grpcMessage = { data: { greeting: 'hi' }, timestamp: 1700000000 };
 
+const sentMessages = [{ data: { greeting: 'hello' }, timestamp: 1699999999 }];
+
 const runRequestByItemPathname = async () => ({});
 
 /** Runs `script` in the context's runtime entry point, forwarding `console.log` to `onConsoleLog`. */
@@ -114,15 +116,15 @@ const CONTEXT_RUNNERS = {
     }),
   'grpc:before-message-send': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcBeforeMessageSendScript({
-      script, request: grpcRequest, message: grpcMessage, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, message: grpcMessage, sentMessages, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     }),
   'grpc:after-message-receive': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcAfterMessageReceiveScript({
-      script, request: grpcRequest, response: grpcResponse, message: grpcMessage, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, response: grpcResponse, message: grpcMessage, sentMessages, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     }),
   'grpc:after-call-end': (runtime, script, onConsoleLog) =>
     new GrpcScriptRuntime({ runtime }).runGrpcResponseScript({
-      script, request: grpcRequest, response: grpcResponse, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
+      script, request: grpcRequest, response: grpcResponse, sentMessages, envVariables: {}, runtimeVariables: {}, collectionPath: '.', onConsoleLog, processEnvVars: {}
     })
 };
 
@@ -139,12 +141,21 @@ const probeScript = (paths, objectPaths) => `
     expect: typeof expect === 'undefined' ? undefined : expect,
     assert: typeof assert === 'undefined' ? undefined : assert
   };
-  const resolve = (path) => path.split('.').reduce((value, key) => (value == null ? undefined : value[key]), roots);
+  // A \`name()\` segment is the result of calling the method with no arguments.
+  const step = (value, key) => {
+    if (value == null) return undefined;
+    if (!key.endsWith('()')) return value[key];
+    const method = value[key.slice(0, -2)];
+    return typeof method === 'function' ? method.call(value) : undefined;
+  };
+  const resolve = (path) => path.split('.').reduce(step, roots);
   const exists = (path) => {
     const keys = path.split('.');
     if (keys.length === 1) return roots[path] !== undefined;
     const parent = resolve(keys.slice(0, -1).join('.'));
-    return parent != null && keys[keys.length - 1] in Object(parent);
+    const key = keys[keys.length - 1];
+    if (parent == null) return false;
+    return key.endsWith('()') ? typeof parent[key.slice(0, -2)] === 'function' : key in Object(parent);
   };
   const membersOf = (value) => {
     const members = new Set();
@@ -164,13 +175,22 @@ const probeScript = (paths, objectPaths) => `
     const value = resolve(path);
     members[path] = { callable: typeof value === 'function', names: membersOf(value) };
   });
-  console.log(JSON.stringify({ present: paths.filter(exists), members }));
+  // Behind a call that returns nothing here, such as \`messages.get()\` before anything is sent.
+  const callReturnsNothing = (callPath) => exists(callPath) && resolve(callPath) == null;
+  const unresolved = paths.filter((path) => objectPaths.some((p) => p.endsWith('()') && path.startsWith(p + '.') && callReturnsNothing(p)));
+  console.log(JSON.stringify({ present: paths.filter(exists), unresolved, members }));
 `;
 
 const probe = async (context, runtime) => {
   const entries = manifest.filter((entry) => entry.contexts.includes(context));
   const paths = [...new Set(entries.map((entry) => entry.path))];
-  const objectPaths = paths.filter((p) => manifest.some((entry) => entry.path.startsWith(`${p}.`)));
+  // A path through a call, such as `bru.cookies.jar()`, is no entry's path, only a prefix of some.
+  const callPaths = paths.flatMap((p) => p.split('.').slice(0, -1).map((_, i, keys) => keys.slice(0, i + 1).join('.')))
+    .filter((p) => p.endsWith('()'));
+  const objectPaths = [
+    ...paths.filter((p) => manifest.some((entry) => entry.path.startsWith(`${p}.`))),
+    ...new Set(callPaths)
+  ];
   const logs = [];
   await CONTEXT_RUNNERS[context](runtime, probeScript(paths, objectPaths), (type, args) => {
     if (type === 'log') logs.push(args[0]);
@@ -203,8 +223,10 @@ describe('script API parity with the manifest', () => {
       });
 
       it('exposes every documented member, and in Safe Mode only those without @runtime nodevm', () => {
-        const { entries, paths, present } = probed;
-        const expected = paths.filter((p) => entries.some((entry) => entry.path === p && entry.runtimes.includes(runtime)));
+        const { entries, paths, present, unresolved } = probed;
+        const expected = paths
+          .filter((p) => !unresolved.includes(p))
+          .filter((p) => entries.some((entry) => entry.path === p && entry.runtimes.includes(runtime)));
 
         expect(expected.filter((p) => !present.includes(p))).toEqual([]);
         expect(present.filter((p) => !expected.includes(p))).toEqual([]);

@@ -1,9 +1,25 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const AdmZip = require('adm-zip');
 const { readFileStart } = require('./read-file-start');
 const { isRealFile } = require('./entry-kind');
 
 const SNIFF_BYTES = 64 * 1024;
+const MAX_ZIP_BYTES = 20 * 1024 * 1024;
+const COLLECTION_ZIP_ENTRY = /^(?:[^/]+\/)?(?:bruno\.json|opencollection\.yml)$/;
+
+const isCollectionZip = async (filePath) => {
+  try {
+    const { size } = await fs.stat(filePath);
+    if (size > MAX_ZIP_BYTES) {
+      return false;
+    }
+    const zip = new AdmZip(await fs.readFile(filePath));
+    return zip.getEntries().some((entry) => COLLECTION_ZIP_ENTRY.test(entry.entryName));
+  } catch (error) {
+    return false;
+  }
+};
 
 const detectJsonFormat = (start) => {
   if (/"(?:openapi|swagger)"\s*:\s*"\d/.test(start)) {
@@ -32,7 +48,7 @@ const detectYamlFormat = (fileStart) => {
 const detectFormat = async (filePath, name) => {
   const lowerName = name.toLowerCase();
   if (lowerName.endsWith('.zip')) {
-    return 'zip';
+    return await isCollectionZip(filePath) ? 'zip' : null;
   }
   if (lowerName.endsWith('.postman_collection.json')) {
     return 'postman';
@@ -59,12 +75,24 @@ const findImportableFiles = async (folderPath) => {
     const filePath = path.join(folderPath, entry.name);
     const format = await isRealFile(entry, filePath) && await detectFormat(filePath, entry.name);
     if (format) {
-      importableFiles.push({ name: entry.name, format });
+      importableFiles.push({ path: filePath, name: entry.name, format });
     }
   }
   return importableFiles;
 };
 
+const readImportableFileText = async (filePath) => {
+  const name = path.basename(filePath);
+  const stats = await fs.lstat(filePath).catch(() => null);
+  const format = stats?.isFile() && await detectFormat(filePath, name);
+  if (!format || format === 'zip') {
+    throw new Error(`${name} isn’t a file Bruno can import`);
+  }
+  const text = await fs.readFile(filePath, 'utf8');
+  return text.replace(/^\uFEFF/, '');
+};
+
 module.exports = {
-  findImportableFiles
+  findImportableFiles,
+  readImportableFileText
 };

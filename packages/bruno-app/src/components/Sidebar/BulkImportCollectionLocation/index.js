@@ -24,6 +24,7 @@ import { postmanToBruno } from 'utils/importers/postman-collection';
 import { convertInsomniaToBruno } from 'utils/importers/insomnia-collection';
 import { convertOpenapiToBruno, isSwagger2Spec, buildOpenApiSyncBrunoConfig } from 'utils/importers/openapi-collection';
 import { processBrunoCollection } from 'utils/importers/bruno-collection';
+import { processOpenCollection } from 'utils/importers/opencollection';
 import { convertWsdlToBruno } from 'utils/importers/wsdl-collection';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -50,7 +51,7 @@ const getCollectionName = (format, rawData) => {
     case 'openapi':
       return rawData.info?.title || 'OpenAPI Collection';
     case 'postman':
-      return rawData.info?.name || rawData.collection?.info?.name || 'Postman Collection';
+      return rawData.info?.name || rawData.collection?.info?.name || rawData.name || 'Postman Collection';
     case 'insomnia':
       // For Insomnia v4 format, name is in the workspace resource
       if (rawData.resources && Array.isArray(rawData.resources)) {
@@ -63,6 +64,8 @@ const getCollectionName = (format, rawData) => {
       return rawData.name || 'Insomnia Collection';
     case 'bruno':
       return rawData.name || 'Bruno Collection';
+    case 'opencollection':
+      return rawData.info?.name || 'OpenCollection';
     case 'wsdl':
       return 'WSDL Collection';
     default:
@@ -94,6 +97,9 @@ const convertCollection = async (format, rawData, { groupingType, authPlacement,
       break;
     case 'bruno':
       collection = await processBrunoCollection(rawData);
+      break;
+    case 'opencollection':
+      collection = await processOpenCollection(rawData);
       break;
     default:
       throw new Error('Unknown collection format');

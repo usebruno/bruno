@@ -1,10 +1,10 @@
 import { saveMockResponse } from 'providers/ReduxStore/slices/mock-server/index';
 import { syncMockResponseEditorSaved } from 'providers/ReduxStore/slices/collections';
-import { closeTabs, removeRecentlyClosedTabs, restoreTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
+import { restoreTabs, updateTabMeta } from 'providers/ReduxStore/slices/tabs';
 import { resolveMockResponseLocation, getMockResponseNameError, getMockResponseDescriptionError } from 'utils/mock-server/mock-responses';
 import { findMockServerInstance, isMockServerTab } from 'utils/mock-server/mock-server-instances';
+import { isMockServerEnabled } from 'utils/mock-server/is-enabled';
 import { mockResponseFromEditorItem } from 'utils/mock-server/mock-responses/editor';
-import { BETA_FEATURES } from 'utils/beta-features';
 
 export const saveMockResponseEditor = (responseUid) => async (dispatch, getState) => {
   const state = getState();
@@ -45,23 +45,7 @@ export const saveMockResponseEditor = (responseUid) => async (dispatch, getState
   return result.response;
 };
 
-export const isDisabledMockServerTab = (state, tab) => (
-  state.app.preferences?.beta?.[BETA_FEATURES.MOCK_SERVER] === false && isMockServerTab(tab)
-);
-
-export const closeDisabledMockServerTabs = () => (dispatch, getState) => {
-  const state = getState();
-  const getDisabledTabUids = (tabs) => tabs.filter((tab) => isDisabledMockServerTab(state, tab)).map((tab) => tab.uid);
-  const openTabUids = getDisabledTabUids(state.tabs.tabs);
-  const closedTabUids = getDisabledTabUids(state.tabs.recentlyClosedTabs);
-
-  if (openTabUids.length) {
-    dispatch(closeTabs({ tabUids: openTabUids, reopenable: false }));
-  }
-  if (closedTabUids.length) {
-    dispatch(removeRecentlyClosedTabs({ tabUids: closedTabUids }));
-  }
-};
+export const isDisabledMockServerTab = (_state, tab) => !isMockServerEnabled() && isMockServerTab(tab);
 
 export const restoreCollectionTabs = (payload) => (dispatch, getState) => {
   const tabs = payload.tabs.filter((tab) => !isDisabledMockServerTab(getState(), tab));

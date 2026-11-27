@@ -17,7 +17,6 @@ import {
   isMockServerNameTaken,
   isMockServerPortTaken,
   openMockServerDashboard,
-  resolveTabCollectionUid,
   saveMockServerInstance,
   suggestAvailableMockServerPort
 } from 'utils/mock-server/mock-server-instances';
@@ -25,8 +24,6 @@ import {
 const CloneMockServerModal = ({
   instance,
   workspacePath,
-  workspaceCollections,
-  activeWorkspace,
   onClose
 }) => {
   const dispatch = useDispatch();
@@ -111,14 +108,7 @@ const CloneMockServerModal = ({
           workspacePath
         }));
 
-        const tabCollectionUid = resolveTabCollectionUid({
-          sourceType: savedInstance.sourceType,
-          collectionUid: savedInstance.collectionUid,
-          activeWorkspace,
-          workspaceCollections
-        });
-
-        dispatch(openMockServerDashboard(savedInstance, tabCollectionUid));
+        dispatch(openMockServerDashboard(savedInstance));
         toast.success('Mock server cloned');
         onClose();
       } catch (err) {

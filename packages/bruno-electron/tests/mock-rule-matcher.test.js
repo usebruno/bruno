@@ -44,6 +44,55 @@ describe('mock-rule-matcher', () => {
     expect(evaluateCondition({
       target: 'header',
       key: 'X-Plan',
+      operator: 'eq',
+      value: 'premium'
+    }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'eq',
+      value: '"premium"'
+    }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'neq',
+      value: 'free'
+    }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
+      operator: 'isNotNull',
+      value: ''
+    }, context)).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Missing',
+      operator: 'isNotNull',
+      value: ''
+    }, context)).toBe(false);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Empty',
+      operator: 'isNotNull',
+      value: ''
+    }, { ...context, headers: { 'x-empty': '' } })).toBe(true);
+
+    expect(evaluateCondition({
+      target: 'body',
+      key: '$.note',
+      operator: 'isNotNull',
+      value: ''
+    }, { ...context, body: { note: null } })).toBe(false);
+
+    expect(evaluateCondition({
+      target: 'header',
+      key: 'X-Plan',
       operator: 'not_equals',
       value: 'free'
     }, context)).toBe(true);
@@ -62,6 +111,51 @@ describe('mock-rule-matcher', () => {
       operator: 'regex',
       value: 'act.*'
     }, context)).toBe(true);
+  });
+
+  it('applies type operators to header and query strings', () => {
+    const ctx = buildRequestContext({
+      headers: {
+        'x-n': '1',
+        'x-b': 'true',
+        'x-j': '{"ok":true}',
+        'x-a': '["value"]',
+        'x-z': 'null'
+      },
+      query: { f: 'false' },
+      body: {}
+    });
+
+    expect(evaluateCondition({ target: 'header', key: 'X-N', operator: 'isNumber' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-B', operator: 'isTruthy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-B', operator: 'isBoolean' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-J', operator: 'isJson' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-A', operator: 'isArray' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Z', operator: 'isNull' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'query', key: 'f', operator: 'isFalsy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-N', operator: 'length', value: '1' }, ctx)).toBe(true);
+  });
+
+  it('distinguishes a missing header from an empty one and from JSON null', () => {
+    const missing = buildRequestContext({
+      headers: {},
+      query: {},
+      body: { note: null, count: 2, items: ['a'] }
+    });
+    const empty = buildRequestContext({
+      headers: { 'x-plan': '' },
+      query: {},
+      body: {}
+    });
+
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isUndefined' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isNull' }, missing)).toBe(false);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isDefined' }, missing)).toBe(false);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isEmpty' }, empty)).toBe(true);
+    expect(evaluateCondition({ target: 'header', key: 'X-Plan', operator: 'isUndefined' }, empty)).toBe(false);
+    expect(evaluateCondition({ target: 'body', key: '$.note', operator: 'isNull' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'body', key: '$.count', operator: 'gt', value: '1' }, missing)).toBe(true);
+    expect(evaluateCondition({ target: 'body', key: '$.items', operator: 'contains', value: 'a' }, missing)).toBe(true);
   });
 
   it('matches AND and OR rule groups', () => {
@@ -207,5 +301,32 @@ describe('mock-rule-matcher', () => {
     expect(built.headers['x-plan']).toBe('free');
     expect(built.query.page).toBe('2');
     expect(built.body.ok).toBe(true);
+  });
+
+  it('adds path params to the request context', () => {
+    expect(buildRequestContext({ headers: {} }).path).toEqual({});
+    expect(buildRequestContext({ headers: {} }, { id: '1' }).path).toEqual({ id: '1' });
+  });
+
+  it('evaluates path conditions against route params', () => {
+    const ctx = buildRequestContext({ headers: {}, query: {}, body: {} }, { id: '42', flag: 'true' });
+
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'eq', value: '42' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'eq', value: '7' }, ctx)).toBe(false);
+    expect(evaluateCondition({ target: 'path', key: 'id', operator: 'isNumber' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'flag', operator: 'isTruthy' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'ID', operator: 'isUndefined' }, ctx)).toBe(true);
+    expect(evaluateCondition({ target: 'path', key: 'missing', operator: 'eq', value: '42' }, ctx)).toBe(false);
+  });
+
+  it('selects the response whose path rule matches', () => {
+    const candidates = [
+      { responseUid: 'one', rules: { operator: 'AND', conditions: [{ target: 'path', key: 'id', operator: 'eq', value: '1' }] } },
+      { responseUid: 'fallback', rules: { operator: 'AND', conditions: [] } }
+    ];
+    const contextFor = (id) => buildRequestContext({ headers: {}, query: {}, body: {} }, { id });
+
+    expect(selectMatchingResponse(candidates, contextFor('1')).responseUid).toBe('one');
+    expect(selectMatchingResponse(candidates, contextFor('2')).responseUid).toBe('fallback');
   });
 });
