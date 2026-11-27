@@ -47,7 +47,8 @@ const QueryResultTypeSelector = ({
   onPreviewTabSelect,
   selectedTab,
   isActiveTab,
-  onTabSelect
+  onTabSelect,
+  showPreviewToggle = true
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -62,7 +63,7 @@ const QueryResultTypeSelector = ({
   };
   // Find the selected item's label
   const findSelectedLabel = () => {
-    if (formatValue != null) {
+    if (formatValue !== null && formatValue !== undefined) {
       const selectedItem = formatOptions.find((item) => item.id === formatValue && (item.type === 'item' || !item.type));
       if (selectedItem) return selectedItem.label;
     }
@@ -99,14 +100,13 @@ const QueryResultTypeSelector = ({
     };
   });
 
-  const header = (
+  const header = showPreviewToggle ? (
     <div className="flex items-center justify-between gap-3 py-[0.35rem] px-[0.6rem]">
       <span className="text-[0.8125rem] preview-response-tab-label">Preview</span>
       <ToggleSwitch
         isOn={selectedTab === 'preview'}
         handleToggle={(e) => {
           e.preventDefault();
-          // e.stopPropagation();
           onPreviewTabSelect(selectedTab === 'preview' ? 'editor' : 'preview');
         }}
         size="2xs"
@@ -114,7 +114,7 @@ const QueryResultTypeSelector = ({
         title={selectedTab === 'preview' ? 'Turn off Preview Mode' : 'Turn on Preview Mode'}
       />
     </div>
-  );
+  ) : null;
 
   return (
     <StyledWrapper className={isActiveTab ? 'tab-active' : ''}>
