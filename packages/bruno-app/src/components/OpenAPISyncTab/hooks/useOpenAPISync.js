@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import toast from 'react-hot-toast';
+import { DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE } from '@usebruno/common';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { closeTabs } from 'providers/ReduxStore/slices/collections/actions';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -265,6 +266,8 @@ const useOpenAPISync = (collection) => {
         config: {
           sourceUrl: trimmedUrl,
           groupBy: 'tags',
+          authPlacement: DEFAULT_AUTH_PLACEMENT,
+          requestNameSource: DEFAULT_REQUEST_NAME_SOURCE,
           autoCheck: true,
           autoCheckInterval: 5
         }

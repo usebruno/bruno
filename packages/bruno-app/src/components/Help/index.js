@@ -46,7 +46,7 @@ const iconMap = {
   info: InfoCircle
 };
 
-const Help = ({ children, width = 200, placement = 'right', icon = 'question', iconComponent: IconComponent, size = 14 }) => {
+const Help = ({ children, width = 200, placement = 'right', icon = 'question', iconComponent: IconComponent, size = 14, dataTestId }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [position, setPosition] = useState(null);
   const iconRef = useRef(null);
@@ -67,6 +67,7 @@ const Help = ({ children, width = 200, placement = 'right', icon = 'question', i
         className="flex items-center"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setShowTooltip(false)}
+        data-testid={dataTestId}
       >
         <ResolvedIcon size={size} />
       </span>

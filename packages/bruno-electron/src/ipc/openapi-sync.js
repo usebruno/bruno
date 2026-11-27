@@ -13,6 +13,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { AUTH_PLACEMENTS, REQUEST_NAME_SOURCES } = require('@usebruno/common');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
@@ -93,6 +94,12 @@ const isLocalFilePath = (str) => !isValidHttpUrl(str) && typeof str === 'string'
 const resolveSourceUrl = (collectionPath, sourceUrl) => {
   if (!sourceUrl || isValidHttpUrl(sourceUrl)) return sourceUrl;
   return path.resolve(collectionPath, sourceUrl);
+};
+
+const assertAllowedValue = (config, key, allowedValues) => {
+  if (key in config && !allowedValues.includes(config[key])) {
+    throw new Error(`${key} must be one of: ${allowedValues.join(', ')}`);
+  }
 };
 
 /**
@@ -1925,7 +1932,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const { format, brunoConfig, collectionRoot } = loadBrunoConfig(collectionPath);
 
       // Merge new config into existing entry (allowlist keys only)
-      const allowedKeys = ['sourceUrl', 'groupBy', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
+      const allowedKeys = ['sourceUrl', 'groupBy', 'authPlacement', 'requestNameSource', 'lastSyncDate', 'specHash', 'autoCheck', 'autoCheckInterval'];
       const sanitizedConfig = {};
       for (const key of allowedKeys) {
         if (key in config) {
@@ -1945,6 +1952,9 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Resolve to absolute for consistent internal handling (saveBrunoConfig converts back to relative)
       sanitizedConfig.sourceUrl = resolveSourceUrl(collectionPath, sanitizedConfig.sourceUrl);
+
+      assertAllowedValue(sanitizedConfig, 'authPlacement', AUTH_PLACEMENTS);
+      assertAllowedValue(sanitizedConfig, 'requestNameSource', REQUEST_NAME_SOURCES);
 
       // Update or create the single openapi entry
       const existingEntry = brunoConfig.openapi?.[0];

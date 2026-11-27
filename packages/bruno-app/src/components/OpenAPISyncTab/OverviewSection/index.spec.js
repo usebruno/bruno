@@ -23,7 +23,7 @@ const detailValue = (getByText, label) => detailItem(getByText, label).querySele
 describe('OverviewSection', () => {
   it.each([
     ['summary', 'Summary'],
-    ['operationId', 'operationId'],
+    ['operationId', 'OperationId'],
     ['description', 'Description'],
     ['path', 'Path']
   ])('shows the %s naming as %s', (requestNameSource, label) => {
@@ -42,32 +42,49 @@ describe('OverviewSection', () => {
   });
 
   it('explains Request Naming in a tooltip on its heading', () => {
-    const { getByText } = renderOverview({ requestNameSource: 'summary' });
+    const { getByText, getByTestId } = renderOverview({ requestNameSource: 'summary' });
 
-    fireEvent.mouseEnter(getByText('Request Naming').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
 
-    expect(getByText('Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.')).toBeInTheDocument();
+    expect(getByText('Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.')).toBeInTheDocument();
   });
 
   it.each([
     ['collection', 'Authentication is set at the collection level and inherited by each request.'],
     ['request', 'Authentication is set separately on each request.']
   ])('explains the %s auth placement in a tooltip next to its value, not on the heading', (authPlacement, explanation) => {
-    const { getByText } = renderOverview({ authPlacement });
-    const value = detailItem(getByText, 'Auth Placement').querySelector('.spec-detail-value');
+    const { getByText, getByTestId, queryByTestId } = renderOverview({ authPlacement });
 
-    expect(getByText('Auth Placement').querySelector('svg')).toBeNull();
+    expect(queryByTestId('openapi-sync-detail-auth-placement-label-help')).not.toBeInTheDocument();
 
-    fireEvent.mouseEnter(value.querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-auth-placement-help'));
 
     expect(getByText(explanation)).toBeInTheDocument();
   });
 
-  it('hides naming and auth placement when the sync settings have neither', () => {
-    const { queryByText } = renderOverview({});
+  it.each([
+    ['are missing', {}],
+    ['are empty', { requestNameSource: '', authPlacement: null }],
+    ['are not values the sync knows', { requestNameSource: 'title', authPlacement: 'folder' }],
+    ['use a different letter case', { requestNameSource: 'OperationId', authPlacement: 'Collection' }]
+  ])('shows the defaults the sync applies when the naming and auth placement %s', (_description, syncConfig) => {
+    const { getByText } = renderOverview(syncConfig);
 
-    expect(queryByText('Request Naming')).not.toBeInTheDocument();
-    expect(queryByText('Auth Placement')).not.toBeInTheDocument();
+    expect(detailValue(getByText, 'Request Naming')).toBe('Summary');
+    expect(detailValue(getByText, 'Auth Placement')).toBe('Request');
+  });
+
+  it.each([
+    ['are missing', {}],
+    ['are not values the sync knows', { requestNameSource: 'title', authPlacement: 'folder' }]
+  ])('explains the default naming and auth placement with the same tooltips as saved ones when they %s', (_description, syncConfig) => {
+    const { getByText, getByTestId } = renderOverview(syncConfig);
+
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-request-naming-label-help'));
+    expect(getByText('Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.')).toBeInTheDocument();
+
+    fireEvent.mouseEnter(getByTestId('openapi-sync-detail-auth-placement-help'));
+    expect(getByText('Authentication is set separately on each request.')).toBeInTheDocument();
   });
 
   it('shows the auto-check interval next to the last synced time', () => {
@@ -78,9 +95,9 @@ describe('OverviewSection', () => {
   });
 
   it('explains the auto-check interval in a tooltip on the badge', () => {
-    const { getByText } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
+    const { getByText, getByTestId } = renderOverview({ autoCheck: true, autoCheckInterval: 15 });
 
-    fireEvent.mouseEnter(getByText('Auto-check every 15 min').querySelector('svg').parentElement);
+    fireEvent.mouseEnter(getByTestId('openapi-sync-auto-check-help'));
 
     expect(getByText('Bruno checks the spec for changes every 15 minutes.', { exact: false })).toBeInTheDocument();
   });
@@ -89,13 +106,5 @@ describe('OverviewSection', () => {
     const { getByText } = renderOverview({ autoCheck: false });
 
     expect(detailItem(getByText, 'Last Synced At')).toHaveTextContent('Auto-check off');
-  });
-
-  it('shows a value it does not recognise as written', () => {
-    const { getByText } = renderOverview({ requestNameSource: 'title', authPlacement: 'folder' });
-
-    expect(detailValue(getByText, 'Request Naming')).toBe('title');
-    expect(detailValue(getByText, 'Auth Placement')).toBe('Folder');
-    expect(detailItem(getByText, 'Auth Placement').querySelector('svg')).toBeNull();
   });
 });

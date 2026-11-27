@@ -11,7 +11,7 @@ import {
   pickWorkspaceSpec,
   waitForWorkspaceMenuFocus
 } from '../../pages/openapi-sync';
-import { waitForReadyPage } from '../../utils';
+import { readBrunoJsonSyncConfig, readOpenApiSyncConfig, waitForReadyPage } from '../../utils';
 
 const WORKSPACE_NAME = 'Spec Source Workspace';
 const COLLECTION_NAME = 'Pets Collection';
@@ -92,14 +92,10 @@ const seedWorkspace = async (createTmpDir: (tag?: string) => Promise<string>, op
   return { userDataPath, workspacePath, collectionPath, outsideSpecPath };
 };
 
-const readSourceUrl = (collectionPath: string, format: 'bru' | 'yml' = 'bru') => {
-  if (format === 'yml') {
-    const collection = jsyaml.load(fs.readFileSync(path.join(collectionPath, 'opencollection.yml'), 'utf8')) as any;
-    return collection?.extensions?.bruno?.openapi?.[0]?.sourceUrl;
-  }
-  const brunoJson = JSON.parse(fs.readFileSync(path.join(collectionPath, 'bruno.json'), 'utf8'));
-  return brunoJson.openapi?.[0]?.sourceUrl;
-};
+const readSyncConfig = (collectionPath: string, format: 'bru' | 'yml' = 'bru') =>
+  (format === 'yml' ? readOpenApiSyncConfig : readBrunoJsonSyncConfig)(collectionPath)?.[0];
+
+const readSourceUrl = (collectionPath: string, format: 'bru' | 'yml' = 'bru') => readSyncConfig(collectionPath, format)?.sourceUrl;
 
 const launchInWorkspace = async (launchElectronApp: LaunchElectronApp, userDataPath: string, workspacePath: string) => {
   const app = await launchElectronApp({ userDataPath });
@@ -148,6 +144,12 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
 
         await test.step('The collection config points at the spec through a relative path', async () => {
           await expect.poll(() => readSourceUrl(collectionPath, format)).toBe('../../specs/pets.yaml');
+        });
+
+        await test.step('The connection saves the default request naming and auth placement', async () => {
+          expect(readSyncConfig(collectionPath, format)).toMatchObject({ requestNameSource: 'summary', authPlacement: 'request' });
+          await expect(sync.specDetail('request-naming')).toHaveText('Summary');
+          await expect(sync.specDetail('auth-placement')).toHaveText('Request');
         });
       } finally {
         await closeElectronApp(app);
@@ -455,4 +457,31 @@ test.describe('OpenAPI sync: connect a collection to a spec in the workspace', (
       await closeElectronApp(app);
     }
   });
+});
+
+test.describe('OpenAPI sync overview: request naming and auth placement', () => {
+  for (const format of ['bru', 'yml'] as const) {
+    test(`shows the defaults the sync applies for a connection saved without them (${format} collection)`, async ({
+      launchElectronApp,
+      createTmpDir
+    }) => {
+      test.setTimeout(60000);
+      const { userDataPath, workspacePath } = await seedWorkspace(createTmpDir, {
+        format,
+        connectedSource: () => '../../specs/zoo.yaml'
+      });
+      const { app, page, sync } = await launchInWorkspace(launchElectronApp, userDataPath, workspacePath);
+
+      try {
+        await openConnectedOpenApiSyncTab(page, COLLECTION_NAME);
+
+        await test.step('Request Naming shows Summary and Auth Placement shows Request', async () => {
+          await expect(sync.specDetail('request-naming')).toHaveText('Summary');
+          await expect(sync.specDetail('auth-placement')).toHaveText('Request');
+        });
+      } finally {
+        await closeElectronApp(app);
+      }
+    });
+  }
 });

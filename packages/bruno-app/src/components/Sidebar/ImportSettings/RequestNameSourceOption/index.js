@@ -4,7 +4,7 @@ import ImportSettingDropdown from 'components/Sidebar/ImportSettings/ImportSetti
 
 export const requestNameSourceLabels = {
   summary: 'Summary',
-  operationId: 'operationId',
+  operationId: 'OperationId',
   description: 'Description',
   path: 'Path'
 };
@@ -14,7 +14,7 @@ const requestNameSourceOptions = REQUEST_NAME_SOURCES.map((value) => ({ value, l
 const RequestNameSourceOption = ({ value, onChange, disabled = false }) => (
   <ImportSettingRow
     label="Naming requests"
-    info="If an operation doesn't have the selected option, Bruno falls back in the following order: summary, operationId, description, then path."
+    info="If an operation doesn't have the selected option, Bruno falls back in the following order: summary → operationId → description → path."
     description="How requests in the generated collection are named."
     disabled={disabled}
   >

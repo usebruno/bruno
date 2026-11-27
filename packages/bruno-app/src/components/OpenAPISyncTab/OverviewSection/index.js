@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { AUTH_PLACEMENTS, DEFAULT_AUTH_PLACEMENT, DEFAULT_REQUEST_NAME_SOURCE, REQUEST_NAME_SOURCES } from '@usebruno/common';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
 import { countEndpoints } from '../utils';
 import moment from 'moment';
@@ -58,8 +59,12 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
   const groupBy = openApiSyncConfig?.groupBy || 'tags';
   const autoCheckEnabled = openApiSyncConfig?.autoCheck !== false;
   const autoCheckInterval = openApiSyncConfig?.autoCheckInterval || 5;
-  const requestNameSource = openApiSyncConfig?.requestNameSource;
-  const authPlacement = openApiSyncConfig?.authPlacement;
+  const requestNameSource = REQUEST_NAME_SOURCES.includes(openApiSyncConfig?.requestNameSource)
+    ? openApiSyncConfig.requestNameSource
+    : DEFAULT_REQUEST_NAME_SOURCE;
+  const authPlacement = AUTH_PLACEMENTS.includes(openApiSyncConfig?.authPlacement)
+    ? openApiSyncConfig.authPlacement
+    : DEFAULT_AUTH_PLACEMENT;
 
   // Endpoint Summary counts
   // Total: from collection items in Redux; In Sync: from remote spec comparison
@@ -106,7 +111,7 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
         <StatusBadge
           radius="full"
           rightSection={(
-            <Help icon="info" size={11} placement="left" width={220}>
+            <Help icon="info" size={11} placement="left" width={220} dataTestId="openapi-sync-auto-check-help">
               {autoCheckEnabled
                 ? `Bruno checks the spec for changes every ${autoCheckInterval} minutes. You can change this in Edit connection settings.`
                 : 'Bruno does not check the spec for changes on its own. Use Check for updates, or turn it on in Edit connection settings.'}
@@ -118,17 +123,17 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
       )
     },
     { label: 'Folder Grouping', value: capitalize(groupBy) },
-    requestNameSource && {
+    {
       label: 'Request Naming',
-      labelTooltip: 'Determines how requests are named using fields from the OpenAPI spec with fallback options when unavailable.',
-      value: requestNameSourceLabels[requestNameSource] || requestNameSource
+      labelTooltip: 'Requests are named using the field you pick. If a request doesn\'t have it, Bruno tries the next one in this order: Summary → Operation ID → Description → URL path.',
+      value: requestNameSourceLabels[requestNameSource]
     },
-    authPlacement && {
+    {
       label: 'Auth Placement',
       value: capitalize(authPlacement),
       tooltip: authPlacementInfo[authPlacement]
     }
-  ].filter(Boolean);
+  ];
 
   const hasCollectionChanges = changedInCollection > 0;
   const hasSpecUpdates = specUpdatesPending > 0;
@@ -268,25 +273,28 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
 
       <h4 className="overview-section-title mt-7">Last Synced Spec Details</h4>
       <div className="spec-details-grid">
-        {details.map(({ label, labelTooltip, headerExtra, value, tooltip }) => (
-          <div className="spec-detail-item" key={label}>
-            <div className="spec-detail-header">
-              <div className="spec-detail-label">
-                {label}
-                {labelTooltip && (
-                  <Help icon="info" size={11} placement="top" width={220}>{labelTooltip}</Help>
+        {details.map(({ label, labelTooltip, headerExtra, value, tooltip }) => {
+          const detailTestId = `openapi-sync-detail-${label.toLowerCase().replaceAll(' ', '-')}`;
+          return (
+            <div className="spec-detail-item" key={label}>
+              <div className="spec-detail-header">
+                <div className="spec-detail-label">
+                  {label}
+                  {labelTooltip && (
+                    <Help icon="info" size={11} placement="top" width={220} dataTestId={`${detailTestId}-label-help`}>{labelTooltip}</Help>
+                  )}
+                </div>
+                {headerExtra}
+              </div>
+              <div className="spec-detail-value" data-testid={detailTestId}>
+                {value}
+                {tooltip && (
+                  <Help icon="info" size={11} placement="top" width={200} dataTestId={`${detailTestId}-help`}>{tooltip}</Help>
                 )}
               </div>
-              {headerExtra}
             </div>
-            <div className="spec-detail-value">
-              {value}
-              {tooltip && (
-                <Help icon="info" size={11} placement="top" width={200}>{tooltip}</Help>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

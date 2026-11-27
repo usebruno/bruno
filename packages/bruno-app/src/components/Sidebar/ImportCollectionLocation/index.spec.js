@@ -146,7 +146,7 @@ describe('ImportCollectionLocation collection auth placement', () => {
 });
 
 describe('ImportCollectionLocation naming requests', () => {
-  const NAMING_INFO = 'If an operation doesn\'t have the selected option, Bruno falls back in the following order: summary, operationId, description, then path.';
+  const NAMING_INFO = 'If an operation doesn\'t have the selected option, Bruno falls back in the following order: summary → operationId → description → path.';
   const namingDropdown = () => screen.getByTestId('request-name-source-dropdown');
   const chooseNaming = async (value) => {
     fireEvent.click(namingDropdown());
@@ -166,13 +166,13 @@ describe('ImportCollectionLocation naming requests', () => {
     expect(namingDropdown()).toHaveTextContent('Summary');
   });
 
-  it('offers Summary, operationId, Description and Path', async () => {
+  it('offers Summary, OperationId, Description and Path', async () => {
     renderImport();
     fireEvent.click(advancedToggle());
     fireEvent.click(namingDropdown());
 
     const options = await screen.findAllByRole('menuitem');
-    expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'operationId', 'Description', 'Path']);
+    expect(options.map((option) => option.querySelector('.dropdown-label').textContent)).toEqual(['Summary', 'OperationId', 'Description', 'Path']);
   });
 
   it('explains the fallback order in the info tooltip', () => {
@@ -189,7 +189,7 @@ describe('ImportCollectionLocation naming requests', () => {
     fireEvent.click(screen.getByTestId('check-for-spec-updates-toggle'));
     fireEvent.click(advancedToggle());
     await chooseNaming('operationId');
-    expect(namingDropdown()).toHaveTextContent('operationId');
+    expect(namingDropdown()).toHaveTextContent('OperationId');
 
     const [collection] = await submitImport(handleSubmit);
 
