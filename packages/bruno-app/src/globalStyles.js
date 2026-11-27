@@ -428,6 +428,109 @@ const GlobalStyle = createGlobalStyle`
     white-space: nowrap;
   }
 
+  // Script API hint rows: the hint, then the member's summary
+  .CodeMirror-hint-api {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    max-width: 32rem;
+  }
+
+  .CodeMirror-hint-api-name {
+    flex-shrink: 0;
+  }
+
+  .CodeMirror-hint-api-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: ${(props) => props.theme.dropdown.mutedText};
+    font-size: ${(props) => props.theme.font.size.xs};
+  }
+
+  // Script API docs: the autocomplete detail panel and the hover tooltip
+  .CodeMirror-hint-details,
+  .CodeMirror-brunoApiInfo {
+    position: fixed;
+    z-index: 50;
+    box-sizing: border-box;
+    max-width: min(28rem, calc(100vw - 1.875rem));
+    padding: 0.5rem 0.625rem;
+    color: ${(props) => props.theme.text};
+    background: ${(props) => props.theme.dropdown.bg};
+    ${(props) =>
+      props.theme.dropdown.border && props.theme.dropdown.border !== 'none'
+        ? `border: 1px solid ${props.theme.dropdown.border};`
+        : ''}
+    ${(props) =>
+      props.theme.dropdown.shadow && props.theme.dropdown.shadow !== 'none'
+        ? `box-shadow: ${props.theme.dropdown.shadow};`
+        : ''}
+    border-radius: ${(props) => props.theme.border.radius.base};
+    font-size: ${(props) => props.theme.font.size.sm};
+    line-height: 1.25rem;
+  }
+
+  .bruno-api-doc-signature {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: ${(props) => props.theme.font.size.xs};
+    overflow-wrap: anywhere;
+  }
+
+  .bruno-api-doc p {
+    margin: 0.25rem 0 0;
+  }
+
+  .bruno-api-doc-summary,
+  .bruno-api-doc-description {
+    color: ${(props) => props.theme.dropdown.mutedText};
+    font-size: ${(props) => props.theme.font.size.xs};
+  }
+
+  .bruno-api-doc-param-name {
+    color: ${(props) => props.theme.primary.text};
+    font-weight: 500;
+  }
+
+  .bruno-api-doc-type {
+    color: ${(props) => props.theme.colors.text.subtext0};
+  }
+
+  .bruno-api-doc-example {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin: 0.5rem 0 0;
+    padding: 0.375rem 0.5rem;
+    background: ${(props) => props.theme.dropdown.hoverBg};
+    border-radius: ${(props) => props.theme.border.radius.base};
+    font-size: ${(props) => props.theme.font.size.xs};
+
+    pre {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  }
+
+  .bruno-api-doc-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    margin-top: 0.375rem;
+    color: ${(props) => props.theme.primary.text};
+    font-size: 10px;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   .CodeMirror-brunoVarInfo :first-child {
     margin-top: 0;
   }
@@ -703,7 +806,8 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .secret-toggle-button,
-  .CodeMirror-brunoVarInfo .copy-button {
+  .CodeMirror-brunoVarInfo .copy-button,
+  .bruno-api-doc .copy-button {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -718,12 +822,15 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-brunoVarInfo .secret-toggle-button:hover,
-  .CodeMirror-brunoVarInfo .copy-button:hover {
+  .CodeMirror-brunoVarInfo .copy-button:hover,
+  .bruno-api-doc .copy-button:hover {
     opacity: 1;
   }
 
-  .CodeMirror-brunoVarInfo .copy-success {
+  .CodeMirror-brunoVarInfo .copy-success,
+  .bruno-api-doc .copy-success {
     color: ${(props) => props.theme.colors.text.green} !important;
+    cursor: default;
   }
 
   /* Read-only Note */
