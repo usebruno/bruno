@@ -5,8 +5,8 @@ const StyledWrapper = styled.span`
   min-width: 0;
   max-width: 140px;
   padding: 0 7px;
-  border: 1px solid ${(props) => props.theme.border.border2};
-  border-radius: 999px;
+  border-radius: ${(props) => props.theme.border.radius.sm};
+  background: ${(props) => props.theme.background.surface0};
   color: ${(props) => props.theme.colors.text.muted};
   font-size: 11px;
   font-weight: 500;

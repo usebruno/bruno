@@ -61,8 +61,11 @@ const StyledWrapper = styled.section`
 
   .section-count {
     flex-shrink: 0;
+    min-width: 18px;
+    margin-right: auto;
     padding: 0 6px;
-    border-radius: ${(props) => props.theme.border.radius.sm};
+    border-radius: 10px;
+    text-align: center;
     background: ${(props) => props.theme.background.surface0};
     color: ${(props) => props.theme.colors.text.muted};
     font-size: 11px;
@@ -77,7 +80,6 @@ const StyledWrapper = styled.section`
 
   .section-chevron {
     flex-shrink: 0;
-    margin-left: auto;
     color: ${(props) => props.theme.colors.text.muted};
   }
 

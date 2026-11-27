@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash';
-import { parseToRgb } from 'polished';
+import { parseToRgb, transparentize } from 'polished';
 import { getDuplicateSecretNames } from '@usebruno/common/utils';
 import { uuid } from './common/index';
 import { INVALID_VARIABLE_NAMES_ERROR_PREFIX } from './common/variables';
@@ -163,6 +163,18 @@ export const coerceEnvColor = (color) => {
     return color;
   } catch {
     return undefined;
+  }
+};
+
+/**
+ * Generates background color with transparency for environment badges.
+ */
+export const getEnvBackgroundColor = (color) => {
+  if (!color) return 'transparent';
+  try {
+    return transparentize(1 - 0.12, color);
+  } catch {
+    return 'transparent';
   }
 };
 

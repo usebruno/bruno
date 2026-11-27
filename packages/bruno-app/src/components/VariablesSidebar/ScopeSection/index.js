@@ -44,8 +44,8 @@ const ScopeSection = ({ icon: Icon, sectionKey, title, pill, count, isDanger, ex
         ) : (
           <span className="section-title" data-testid={`${testId}-title`}>{title}</span>
         )}
-        {pill && <ScopePill label={pill.label} color={pill.color} />}
         <span className="section-count" data-testid="variables-section-count">{count}</span>
+        {pill && <ScopePill label={pill.label} color={pill.color} />}
         {expanded
           ? <IconChevronUp size={14} strokeWidth={1.5} className="section-chevron" />
           : <IconChevronDown size={14} strokeWidth={1.5} className="section-chevron" />}
