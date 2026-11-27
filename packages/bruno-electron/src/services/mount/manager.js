@@ -139,23 +139,6 @@ class MountManager {
       Array.from(this.#mounts.keys()).map((uid) => this.unmount(uid).catch(() => {}))
     );
     await destroyPool({ force }).catch(() => {});
-    if (this.#index) {
-      this.#index.close();
-      this.#index = null;
-    }
-  }
-
-  getCacheSize() {
-    try {
-      return fs.statSync(this.#getIndex().dbPath).size;
-    } catch (err) {
-      if (err && err.code === 'ENOENT') return 0;
-      throw err;
-    }
-  }
-
-  clearCache() {
-    this.#getIndex().clear();
   }
 
   clearCollectionIndex(collectionPath) {
