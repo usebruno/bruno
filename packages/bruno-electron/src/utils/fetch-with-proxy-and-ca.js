@@ -94,7 +94,6 @@ const requestWithAgent = (url, init, agent) => new Promise((resolve, reject) => 
 const fetchWithProxyAndCa = async (input, init = {}) => {
   const url = new URL(input);
   const isHttps = url.protocol === 'https:';
-  const shouldVerifyTls = preferencesUtil.shouldVerifyTls();
   const customCaFilePath = getCustomCaCertificateFilePath();
   const appLevelProxyConfig = preferencesUtil.getGlobalProxyConfig();
   const systemProxyConfig = appLevelProxyConfig.source === 'inherit' && !appLevelProxyConfig.disabled
@@ -102,9 +101,8 @@ const fetchWithProxyAndCa = async (input, init = {}) => {
     : undefined;
 
   const usesProxy = isProxyConfigured(appLevelProxyConfig, systemProxyConfig);
-  const usesCustomCa = isHttps && shouldVerifyTls && Boolean(customCaFilePath);
-  const skipsTlsVerification = isHttps && !shouldVerifyTls;
-  if (!usesProxy && !usesCustomCa && !skipsTlsVerification) {
+  const usesCustomCa = isHttps && Boolean(customCaFilePath);
+  if (!usesProxy && !usesCustomCa) {
     return fetch(input, init);
   }
 
@@ -113,7 +111,7 @@ const fetchWithProxyAndCa = async (input, init = {}) => {
     collectionPath: '',
     options: {
       noproxy: !usesProxy,
-      shouldVerifyTls,
+      shouldVerifyTls: true,
       shouldUseCustomCaCertificate: Boolean(customCaFilePath),
       customCaCertificateFilePath: customCaFilePath,
       shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates(),

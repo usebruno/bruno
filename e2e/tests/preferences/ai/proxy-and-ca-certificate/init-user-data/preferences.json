@@ -5,7 +5,7 @@
       "hasSeenWelcomeModal": true
     },
     "request": {
-      "sslVerification": {{sslVerification}},
+      "sslVerification": true,
       "customCaCertificate": {
         "enabled": {{customCaEnabled}},
         "filePath": "{{customCaFilePath}}"
