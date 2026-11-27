@@ -31,11 +31,11 @@ const toResponseHeaders = (rawHeaders) => {
 };
 
 const redirectError = (url, location) => {
-  const target = new URL(location, url).href;
-  return new Error(`${url.origin} redirected the request to ${target}. Redirects are not followed when a proxy or a custom CA certificate is in use. Update the URL to point to the final address.`);
+  const target = new URL(location, url);
+  return new Error(`${url.origin} redirected the request to ${target.origin}${target.pathname}. Redirects are not followed when a proxy or a custom CA certificate is in use. Update the URL to point to the final address.`);
 };
 
-const requestWithAgent = (url, init, agent, { reuseConnections }) => new Promise((resolve, reject) => {
+const requestWithAgent = (url, init, agent) => new Promise((resolve, reject) => {
   const { signal } = init;
   if (signal?.aborted) {
     reject(signal.reason);
@@ -56,7 +56,7 @@ const requestWithAgent = (url, init, agent, { reuseConnections }) => new Promise
   };
   const finish = () => {
     if (signal) signal.removeEventListener('abort', onAbort);
-    if (!reuseConnections) agent.destroy();
+    agent.destroy();
   };
   if (signal) signal.addEventListener('abort', onAbort, { once: true });
 
@@ -106,23 +106,22 @@ const fetchWithProxyAndCa = async (input, init = {}) => {
     return fetch(input, init);
   }
 
-  const reuseConnections = preferencesUtil.isSslSessionCachingEnabled();
   const { httpAgent, httpsAgent } = await getHttpHttpsAgents({
     requestUrl: url.href,
     collectionPath: '',
     options: {
-      noproxy: false,
+      noproxy: !usesProxy,
       shouldVerifyTls: true,
       shouldUseCustomCaCertificate: Boolean(customCaFilePath),
       customCaCertificateFilePath: customCaFilePath,
       shouldKeepDefaultCaCertificates: preferencesUtil.shouldKeepDefaultCaCertificates(),
-      cacheSslSession: reuseConnections
+      cacheSslSession: false
     },
     appLevelProxyConfig,
     systemProxyConfig
   });
 
-  return requestWithAgent(url, init, isHttps ? httpsAgent : httpAgent, { reuseConnections });
+  return requestWithAgent(url, init, isHttps ? httpsAgent : httpAgent);
 };
 
 module.exports = { fetchWithProxyAndCa };
