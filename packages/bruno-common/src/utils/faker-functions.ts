@@ -39,6 +39,7 @@ export const mockDataFunctions = {
   randomStreetAddress: () => faker.location.streetAddress(),
   randomCountry: () => faker.location.country(),
   randomCountryCode: () => faker.location.countryCode(),
+  randomZipCode: () => faker.location.zipCode(),
   randomLatitude: () => faker.location.latitude(),
   randomLongitude: () => faker.location.longitude(),
   randomAvatarImage: () => faker.image.avatar(),
