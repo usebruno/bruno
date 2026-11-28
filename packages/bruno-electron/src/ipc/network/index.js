@@ -1,5 +1,6 @@
 const { setTimeout } = require('node:timers/promises');
 const https = require('https');
+const { StringDecoder } = require('node:string_decoder');
 const axios = require('axios');
 const path = require('path');
 const { applyOAuth1ToRequest } = require('@usebruno/requests');
@@ -29,6 +30,7 @@ const { makeAxiosInstance, completeOpenHop } = require('./axios-instance');
 const { refreshExplicitHeaderNames } = require('@usebruno/common');
 const { resolveInheritedSettings } = require('../../utils/collection');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
+const { createSseEventExtractor } = require('../../utils/sse');
 const { uuid, safeStringifyJSON, safeParseJSON, parseDataFromResponse, parseDataFromRequest, isBinaryRequestBody } = require('../../utils/common');
 const { chooseFileToSave, writeFile, getCollectionFormat, hasRequestExtension } = require('../../utils/filesystem');
 const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
@@ -1394,9 +1396,46 @@ const registerNetworkIpc = (mainWindow) => {
       const stream = response.stream;
       response.stream = { running: response.status >= 200 && response.status < 300 };
 
+      const isEventStream = hasStreamHeaders({ get: (name) => response.headers?.[name] });
+      const sseDecoder = new StringDecoder('utf8');
+
+      const sseExtractor = createSseEventExtractor();
+
       stream.on('data', (newData) => {
         // Collect the raw chunk so runRequest can rebuild the full body on stream close.
         response.sseChunks?.push(newData);
+
+        if (isEventStream) {
+          // SSE timeline entries are framed per event, but the accumulated response
+          // buffer must preserve the exact raw bytes received on the wire. Send them
+          // as chunks arrive so cancellation cannot discard bytes already received.
+          seq += 1;
+          mainWindow.webContents.send('main:http-stream-new-data', {
+            collectionUid,
+            itemUid: item.uid,
+            seq,
+            timestamp: Date.now(),
+            data: { dataBuffer: newData }
+          });
+
+          // Transport chunks often do not align with event boundaries; buffer data
+          // and emit only complete events delimited by blank lines.
+          sseExtractor.append(sseDecoder.write(newData));
+          for (const eventData of sseExtractor.extractEvents()) {
+            if (eventData.trim().length) {
+              seq += 1;
+              mainWindow.webContents.send('main:http-stream-new-data', {
+                collectionUid,
+                itemUid: item.uid,
+                seq,
+                timestamp: Date.now(),
+                data: { data: eventData + '\n', timelineOnly: true }
+              });
+            }
+          }
+          return;
+        }
+
         seq += 1;
 
         const parsed = parseDataFromResponse({ data: newData, headers: {} });
@@ -1412,6 +1451,21 @@ const registerNetworkIpc = (mainWindow) => {
 
       stream.on('close', () => {
         if (!cancelTokens[response.cancelTokenUid]) return;
+
+        if (isEventStream) {
+          sseExtractor.append(sseDecoder.end());
+          const remaining = sseExtractor.flush();
+          if (remaining.trim().length) {
+            seq += 1;
+            mainWindow.webContents.send('main:http-stream-new-data', {
+              collectionUid,
+              itemUid: item.uid,
+              seq,
+              timestamp: Date.now(),
+              data: { data: remaining + '\n', timelineOnly: true }
+            });
+          }
+        }
 
         mainWindow.webContents.send('main:http-stream-end', {
           collectionUid,

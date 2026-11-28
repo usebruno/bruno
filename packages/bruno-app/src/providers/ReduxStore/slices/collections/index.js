@@ -3975,7 +3975,14 @@ export const collectionsSlice = createSlice({
         if (data.dataBuffer) {
           item.response.dataBuffer = Buffer.concat([Buffer.from(item.response.dataBuffer), Buffer.from(data.dataBuffer)]);
         }
-        item.response.size = data.data?.length + (item.response.size || 0);
+        // Size is accounted from raw wire bytes. SSE timeline-only messages (event
+        // framing) add nothing since their bytes arrive via dataBuffer emissions;
+        // non-SSE messages without a dataBuffer count their data payload length.
+        if (data.dataBuffer) {
+          item.response.size = (item.response.size || 0) + Buffer.from(data.dataBuffer).length;
+        } else if (data.data && !data.timelineOnly) {
+          item.response.size = (item.response.size || 0) + data.data.length;
+        }
       }
     },
     addRequestTag: (state, action) => {
