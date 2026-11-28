@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { type2Message, messageType, provesPassword } = require('./messages');
-const { generateSelfSignedCert } = require('./certificates');
+const { generateSelfSignedCert } = require('../utils/certificates');
 
 const CLIENT_CERT_NAME = 'bruno-ntlm-client';
 

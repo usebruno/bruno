@@ -8,12 +8,12 @@ const assertOpensslAvailable = () => {
   try {
     execFileSync('openssl', ['version'], { stdio: 'ignore' });
   } catch {
-    throw new Error('The NTLM TLS test server needs `openssl` on PATH to generate its certificates; install openssl or skip the TLS specs.');
+    throw new Error('The TLS test servers need `openssl` on PATH to generate their certificates; install openssl or skip the TLS specs.');
   }
   opensslChecked = true;
 };
 
-const generateSelfSignedCert = (dir, name, commonName) => {
+const generateSelfSignedCert = (dir, name, commonName, altNames = ['DNS:localhost', 'IP:127.0.0.1']) => {
   assertOpensslAvailable();
 
   const keyPath = path.join(dir, `${name}-key.pem`);
@@ -26,7 +26,7 @@ const generateSelfSignedCert = (dir, name, commonName) => {
       '-out', certPath,
       '-days', '1',
       '-subj', `/CN=${commonName}`,
-      '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+      '-addext', `subjectAltName=${altNames.join(',')}`
     ], { stdio: ['ignore', 'ignore', 'pipe'] });
   } catch (error) {
     const detail = error.stderr?.toString().trim() || error.message;
