@@ -80,7 +80,7 @@ export * from './variable/secret-form';
 export * from './variable/set-as-variable';
 export * from './variable/tooltip';
 export * from './variable/unresolved-info';
-export * from './variable/variables-tab';
+export * from './variable/variables-sidebar';
 
 // workspace
 export * from './workspace/workspace';

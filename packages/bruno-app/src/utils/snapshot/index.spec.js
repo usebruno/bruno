@@ -42,8 +42,8 @@ describe('hydrateSnapshotLookups', () => {
           selectedEnvironment: 'Prod',
           isOpen: true,
           isMounted: false,
-          activeTab: { accessor: 'type', value: 'variables' },
-          tabs: [{ type: 'variables', accessor: 'type', permanent: false }]
+          activeTab: { accessor: 'type', value: 'collection-runner' },
+          tabs: [{ type: 'collection-runner', accessor: 'type', permanent: false }]
         }
       ]
     };
@@ -74,7 +74,7 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(tabs).toMatchObject({
       pathname: '/collections/a',
-      activeTab: { accessor: 'type', value: 'variables' }
+      activeTab: { accessor: 'type', value: 'collection-runner' }
     });
     expect(Array.isArray(tabs.tabs)).toBe(true);
     expect(tabs.tabs).toHaveLength(1);
@@ -95,8 +95,8 @@ describe('hydrateSnapshotLookups', () => {
           environmentPath: 'Prod',
           isOpen: true,
           isMounted: true,
-          activeTab: { accessor: 'type', value: 'variables' },
-          tabs: [{ type: 'variables', accessor: 'type', permanent: false }]
+          activeTab: { accessor: 'type', value: 'collection-runner' },
+          tabs: [{ type: 'collection-runner', accessor: 'type', permanent: false }]
         }
       ]
     };
@@ -127,7 +127,7 @@ describe('hydrateSnapshotLookups', () => {
 
     expect(tabs).toMatchObject({
       pathname: '/collections/a',
-      activeTab: { accessor: 'type', value: 'variables' }
+      activeTab: { accessor: 'type', value: 'collection-runner' }
     });
     expect(Array.isArray(tabs.tabs)).toBe(true);
     expect(tabs.tabs).toHaveLength(1);
@@ -445,7 +445,7 @@ describe('hydrateSnapshotLookups', () => {
           activeTab: { accessor: 'type', value: 'v4-migration' },
           tabs: [
             { type: 'v4-migration', accessor: 'type', permanent: true },
-            { type: 'variables', accessor: 'type', permanent: true }
+            { type: 'collection-runner', accessor: 'type', permanent: true }
           ]
         }
       ]
@@ -454,7 +454,7 @@ describe('hydrateSnapshotLookups', () => {
     const lookups = hydrateSnapshotLookups(snapshot);
 
     expect(lookups.tabsByCollectionPath['/collections/legacy'].tabs).toEqual([
-      { type: 'variables', accessor: 'type', permanent: true }
+      { type: 'collection-runner', accessor: 'type', permanent: true }
     ]);
   });
 
@@ -466,7 +466,7 @@ describe('hydrateSnapshotLookups', () => {
           activeTab: { accessor: 'type', value: 'changelog' },
           tabs: [
             { type: 'changelog', accessor: 'pathname', permanent: true },
-            { type: 'variables', accessor: 'type', permanent: true }
+            { type: 'collection-runner', accessor: 'type', permanent: true }
           ]
         }
       ]
@@ -475,7 +475,7 @@ describe('hydrateSnapshotLookups', () => {
     const lookups = hydrateSnapshotLookups(snapshot);
 
     expect(lookups.tabsByCollectionPath['/collections/a'].tabs).toEqual([
-      { type: 'variables', accessor: 'type', permanent: true }
+      { type: 'collection-runner', accessor: 'type', permanent: true }
     ]);
   });
 
@@ -537,7 +537,7 @@ describe('deserializeTab', () => {
 
   it('generates unique uid for non-replaceable singleton type tabs', () => {
     const snapshotTab = {
-      type: 'variables',
+      type: 'collection-runner',
       accessor: 'type',
       permanent: false
     };
@@ -545,8 +545,8 @@ describe('deserializeTab', () => {
     const firstTab = deserializeTab(snapshotTab, collection);
     const secondTab = deserializeTab(snapshotTab, collection);
 
-    expect(firstTab.uid).not.toBe('variables');
-    expect(secondTab.uid).not.toBe('variables');
+    expect(firstTab.uid).not.toBe('collection-runner');
+    expect(secondTab.uid).not.toBe('collection-runner');
     expect(firstTab.uid).not.toBe(secondTab.uid);
   });
 
@@ -1205,7 +1205,7 @@ describe('hydrateCollectionTabs', () => {
     global.window.ipcRenderer.invoke.mockResolvedValue({
       tabs: [
         { type: 'v4-migration', accessor: 'type', permanent: true },
-        { type: 'variables', accessor: 'type', permanent: true }
+        { type: 'collection-runner', accessor: 'type', permanent: true }
       ],
       activeTab: {
         accessor: 'type',
@@ -1230,7 +1230,7 @@ describe('hydrateCollectionTabs', () => {
 
     expect(restoreTabs).toHaveBeenCalledWith(
       expect.objectContaining({
-        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        tabs: [{ type: 'collection-runner', accessor: 'type', permanent: true }],
         activeTab: null
       })
     );
@@ -1240,7 +1240,7 @@ describe('hydrateCollectionTabs', () => {
     global.window.ipcRenderer.invoke.mockResolvedValue({
       tabs: [
         { type: 'changelog', accessor: 'pathname', permanent: true },
-        { type: 'variables', accessor: 'type', permanent: true }
+        { type: 'collection-runner', accessor: 'type', permanent: true }
       ],
       activeTab: {
         accessor: 'type',
@@ -1265,7 +1265,7 @@ describe('hydrateCollectionTabs', () => {
 
     expect(restoreTabs).toHaveBeenCalledWith(
       expect.objectContaining({
-        tabs: [{ type: 'variables', accessor: 'type', permanent: true }],
+        tabs: [{ type: 'collection-runner', accessor: 'type', permanent: true }],
         activeTab: null
       })
     );

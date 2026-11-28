@@ -13,7 +13,7 @@ import ImportEnvironmentModal from 'components/Environments/Common/ImportEnviron
 import CreateGlobalEnvironment from 'components/WorkspaceHome/WorkspaceEnvironments/CreateEnvironment';
 import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
-import { transparentize } from 'polished';
+import { getEnvBackgroundColor } from 'utils/environments';
 
 const TABS = [
   { id: 'collection', label: 'Collection', icon: <IconDatabase size={16} strokeWidth={1.5} /> },
@@ -23,18 +23,6 @@ const TABS = [
 const EMPTY_STATE_DESCRIPTIONS = {
   collection: 'Create your first environment to begin working with your collection.',
   global: 'Create your first global environment to begin working across collections.'
-};
-
-/**
- * Generates background color with transparency for environment badges.
- */
-const getEnvBackgroundColor = (color) => {
-  if (!color) return 'transparent';
-  try {
-    return transparentize(1 - 0.12, color);
-  } catch {
-    return 'transparent';
-  }
 };
 
 /**

@@ -3787,6 +3787,13 @@ export const collectionsSlice = createSlice({
       if (!collection) return;
       collection.runtimeVariables = { ...(collection.runtimeVariables || {}), [key]: value };
     },
+    deleteRuntimeVariable: (state, action) => {
+      const { collectionUid, key } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection?.runtimeVariables) {
+        delete collection.runtimeVariables[key];
+      }
+    },
     updateFolderDocs: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -4482,6 +4489,7 @@ export const {
   updateAppCode,
   toggleAppMode,
   appSetRuntimeVariable,
+  deleteRuntimeVariable,
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,

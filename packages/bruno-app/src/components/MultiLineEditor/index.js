@@ -20,26 +20,6 @@ import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const CodeMirror = require('codemirror');
 
-/** Snapshot overflow ancestors so CM scroll/fold restore cannot shift the page. */
-const snapshotAncestorScrolls = (node) => {
-  const snapshots = [];
-  let el = node?.parentElement;
-  while (el && el !== document.documentElement) {
-    const style = window.getComputedStyle(el);
-    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-      snapshots.push({ el, top: el.scrollTop });
-    }
-    el = el.parentElement;
-  }
-  return snapshots;
-};
-
-const restoreAncestorScrolls = (snapshots) => {
-  snapshots.forEach(({ el, top }) => {
-    if (el.scrollTop !== top) el.scrollTop = top;
-  });
-};
-
 class MultiLineEditor extends Component {
   static contextType = SetAsVariableContext;
 
@@ -71,20 +51,11 @@ class MultiLineEditor extends Component {
   _applyPersistedViewState = () => {
     if (!this.editor || !this._currentDocKey) return;
 
-    const wrapper = this.editor.getWrapperElement();
-    const ancestorScrolls = snapshotAncestorScrolls(wrapper);
     applyEditorState(
       this.editor,
       readPersistedEditorState({ scope: this.props.persistenceScope, key: this._currentDocKey }),
       this.cachedValue
     );
-    restoreAncestorScrolls(ancestorScrolls);
-    // CodeMirror/browser may adjust ancestors on a later frame after scrollTo.
-    if (this._restoreAncestorRaf) cancelAnimationFrame(this._restoreAncestorRaf);
-    this._restoreAncestorRaf = requestAnimationFrame(() => {
-      this._restoreAncestorRaf = null;
-      restoreAncestorScrolls(ancestorScrolls);
-    });
   };
 
   _setupViewPersistence = () => {
@@ -108,10 +79,6 @@ class MultiLineEditor extends Component {
   };
 
   _teardownViewPersistence = () => {
-    if (this._restoreAncestorRaf) {
-      cancelAnimationFrame(this._restoreAncestorRaf);
-      this._restoreAncestorRaf = null;
-    }
     if (this.editor && this._currentDocKey) {
       writePersistedEditorState({
         scope: this.props.persistenceScope,

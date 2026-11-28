@@ -33,7 +33,7 @@ const COLLECTION_PATH = `${WORKSPACE_PATH}/collections/pets`;
 
 const tabsSnapshot = {
   tabs: [
-    { type: 'variables', accessor: 'type', permanent: true },
+    { type: 'collection-runner', accessor: 'type', permanent: true },
     { type: 'mock-server', mockServerUid: 'mock-server-1', name: 'Pets Mock', permanent: true },
     { type: 'mock-response', mockServerUid: 'mock-server-1', responseUid: 'mock-response-1', name: 'Get pet', permanent: true }
   ],
@@ -102,7 +102,7 @@ describe('restoring a collection opened during snapshot hydration', () => {
 
     await store.dispatch(hydrateSnapshotForOpenedCollection(COLLECTION_PATH));
 
-    expect(openTabTypes(store)).toEqual(['variables', 'mock-server', 'mock-response']);
+    expect(openTabTypes(store)).toEqual(['collection-runner', 'mock-server', 'mock-response']);
     expect(activeTabType(store)).toBe('mock-response');
   });
 });
