@@ -1,4 +1,10 @@
 const j = require('jscodeshift');
+import { isFunctionExpression } from './ast-utils';
+import { BRUNO_REGISTRY, resolveReferencedObject } from './semantic';
+
+// Which parameter of the callback carries the response, so a missing one is filled in the right
+// place. Its members were already translated by `applySemanticTypes`.
+const CALLBACK_RESPONSE_INDEX = BRUNO_REGISTRY.params['bru.sendRequest'].callback.findIndex(Boolean);
 
 /**
  * Content-Type constants for body mode detection
@@ -186,120 +192,39 @@ const transformBody = (requestOptions, contentType) => {
 
 /**
  * Transform callback function to Postman format
- * @param {Object} callback - Callback function expression
- * @returns {Object} - Transformed callback function
+ * @param {Object} callbackPath - Path of the callback argument
+ * @returns {Object|null} - Transformed callback function, or null if not a function
  */
-const transformCallback = (callback) => {
-  if (!callback || (callback.type !== 'FunctionExpression' && callback.type !== 'ArrowFunctionExpression')) return null;
+const transformCallback = (callbackPath) => {
+  const callback = callbackPath.value;
+  if (!isFunctionExpression(callback)) return null;
 
   const params = callback.params;
+  const responseParam = params[CALLBACK_RESPONSE_INDEX];
   const callbackBody = callback.body;
-
-  // Get the response parameter name (typically the second param)
-  let responseVarName = 'response'; // Default if not found
-  if (params.length >= 2 && params[1].type === 'Identifier') {
-    responseVarName = params[1].name;
-  }
-
-  let errorVarName = 'error'; // Default if not found
-  if (params.length >= 1 && params[0].type === 'Identifier') {
-    errorVarName = params[0].name;
-  }
-
-  // Define translations for callback response properties (Bruno -> Postman)
-  const responsePropertyMap = {
-    data: 'json', // response.data -> response.json()
-    status: 'code', // response.status -> response.code
-    statusText: 'status' // response.statusText -> response.status
-  };
-
-  // Process the callback body to transform response property references
-  j(callbackBody).find(j.MemberExpression, {
-    object: {
-      type: 'Identifier',
-      name: responseVarName
-    }
-  }).forEach((memberPath) => {
-    const property = memberPath.node.property;
-
-    // Handle property access
-    if (property.type === 'Identifier' && responsePropertyMap[property.name]) {
-      const pmProperty = responsePropertyMap[property.name];
-
-      if (property.name === 'data') {
-        // response.data -> response.json() (convert to method call)
-        j(memberPath).replaceWith(
-          j.callExpression(
-            j.memberExpression(
-              j.identifier(responseVarName),
-              j.identifier(pmProperty)
-            ),
-            []
-          )
-        );
-      } else {
-        // Regular property replacement (status -> code, statusText -> status)
-        j(memberPath).replaceWith(
-          j.memberExpression(
-            j.identifier(responseVarName),
-            j.identifier(pmProperty)
-          )
-        );
-      }
-    }
-  });
 
   // Create the callback - Postman uses regular functions
   const bodyStatements = callbackBody.type === 'BlockStatement' ? callbackBody.body : [j.returnStatement(callbackBody)];
+
+  /**
+   * Postman hands the callback `(error, response)`, so a missing parameter is filled in —
+   * but the ones the script already declares are carried over as they are. Rebuilding them
+   * as identifiers would discard a destructuring pattern and leave its bindings undeclared.
+   */
+  const outputParams = [
+    params[0] || j.identifier('error'),
+    responseParam || j.identifier('response')
+  ];
+
   const functionExpr = j.functionExpression(
     null,
-    [j.identifier(errorVarName), j.identifier(responseVarName)],
+    outputParams,
     j.blockStatement(bodyStatements)
   );
 
   functionExpr.async = callback.async;
 
   return functionExpr;
-};
-
-/**
- * Find and transform variable declaration for request config
- * @param {Object} root - Root AST node (jscodeshift collection)
- * @param {string} variableName - Name of the variable to find
- * @param {Set} visited - Set of visited variable names to prevent infinite loops
- * @returns {Object|null} - Transformed object expression or null if not found
- */
-const findAndTransformVariableDeclaration = (root, variableName, visited = new Set()) => {
-  // Prevent infinite loops from circular references
-  if (visited.has(variableName)) {
-    return null;
-  }
-  visited.add(variableName);
-
-  let transformedConfig = null;
-
-  // Find the variable declaration
-  root.find(j.VariableDeclarator, {
-    id: { name: variableName }
-  }).forEach((declaratorPath) => {
-    const init = declaratorPath.value.init;
-
-    if (init && init.type === 'ObjectExpression') {
-      // Found the actual object expression - transform it in place
-      // Get Content-Type BEFORE transforming headers (since we rename headers to header)
-      const contentType = getContentType(init);
-      transformHeaders(init);
-      transformBody(init, contentType);
-
-      transformedConfig = init;
-    } else if (init && init.type === 'Identifier') {
-      // This variable references another variable - follow the chain
-      const referencedVariableName = init.name;
-      transformedConfig = findAndTransformVariableDeclaration(root, referencedVariableName, visited);
-    }
-  });
-
-  return transformedConfig;
 };
 
 /**
@@ -331,6 +256,7 @@ const bruSendRequestTransformer = (path) => {
 
   const requestOptions = args[0];
   const callback = args[1];
+  const callbackPath = path.get('arguments', 1);
 
   // Transform the request config options
   if (requestOptions.type === 'ObjectExpression') {
@@ -341,20 +267,22 @@ const bruSendRequestTransformer = (path) => {
     // Transform body
     transformBody(requestOptions, contentType);
   } else if (requestOptions.type === 'Identifier') {
-    // Handle case where requestOptions is a variable reference
-    const variableName = requestOptions.name;
-
-    // Find the root of the current file/program
+    // Resolve from the argument itself, so the reference's own scope decides the declaration
     const root = j(path).closest(j.Program);
+    const referencedConfig = resolveReferencedObject(j, root, path.get('arguments', 0), requestOptions.name);
 
-    // Find and transform the variable declaration
-    findAndTransformVariableDeclaration(root, variableName);
+    if (referencedConfig) {
+      // Content-Type is read before the headers are renamed, since the rename is to `header`
+      const referencedContentType = getContentType(referencedConfig);
+      transformHeaders(referencedConfig);
+      transformBody(referencedConfig, referencedContentType);
+    }
   }
 
   // Transform callback if present
   let transformedArgs = [requestOptions];
   if (callback) {
-    const transformedCallback = transformCallback(callback);
+    const transformedCallback = transformCallback(callbackPath);
     if (transformedCallback) {
       transformedArgs.push(transformedCallback);
     } else {

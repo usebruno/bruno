@@ -13,6 +13,44 @@ describe('postmanTranslations - cookie API conversions', () => {
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
 
+  test.each([
+    ['unset', 'deleteCookie', `jar.unset('https://example.com', 'sessionId', (err) => console.log(err));`],
+    ['clear', 'deleteCookies', `jar.clear('https://example.com', (err) => console.log(err));`]
+  ])('should report %s, whose callback Bruno\'s %s cannot receive', (member, _bru, call) => {
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (message) => warnings.push(message);
+
+    try {
+      postmanTranslation(`const jar = pm.cookies.jar();\n${call}`);
+    } finally {
+      console.warn = original;
+    }
+
+    expect(warnings.some((w) => w.includes(member) && w.includes('callback'))).toBe(true);
+  });
+
+  test('should not project onto the promise when a jar call enters a promise chain', () => {
+    const inputScript = `const jar = pm.cookies.jar();
+jar.get('https://example.com', 'sessionId').then((value) => console.log(value));`;
+
+    // `.value` belongs on the resolved cookie, so it is left off rather than read off the promise
+    const expectedOutput = `const jar = bru.cookies.jar();
+jar.getCookie('https://example.com', 'sessionId').then((value) => console.log(value));`;
+
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
+  test('should still project onto an awaited jar call', () => {
+    const inputScript = `const jar = pm.cookies.jar();
+const value = await jar.get('https://example.com', 'sessionId');`;
+
+    const expectedOutput = `const jar = bru.cookies.jar();
+const value = (await jar.getCookie('https://example.com', 'sessionId')).value;`;
+
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+  });
+
   test('should convert pm.cookies.jar().getAll to bru.cookies.jar().getCookies', () => {
     const inputScript = `pm.cookies.jar().getAll('https://example.com', (err, cookies) => {
       console.log(cookies);
@@ -74,7 +112,7 @@ describe('postmanTranslations - cookie API conversions', () => {
 
     const expectedOutput = `
       bru.cookies.jar().setCookie('https://api.example.com', 'auth', 'token123');
-      const cookie = bru.cookies.jar().getCookie('https://api.example.com', 'auth');
+      const cookie = bru.cookies.jar().getCookie('https://api.example.com', 'auth').value;
       bru.cookies.jar().getCookies('https://api.example.com', (err, cookies) => {
         console.log('All cookies:', cookies);
       });
@@ -95,7 +133,7 @@ describe('postmanTranslations - cookie API conversions', () => {
     const expectedOutput = `
       const jar = bru.cookies.jar();
       jar.setCookie('https://example.com', 'user', 'john');
-      const userCookie = jar.getCookie('https://example.com', 'user');
+      const userCookie = jar.getCookie('https://example.com', 'user').value;
     `;
 
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
