@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 
 // ANSI color codes
@@ -28,9 +28,15 @@ const electronDir = path.join(rootDir, 'packages/bruno-electron');
 
 let electronProcess = null;
 let detectedPort = null;
+const outputBuffers = { stdout: '', stderr: '' };
 
-// Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/")
-const portRegex = /Local:\s+http:\/\/localhost:(\d+)/;
+// Regex to match rsbuild's local URL output (e.g., "➜ Local:    http://localhost:3000/").
+// The trailing slash ensures a port split across chunks is only read once complete.
+const portRegex = /Local:\s+http:\/\/localhost:(\d+)\//;
+
+// rsbuild colours its output even when piped on Windows (picocolors always enables
+// colour on win32), which puts escape codes between "Local:" and the URL.
+const stripAnsi = (str) => str.replace(/\x1b\[[0-9;]*m/g, '');
 
 console.log(`\n${colors.bright}${colors.yellow}🚀 Starting Bruno development environment...${colors.reset}\n`);
 
@@ -41,23 +47,37 @@ const webProcess = spawn('npm', ['run', 'dev'], {
   shell: true
 });
 
+// rsbuild may print its startup banner on either stream, so both are scanned
+function detectPort(stream, output) {
+  if (detectedPort) {
+    return;
+  }
+
+  // Raw chunks are joined before stripping so an escape code or banner line split
+  // across chunks is matched as a whole. Each stream keeps its own buffer so the
+  // two never interleave mid-line.
+  const buffer = outputBuffers[stream] + output;
+  const match = stripAnsi(buffer).match(portRegex);
+  if (match) {
+    detectedPort = match[1];
+    log.success(`Detected dev server on port ${colors.bright}${detectedPort}${colors.reset}`);
+    startElectron(detectedPort);
+    return;
+  }
+
+  outputBuffers[stream] = buffer.slice(-1000);
+}
+
 webProcess.stdout.on('data', (data) => {
   const output = data.toString();
   process.stdout.write(output);
-
-  // Try to detect the port from rsbuild output
-  if (!detectedPort) {
-    const match = output.match(portRegex);
-    if (match) {
-      detectedPort = match[1];
-      log.success(`Detected dev server on port ${colors.bright}${detectedPort}${colors.reset}`);
-      startElectron(detectedPort);
-    }
-  }
+  detectPort('stdout', output);
 });
 
 webProcess.stderr.on('data', (data) => {
-  process.stderr.write(data.toString());
+  const output = data.toString();
+  process.stderr.write(output);
+  detectPort('stderr', output);
 });
 
 webProcess.on('close', (code) => {
@@ -84,16 +104,32 @@ function startElectron(port) {
   });
 }
 
+function killProcess(child) {
+  if (!child || child.killed || child.exitCode !== null) {
+    return;
+  }
+
+  // With shell: true, child.kill() on Windows only stops the cmd.exe wrapper and
+  // leaves rsbuild / Electron running, so kill the whole process tree instead.
+  if (process.platform === 'win32') {
+    try {
+      execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+    } catch {
+      // Process tree already exited
+    }
+    return;
+  }
+
+  child.kill();
+}
+
 function cleanup() {
-  if (webProcess && !webProcess.killed) {
-    webProcess.kill();
-  }
-  if (electronProcess && !electronProcess.killed) {
-    electronProcess.kill();
-  }
+  killProcess(webProcess);
+  killProcess(electronProcess);
   process.exit(0);
 }
 
 // Handle termination signals
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+process.on('SIGHUP', cleanup);
