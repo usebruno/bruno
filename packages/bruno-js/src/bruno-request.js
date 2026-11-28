@@ -1,3 +1,4 @@
+const { isArrayBuffer } = require('node:util').types;
 const { getMediaType } = require('@usebruno/common').utils;
 const HeaderList = require('./header-list');
 const { parseUrl } = require('./utils/url');
@@ -351,7 +352,8 @@ class BrunoRequest {
    * Replace the request body.
    *
    * With a JSON content type, an object is serialized to JSON. Pass `{ raw: true }` to send `data`
-   * exactly as given. A `Buffer` is always sent as-is.
+   * exactly as given. A `Buffer`, typed array (such as `Uint8Array`), `DataView` or `ArrayBuffer`
+   * is always sent as its bytes.
    * @param {any} data - The new body.
    * @param {{ raw?: boolean }} [options] - `raw: true` skips JSON serialization.
    * @example
@@ -359,6 +361,13 @@ class BrunoRequest {
    * @category Body
    */
   setBody(data, options = {}) {
+    if (ArrayBuffer.isView(data) && !Buffer.isBuffer(data)) {
+      data = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+    } else if (isArrayBuffer(data)) {
+      // Not `instanceof ArrayBuffer`: in Developer Mode the script's ArrayBuffer comes from the VM's own realm
+      data = Buffer.from(data);
+    }
+
     if (options.raw || Buffer.isBuffer(data)) {
       this.req.data = data;
       this.body = data;
