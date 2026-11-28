@@ -94,7 +94,12 @@ function wrapConsoleWithSerializers(originalConsole) {
   for (const method of CONSOLE_METHODS) {
     if (typeof originalConsole[method] === 'function') {
       wrappedConsole[method] = (...args) => {
-        const transformedArgs = args.map((arg) => transformValue(arg));
+        // console.assert's first argument is a condition, not a value to log:
+        // transforming it would change its truthiness (a boxed empty string is
+        // truthy, the primitive it would become is not).
+        const transformedArgs = args.map((arg, index) =>
+          method === 'assert' && index === 0 ? arg : transformValue(arg)
+        );
         originalConsole[method](...transformedArgs);
       };
     }

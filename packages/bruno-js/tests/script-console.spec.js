@@ -96,7 +96,43 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
 
     expect(logs).toHaveLength(1);
     expect(logs[0].type).toBe('error');
-    expect(logs[0].args).toContain('should be logged');
+    expect(logs[0].args).toEqual(['Assertion failed: should be logged']);
+  });
+
+  it('should keep console.assert silent for truthy boxed conditions', async () => {
+    const script = `
+      console.assert(new String(''), 'boxed empty string');
+      console.assert({}, 'boxed object');
+      console.assert('x', 'truthy string');
+      console.assert(false, 'falsy primitive');
+      console.assert(0, 'zero');
+      console.assert('', 'empty primitive');
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs.map((l) => l.args[0])).toEqual([
+      'Assertion failed: falsy primitive',
+      'Assertion failed: zero',
+      'Assertion failed: empty primitive'
+    ]);
+  });
+
+  it('should format the console.assert message like Node', async () => {
+    const script = `
+      console.assert();
+      console.assert(false, 'with message');
+      console.assert(false);
+      console.assert(false, 'with extra', { a: 1 });
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs.map((l) => l.args)).toEqual([
+      ['Assertion failed: with message'],
+      ['Assertion failed'],
+      ['Assertion failed: with extra', { a: 1 }]
+    ]);
   });
 
   it('should count repeated console.count calls per label', async () => {
@@ -138,6 +174,18 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
     expect(logs).toHaveLength(1);
     const elapsed = Number(logs[0].args[0].match(/^phase: (\d+(?:\.\d+)?)ms$/)[1]);
     expect(elapsed).toBeGreaterThanOrEqual(40);
+  });
+
+  it('should print the elapsed time with at most three decimals', async () => {
+    const script = `
+      console.time('phase');
+      await bru.sleep(5);
+      console.timeEnd('phase');
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs[0].args[0]).toMatch(/^phase: \d+(\.\d{1,3})?ms$/);
   });
 
   it('should forward extra arguments to console.timeLog', async () => {

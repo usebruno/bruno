@@ -59,12 +59,22 @@ const createScriptConsole = (onConsoleLog) => {
 
   const log = forward('log');
 
+  // Node prints the elapsed time of a timer with at most three decimals.
+  const formatDuration = (startedAt) => parseFloat((performance.now() - startedAt).toFixed(3));
+
   return {
-    assert: (condition, ...args) => {
-      if (!condition) {
-        // Node prefixes the message: "Assertion failed: <message>".
-        onConsoleLog('error', cleanJson(['Assertion failed', ...args]));
+    assert: (condition = true, ...args) => {
+      if (condition) {
+        return;
       }
+      // Node prefixes the message: "Assertion failed: <message>" when the message
+      // is a string, otherwise "Assertion failed" followed by the arguments.
+      const [message, ...rest] = args;
+      if (typeof message === 'string') {
+        onConsoleLog('error', cleanJson([`Assertion failed: ${message}`, ...rest]));
+        return;
+      }
+      onConsoleLog('error', cleanJson(['Assertion failed', ...args]));
     },
     // Nothing to clear in the console pane.
     clear: () => {},
@@ -102,14 +112,14 @@ const createScriptConsole = (onConsoleLog) => {
         return;
       }
       timers.delete(label);
-      log(`${label}: ${performance.now() - startedAt}ms`);
+      log(`${label}: ${formatDuration(startedAt)}ms`);
     },
     timeLog: (label = 'default', ...args) => {
       const startedAt = timers.get(label);
       if (startedAt === undefined) {
         return;
       }
-      log(`${label}: ${performance.now() - startedAt}ms`, ...args);
+      log(`${label}: ${formatDuration(startedAt)}ms`, ...args);
     },
     // No DevTools timeline in the sandbox.
     timeStamp: () => {},

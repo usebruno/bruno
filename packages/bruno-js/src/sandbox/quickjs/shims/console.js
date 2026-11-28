@@ -104,6 +104,25 @@ const addConsoleShimToContext = (vm, console) => {
     const forward = console[method];
 
     const handle = vm.newFunction(method, (...args) => {
+      if (method === 'assert' && args.length > 0) {
+        // console.assert's first argument is a condition, not a value to log:
+        // dumping it would unbox objects (a boxed empty string is truthy, the
+        // primitive it dumps to is not), so truthiness is decided in the VM.
+        const [condition, ...messageArgs] = args;
+        const booleanFn = vm.getProp(vm.global, 'Boolean');
+        const result = vm.callFunction(booleanFn, vm.undefined, condition);
+        booleanFn.dispose();
+        if (result.error) {
+          result.error.dispose();
+          return;
+        }
+        const failed = vm.dump(result.value) === false;
+        result.value.dispose();
+        if (failed && typeof forward === 'function') {
+          forward(false, ...messageArgs.map(dumpWithSerializers));
+        }
+        return;
+      }
       const nativeArgs = args.map(dumpWithSerializers);
       if (typeof forward === 'function') {
         forward(...nativeArgs);
