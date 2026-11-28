@@ -190,6 +190,12 @@ const saveExistingDrafts = (dispatch, getState, interval) => {
   }
 };
 
+const hasItemDraft = (getState, collectionUid, itemUid) => {
+  const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+  const item = collection ? findItemInCollection(collection, itemUid) : null;
+  return Boolean(item?.draft);
+};
+
 // Helper to determine entity type and create save handler
 const determineSaveHandler = (actionType, payload, dispatch, getState) => {
   const { itemUid, folderUid, collectionUid, environmentUid } = payload;
@@ -242,6 +248,11 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
       if (item && isItemTransientRequest(item)) {
         return null; // Skip auto-save for transient requests
       }
+      // Nothing to persist: e.g. runRequestEvent fires on every send without touching the draft,
+      // and saving would rewrite the file from the saved item and trigger a watcher reload
+      if (item && !item.draft) {
+        return null;
+      }
     }
 
     if (actionType === 'collections/updateFileContent') {
@@ -253,7 +264,11 @@ const determineSaveHandler = (actionType, payload, dispatch, getState) => {
 
     return {
       key: `request-${itemUid}`,
-      save: () => dispatch(saveRequest(itemUid, collectionUid, true))
+      save: () => {
+        // The draft may have been saved manually or discarded while the timer was pending
+        if (!hasItemDraft(getState, collectionUid, itemUid)) return;
+        dispatch(saveRequest(itemUid, collectionUid, true));
+      }
     };
   }
 
