@@ -91,3 +91,20 @@ export function isIdentifierNamed(node, name) {
 export function isNullLiteral(node) {
   return node && node.type === 'Literal' && node.value === null;
 }
+
+/**
+ * Gets the statically-known property name of a member expression. A computed access
+ * with a non-literal key (`p[someVar]`) has no static name — even an Identifier key
+ * named `then` is a variable there, not the method.
+ *
+ * @param {Object} memberExpr - MemberExpression node
+ * @returns {string|null} - The property name, or null if it isn't statically known
+ */
+export function getStaticPropertyName(memberExpr) {
+  const property = memberExpr.property;
+
+  if (memberExpr.computed) {
+    return property.type === 'Literal' && typeof property.value === 'string' ? property.value : null;
+  }
+  return property.type === 'Identifier' ? property.name : null;
+}
