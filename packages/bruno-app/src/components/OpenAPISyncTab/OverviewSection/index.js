@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import { countEndpoints } from '../utils';
+import { categorizeEndpoints } from '../utils';
 import moment from 'moment';
 import { IconCheck } from '@tabler/icons';
 import Button from 'ui/Button';
@@ -81,11 +81,8 @@ const OverviewSection = ({ collection, storedSpec, collectionDrift, specDrift, r
     : (remoteDrift?.modified?.length || 0) + (remoteDrift?.missing?.length || 0);
 
   // Conflict count: endpoints modified in both spec and collection
-  const conflictCount = hasDriftData && specDrift?.modified
-    ? (() => {
-        const localModifiedIds = new Set((collectionDrift.edited || []).map((ep) => ep.id));
-        return specDrift.modified.filter((ep) => localModifiedIds.has(ep.id)).length;
-      })()
+  const conflictCount = hasDriftData && remoteDrift
+    ? categorizeEndpoints(remoteDrift, specDrift, collectionDrift).specUpdatedEndpoints.filter((ep) => ep.conflict).length
     : 0;
 
   const summaryValues = {

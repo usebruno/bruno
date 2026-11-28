@@ -13,6 +13,7 @@ const {
   stringifyFolder
 } = require('@usebruno/filestore');
 const { openApiToBruno } = require('@usebruno/converters');
+const { normalizeLineEndings } = require('@usebruno/common');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
 const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
@@ -757,7 +758,29 @@ const mergeAuth = (userAuth, specAuth, preserveValues = true) => {
 
 const RAW_BODY_MODES = ['xml', 'text', 'sparql'];
 
-const comparableText = (text) => text.replace(/\r\n|\r/g, '\n').trim();
+const comparableText = (text) => normalizeLineEndings(text).trim();
+
+const textOf = (value) => (typeof value === 'string' ? comparableText(value) : '');
+
+const textDiffers = (a, b) => textOf(a) !== textOf(b);
+
+const nameAndDocs = (item) => ({ name: item?.name, docs: item?.request?.docs });
+
+const changedNameAndDocs = (fromItem, toItem) => {
+  const from = nameAndDocs(fromItem);
+  const to = nameAndDocs(toItem);
+  return ['name', 'docs'].filter((field) => textDiffers(from[field], to[field]));
+};
+
+const nameAndDocsFromSpec = (previousSpecItem, specItem, item) => {
+  const previous = nameAndDocs(previousSpecItem);
+  const spec = nameAndDocs(specItem);
+  const own = nameAndDocs(item);
+  return ['name', 'docs'].filter((field) =>
+    typeof previous[field] === 'string'
+    && textDiffers(previous[field], spec[field])
+    && textDiffers(own[field], spec[field]));
+};
 
 const mergeRawBody = (userBody, specBody, mode, previousSpecBody) => {
   const userText = userBody[mode];
@@ -812,8 +835,9 @@ const mergeWithUserValues = (specItems, existingItems) => {
  * Merge a spec item into an existing request, preserving collection-specific data
  * (tests, scripts, assertions) and user values for matching params/headers.
  *
- * fullReset: true = spec replaces entire request section (reset mode)
- *            false = only override url/body/auth from spec (sync mode); with
+ * fullReset: true = spec replaces the name and the entire request section (reset mode)
+ *            false = only override url/body/auth from spec (sync mode), plus the
+ *            name and docs the spec changed since the last sync; with
  *            preserveValues the url keeps the spec path and its query string is
  *            rebuilt from the enabled query params
  */
@@ -823,6 +847,7 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
     const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
     return {
       ...existingRequest,
+      name: specItem.name,
       request: {
         ...existingRequest.request,
         url: specItem.request.url,
@@ -839,11 +864,14 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   const previousRequest = previousSpecItem && (previousSpecItem.request || {});
   const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey });
+  const fromSpec = nameAndDocsFromSpec(previousSpecItem, specItem, existingRequest);
   return {
     ...existingRequest,
+    ...(fromSpec.includes('name') && { name: specItem.name }),
     request: {
       ...existingRequest.request,
       url: preserveValues ? urlWithQueryParams(specItem.request.url, params, existingRequest.request?.url) : specItem.request.url,
+      ...(fromSpec.includes('docs') && { docs: specItem.request.docs }),
       body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody),
       auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
       params,
@@ -1078,10 +1106,10 @@ const loadStoredSpecIfAny = (collectionPath, brunoConfig) => {
   return null;
 };
 
-const storedSpecCollectionOf = (storedSpec, groupBy) => {
+const storedSpecCollectionOf = (storedSpec, conversionOptions) => {
   if (!storedSpec) return null;
   try {
-    return openApiToBruno(storedSpec, { groupBy });
+    return openApiToBruno(storedSpec, conversionOptions);
   } catch (err) {
     console.warn('[OpenAPI Sync] Could not convert the stored spec, continuing without it:', err);
     return null;
@@ -1093,9 +1121,9 @@ const EMPTY_SPEC_ITEM = { request: { body: {} } };
 const previousSpecItemFor = (storedCollection, method, endpointPath) =>
   findItemInCollection(storedCollection?.items || [], method, endpointPath)?.item || EMPTY_SPEC_ITEM;
 
-const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy }) => {
-  const storedSpec = preserveValues && newSpec ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
-  const storedCollection = _.once(() => storedSpecCollectionOf(storedSpec, groupBy));
+const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, conversionOptions }) => {
+  const storedSpec = newSpec ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
+  const storedCollection = _.once(() => storedSpecCollectionOf(storedSpec, conversionOptions));
   return (method, endpointPath) => ({
     preserveValues,
     previousSpecItem: previousSpecItemFor(storedCollection(), method, endpointPath),
@@ -1150,8 +1178,9 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           } else {
             const oldItem = oldItems.get(id);
             const { hasDiff, changes } = compareRequestFields(oldItem.request, newItem.request);
-            if (hasDiff) {
-              modified.push({ id, method, path: urlPath, name: newItem.name, changes: changes.join(', ') });
+            const nameAndDocsChanges = changedNameAndDocs(oldItem, newItem);
+            if (hasDiff || nameAndDocsChanges.length > 0) {
+              modified.push({ id, method, path: urlPath, name: newItem.name, changes: [...changes, ...nameAndDocsChanges].join(', ') });
             } else {
               unchanged.push({ id, method, path: urlPath, name: newItem.name });
             }
@@ -1346,10 +1375,13 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       }
 
       // Convert spec to Bruno collection format
-      const specAsCollection = openApiToBruno(specToCompare, specConversionOptions(brunoConfig, collectionPath));
+      const conversionOptions = specConversionOptions(brunoConfig, collectionPath);
+      const specAsCollection = openApiToBruno(specToCompare, conversionOptions);
 
       // Build map of expected items by endpoint ID (method:path)
       const specItems = buildSpecItemsMap(specAsCollection.items || []);
+      const storedCollection = compareSpec ? storedSpecCollectionOf(loadStoredSpecIfAny(collectionPath, brunoConfig), conversionOptions) : null;
+      const storedSpecItems = buildSpecItemsMap(storedCollection?.items || []);
 
       // Scan and parse collection endpoints from disk
       const scanCollectionFiles = (dirPath, relativePath = '') => {
@@ -1382,7 +1414,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           collectionEndpoints.push({
             fullPath,
             relativePath,
-            request: parsed.request,
+            item: parsed,
             name: parsed.meta?.name || parsed.name || path.basename(fullPath)
           });
         } catch (err) {
@@ -1401,7 +1433,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       const foundEndpointIds = new Set();
 
-      for (const { fullPath, relativePath, request: actualRequest, name: itemName } of collectionEndpoints) {
+      for (const { fullPath, relativePath, item: actualItem, name: itemName } of collectionEndpoints) {
+        const actualRequest = actualItem.request;
         const method = actualRequest.method?.toUpperCase() || 'GET';
         const urlPath = normalizeUrlPath(actualRequest.url);
         const id = `${method}:${urlPath}`;
@@ -1423,11 +1456,15 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           // Compare key fields to detect drift. Against the stored spec, modified leaves out what a Preserve values sync keeps, and edited keeps every change for the conflict check
           const anyChange = compareRequestFields(specItem.request, actualRequest);
           const { hasDiff, changes } = compareSpec ? anyChange : compareRequestFields(specItem.request, actualRequest, { keptBySync: true, declaredBody: declaredBodyOf(specToCompare, method, urlPath) });
+          const storedSpecItem = storedSpecItems.get(id);
+          const nameAndDocsChanges = nameAndDocsFromSpec(storedSpecItem, specItem, actualItem);
+          const locallyEditedFields = changedNameAndDocs(storedSpecItem, actualItem);
+          const conflictingFields = nameAndDocsChanges.filter((field) => locallyEditedFields.includes(field));
 
           if (anyChange.hasDiff || hasDiff) {
             result.edited.push({ id, method, path: urlPath, filePath: relativePath, pathname: fullPath, name: itemName });
           }
-          if (hasDiff) {
+          if (hasDiff || nameAndDocsChanges.length > 0) {
             result.modified.push({
               id,
               method,
@@ -1435,7 +1472,8 @@ const registerOpenAPISyncIpc = (mainWindow) => {
               filePath: relativePath,
               pathname: fullPath,
               name: itemName,
-              changes: changes.join(', '),
+              changes: [...changes, ...nameAndDocsChanges].join(', '),
+              conflictingFields,
               actualRequest: { request: actualRequest },
               specItem
             });
@@ -1482,7 +1520,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
   });
 
   // Get endpoint diff data for visual comparison (spec vs collection)
-  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, newSpec, preserveValues = true }) => {
+  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, newSpec, preserveValues = true, resetToSpec = false }) => {
     try {
       let brunoConfig;
       try {
@@ -1513,7 +1551,6 @@ const registerOpenAPISyncIpc = (mainWindow) => {
 
       // Convert spec to Bruno collection format
       const conversionOptions = specConversionOptions(brunoConfig, collectionPath);
-      const { groupBy } = conversionOptions;
       const specAsCollection = openApiToBruno(specToUse, conversionOptions);
 
       // Find the spec item for this endpoint
@@ -1528,6 +1565,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const transformToVisualFormat = (item) => {
         if (!item) return null;
         const req = item.request || item;
+        const docs = item.docs || req.docs;
         // Strip query string from URL - params are shown in the separate Parameters section
         const urlWithoutQuery = (req.url || '').split('?')[0];
 
@@ -1560,22 +1598,24 @@ const registerOpenAPISyncIpc = (mainWindow) => {
             assertions: item.assertions || req.assertions || [],
             script: item.script || req.script || {},
             tests: item.tests || req.tests || '',
-            docs: item.docs || req.docs || ''
+            docs: typeof docs === 'string' ? normalizeLineEndings(docs) : ''
           }
         };
       };
 
-      // EXPECTED column = what sync will actually produce. For an endpoint that
-      // already exists in the collection, that's the merged result (user values +
-      // structural changes), not the raw spec. New endpoints (no actualRequest)
+      // EXPECTED column = what sync, or Reset on a Collection Changes row, will
+      // actually produce. For an endpoint that already exists in the collection,
+      // that's the merged result, not the raw spec. New endpoints (no actualRequest)
       // have nothing to preserve, so show the spec as-is.
       // NOTE: actualRequest is the full parsed item (has a .request property),
       // matching the shape that mergeSpecIntoRequest expects as its first argument.
       let specItemForDisplay = specItem;
       if (specItem && actualRequest) {
-        const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, groupBy });
-        const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptionsOf(method, endpointPath));
-        specItemForDisplay = { ...specItem, request: merged.request };
+        const mergeOptions = resetToSpec
+          ? { fullReset: true }
+          : mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, conversionOptions })(method, endpointPath);
+        const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptions);
+        specItemForDisplay = { ...specItem, name: merged.name, request: merged.request };
       }
 
       return {
@@ -1709,7 +1749,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
           console.error('[OpenAPI Sync] Error converting spec:', err);
         }
       }
-      const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, diff.newSpec, { preserveValues, groupBy });
+      const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, diff.newSpec, { preserveValues, conversionOptions });
       const syncExistingFile = async (existingFile, newItem, endpoint) => {
         const mergedRequest = mergeSpecIntoRequest(existingFile.request, newItem, mergeOptionsOf(endpoint.method, endpoint.path));
         const content = await stringifyRequestViaWorker(mergedRequest, { format: existingFile.fileFormat });
@@ -2148,6 +2188,8 @@ if (process.env.NODE_ENV === 'test') {
     mergeSpecIntoRequest,
     declaredBodyOf,
     compareRequestFields,
+    changedNameAndDocs,
+    nameAndDocsFromSpec,
     specConversionOptions,
     ensureTagFolder
   };

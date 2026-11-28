@@ -7,15 +7,19 @@ import VisualDiffHeaders from 'components/Git/VisualDiffViewer/VisualDiffHeaders
 import VisualDiffAuth from 'components/Git/VisualDiffViewer/VisualDiffAuth';
 import VisualDiffBody from 'components/Git/VisualDiffViewer/VisualDiffBody';
 import VisualDiffContent from 'components/Git/VisualDiffViewer/VisualDiffContent/index';
+import VisualDiffName from './VisualDiffName';
+import VisualDiffDocs from './VisualDiffDocs';
 
 // OpenAPI sync diff section configs (HTTP request sections only)
 // Data format matches Git diff format: data.request.url, data.request.params, etc.
 const openAPIDiffSectionDataPaths = {
+  name: 'name',
   url: ['request.url', 'request.method'],
   params: 'request.params',
   headers: 'request.headers',
   auth: 'request.auth',
-  body: 'request.body'
+  body: 'request.body',
+  docs: 'request.docs'
 };
 
 const openAPISectionHasChanges = (sectionKey, oldData, newData) => {
@@ -81,6 +85,7 @@ const openAPISectionHasChanges = (sectionKey, oldData, newData) => {
 };
 
 const openAPIDiffHasContent = {
+  name: (data) => data?.name,
   url: (data) => data?.request?.url || data?.request?.method,
   params: (data) => data?.request?.params && data.request.params.length > 0,
   headers: (data) => data?.request?.headers && data.request.headers.length > 0,
@@ -92,15 +97,18 @@ const openAPIDiffHasContent = {
     return data.request.body.json || data.request.body.text || data.request.body.xml
       || data.request.body.graphql || data.request.body.formUrlEncoded?.length > 0
       || data.request.body.multipartForm?.length > 0;
-  }
+  },
+  docs: (data) => data?.request?.docs
 };
 
 const openAPIDiffSections = [
+  { key: 'name', title: 'Name', Component: VisualDiffName, hasContent: openAPIDiffHasContent.name },
   { key: 'url', title: 'URL', Component: VisualDiffUrlBar, hasContent: openAPIDiffHasContent.url },
   { key: 'params', title: 'Parameters', Component: VisualDiffParams, hasContent: openAPIDiffHasContent.params },
   { key: 'headers', title: 'Headers', Component: VisualDiffHeaders, hasContent: openAPIDiffHasContent.headers },
   { key: 'auth', title: 'Authentication', Component: VisualDiffAuth, hasContent: openAPIDiffHasContent.auth },
-  { key: 'body', title: 'Body', Component: VisualDiffBody, hasContent: openAPIDiffHasContent.body }
+  { key: 'body', title: 'Body', Component: VisualDiffBody, hasContent: openAPIDiffHasContent.body },
+  { key: 'docs', title: 'Docs', Component: VisualDiffDocs, hasContent: openAPIDiffHasContent.docs }
 ];
 
 /**
