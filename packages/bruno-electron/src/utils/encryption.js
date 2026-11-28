@@ -1,10 +1,94 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { machineIdSync } = require('@usebruno/node-machine-id');
-const { safeStorage } = require('electron');
+const { safeStorage, app } = require('electron');
 
 // Constants for algorithm identification
 const ELECTRONSAFESTORAGE_ALGO = '00';
 const AES256_ALGO = '01';
+
+// Cached machine ID to avoid repeated filesystem access
+let cachedMachineId = null;
+
+function normalizeAndHashMachineId(rawId) {
+  const normalized = rawId.replace(/\r+|\n+|\s+/g, '').toLowerCase();
+  return crypto.createHash('sha256').update(normalized).digest('hex');
+}
+
+function getMachineId() {
+  if (cachedMachineId !== null) {
+    return cachedMachineId;
+  }
+
+  try {
+    cachedMachineId = machineIdSync();
+    return cachedMachineId;
+  } catch (err) {
+    // Same order as node-machine-id on Linux: dbus first, then /etc/machine-id.
+    // cat /var/lib/dbus/machine-id /etc/machine-id | head -n 1
+    for (const filePath of ['/var/lib/dbus/machine-id', '/etc/machine-id']) {
+      try {
+        const rawId = fs.readFileSync(filePath, 'utf8').trim();
+        if (rawId) {
+          cachedMachineId = normalizeAndHashMachineId(rawId);
+          return cachedMachineId;
+        }
+      } catch (e) {
+        // Continue to next fallback
+      }
+    }
+
+    // Fallback: Generate a stable ID persisted in app data
+    try {
+      const userDataPath = app.getPath('userData');
+      const machineIdPath = path.join(userDataPath, 'machine-id');
+
+      // Try to read existing generated ID
+      if (fs.existsSync(machineIdPath)) {
+        const rawId = fs.readFileSync(machineIdPath, 'utf8').trim();
+        if (rawId) {
+          cachedMachineId = normalizeAndHashMachineId(rawId);
+          return cachedMachineId;
+        }
+      }
+
+      // Publish without replacing an ID another process already created.
+      const rawId = crypto.randomBytes(32).toString('hex');
+      const tmpPath = `${machineIdPath}.${process.pid}.${crypto.randomBytes(16).toString('hex')}.tmp`;
+      let tempCreated = false;
+      try {
+        fs.writeFileSync(tmpPath, rawId, { encoding: 'utf8', flag: 'wx' });
+        tempCreated = true;
+
+        try {
+          fs.linkSync(tmpPath, machineIdPath);
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            throw error;
+          }
+        }
+
+        const storedId = fs.readFileSync(machineIdPath, 'utf8').trim();
+        if (!storedId) {
+          throw new Error('Generated machine ID is empty');
+        }
+        cachedMachineId = normalizeAndHashMachineId(storedId);
+      } finally {
+        if (tempCreated) {
+          try {
+            fs.unlinkSync(tmpPath);
+          } catch (unlinkError) {
+            // A leftover temp file must not fail encryption after the ID is published.
+          }
+        }
+      }
+      return cachedMachineId;
+    } catch (e) {
+      throw new Error('Failed to get machine ID: ' + e.message);
+    }
+  }
+}
 
 function deriveKeyAndIv(password, keyLength, ivLength) {
   const key = Buffer.alloc(keyLength);
@@ -30,7 +114,7 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
 }
 
 function aes256Encrypt(data, passkey = null) {
-  const rawKey = passkey || machineIdSync();
+  const rawKey = passkey || getMachineId();
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
   const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
@@ -41,7 +125,7 @@ function aes256Encrypt(data, passkey = null) {
 }
 
 function aes256Decrypt(data, passkey = null) {
-  const rawKey = passkey || machineIdSync();
+  const rawKey = passkey || getMachineId();
 
   // Attempt to decrypt using new method first
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
