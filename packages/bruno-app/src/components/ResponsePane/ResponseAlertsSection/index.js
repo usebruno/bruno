@@ -1,5 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
+import ContentLengthWithTransferEncodingWarning, { hasContentLengthWithTransferEncoding } from '../ContentLengthWithTransferEncodingWarning';
 import ResponseErrorsCard from '../ResponseErrorsCard';
 import UnresolvedVariablesInfo from '../UnresolvedVariablesInfo';
 import StyledWrapper from './StyledWrapper';
@@ -8,8 +9,9 @@ const ResponseAlertsSection = ({ item, collection, responsePaneErrors }) => {
   const { errors, isCardClosed, closeCard, isCardFullPane, toggleCardFullPane } = responsePaneErrors;
   const showsErrorsCard = errors.length > 0 && !isCardClosed;
   const showsUnresolvedVariables = !isCardFullPane && item.unresolvedVariables?.length > 0;
+  const showsContentLengthWithTransferEncoding = !isCardFullPane && hasContentLengthWithTransferEncoding(item.response?.headers);
 
-  if (!showsErrorsCard && !showsUnresolvedVariables) return null;
+  if (!showsErrorsCard && !showsUnresolvedVariables && !showsContentLengthWithTransferEncoding) return null;
 
   return (
     <StyledWrapper className={classnames({ 'full-pane': isCardFullPane })}>
@@ -25,6 +27,7 @@ const ResponseAlertsSection = ({ item, collection, responsePaneErrors }) => {
         />
       )}
       {showsUnresolvedVariables && <UnresolvedVariablesInfo item={item} collection={collection} />}
+      {showsContentLengthWithTransferEncoding && <ContentLengthWithTransferEncodingWarning />}
     </StyledWrapper>
   );
 };
