@@ -11,6 +11,7 @@ const { createFormData } = require('../../utils/form-data');
 const {
   getSentHeaders,
   applyOmitConnectionToAxiosConfig,
+  allowContentLengthWithTransferEncoding,
   handleNtlmRedirect,
   readCurrentTime,
   measureTimeSince,
@@ -120,7 +121,8 @@ function makeAxiosInstance({
   httpsAgentRequestFields = {},
   interpolationOptions = {},
   followRedirects = true,
-  forwardAuthorizationHeader = true
+  forwardAuthorizationHeader = true,
+  acceptContentLengthWithTransferEncoding = false
 } = {}) {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create({
@@ -245,6 +247,11 @@ function makeAxiosInstance({
     // Node keep-alive agents add Connection; strip it on the ClientRequest.
     if (omitConnection) {
       applyOmitConnectionToAxiosConfig(config);
+    }
+
+    // Read a response that has both Content-Length and Transfer-Encoding instead of failing with a parse error
+    if (acceptContentLengthWithTransferEncoding) {
+      allowContentLengthWithTransferEncoding(config);
     }
 
     config.metadata.timeline = timeline;
