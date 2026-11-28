@@ -14,7 +14,7 @@ const {
   formatSearchRequestsResult
 } = require('./context');
 const { getPreferences } = require('../../store/preferences');
-const { resolveMaxOutputTokens } = require('./providers');
+const { API_FORMATS, resolveMaxOutputTokens } = require('./providers');
 
 const getSecurityPrefs = () => get(getPreferences(), 'ai.security', null);
 
@@ -110,7 +110,18 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
   });
 
   ipcMain.on('renderer:ai-chat-stream', async (_event, payload) => {
-    const { messages, allContent, contentType, requestContext, variables, requests, requestId, model: modelId, appEnabled } = payload || {};
+    const {
+      messages,
+      allContent,
+      contentType,
+      requestContext,
+      variables,
+      requests,
+      requestId,
+      model: modelId,
+      modelApiFormat,
+      appEnabled
+    } = payload || {};
 
     const send = (channel, data) => {
       if (mainWindow?.webContents && !mainWindow.webContents.isDestroyed()) {
@@ -128,6 +139,10 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
     }
     if (!Array.isArray(messages)) {
       send('main:ai-chat-error', { requestId, error: 'Invalid request: messages must be an array' });
+      return;
+    }
+    if (modelApiFormat !== undefined && modelApiFormat !== null && !API_FORMATS.includes(modelApiFormat)) {
+      send('main:ai-chat-error', { requestId, error: `Invalid request: unsupported API format "${modelApiFormat}"` });
       return;
     }
 
@@ -149,7 +164,7 @@ const registerChatIpc = ({ mainWindow, resolveModel, pickDefaultModelId, isAiEna
 
     let model;
     try {
-      model = resolveModel(effectiveModelId);
+      model = resolveModel(effectiveModelId, { apiFormatOverride: modelApiFormat });
     } catch (err) {
       send('main:ai-chat-error', { requestId, error: err.message });
       return;

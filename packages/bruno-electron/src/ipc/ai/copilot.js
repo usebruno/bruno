@@ -1,4 +1,5 @@
 const { app, ipcMain } = require('electron');
+const { wrapLanguageModel } = require('ai');
 const { createOpenAI } = require('@ai-sdk/openai');
 const { aiCopilotStore } = require('../../store/ai-copilot');
 const { aiKeyStore } = require('../../store/ai-keys');
@@ -136,6 +137,14 @@ const isStreamingChatModel = (model) => Boolean(model?.id)
 
 const isOfferedByGitHub = (model) => model.policy?.state === 'enabled' || model.model_picker_enabled === true;
 
+// The Responses API is used whenever a model lists it: some models that also list Chat Completions
+// reject it with `no_available_model_endpoints`. Models without `supported_endpoints` predate the
+// Responses API and only serve Chat Completions.
+const copilotApiFormat = (model) => {
+  const { supported_endpoints: endpoints } = model || {};
+  return Array.isArray(endpoints) && endpoints.includes('/responses') ? 'responses' : 'chat-completions';
+};
+
 const toCatalogModel = (model) => {
   const multiplier = Number(model?.billing?.multiplier);
   const maxOutputTokens = Number(model?.capabilities?.limits?.max_output_tokens);
@@ -144,7 +153,8 @@ const toCatalogModel = (model) => {
     label: model.name || model.id,
     reasoning: supportsReasoning(model),
     maxOutputTokens: Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 ? maxOutputTokens : 0,
-    multiplier: Number.isFinite(multiplier) ? multiplier : 1
+    multiplier: Number.isFinite(multiplier) ? multiplier : 1,
+    apiFormat: copilotApiFormat(model)
   };
 };
 
@@ -235,11 +245,14 @@ const findCopilotModel = (brunoModelId) => {
   return getCopilotCatalog().models.find((m) => m.modelId === copilotModelId) || null;
 };
 
+// Chat Completions sends the conversation as `messages`, the Responses API as `input`. A turn
+// ending in a tool result (`tool` message / `function_call_output` item) is an agent follow-up.
 const isUserInitiatedRequest = (body) => {
   if (typeof body !== 'string') return true;
   try {
-    const { messages } = JSON.parse(body);
-    const last = Array.isArray(messages) ? messages[messages.length - 1] : null;
+    const { messages, input } = JSON.parse(body);
+    const conversation = Array.isArray(messages) ? messages : input;
+    const last = Array.isArray(conversation) ? conversation[conversation.length - 1] : null;
     return !last || last.role === 'user';
   } catch (err) {
     return true;
@@ -285,6 +298,27 @@ const createCopilotSdk = ({ token, apiEndpoint }) => createOpenAI({
   },
   fetch: copilotFetch
 });
+
+// Copilot doesn't keep Responses API items between requests, so the SDK's default `item_reference`
+// to an earlier turn fails (surfacing as a misleading 503 `model_overloaded`). Every turn is sent
+// inline instead, with reasoning carried forward as encrypted content.
+const statelessResponsesMiddleware = {
+  specificationVersion: 'v3',
+  transformParams: async ({ params }) => {
+    const { providerOptions = {} } = params;
+    const { openai = {} } = providerOptions;
+    const include = [...new Set([...(openai.include || []), 'reasoning.encrypted_content'])];
+    return {
+      ...params,
+      providerOptions: { ...providerOptions, openai: { ...openai, store: false, include } }
+    };
+  }
+};
+
+const createCopilotLanguageModel = (sdk, { modelId, apiFormat }) => {
+  if (apiFormat !== 'responses') return sdk.chat(modelId);
+  return wrapLanguageModel({ model: sdk.responses(modelId), middleware: statelessResponsesMiddleware });
+};
 
 let lastError = null;
 let pendingSignIn = null;
@@ -454,7 +488,10 @@ module.exports = {
   resolveCopilotToken,
   getCopilotCatalog,
   findCopilotModel,
+  normalizeModelCatalog,
+  isUserInitiatedRequest,
   createCopilotSdk,
+  createCopilotLanguageModel,
   getCopilotState,
   refreshModels,
   registerCopilotIpc
