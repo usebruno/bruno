@@ -111,6 +111,14 @@ export const searchInFileMode = async (page: Page, term: string) => {
   });
 };
 
+// Press Cmd/Ctrl-F wherever focus is now (works whether the search bar is open or not).
+export const pressFindInFileMode = async (page: Page) => {
+  await test.step('Press Cmd/Ctrl+F', async () => {
+    await page.keyboard.press(findShortcut);
+    await buildFileModeLocators(page).search.bar().waitFor({ state: 'visible' });
+  });
+};
+
 // Close the in-editor search box via Escape.
 export const closeFileModeSearch = async (page: Page) => {
   await test.step('Close file-mode search', async () => {
