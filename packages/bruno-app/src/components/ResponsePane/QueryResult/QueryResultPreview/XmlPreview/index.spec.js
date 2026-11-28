@@ -9,10 +9,10 @@ const CANNOT_PREVIEW_TITLE = 'Cannot preview as XML';
 const PARSE_ERROR_MESSAGE = 'Failed to parse XML string. Invalid XML format.';
 const INVALID_INPUT_MESSAGE = 'Invalid input. Expected an XML string.';
 
-const renderXmlPreview = (data) =>
+const renderXmlPreview = (data, contentType) =>
   render(
     <ThemeProvider theme={darkTheme}>
-      <XmlPreview data={data} />
+      <XmlPreview data={data} contentType={contentType} />
     </ThemeProvider>
   );
 
@@ -56,6 +56,41 @@ describe('XmlPreview', () => {
 
       expect(screen.getByText('Bob')).toBeInTheDocument();
       expect(screen.getByText('42')).toBeInTheDocument();
+    });
+  });
+
+  describe('MTOM/XOP multipart responses', () => {
+    const boundary = 'MIMEBoundary_6dede28bbb936f74e760b0f330c8d24abbf13537c40601ce';
+    const mtomResponse = [
+      `--${boundary}`,
+      'Content-Type: application/xop+xml; charset=utf-8; type="text/xml"',
+      'Content-Transfer-Encoding: binary',
+      'Content-ID: <0.1dede28bbb936f74e760b0f330c8d24abbf13537c40601ce@apache.org>',
+      '',
+      '<?xml version="1.0" encoding="utf-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body><getUserResponse><name>Bob</name></getUserResponse></soapenv:Body></soapenv:Envelope>',
+      `--${boundary}--`,
+      ''
+    ].join('\r\n');
+
+    it('renders the SOAP envelope of the XML root part', () => {
+      renderXmlPreview(mtomResponse);
+
+      expect(screen.getByText('soapenv:Envelope')).toBeInTheDocument();
+      expect(screen.getByText('soapenv:Body')).toBeInTheDocument();
+      expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
+    });
+
+    it('uses the response Content-Type to find the root part after a preamble', () => {
+      renderXmlPreview(`preamble\r\n${mtomResponse}`, `multipart/related; type="application/xop+xml"; boundary="${boundary}"; start="<0.1dede28bbb936f74e760b0f330c8d24abbf13537c40601ce@apache.org>"`);
+
+      expect(screen.getByText('soapenv:Envelope')).toBeInTheDocument();
+      expect(screen.queryByTestId('error-banner')).not.toBeInTheDocument();
+    });
+
+    it('shows the cannot-preview banner when the multipart body has no XML part', () => {
+      renderXmlPreview([`--${boundary}`, 'Content-Type: text/plain', '', 'hello', `--${boundary}--`].join('\r\n'));
+
+      expectErrorBanner(CANNOT_PREVIEW_TITLE, PARSE_ERROR_MESSAGE);
     });
   });
 
