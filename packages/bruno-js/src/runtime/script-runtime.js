@@ -9,6 +9,7 @@ const { runScriptInNodeVm } = require('../sandbox/node-vm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 const { SANDBOX } = require('../utils/sandbox');
 const { bindRunRequest, createScopeSetter } = require('./scripted-entries');
+const { createScriptConsole } = require('./script-console');
 
 class ScriptRuntime {
   constructor(props) {
@@ -72,18 +73,7 @@ class ScriptRuntime {
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        debug: customLogger('debug'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        error: customLogger('error')
-      };
+      context.console = createScriptConsole(onConsoleLog);
     }
 
     bindRunRequest(bru, runRequestByItemPathname);
@@ -225,18 +215,7 @@ class ScriptRuntime {
     };
 
     if (onConsoleLog && typeof onConsoleLog === 'function') {
-      const customLogger = (type) => {
-        return (...args) => {
-          onConsoleLog(type, cleanJson(args));
-        };
-      };
-      context.console = {
-        log: customLogger('log'),
-        info: customLogger('info'),
-        warn: customLogger('warn'),
-        error: customLogger('error'),
-        debug: customLogger('debug')
-      };
+      context.console = createScriptConsole(onConsoleLog);
     }
 
     bindRunRequest(bru, runRequestByItemPathname);
