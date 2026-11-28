@@ -45,6 +45,36 @@ describe('get', () => {
     expect(get(data, expr)).toEqual(result);
   });
 
+  it('safely handles null values during deep navigation', () => {
+    const dataWithNull = {
+      profile: null,
+      user: {
+        id: 1,
+        details: null,
+        sub: {
+          id: 2
+        }
+      }
+    };
+    expect(get(dataWithNull, '..id')).toEqual([1, 2]);
+    expect(get(null, 'user.id')).toBeNull();
+  });
+
+  it('correctly accesses properties starting with digits instead of treating them as array indices', () => {
+    const dataWithNumericKeys = {
+      auth: {
+        '2fa': 'enabled',
+        '3d_secure': true
+      },
+      stats: {
+        '100items': 'full'
+      }
+    };
+    expect(get(dataWithNumericKeys, 'auth.2fa')).toBe('enabled');
+    expect(get(dataWithNumericKeys, 'auth.3d_secure')).toBe(true);
+    expect(get(dataWithNumericKeys, 'stats.100items')).toBe('full');
+  });
+
   // filter and map
   it.each([
     ['..items[?].amount', [40], (i: any) => i.amount > 30], // [?] filter
@@ -58,3 +88,4 @@ describe('get', () => {
     expect(get(data, expr, filter)).toEqual(result);
   });
 });
+
