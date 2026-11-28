@@ -63,7 +63,8 @@ const {
   isValidDotEnvFilename,
   scanForBrunoFiles,
   withFileLock,
-  removeGitMetadata
+  removeGitMetadata,
+  posixifyPath
 } = require('../utils/filesystem');
 const { getCollectionConfigFile, openCollection, openCollectionsByPathname, registerScratchCollectionPath } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeStringifyJSON, safeParseJSON } = require('../utils/common');
@@ -2692,6 +2693,9 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       const tempDir = path.join(os.tmpdir(), `bruno_zip_import_${Date.now()}`);
       await fsExtra.ensureDir(tempDir);
 
+      const MAX_SYMLINK_PATH_LENGTH = 60;
+      const SYMLINK_PATH_HEAD_LENGTH = 20;
+
       // Validates that no symlinks point outside the base directory
       const validateNoExternalSymlinks = (dir, baseDir) => {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -2703,7 +2707,13 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
             const linkTarget = fs.readlinkSync(fullPath);
             const resolvedTarget = path.resolve(path.dirname(fullPath), linkTarget);
             if (!resolvedTarget.startsWith(baseDir + path.sep) && resolvedTarget !== baseDir) {
-              throw new Error(`Security error: Symlink "${entry.name}" points outside extraction directory`);
+              const symlinkPath = posixifyPath(path.relative(baseDir, fullPath));
+              // Shorten long paths in the middle so the top folder and the file name stay visible in the toast
+              const tailLength = MAX_SYMLINK_PATH_LENGTH - SYMLINK_PATH_HEAD_LENGTH - 3; // 3 is the length of "..."
+              const displayPath = symlinkPath.length > MAX_SYMLINK_PATH_LENGTH
+                ? `${symlinkPath.slice(0, SYMLINK_PATH_HEAD_LENGTH)}...${symlinkPath.slice(-tailLength)}`
+                : symlinkPath;
+              throw new Error(`The ZIP file contains a symlink "${displayPath}" that points outside the collection directory`);
             }
           }
 
