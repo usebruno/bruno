@@ -4,6 +4,7 @@ import type { Agent as HttpAgent } from 'node:http';
 import type { Agent as HttpsAgent } from 'node:https';
 import { withHybridKeyExchangeFallback, clearHybridKeyExchangeEndpoints, registerHybridSecureContext } from './hybrid-key-exchange';
 import { createTimelineAgentClass, createTimelineHttpAgentClass, type TimelineEntry, type AgentOptions, type HttpAgentOptions, type AgentClass, type HttpAgentClass } from './timeline-agent';
+import { withSocketHeaderSanitizer } from './socket-header-sanitizer';
 
 /**
  * Agent cache for SSL session reuse.
@@ -283,7 +284,11 @@ function getOrCreateAgentInternal<TOptions extends HttpAgentOptions>(
     return agent;
   }
 
-  const AgentClass = wrapAgentClass(timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass);
+  // Outermost sanitizer must wrap hybrid/timeline so it sees the final net/tls socket
+  // (Hybrid TLS fallback requires a real TLSSocket, not a stream façade).
+  // Order: Sanitizer(Hybrid(Timeline(Base))) or Sanitizer(Timeline(Base)) / Sanitizer(Base).
+  const BaseWithTimeline = timeline ? getTimelineClass(BaseAgentClass) : BaseAgentClass;
+  const AgentClass = withSocketHeaderSanitizer(wrapAgentClass(BaseWithTimeline));
   // Convert raw `ca` to a secureContext that adds CAs on top of OpenSSL defaults
   const resolvedOptions = applySecureContext(options);
 
