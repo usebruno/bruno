@@ -106,6 +106,15 @@ const getJsSandboxRuntime = (sandbox) => {
   return sandbox === 'safe' ? 'quickjs' : 'nodevm';
 };
 
+const rejectReservedNameOverride = (scopeLabel, name, override) => {
+  if (name !== '__name__') return;
+  console.error(
+    chalk.red(`__name__ holds the ${scopeLabel} name and cannot be overridden: `)
+    + chalk.dim(`${override}`)
+  );
+  process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -589,6 +598,7 @@ const handler = async function (argv) {
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
+          rejectReservedNameOverride('environment', match[1], value);
           envVars[match[1]] = match[2];
           envVarOverrides.set(match[1], match[2]);
         }
@@ -616,6 +626,7 @@ const handler = async function (argv) {
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
+          rejectReservedNameOverride('global environment', match[1], value);
           globalEnvVars[match[1]] = match[2];
           globalEnvVarOverrides.set(match[1], match[2]);
         }
