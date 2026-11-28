@@ -111,7 +111,7 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
       filename: '',
       requestType: getRequestType(collectionPresets),
       requestUrl: collectionPresets.requestUrl || '',
-      requestMethod: 'GET',
+      requestMethod: getRequestType(collectionPresets) === 'graphql-request' ? 'POST' : 'GET',
       curlCommand: ''
     },
     validationSchema: Yup.object({
@@ -331,7 +331,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="http-request"
                       checked={formik.values.requestType === 'http-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'GET');
+                      }}
                       data-testid="http-request"
                     />
                     <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
@@ -362,7 +365,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="grpc-request"
                       checked={formik.values.requestType === 'grpc-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'GET');
+                      }}
                       data-testid="grpc-request"
                     />
                     <label htmlFor="grpc-request" className="ml-1 cursor-pointer select-none">
@@ -377,7 +383,10 @@ const NewRequest = ({ collectionUid, item, isEphemeral, onClose }) => {
                       name="requestType"
                       value="ws-request"
                       checked={formik.values.requestType === 'ws-request'}
-                      onChange={formik.handleChange}
+                      onChange={(e) => {
+                        formik.handleChange(e);
+                        formik.setFieldValue('requestMethod', 'ws');
+                      }}
                       data-testid="ws-request"
                     />
                     <label htmlFor="ws-request" className="ml-1 cursor-pointer select-none">
