@@ -26,7 +26,7 @@ import {
 } from '@tabler/icons';
 import OpenAPISyncIcon from 'components/Icons/OpenAPISync';
 import { toggleCollection, collapseFullCollection, clearSidebarSelection } from 'providers/ReduxStore/slices/collections';
-import { mountCollection, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { mountCollection, openCollectionSettingsTab, moveCollectionAndPersist, handleMultipleCollectionItemsDrop, pasteItem, showInFolder, saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { addTab, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { setFocusedSidebarPath } from 'providers/ReduxStore/slices/app';
@@ -131,13 +131,13 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
 
   const ensureCollectionIsMounted = () => {
     if (collection.mountStatus === 'mounted' || collection.mountStatus === 'mounting') {
-      return;
+      return null;
     }
-    dispatch(mountCollection({
+    return dispatch(mountCollection({
       collectionUid: collection.uid,
       collectionPathname: collection.pathname,
       brunoConfig: collection.brunoConfig
-    }));
+    })).catch(() => {});
   };
 
   const hasSearchText = searchText && searchText?.trim()?.length;
@@ -167,13 +167,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
     }
 
     if (!isChevronClick) {
-      dispatch(
-        addTab({
-          uid: collection.uid,
-          collectionUid: collection.uid,
-          type: 'collection-settings'
-        })
-      );
+      return dispatch(openCollectionSettingsTab(collection.uid));
     }
   };
 
@@ -215,13 +209,7 @@ const CollectionRow = ({ collection, searchText, openBulkMenu, children, isColle
   };
 
   const viewCollectionSettings = () => {
-    dispatch(
-      addTab({
-        uid: collection.uid,
-        collectionUid: collection.uid,
-        type: 'collection-settings'
-      })
-    );
+    return dispatch(openCollectionSettingsTab(collection.uid));
   };
 
   const handleShowInFolder = () => {
