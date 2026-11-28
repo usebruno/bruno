@@ -128,6 +128,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               placeholder={useSystemBrowser ? 'https://oauth.usebruno.com/callback' : undefined}
               readOnly={readOnly}
               isCompact
+              stripNewlines
             />
           </div>
         </div>
@@ -170,6 +171,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
                 isSecret={isSecret}
                 readOnly={readOnly}
                 isCompact
+                stripNewlines
               />
             </div>
           </div>
@@ -218,6 +220,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
             item={item}
             readOnly={readOnly}
             isCompact
+            stripNewlines
           />
         </div>
       </div>
@@ -256,6 +259,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               item={item}
               readOnly={readOnly}
               isCompact
+              stripNewlines
             />
           </div>
         </div>
@@ -273,6 +277,7 @@ const OAuth2Implicit = ({ save, item = {}, request, handleRun, updateAuth, colle
               item={item}
               readOnly={readOnly}
               isCompact
+              stripNewlines
             />
           </div>
         </div>
