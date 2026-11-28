@@ -70,6 +70,7 @@ export const buildMockServerLocators = (page: Page) => ({
   logClear: () => page.getByTestId('mock-server-log-clear'),
   logEmptyState: () => page.getByText('No requests logged yet'),
   logRows: () => page.getByTestId('mock-server-log-table').locator('tr[data-testid^="mock-server-log-row-"]'),
+  expandedLogRow: () => page.getByTestId('mock-server-log-table').locator('tr.log-row-expanded'),
   logRowStatusCode: (row: Locator) => row.locator('.status-code'),
   logRowNoMatchLabel: (row: Locator) => row.locator('.no-match-label'),
   logMethodBadges: () => page.getByTestId('mock-server-log-table').locator('.method-badge'),

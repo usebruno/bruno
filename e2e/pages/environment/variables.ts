@@ -73,21 +73,23 @@ export type AddRowOptions = { valueFirst?: boolean };
  * @returns void
  */
 export const scrollEnvironmentTableTo = async (page: Page, target: Locator) => {
-  const isRendered = () => target.isVisible().catch(() => false);
-  if (await isRendered()) {
-    return;
-  }
-
   const scroller = buildLocators(page).environment.variablesScroller();
   await scroller.waitFor({ state: 'visible' });
 
   const viewports = await scroller.evaluate((element) => Math.ceil(element.scrollHeight / element.clientHeight));
   for (let viewport = 0; viewport <= viewports; viewport++) {
-    await scroller.evaluate((element, offset) => element.scrollTo({ top: offset * element.clientHeight }), viewport);
-    if (await isRendered()) {
-      return;
+    if (await target.isVisible()) {
+      break;
     }
+    await scroller.evaluate(async (element, offset) => {
+      element.scrollTop = offset * element.clientHeight;
+      // Let Virtuoso render the rows for the new scroll position.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    }, viewport);
   }
+
+  await target.waitFor({ state: 'visible' });
+  await target.evaluate((element) => element.scrollIntoView({ block: 'center' }));
 };
 
 /**
@@ -211,8 +213,7 @@ export const disableEnvironmentVariable = async (page: Page, name: string) => {
   await test.step(`Disable environment variable "${name}"`, async () => {
     const checkbox = buildLocators(page).environment.varRowEnabledCheckbox(name);
     await scrollEnvironmentTableTo(page, checkbox);
-    await checkbox.click();
-    await expect(checkbox).not.toBeChecked();
+    await checkbox.uncheck();
   });
 };
 

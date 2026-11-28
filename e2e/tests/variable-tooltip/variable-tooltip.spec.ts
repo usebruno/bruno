@@ -14,6 +14,7 @@ import {
   deleteAllGlobalEnvironments,
   setRequestUrlAndSave,
   openUrlVarTooltip,
+  openHeaderVarTooltip,
   dismissVarTooltip,
   openEnvValueVarTooltip,
   openCollectionSettings,
@@ -23,6 +24,7 @@ import {
   buildAutocompleteLocators,
   firstRenderedLine
 } from '../../pages';
+import { fillRequestHeaderName, fillRequestHeaderValue } from '../../pages/request/headers';
 import { SECRET_DATATYPE_CASES } from '../../constants';
 import { buildToastLocators } from '../../pages/app-shell/toast';
 
@@ -75,22 +77,11 @@ test.describe('Variable Tooltip', () => {
 
       await selectRequestPaneTab(page, 'Headers');
 
-      const headerTable = page.locator('table').first();
-      const headerRow = headerTable.locator('tbody tr').first();
-
-      const headerNameEditor = headerRow.locator('.CodeMirror').first();
-      await headerNameEditor.click();
-      await page.keyboard.type('Authorization');
-
-      const headerValueEditor = headerRow.locator('.CodeMirror').nth(1);
-      await headerValueEditor.click();
-      await page.keyboard.type('Bearer {{secretToken}}');
+      await fillRequestHeaderName(page, request.headers.addRow(), 'Authorization');
+      await fillRequestHeaderValue(page, request.headers.requestRow('Authorization'), 'Bearer {{secretToken}}');
       await page.keyboard.press(saveShortcut);
 
-      // Hover the secret token in the header value editor.
-      await request.headerVariableToken(headerRow, 'secretToken').hover();
-
-      const tooltip = varInfoPopup.all().first();
+      const tooltip = await openHeaderVarTooltip(page, 'Authorization', 'secretToken');
       await expect(tooltip).toBeVisible();
 
       // Verify masked (asterisks, not the actual value).

@@ -32,6 +32,7 @@ import {
   runCollection,
   saveEnvironment,
   saveRequest,
+  scrollEnvironmentTableTo,
   searchEnvironmentVariables,
   selectEnvironment,
   selectRequestBodyMode,
@@ -39,8 +40,8 @@ import {
   selectResponsePaneTab,
   sendRequest,
   setCodeMirrorEditorValue,
+  setCodeMirrorValue,
   setEnvironmentInheritance,
-  setEnvironmentVariableValue,
   setRequestUrlAndSave,
   validateRunnerResults,
   type EnvironmentVariable,
@@ -337,6 +338,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow(DEV.variables.typedOverride.name)).toHaveCount(0);
+      await scrollEnvironmentTableTo(page, environment.varRow(DEV.variables.typedOverride.name));
       await expect(environment.varRowLine(DEV.variables.typedOverride.name)).toHaveText(
         DEV.variables.typedOverride.value
       );
@@ -410,6 +412,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
       await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
 
       await expect(environment.detailsTitle()).toHaveText(BASE.name);
+      await scrollEnvironmentTableTo(page, environment.varRow(BASE.variables.baseOnly.name));
       await expect(environment.varRowLine(BASE.variables.baseOnly.name)).toHaveText(BASE.variables.baseOnly.value);
     });
   });
@@ -425,20 +428,28 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
       page,
       collectionName,
       await createTmpDir('workspace-inherited-source-guard'),
-      [BASE, DEV]
+      [
+        { ...BASE, variables: { baseOnly: BASE.variables.baseOnly } },
+        { ...DEV, variables: { overridden: DEV.variables.overridden } }
+      ]
     );
     await openEnvironmentInSettings(page, DEV.name, SCOPE);
 
-    await setEnvironmentVariableValue(page, DEV.variables.overridden.name, 'edited_but_unsaved');
+    await environment.variablesTab().click();
+    await searchEnvironmentVariables(page, DEV.variables.overridden.name);
+    await expect(environment.varRowLine(DEV.variables.overridden.name)).toHaveText(DEV.variables.overridden.value);
+    await setCodeMirrorValue(environment.varRowValueEditor(DEV.variables.overridden.name), 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
+    await searchEnvironmentVariables(page, BASE.variables.baseOnly.name);
     await environment.inheritedVarSource(BASE.variables.baseOnly.name).click();
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText(DEV.name);
+    await modal.closeButton().click();
+    await searchEnvironmentVariables(page, DEV.variables.overridden.name);
     await expect(environment.varRowLine(DEV.variables.overridden.name)).toHaveText('edited_but_unsaved');
 
-    await modal.closeButton().click();
     await environment.resetTab().click();
   });
 
@@ -553,6 +564,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
     await expect(environment.varRow(BASE.variables.baseOnly.name)).toHaveCount(0);
 
     // `workspace_session_id` was written with a different value, so it becomes a row of its own.
+    await scrollEnvironmentTableTo(page, environment.varRow(BASE.variables.sessionId.name));
     await expect(environment.varRowLine(BASE.variables.sessionId.name)).toHaveText('script_session');
     await expect(environment.inheritedVarRow(BASE.variables.sessionId.name)).toHaveCount(0);
 
@@ -594,6 +606,7 @@ test.describe('Workspace environment inheritance, authored in the app', () => {
       await expect(environment.globalEnvTab()).toBeVisible();
       await expect(environment.detailsTitle()).toHaveText(BASE.name);
       await expect(environment.variablesTab()).toHaveClass(/active/);
+      await scrollEnvironmentTableTo(page, environment.varRow(BASE.variables.host.name));
       await expect(environment.varRowLine(BASE.variables.host.name)).toHaveText(BASE.variables.host.value);
       await expect(environment.inheritedVarRow(BASE.variables.host.name)).toHaveCount(0);
     });

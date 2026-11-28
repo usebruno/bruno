@@ -86,8 +86,8 @@ const trySelectPaneTabOnce = async (page: Page, paneSelector: string, tabName: s
 export const selectPaneTab = async (page: Page, paneSelector: string, tabName: string) => {
   await test.step(`Select tab "${tabName}" in ${paneSelector}`, async () => {
     const pane = page.locator(paneSelector);
-    await expect(pane).toBeVisible();
-    await expect(pane.locator('.tabs')).toBeVisible();
+    const tabs = pane.getByRole('tablist').first();
+    await tabs.waitFor({ state: 'visible' });
 
     // await expect
     //   .poll(
@@ -100,8 +100,8 @@ export const selectPaneTab = async (page: Page, paneSelector: string, tabName: s
     //   )
     //   .toBe(true);
 
-    const visibleTab = pane.locator('.tabs').getByRole('tab', { name: tabName });
-    const overflowButton = pane.getByTestId('responsive-tabs-more');
+    const visibleTab = tabs.getByRole('tab', { name: tabName });
+    const overflowButton = tabs.getByTestId('responsive-tabs-more');
 
     // ResponsiveTabs recalculates layout via ResizeObserver/rAF, so the tab or
     // the overflow trigger can detach mid-click. Retry the whole sequence so a

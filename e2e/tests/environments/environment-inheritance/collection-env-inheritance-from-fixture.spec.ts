@@ -19,6 +19,7 @@ import {
   renameEnvironment,
   runCollection,
   saveEnvironment,
+  scrollEnvironmentTableTo,
   searchEnvironmentVariables,
   selectEnvironment,
   selectResponsePaneTab,
@@ -147,6 +148,7 @@ test.describe('Collection environment inheritance', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow('typed_override')).toHaveCount(0);
+      await scrollEnvironmentTableTo(page, environment.varRow('typed_override'));
       await expect(environment.varRowLine('typed_override')).toHaveText('overridden_in_dev');
       await expect(dataTypeSelector.typeLabel(environment.varRow('typed_override'))).toHaveAttribute(
         'data-selected-type',
@@ -230,10 +232,12 @@ test.describe('Collection environment inheritance', () => {
     await setEnvironmentVariableValue(page, 'dev_only', 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
+    await scrollEnvironmentTableTo(page, environment.inheritedVarRow('base_only'));
     await environment.inheritedVarSource('base_only').click();
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('dev');
+    await scrollEnvironmentTableTo(page, environment.varRow('dev_only'));
     await expect(environment.varRowLine('dev_only')).toHaveText('edited_but_unsaved');
 
     await modal.closeButton().click();
@@ -344,6 +348,7 @@ test.describe('Collection environment inheritance', () => {
     await expect(environment.varRow('base_only')).toHaveCount(0);
 
     // `session_id` was written with a different value, so it becomes a row of its own.
+    await scrollEnvironmentTableTo(page, environment.varRow('session_id'));
     await expect(environment.varRowLine('session_id')).toHaveText('script_session');
     await expect(environment.inheritedVarRow('session_id')).toHaveCount(0);
 

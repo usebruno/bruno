@@ -3,6 +3,7 @@ import { buildRequestLocators } from './pane';
 import { openCollectionSettings, selectCollectionPaneTab } from '../collection/settings';
 import { openFolderSettings, selectfolderPaneTab } from '../folder/settings';
 import { saveSettings } from '../shared-ui/settings-pane';
+import { dismissCodeEditorHints } from '../shared-ui/code-editor-hints';
 
 /**
  * Type a header name into an EditableTable Name cell (CodeMirror).
@@ -11,6 +12,7 @@ export const fillRequestHeaderName = async (page: Page, row: Locator, name: stri
   const nameEditor = row.getByTestId('column-name').locator('.CodeMirror');
   await nameEditor.click();
   await page.keyboard.type(name);
+  await dismissCodeEditorHints(page);
 };
 
 /**

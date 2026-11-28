@@ -3,10 +3,11 @@ import { test, expect, closeElectronApp } from '../../playwright';
 import {
   createCollection,
   createRequest,
+  openCollectionFromDialog,
   openRequest,
   openWorkspaceFromDialog
 } from '../../pages';
-import { waitForReadyPage } from '../../utils';
+import { findSnapshotCollectionEntry, readSnapshot, seedYamlCollection, waitForReadyPage } from '../../utils';
 import fs from 'fs';
 
 const buildWorkspaceYml = (workspaceName: string) => [
@@ -157,40 +158,42 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
   });
 
   test('does not restore stale tabs from deleted workspace and remains interactive', async ({ launchElectronApp, createTmpDir }) => {
+    // Windows launches Electron again after deleting the workspace and opens a request in the fallback workspace.
+    if (process.platform === 'win32') {
+      test.setTimeout(45_000);
+    }
+
     const userDataPath = await createTmpDir('snap-workspace-stale-tabs-deleted');
     const workspacePath = await createTmpDir('demo-workspace-stale-tabs');
     const defaultCollectionPath = await createTmpDir('default-workspace-col-stale-tabs');
     const deletedWorkspaceCollectionPath = await createTmpDir('deleted-workspace-col');
 
+    await seedYamlCollection(defaultCollectionPath, 'Default Workspace Col', ['Default Workspace Req']);
+    await seedYamlCollection(deletedWorkspaceCollectionPath, 'Deleted Workspace Col', ['Deleted Workspace Req']);
     fs.writeFileSync(path.join(workspacePath, 'workspace.yml'), buildWorkspaceYml('Demo Workspace'));
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    await test.step('Create request in default workspace', async () => {
-      await createCollection(page, 'Default Workspace Col', defaultCollectionPath);
-      await createRequest(page, 'Default Workspace Req', 'Default Workspace Col', {
-        url: 'https://echo.usebruno.com',
-        method: 'GET'
-      });
+    await test.step('Open request in default workspace', async () => {
+      await openCollectionFromDialog(page, app, defaultCollectionPath);
       await openRequest(page, 'Default Workspace Col', 'Default Workspace Req', { persist: true });
     });
 
     await test.step('Switch to demo workspace and open a request there', async () => {
       await openWorkspaceFromDialog(app, page, workspacePath);
       await expect(page.getByTestId('workspace-name')).toHaveText('Demo Workspace', { timeout: 10000 });
-
-      await createCollection(page, 'Deleted Workspace Col', deletedWorkspaceCollectionPath);
-      await createRequest(page, 'Deleted Workspace Req', 'Deleted Workspace Col', {
-        url: 'https://echo.usebruno.com',
-        method: 'GET'
-      });
+      await openCollectionFromDialog(page, app, deletedWorkspaceCollectionPath);
       await openRequest(page, 'Deleted Workspace Col', 'Deleted Workspace Req', { persist: true });
       await expect(page.getByRole('tab', { name: 'Deleted Workspace Req' })).toBeVisible({ timeout: 10000 });
     });
 
     await test.step('Close app, delete active workspace, and verify stale tab is not restored', async () => {
-      await page.waitForTimeout(2000);
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        const entry = findSnapshotCollectionEntry(snapshot, deletedWorkspaceCollectionPath, workspacePath);
+        return [path.normalize(snapshot?.activeWorkspacePath ?? ''), path.normalize(entry?.activeTab?.value ?? '')];
+      }).toEqual([workspacePath, path.join(deletedWorkspaceCollectionPath, 'Deleted Workspace Req.yml')]);
       await closeElectronApp(app);
 
       await fs.promises.rm(workspacePath, { recursive: true, force: true });
@@ -209,6 +212,11 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
   });
 
   test('falls back when active workspace and active tab belong to malformed workspace snapshot', async ({ launchElectronApp, createTmpDir }) => {
+    // This scenario creates the active tab, then starts a fresh Electron process to restore it.
+    if (process.platform === 'win32') {
+      test.setTimeout(45_000);
+    }
+
     const userDataPath = await createTmpDir('snap-workspace-malformed-with-active-tab');
     const workspacePath = await createTmpDir('demo-workspace-malformed-active-tab');
     const defaultCollectionPath = await createTmpDir('default-workspace-col-malformed-active-tab');
@@ -240,7 +248,14 @@ test.describe('Snapshot: Deleted Workspace Restoration', () => {
       await openRequest(page, 'Malformed Workspace Col', 'Malformed Workspace Req', { persist: true });
       await expect(page.getByRole('tab', { name: 'Malformed Workspace Req' })).toBeVisible({ timeout: 10000 });
 
-      await page.waitForTimeout(2000);
+      const collectionPath = path.join(malformedWorkspaceCollectionPath, 'Malformed Workspace Col');
+      const requestPath = path.join(collectionPath, 'Malformed Workspace Req.yml');
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        const entry = findSnapshotCollectionEntry(snapshot, collectionPath);
+        const activeTabPath = entry?.activeTab?.value;
+        return typeof activeTabPath === 'string' ? path.normalize(activeTabPath) : null;
+      }).toBe(requestPath);
       await closeElectronApp(app);
     });
 

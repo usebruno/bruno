@@ -44,6 +44,12 @@ export const buildDocsLocators = (page: Page) => ({
   linkHoverUnlinkBtn: () => page.getByTestId('link-hover-unlink-btn')
 });
 
+/** Select a line of text in the rich-text editor by triple-clicking it. */
+export const selectRichTextLine = async (page: Page, text: string) => {
+  const line = buildDocsLocators(page).proseMirror().getByText(text, { exact: true });
+  await line.click({ clickCount: 3 });
+};
+
 /**
  * Locators for the Generate Documentation modal.
  */

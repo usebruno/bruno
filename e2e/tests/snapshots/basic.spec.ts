@@ -11,21 +11,13 @@ import {
   createRequest,
   openRequest,
   openCollection,
+  openCollectionFromDialog,
+  openWorkspaceFromDialog,
   switchWorkspace,
   selectRequestPaneTab,
   buildCommonLocators
 } from '../../pages';
-import { waitForReadyPage } from '../../utils';
-
-/**
- * Helper: read the snapshot JSON from the user data directory.
- * electron-store saves it as `ui-state-snapshot.json`.
- */
-const readSnapshot = (userDataPath: string) => {
-  const snapshotPath = path.join(userDataPath, 'ui-state-snapshot.json');
-  if (!fs.existsSync(snapshotPath)) return null;
-  return JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-};
+import { createWorkspaceFromYml, findSnapshotCollectionEntry, readSnapshot, seedYamlCollection, waitForReadyPage } from '../../utils';
 
 const clickCollectionsSortAction = async (page: Page, times: number = 1) => {
   for (let i = 0; i < times; i += 1) {
@@ -550,69 +542,43 @@ test.describe('Snapshot: Multi-Workspace Tab Isolation', () => {
   });
 
   test('same collection in two workspaces keeps tabs isolated after restart', async ({ launchElectronApp, createTmpDir }) => {
-    const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
-    const sharedColPath = await createTmpDir('shared-col');
-    const workspaceBPath = await createTmpDir('workspace-b-shared-col');
+    // Windows launches two Electron processes and restores the tab in each workspace.
+    if (process.platform === 'win32') {
+      test.setTimeout(45_000);
+    }
 
-    const WORKSPACE_YML = [
-      'opencollection: 1.0.0',
-      'info:',
-      '  name: WorkspaceB',
-      '  type: workspace',
-      'collections:',
-      'specs: []',
-      'docs: \'\'',
-      ''
-    ].join('\n');
-    fs.writeFileSync(path.join(workspaceBPath, 'workspace.yml'), WORKSPACE_YML);
+    const userDataPath = await createTmpDir('snap-tab-isolation-shared-col');
+    const sharedCollectionPath = await createTmpDir('shared-col');
+    await seedYamlCollection(sharedCollectionPath, 'SharedCol', ['ReqA', 'ReqB']);
+    const workspaceBPath = await createWorkspaceFromYml(createTmpDir, 'workspace-b-shared-col', 'WorkspaceB');
 
     const app = await launchElectronApp({ userDataPath });
     const page = await waitForReadyPage(app);
 
-    await test.step('Create shared collection in default workspace and open ReqA', async () => {
-      await createCollection(page, 'SharedCol', sharedColPath);
-      await createRequest(page, 'ReqA', 'SharedCol', { url: 'https://echo.usebruno.com', method: 'GET' });
-      await createRequest(page, 'ReqB', 'SharedCol', { url: 'https://echo.usebruno.com', method: 'GET' });
+    await test.step('Open shared collection in default workspace and open ReqA', async () => {
+      await openCollectionFromDialog(page, app, sharedCollectionPath);
       await openRequest(page, 'SharedCol', 'ReqA', { persist: true });
     });
 
-    const sharedCollectionPath = path.join(sharedColPath, 'SharedCol');
-
-    await test.step('Open WorkspaceB and add the same collection path', async () => {
-      await app.evaluate(
-        ({ dialog }, targetPath: string) => {
-          (dialog as any).showOpenDialog = () =>
-            Promise.resolve({ canceled: false, filePaths: [targetPath] });
-        },
-        workspaceBPath
-      );
-      await page.getByTestId('workspace-menu').click();
-      await page.locator('.dropdown-item').filter({ hasText: 'Open workspace' }).click();
+    await test.step('Open WorkspaceB and open ReqB from the same collection', async () => {
+      await openWorkspaceFromDialog(app, page, workspaceBPath);
       await expect(page.getByTestId('workspace-name')).toHaveText('WorkspaceB', { timeout: 10000 });
-
-      await app.evaluate(
-        ({ dialog }, targetPath: string) => {
-          (dialog as any).showOpenDialog = () =>
-            Promise.resolve({ canceled: false, filePaths: [targetPath] });
-        },
-        sharedCollectionPath
-      );
-
-      await page.getByTestId('collections-header-add-menu').click();
-      await page.locator('.tippy-box .dropdown-item').filter({ hasText: 'Open collection' }).click();
-
-      const locators = buildCommonLocators(page);
-      await expect(locators.sidebar.collection('SharedCol')).toBeVisible({ timeout: 10000 });
-    });
-
-    await test.step('In WorkspaceB open ReqB', async () => {
+      await openCollectionFromDialog(page, app, sharedCollectionPath);
       await openCollection(page, 'SharedCol');
       await openRequest(page, 'SharedCol', 'ReqB', { persist: true });
     });
 
     await test.step('Close and restart app', async () => {
-      // snapshot saving is done in the background at 1000ms debounce
-      await page.waitForTimeout(2000);
+      await expect.poll(() => {
+        const snapshot = readSnapshot(userDataPath);
+        return [
+          path.normalize(snapshot?.activeWorkspacePath ?? ''),
+          path.normalize(findSnapshotCollectionEntry(snapshot, sharedCollectionPath, workspaceBPath)?.activeTab?.value ?? '')
+        ];
+      }).toEqual([
+        workspaceBPath,
+        path.join(sharedCollectionPath, 'ReqB.yml')
+      ]);
       await closeElectronApp(app);
     });
 

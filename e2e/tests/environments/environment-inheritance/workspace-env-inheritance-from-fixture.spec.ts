@@ -17,6 +17,7 @@ import {
   renameEnvironment,
   runCollection,
   saveEnvironment,
+  scrollEnvironmentTableTo,
   searchEnvironmentVariables,
   selectEnvironment,
   selectResponsePaneTab,
@@ -105,6 +106,7 @@ test.describe('Workspace environment inheritance', () => {
 
     await test.step('An own row replaces the inherited data type, not just the value', async () => {
       await expect(environment.inheritedVarRow('workspace_typed_override')).toHaveCount(0);
+      await scrollEnvironmentTableTo(page, environment.varRow('workspace_typed_override'));
       await expect(environment.varRowLine('workspace_typed_override')).toHaveText('overridden_in_workspace_dev');
       await expect(
         dataTypeSelector.typeLabel(environment.varRow('workspace_typed_override'))
@@ -194,10 +196,12 @@ test.describe('Workspace environment inheritance', () => {
     await setEnvironmentVariableValue(page, 'workspace_overridden', 'edited_but_unsaved');
     await expect(environment.tabCount('variables')).toHaveClass(/unsaved/);
 
+    await scrollEnvironmentTableTo(page, environment.inheritedVarRow('workspace_base_only'));
     await environment.inheritedVarSource('workspace_base_only').click();
 
     await expect(modal.byTitle('Unsaved changes')).toBeVisible();
     await expect(environment.detailsTitle()).toHaveText('workspace_dev');
+    await scrollEnvironmentTableTo(page, environment.varRow('workspace_overridden'));
     await expect(environment.varRowLine('workspace_overridden')).toHaveText('edited_but_unsaved');
 
     await modal.closeButton().click();
@@ -319,6 +323,7 @@ test.describe('Workspace environment inheritance', () => {
     await expect(environment.varRow('workspace_base_only')).toHaveCount(0);
 
     // `workspace_session_id` was written with a different value, so it becomes a row of its own.
+    await scrollEnvironmentTableTo(page, environment.varRow('workspace_session_id'));
     await expect(environment.varRowLine('workspace_session_id')).toHaveText('script_session');
     await expect(environment.inheritedVarRow('workspace_session_id')).toHaveCount(0);
 
