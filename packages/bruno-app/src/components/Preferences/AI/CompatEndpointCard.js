@@ -160,6 +160,8 @@ const CompatEndpointCard = ({
         onClick={() => setExpanded(!expanded)}
         role="button"
         tabIndex={0}
+        aria-expanded={expanded}
+        data-testid={`ai-endpoint-${endpoint.id}-header`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();

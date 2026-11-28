@@ -1,0 +1,57 @@
+{
+  "preferences": {
+    "onboarding": {
+      "hasLaunchedBefore": true,
+      "hasSeenWelcomeModal": true
+    },
+    "request": {
+      "sslVerification": true,
+      "customCaCertificate": {
+        "enabled": {{customCaEnabled}},
+        "filePath": "{{customCaFilePath}}"
+      },
+      "keepDefaultCaCertificates": {
+        "enabled": true
+      }
+    },
+    "proxy": {
+      "source": "{{proxySource}}",
+      "disabled": {{proxyDisabled}},
+      "pac": {
+        "source": "{{pacUrl}}"
+      },
+      "config": {
+        "protocol": "http",
+        "hostname": "127.0.0.1",
+        "port": {{proxyPort}},
+        "auth": {
+          "username": "",
+          "password": ""
+        },
+        "bypassProxy": "{{proxyBypass}}"
+      }
+    },
+    "ai": {
+      "enabled": true,
+      "providers": {
+        "openai-compatible:private-gateway": {
+          "enabled": true
+        }
+      },
+      "openaiCompatibleEndpoints": [
+        {
+          "id": "private-gateway",
+          "name": "Private gateway",
+          "baseURL": "https://localhost:{{endpointPort}}{{endpointBasePath}}",
+          "models": [
+            {
+              "id": "private-gateway:test-model",
+              "label": "Test model",
+              "modelId": "test-model"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
