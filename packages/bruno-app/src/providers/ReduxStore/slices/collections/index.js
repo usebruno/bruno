@@ -1,7 +1,7 @@
 import { parseQueryParams, buildQueryString as stringifyQueryParams, getDataTypeFromValue, parseValueByDataType, resolveEnvironmentInheritance } from '@usebruno/common/utils';
 import { uuid } from 'utils/common';
 import { find, map, concat, filter, each, cloneDeep, get, set, pick, isEqual } from 'lodash';
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, current } from '@reduxjs/toolkit';
 import { hexy as hexdump } from 'hexy';
 import {
   areItemsTheSameExceptSeqUpdate,
@@ -13,6 +13,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  flattenItems,
   isItemAFolder,
   isItemARequest
 } from 'utils/collections';
@@ -252,6 +253,23 @@ const applyDataType = (variable, dataType) => {
   }
 
   return variable;
+};
+
+const acknowledgeSavedDraft = (item, savedDraft) => {
+  if (!item || !item.draft || !savedDraft) {
+    return;
+  }
+
+  item.request = savedDraft.request;
+  if (savedDraft.settings) {
+    item.settings = savedDraft.settings;
+  }
+  if (savedDraft.app) {
+    item.app = savedDraft.app;
+  }
+  if (isEqual(current(item.draft), savedDraft)) {
+    item.draft = null;
+  }
 };
 
 export const collectionsSlice = createSlice({
@@ -978,21 +996,24 @@ export const collectionsSlice = createSlice({
       }
     },
     saveRequest: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const { collectionUid, itemUid, savedDraft } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        acknowledgeSavedDraft(findItemInCollection(collection, itemUid), savedDraft);
+      }
+    },
+    saveRequests: (state, action) => {
+      const { collectionUid, savedDrafts } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
-        if (item && item.draft) {
-          item.request = item.draft.request;
-          if (item.draft.settings) {
-            item.settings = item.draft.settings;
+      if (collection) {
+        const savedDraftsByItemUid = new Map(savedDrafts.map(({ itemUid, savedDraft }) => [itemUid, savedDraft]));
+        flattenItems(collection.items).forEach((item) => {
+          if (savedDraftsByItemUid.has(item.uid)) {
+            acknowledgeSavedDraft(item, savedDraftsByItemUid.get(item.uid));
           }
-          if (item.draft.app) {
-            item.app = item.draft.app;
-          }
-          item.draft = null;
-        }
+        });
       }
     },
     deleteRequestDraft: (state, action) => {
@@ -4364,6 +4385,7 @@ export const {
   clearTimeline,
   clearRequestTimeline,
   saveRequest,
+  saveRequests,
   deleteRequestDraft,
   saveCollectionDraft,
   saveFolderDraft,

@@ -1,6 +1,7 @@
 import { Page, test } from '../../playwright';
 
 export const buildTitleBarLocators = (page: Page) => ({
+  homeButton: () => page.getByRole('button', { name: 'Home', exact: true }),
   workspaceMenuTrigger: () => page.getByTestId('workspace-menu'),
   activeWorkspaceName: () => page.getByTestId('workspace-menu').getByTestId('workspace-name'),
   createWorkspaceOption: () => page.getByTestId('workspace-menu-create-workspace'),

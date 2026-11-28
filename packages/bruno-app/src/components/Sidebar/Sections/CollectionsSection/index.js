@@ -13,13 +13,14 @@ import {
   IconSortDescendingLetters,
   IconSquareX,
   IconBox,
+  IconChecks,
   IconTerminal2
 } from '@tabler/icons';
 
-import { importCollection, importCollectionFromZip, newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { importCollection, importCollectionFromZip, newHttpRequest, saveAllWorkspaceDrafts } from 'providers/ReduxStore/slices/collections/actions';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/index';
 import { savePreferences, setIsCreatingCollection, setIsOpeningCollection, toggleSidebarSearch } from 'providers/ReduxStore/slices/app';
-import { flattenItems, isItemTransientRequest, getWorkspaceCollections } from 'utils/collections';
+import { flattenItems, isItemTransientRequest, getWorkspaceCollections, hasWorkspaceDrafts } from 'utils/collections';
 import { selectCollections, selectCollectionSortOrder, selectActiveWorkspace } from 'src/selectors/collections';
 import { sanitizeName } from 'utils/common/regex';
 import filter from 'lodash/filter';
@@ -46,6 +47,15 @@ const CollectionsSection = () => {
   const showSearch = useSelector((state) => state.app.showSidebarSearch);
 
   const activeWorkspace = useSelector(selectActiveWorkspace);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const hasUnsavedChanges = useSelector((state) =>
+    actionsMenuOpen
+    && hasWorkspaceDrafts({
+      collections: selectCollections(state),
+      workspaces: state.workspaces.workspaces,
+      activeWorkspace: selectActiveWorkspace(state)
+    })
+  );
 
   const store = useStore();
   const collectionSortOrder = useSelector(selectCollectionSortOrder);
@@ -288,6 +298,16 @@ const CollectionsSection = () => {
       onClick: () => {
         openDevtoolsAndSwitchToTerminal(dispatch, activeWorkspace?.pathname);
       }
+    },
+    {
+      id: 'save-all',
+      leftSection: IconChecks,
+      label: 'Save all',
+      shortcut: getKeybindingDisplayText('saveAllWorkspace'),
+      disabled: !hasUnsavedChanges,
+      onClick: () => {
+        dispatch(saveAllWorkspaceDrafts());
+      }
     }
   ];
 
@@ -317,6 +337,8 @@ const CollectionsSection = () => {
         data-testid="collections-header-actions-menu"
         items={actionsDropdownItems}
         placement="bottom-end"
+        opened={actionsMenuOpen}
+        onChange={setActionsMenuOpen}
       >
         <ActionIcon
           label="More actions"

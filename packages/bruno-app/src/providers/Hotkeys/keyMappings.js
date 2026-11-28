@@ -8,6 +8,7 @@ export const KEY_BINDING_SECTIONS = [
       closeAllTabs: { mac: 'command+bind+shift+bind+w', windows: 'ctrl+bind+shift+bind+w', name: 'Close All Tabs' }, // D
       save: { mac: 'command+bind+s', windows: 'ctrl+bind+s', name: 'Save' }, // D
       saveAllTabs: { mac: 'command+bind+shift+bind+s', windows: 'ctrl+bind+shift+bind+s', name: 'Save All Tabs' }, // D
+      saveAllWorkspace: { mac: 'alt+bind+shift+bind+s', windows: 'alt+bind+shift+bind+s', name: 'Save All in Workspace' },
       reopenLastClosedTab: { mac: 'command+bind+shift+bind+t', windows: 'ctrl+bind+shift+bind+t', name: 'Reopen Last Closed Tab' }, // D
       switchToTabAtPosition: { mac: 'command+bind+1+bind+command+bind+8', windows: 'ctrl+bind+1+bind+ctrl+bind+8', name: 'Switch to Tab at Position', readOnly: true, displayValue: { mac: 'command+bind+1 - command+bind+8', windows: 'ctrl+bind+1 - ctrl+bind+8' } }, // D
       switchToLastTab: { mac: 'command+bind+9', windows: 'ctrl+bind+9', name: 'Switch to Last Tab' }, // D
@@ -235,6 +236,34 @@ export const getMergedKeyBindings = (userKeyBindings) => {
   return merged;
 };
 
+const normalizedComboSignature = (keysStr) => {
+  const parts = fromKeysString(keysStr)
+    .map((part) => part.toLowerCase())
+    .sort();
+  return parts.length ? parts.join('+') : null;
+};
+
+/**
+ * A default combo yields to a user-customized combo: when a newly introduced default
+ * collides with a combo the user had already assigned to another action, only the
+ * user's binding may fire.
+ */
+const defaultComboYieldsToUserCombo = (action, merged, userKeyBindings, os) => {
+  if (!userKeyBindings || userKeyBindings[action]?.[os]) {
+    return false;
+  }
+
+  const signature = normalizedComboSignature(merged[action][os]);
+  if (!signature) {
+    return false;
+  }
+
+  return Object.entries(userKeyBindings).some(
+    ([otherAction, binding]) =>
+      otherAction !== action && merged[otherAction] && normalizedComboSignature(binding?.[os]) === signature
+  );
+};
+
 /**
  * Retrieves the Mousetrap-compatible key combos for a specific action across all operating systems.
  * Reads from merged defaults + user preferences.
@@ -252,6 +281,11 @@ export const getKeyBindingsForActionAllOS = (action, userKeyBindings) => {
     return null;
   }
 
-  const combo = toMousetrapCombo(actionBindings[getKeyBindingOS()]);
+  const os = getKeyBindingOS();
+  if (defaultComboYieldsToUserCombo(action, merged, userKeyBindings, os)) {
+    return null;
+  }
+
+  const combo = toMousetrapCombo(actionBindings[os]);
   return combo ? [combo] : null;
 };

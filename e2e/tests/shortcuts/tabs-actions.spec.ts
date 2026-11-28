@@ -428,8 +428,8 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(collectionTab.locator('.has-changes-icon')).not.toBeVisible();
       });
 
-      test('Save all tabs customized (Alt+Shift+S)', async ({ pageWithUserData: page }) => {
-        // Remap saveAllTabs to Alt+Shift+S
+      test('Save all tabs customized (Alt+Shift+D)', async ({ pageWithUserData: page }) => {
+        // Remap saveAllTabs to Alt+Shift+D
         await openKeybindingsTab(page);
         const row = page.getByTestId('keybinding-row-saveAllTabs');
         await row.hover();
@@ -438,7 +438,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
 
         await page.keyboard.press('Backspace');
 
-        await pressShortcut(page, 'Alt', 'Shift', 'KeyS');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyD');
 
         await closePreferencesTab(page);
 
@@ -493,7 +493,7 @@ test.describe('Shortcut Keys - BOUND_ACTIONS', () => {
         await expect(folderTab.locator('.close-icon')).not.toBeVisible();
 
         // Save the changes
-        await pressShortcut(page, 'Alt', 'Shift', 'KeyS');
+        await pressShortcut(page, 'Alt', 'Shift', 'KeyD');
 
         // Verify draft indicator is gone after saving
         await expect(folderTab.locator('.close-icon')).toBeVisible();

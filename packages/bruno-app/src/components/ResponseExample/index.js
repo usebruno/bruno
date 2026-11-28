@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTabWidth, clearOpenInEditMode, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTabWidth, setExampleEditMode, makeTabPermanent } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, tryResponseExample } from 'providers/ReduxStore/slices/collections/actions';
 import { cancelResponseExampleEdit } from 'providers/ReduxStore/slices/collections';
 import ResponseExampleTopBar from './ResponseExampleTopBar';
@@ -9,6 +9,7 @@ import ResponseExampleResponsePane from './ResponseExampleResponsePane';
 import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { hasExampleChanges } from 'utils/collections';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -25,19 +26,19 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   const [leftPaneWidth, setLeftPaneWidth] = useState((screenWidth - leftSidebarWidth) / 2.2);
   const [topPaneHeight, setTopPaneHeight] = useState(MIN_TOP_PANE_HEIGHT);
   const [dragging, setDragging] = useState(false);
-  // `openInEditMode` is an explicit "just created" signal from the OPEN_EXAMPLE task queue
-  // (see taskMiddleware.js), not inferred from body content, so it doesn't misfire on
-  // JSON examples (default content '{}') or on saved examples with a legitimately empty body.
-  const [editMode, setEditMode] = useState(!!openInEditMode);
+  // Edit mode lives on the tab (`openInEditMode`) so every save path including a
+  // workspace-wide Save all exits it through the store. It is set at tab creation by the
+  // OPEN_EXAMPLE task queue (see taskMiddleware.js) for just-created examples.
+  const editMode = !!openInEditMode;
   const [showGenerateCodeModal, setShowGenerateCodeModal] = useState(false);
   const [isTryPending, setIsTryPending] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const mainSectionRef = useRef(null);
 
-  // Consume the one-shot flag so remounts (tab switch) don't re-enter edit mode.
+  // A reopened tab for an example with unsaved changes re-enters edit mode.
   useEffect(() => {
-    if (openInEditMode && example?.uid) {
-      dispatch(clearOpenInEditMode({ uid: example.uid }));
+    if (!openInEditMode && example?.uid && hasExampleChanges(item, example.uid)) {
+      dispatch(setExampleEditMode({ uid: example.uid, editMode: true }));
     }
   }, []);
 
@@ -102,13 +103,17 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
   }, [dragging]);
 
   const handleEditToggle = () => {
-    setEditMode(!editMode);
+    if (example?.uid) {
+      dispatch(setExampleEditMode({ uid: example.uid, editMode: !editMode }));
+    }
   };
 
   const handleSave = () => {
     if (item && collection) {
       dispatch(saveRequest(item.uid, collection.uid));
-      setEditMode(false);
+      if (example?.uid) {
+        dispatch(setExampleEditMode({ uid: example.uid, editMode: false }));
+      }
     }
   };
 
@@ -120,7 +125,9 @@ const ResponseExample = ({ item, collection, example, openInEditMode }) => {
         exampleUid: example.uid
       }));
     }
-    setEditMode(false);
+    if (example?.uid) {
+      dispatch(setExampleEditMode({ uid: example.uid, editMode: false }));
+    }
   };
 
   const handleGenerateCode = (exampleData) => {

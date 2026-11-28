@@ -6,6 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
 import set from 'lodash/set';
 import trim from 'lodash/trim';
@@ -60,6 +61,7 @@ import {
   updateRunnerConfiguration as _updateRunnerConfiguration,
   updateActiveConnections,
   saveRequest as _saveRequest,
+  saveRequests as _saveRequests,
   saveEnvironment as _saveEnvironment,
   saveEnvironmentExtends as _saveEnvironmentExtends,
   updateEnvironmentColor as _updateEnvironmentColor,
@@ -88,7 +90,7 @@ import {
 } from './index';
 
 import { each } from 'lodash';
-import { closeAllCollectionTabs, closeTabs as _closeTabs, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
+import { closeAllCollectionTabs, closeTabs as _closeTabs, clearExampleEditModesForItems, focusTab, reopenLastClosedTab, setSidebarRevealRequest } from 'providers/ReduxStore/slices/tabs';
 import { restoreCollectionTabs } from 'providers/ReduxStore/slices/mock-server/actions';
 import { clearOpenApiSyncTabState } from 'providers/ReduxStore/slices/openapi-sync';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -107,10 +109,12 @@ import {
   getTreePathFromCollectionToItem,
   mergeHeaders,
   isPathOrDescendant,
-  isCollectionItemCollapsed
+  isCollectionItemCollapsed,
+  getWorkspaceDrafts,
+  flattenItems
 } from 'utils/collections/index';
 import { sanitizeName } from 'utils/common/regex';
-import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR } from 'utils/environments';
+import { applyScriptEnvVars, getScriptModifiedKeys, writesCollidingSecrets, DUPLICATE_SECRET_NAMES_ERROR, isEnvironmentValidationError } from 'utils/environments';
 import { getInvalidVariableNames, invalidVariableNamesError } from 'utils/common/variables';
 import { safeParseJSON, safeStringifyJSON } from 'utils/common/index';
 import { resolveInheritedAuth } from 'utils/auth';
@@ -162,6 +166,7 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
       return reject();
     }
 
+    const savedDraft = findItemInCollection(collection, itemUid).draft;
     const itemToSave = transformRequestToSaveToFilesystem(item);
     const { ipcRenderer } = window;
 
@@ -175,7 +180,8 @@ export const saveRequest = (itemUid, collectionUid, silent = false) => (dispatch
         dispatch(
           _saveRequest({
             itemUid,
-            collectionUid
+            collectionUid,
+            savedDraft
           })
         );
       })
@@ -266,15 +272,22 @@ export const saveMultipleRequests = (items) => (dispatch, getState) => {
     ipcRenderer
       .invoke('renderer:save-multiple-requests', itemsToSave)
       .then(() => {
+        const savedDraftsByCollection = new Map();
         each(items, (item) => {
-          dispatch(_saveRequest({ itemUid: item.uid, collectionUid: item.collectionUid }));
+          if (!savedDraftsByCollection.has(item.collectionUid)) {
+            savedDraftsByCollection.set(item.collectionUid, []);
+          }
+          savedDraftsByCollection.get(item.collectionUid).push({ itemUid: item.uid, savedDraft: item.draft });
+        });
+        savedDraftsByCollection.forEach((savedDrafts, collectionUid) => {
+          dispatch(_saveRequests({ collectionUid, savedDrafts }));
         });
       })
       .then(resolve)
-      .catch((err) => {
-        toast.error('Failed to save requests!');
-        reject(err);
-      });
+      .catch(reject);
+  }).catch((err) => {
+    toast.error(err?.name === 'ValidationError' ? err.message : 'Failed to save requests!');
+    throw err;
   });
 };
 
@@ -436,6 +449,80 @@ export const saveMultipleFolders = (folderDrafts) => (dispatch, getState) => {
         toast.error('Failed to save folder settings!');
         reject(err);
       });
+  });
+};
+
+export const saveAllWorkspaceDrafts = () => async (dispatch, getState) => {
+  const state = getState();
+  const { workspaces, activeWorkspaceUid } = state.workspaces;
+  const { collectionDrafts, folderDrafts, requestDrafts, fileDrafts, environmentDrafts, transientRequestDrafts } = getWorkspaceDrafts({
+    collections: state.collections.collections,
+    workspaces,
+    activeWorkspace: workspaces.find((w) => w.uid === activeWorkspaceUid)
+  });
+
+  const saves = [];
+
+  if (collectionDrafts.length > 0) {
+    saves.push(dispatch(saveMultipleCollections(collectionDrafts)));
+  }
+  if (folderDrafts.length > 0) {
+    saves.push(dispatch(saveMultipleFolders(folderDrafts)));
+  }
+  const requestDraftsByCollection = new Map();
+  requestDrafts.forEach((draft) => {
+    if (!requestDraftsByCollection.has(draft.collectionUid)) {
+      requestDraftsByCollection.set(draft.collectionUid, []);
+    }
+    requestDraftsByCollection.get(draft.collectionUid).push(draft);
+  });
+  requestDraftsByCollection.forEach((collectionRequestDrafts, collectionUid) => {
+    saves.push(
+      dispatch(saveMultipleRequests(collectionRequestDrafts))
+        .then(() => {
+          const savedCollection = findCollectionByUid(getState().collections.collections, collectionUid);
+          const submittedUids = new Set(collectionRequestDrafts.map((draft) => draft.uid));
+          const itemUids = flattenItems(savedCollection ? savedCollection.items : [])
+            .filter((item) => submittedUids.has(item.uid) && !item.draft)
+            .map((item) => item.uid);
+          dispatch(clearExampleEditModesForItems({ itemUids }));
+        })
+    );
+  });
+  fileDrafts.forEach(({ content, itemUid, collectionUid }) => {
+    saves.push(
+      dispatch(saveFile(content, itemUid, collectionUid, true)).catch((err) => {
+        toast.error(err?.message || 'Failed to save file!');
+        throw err;
+      })
+    );
+  });
+  environmentDrafts.forEach(({ variables, environmentUid, collectionUid }) => {
+    saves.push(
+      dispatch(saveEnvironment(variables, environmentUid, collectionUid))
+        .then(() => {
+          const collection = findCollectionByUid(getState().collections.collections, collectionUid);
+          const currentDraft = collection ? collection.environmentsDraft : null;
+          if (currentDraft && currentDraft.environmentUid === environmentUid && isEqual(currentDraft.variables, variables)) {
+            dispatch(clearEnvironmentsDraft({ collectionUid }));
+          }
+        })
+        .catch((err) => {
+          toast.error(isEnvironmentValidationError(err) ? err.message : 'Failed to save environment');
+          throw err;
+        })
+    );
+  });
+
+  if (saves.length > 0) {
+    const results = await Promise.allSettled(saves);
+    if (results.every((result) => result.status === 'fulfilled')) {
+      toast.success('Changes saved successfully');
+    }
+  }
+
+  transientRequestDrafts.forEach((draft) => {
+    dispatch(saveRequest(draft.uid, draft.collectionUid, true)).catch(() => null);
   });
 };
 

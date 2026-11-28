@@ -54,6 +54,7 @@ export const buildSidebarLocators = (page: Page) => {
     },
     collectionsActionsMenu: () => page.getByTestId('collections-header-actions-menu'),
     closeAllCollectionsButton: () => page.getByTestId('collections-header-actions-menu-close-all'),
+    saveAllButton: () => page.getByTestId('collections-header-actions-menu-save-all'),
     // Shown in place of the collections tree when no collection is open.
     noCollectionsMessage: () => page.getByTestId('collections').getByText('No collections found.', { exact: true }),
     noCollectionsCreateLink: () => page.getByTestId('collections').getByText('Create', { exact: true }),
@@ -289,6 +290,45 @@ export const clickEmptySidebarSpace = async (page: Page) => {
     throw new Error('collectionsContainer boundingBox is null');
   }
   await page.mouse.click(listBox.x + 10, listBox.y + listBox.height - 10);
+};
+
+/**
+ * Opens the Collections header "more actions" menu.
+ * @param page - The page object
+ * @returns void
+ */
+export const openCollectionsMenu = async (page: Page) => {
+  await test.step('Open the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await sidebar.collectionsActionsMenu().click();
+    await sidebar.saveAllButton().waitFor({ state: 'visible' });
+  });
+};
+
+/**
+ * Closes the Collections header "more actions" menu.
+ * @param page - The page object
+ * @returns void
+ */
+export const closeCollectionsMenu = async (page: Page) => {
+  await test.step('Close the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await sidebar.collectionsActionsMenu().click();
+    await sidebar.saveAllButton().waitFor({ state: 'hidden' });
+  });
+};
+
+/**
+ * Clicks "Save all" in the Collections header menu once it is enabled.
+ * @param page - The page object
+ * @returns void
+ */
+export const saveAllFromCollectionsMenu = async (page: Page) => {
+  await test.step('Save all from the Collections menu', async () => {
+    const sidebar = buildSidebarLocators(page);
+    await openCollectionsMenu(page);
+    await sidebar.saveAllButton().click();
+  });
 };
 
 // sidebar is virtualized, opening a request lower in the list scrolls the collection header

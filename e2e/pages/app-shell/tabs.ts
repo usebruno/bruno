@@ -7,6 +7,8 @@ import {
 import { buildModalLocators } from '../shared-ui/modal';
 import { buildUnsavedChangesModalLocators } from './unsaved-changes-modal';
 
+const tabDraftIndicator = (tab: Locator) => tab.locator('.has-changes-icon');
+
 /**
  * Locators for the request tab strip (request, folder and collection settings tabs).
  */
@@ -29,7 +31,9 @@ export const buildRequestTabsLocators = (page: Page) => ({
   closeTabIcon: (tab: Locator) => tab.getByTestId('request-tab-close-icon'),
   draftIndicator: () => page.locator('.request-tab.active .has-changes-icon'),
   activeTabDirty: () => page.locator('.request-tab.active .close-gradient.has-changes'),
-  tabDraftIndicator: (tab: Locator) => tab.locator('.has-changes-icon'),
+  tabDraftIndicator,
+  requestTabDraftIndicator: (requestName: string) =>
+    tabDraftIndicator(page.locator('.request-tab').filter({ hasText: requestName })),
   tabCloseGradient: (tab: Locator) => tab.locator('.close-gradient'),
   tabLabel: (tab: Locator) => tab.locator('.tab-label')
 });

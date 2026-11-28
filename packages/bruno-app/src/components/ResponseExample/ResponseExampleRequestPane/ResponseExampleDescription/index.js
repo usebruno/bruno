@@ -37,7 +37,7 @@ const ResponseExampleDescription = ({ editMode, item, collection, exampleUid }) 
           onChange={handleChange}
           readOnly={!editMode}
           placeholder="Enter example description..."
-          className="w-full p-3 border rounded-md"
+          className="w-full p-3 border rounded-md mousetrap"
           rows={1}
         />
       </div>
