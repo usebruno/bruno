@@ -4,13 +4,10 @@
     "strict": true,
     "skipLibCheck": true,
     "jsx": "react",
-    "module": "ESNext",  
-    "declaration": true,
-    "declarationDir": "types",
+    "module": "ESNext",
     "sourceMap": true,
     "outDir": "dist",
     "moduleResolution": "node",
-    "emitDeclarationOnly": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
   },
@@ -18,5 +15,5 @@
     "dist",
     "node_modules",
     "src/**/*.test.tsx"
-  ],
+  ]
 }

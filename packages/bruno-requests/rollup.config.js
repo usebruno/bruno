@@ -1,13 +1,18 @@
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
-const dts = require('rollup-plugin-dts');
+const dts = require('rollup-plugin-dts').default;
 const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const json = require('@rollup/plugin-json');
 const { isBuiltin } = require('module');
 const os = require('os');
 const packageJson = require('./package.json');
+
+const external = (id) =>
+  isBuiltin(id)
+  || id.startsWith('@usebruno/')
+  || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id);
 
 module.exports = [
   {
@@ -37,14 +42,22 @@ module.exports = [
       commonjs({
         transformMixedEsModules: true
       }),
-      typescript({ tsconfig: './tsconfig.json' }),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        emitDeclarationOnly: false
+      }),
       terser({
         maxWorkers: Math.max(1, os.availableParallelism())
       })
     ],
-    external: (id) =>
-      isBuiltin(id)
-      || id.startsWith('@usebruno/')
-      || ['axios', 'qs', 'ws', 'debug', 'shell-env', 'pac-resolver', 'quickjs-emscripten'].includes(id)
+    external
+  },
+  {
+    input: 'src/index.ts',
+    output: [{ file: packageJson.types, format: 'es' }],
+    plugins: [dts()],
+    external
   }
 ];

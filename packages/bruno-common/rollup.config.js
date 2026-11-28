@@ -1,7 +1,7 @@
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
-const dts = require('rollup-plugin-dts');
+const dts = require('rollup-plugin-dts').default;
 const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
 const os = require('os');
@@ -30,7 +30,10 @@ function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, e
         commonjs(),
         typescript({
           tsconfig: './tsconfig.json',
-          include: [inputDir]
+          include: [inputDir],
+          declaration: false,
+          declarationMap: false,
+          emitDeclarationOnly: false
         }),
         terser({
           maxWorkers: Math.max(1, os.availableParallelism())
@@ -44,7 +47,7 @@ function createBuildConfig({ inputDir, input, cjsOutput, esmOutput, dtsOutput, e
       input,
       external,
       output: { file: dtsOutput, format: 'es' },
-      plugins: [dts.default({ tsconfig: './tsconfig.json' })]
+      plugins: [dts({ tsconfig: './tsconfig.json' })]
     }
   ];
 }

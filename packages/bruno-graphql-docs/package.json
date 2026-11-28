@@ -1,7 +1,7 @@
 {
   "name": "@usebruno/graphql-docs",
   "version": "0.1.0",
-  "license" : "MIT",
+  "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "files": [
@@ -14,9 +14,9 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^9.0.2",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.1",
     "@types/jest": "^29.5.11",
     "@types/markdown-it": "^12.2.3",
     "@types/react": "^18.0.25",
@@ -27,11 +27,11 @@
     "postcss": "8.5.23",
     "react": "19.0.0",
     "react-dom": "18.2.0",
-    "rollup":"3.30.0",
-    "rollup-plugin-dts": "^5.0.0",
+    "rollup": "4.68.8",
+    "rollup-plugin-dts": "^6.5.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
-    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-terser": "^1.0.2",
     "typescript": "^4.8.4"
   },
   "peerDependencies": {

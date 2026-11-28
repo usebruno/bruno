@@ -1,7 +1,7 @@
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const typescript = require('@rollup/plugin-typescript');
-const dts = require('rollup-plugin-dts');
+const dts = require('rollup-plugin-dts').default;
 const postcss = require('rollup-plugin-postcss');
 const terser = require('@rollup/plugin-terser').default;
 const peerDepsExternal = require('rollup-plugin-peer-deps-external');
@@ -35,7 +35,12 @@ module.exports = [
         extensions: ['.css']
       }),
       commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: false,
+        declarationMap: false,
+        emitDeclarationOnly: false
+      }),
       terser({
         maxWorkers: Math.max(1, os.availableParallelism())
       })
@@ -43,9 +48,9 @@ module.exports = [
     external: ['react', 'react-dom', 'index.css']
   },
   {
-    input: 'dist/esm/index.d.ts',
+    input: 'src/index.ts',
     external: [/\.css$/],
     output: [{ file: 'dist/index.d.ts', format: 'esm' }],
-    plugins: [dts.default()]
+    plugins: [dts()]
   }
 ];
