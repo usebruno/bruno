@@ -1,6 +1,7 @@
 import { debounce } from 'lodash';
 import { useTheme } from 'providers/Theme/index';
 import React, { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { formatResponse, getContentType } from 'utils/common';
 import { getDefaultResponseFormat, detectContentTypeFromBase64 } from 'utils/response';
 import LargeResponseWarning from '../LargeResponseWarning';
@@ -41,8 +42,16 @@ const formatErrorMessage = (error) => {
   return error;
 };
 
+// Format used before one can be detected, and when detection falls back to the default
+export const usePreferredFallbackFormat = () => {
+  const detection = useSelector((state) => state.app.preferences?.general?.responseFormatDetection);
+  return detection === 'json' ? 'json' : 'raw';
+};
+
 // Custom hook to determine the initial format and tab based on the data buffer and headers
 export const useInitialResponseFormat = (dataBuffer, headers) => {
+  const detection = useSelector((state) => state.app.preferences?.general?.responseFormatDetection) ?? 'auto';
+
   return useMemo(() => {
     const detectedContentType = detectContentTypeFromBase64(dataBuffer);
     const contentType = getContentType(headers);
@@ -52,9 +61,9 @@ export const useInitialResponseFormat = (dataBuffer, headers) => {
       return { initialFormat: null, initialTab: null, contentType: contentType };
     }
 
-    const initial = getDefaultResponseFormat(contentType);
+    const initial = getDefaultResponseFormat(contentType, { detection });
     return { initialFormat: initial.format, initialTab: initial.tab, contentType: contentType };
-  }, [dataBuffer, headers]);
+  }, [dataBuffer, headers, detection]);
 };
 
 // Custom hook to determine preview format options based on content type

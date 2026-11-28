@@ -63,7 +63,8 @@ const defaultPreferences = {
   },
   general: {
     defaultLocation: '',
-    defaultWorkspacePath: ''
+    defaultWorkspacePath: '',
+    responseFormatDetection: 'auto'
   },
   openCollection: {
     autoOpenFolderPicker: true
@@ -188,7 +189,8 @@ const preferencesSchema = Yup.object().shape({
   }),
   general: Yup.object({
     defaultLocation: Yup.string().max(1024).nullable(),
-    defaultWorkspacePath: Yup.string().max(1024).nullable()
+    defaultWorkspacePath: Yup.string().max(1024).nullable(),
+    responseFormatDetection: Yup.string().oneOf(['auto', 'json'])
   }),
   openCollection: Yup.object({
     autoOpenFolderPicker: Yup.boolean()
