@@ -19,6 +19,8 @@ export const buildResponseExampleLocators = (page: Page) => ({
   editButton: () => page.getByTestId('response-example-edit-btn'),
   tryButton: () => page.getByTestId('response-example-try-btn'),
   saveButton: () => page.getByTestId('response-example-save-btn'),
+  requestPane: () => page.getByTestId('request-pane'),
+  requestBody: () => page.getByTestId('response-example-request-body'),
   responsePane: () => page.getByTestId('response-pane'),
   responsePaneTab: (key: 'response' | 'headers') => page.getByTestId('response-pane').getByTestId(`tab-${key}`),
   headerRow: (name: string) =>

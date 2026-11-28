@@ -1,0 +1,69 @@
+info:
+  name: create-order
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8081/api/echo/json
+  body:
+    type: json
+    data: |-
+      {
+        "id": "20",
+        "action": "add",
+        "customer": {
+          "id": "C-1001",
+          "name": "Jane Doe",
+          "email": "jane@example.com"
+        },
+        "services": [
+          {
+            "name": "Fixed internet",
+            "characteristics": [
+              {
+                "name": "downloadSpeedMbps",
+                "value": 1000
+              },
+              {
+                "name": "uploadSpeedMbps",
+                "value": 500
+              },
+              {
+                "name": "staticIp",
+                "value": true
+              }
+            ]
+          },
+          {
+            "name": "TV",
+            "characteristics": [
+              {
+                "name": "package",
+                "value": "premium"
+              },
+              {
+                "name": "recordingHours",
+                "value": 200
+              }
+            ]
+          }
+        ],
+        "devices": [
+          {
+            "sku": "ROUTER-AX",
+            "name": "Wi-Fi 6 Router",
+            "serialNumber": null
+          },
+          {
+            "sku": "STB-4K",
+            "name": "Set Top Box 4K",
+            "serialNumber": null
+          }
+        ],
+        "installation": {
+          "date": "2026-12-01",
+          "window": "morning",
+          "notes": "Call before arrival"
+        }
+      }
