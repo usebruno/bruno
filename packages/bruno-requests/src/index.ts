@@ -13,6 +13,7 @@ export { default as cookies } from './cookies';
 
 export { getCACertificates } from './utils/ca-cert';
 export { transformProxyConfig } from './utils/proxy-util';
+export { shouldUseProxy } from './utils/should-use-proxy';
 export { default as createVaultClient, VaultError } from './utils/node-vault';
 export type { VaultClient, VaultConfig, VaultRequestOptions } from './utils/node-vault';
 export { getHttpHttpsAgents, resolveAgentsFromPac, PatchedHttpsProxyAgent } from './utils/http-https-agents';

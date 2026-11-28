@@ -49,6 +49,7 @@ const setupMocks = ({ pacDirectives = ['PROXY p.example:8080'] } = {}) => {
       return { directives };
     });
     return {
+      shouldUseProxy: jest.requireActual('@usebruno/requests').shouldUseProxy,
       getOrCreateHttpsAgent,
       getOrCreateHttpAgent,
       getPacResolver,
@@ -64,6 +65,7 @@ describe('proxy-util', () => {
   afterEach(() => jestClearModules());
 
   test('shouldUseProxy respects wildcard bypass', () => {
+    setupMocks();
     const { shouldUseProxy } = require('../src/utils/proxy-util');
     expect(shouldUseProxy('http://example.com', '*')).toBe(false);
   });
@@ -152,6 +154,7 @@ describe('proxy-util', () => {
       preferencesUtil: { isSslSessionCachingEnabled: () => false }
     }));
     jest.doMock('@usebruno/requests', () => ({
+      shouldUseProxy: jest.requireActual('@usebruno/requests').shouldUseProxy,
       getOrCreateHttpsAgent: jest.fn(() => ({ type: 'https-agent' })),
       getOrCreateHttpAgent: jest.fn(() => ({ type: 'http-agent' })),
       getPacResolver: jest.fn(async () => { throw new Error('PAC fetch timeout'); }),
