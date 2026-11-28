@@ -282,6 +282,77 @@ describe('utils', () => {
       expect(out.err).toMatchObject({ message: 'cycle' });
       expect(out.ref).toBe('[Circular Reference]');
     });
+
+    it('keeps an object shared by two variables (GitHub #8005)', () => {
+      const members = [{ id: 1, name: 'me' }, { id: 2, name: 'other' }];
+      const runtimeVariables = { members, others: members.filter((m) => m.id !== 1) };
+      expect(cleanJson(runtimeVariables)).toEqual({
+        members: [{ id: 1, name: 'me' }, { id: 2, name: 'other' }],
+        others: [{ id: 2, name: 'other' }]
+      });
+    });
+
+    it('keeps an object that appears twice in the same array', () => {
+      const item = { id: 1 };
+      expect(cleanJson([item, item])).toEqual([{ id: 1 }, { id: 1 }]);
+    });
+
+    it('stays bounded on a graph with many shared references', () => {
+      let node = { leaf: true };
+      for (let i = 0; i < 40; i++) {
+        node = { l: node, r: node };
+      }
+      // Fully expanded this is 2^40 leaves; the repeat budget keeps the output small.
+      const serialized = JSON.stringify(cleanJson(node));
+      expect(serialized.length).toBeLessThan(1000000);
+      expect(serialized).toContain('[Circular Reference]');
+    });
+
+    it('stays bounded when a large array is shared by many keys', () => {
+      const big = Array.from({ length: 10000 }, (_, i) => i);
+      const holder = {};
+      for (let i = 0; i < 1000; i++) {
+        holder[`k${i}`] = big;
+      }
+      const serialized = JSON.stringify(cleanJson(holder));
+      expect(serialized.length).toBeLessThan(2000000);
+      expect(serialized).toContain('[Circular Reference]');
+    });
+
+    it('stays fast after the repeat budget is spent', () => {
+      const big = Array.from({ length: 1000000 }, () => 0);
+      const holder = {};
+      for (let i = 0; i < 1000; i++) {
+        holder[`k${i}`] = big;
+      }
+      const start = Date.now();
+      cleanJson(holder);
+      expect(Date.now() - start).toBeLessThan(5000);
+    });
+
+    it('replaces a cycle that goes through an Error', () => {
+      const obj = { id: 1 };
+      const err = new Error('ctx');
+      err.ctx = obj;
+      obj.err = err;
+      const out = cleanJson(obj);
+      expect(out.err).toMatchObject({ message: 'ctx', ctx: '[Circular Reference]' });
+    });
+
+    it('keeps an Error shared by two keys', () => {
+      const err = new Error('shared');
+      const out = cleanJson({ a: err, b: err });
+      expect(out.a).toMatchObject({ message: 'shared', name: 'Error' });
+      expect(out.b).toMatchObject({ message: 'shared', name: 'Error' });
+    });
+
+    it('still replaces a cycle that goes through a shared object', () => {
+      const shared = { name: 'shared' };
+      shared.self = shared;
+      const out = cleanJson({ a: shared, b: shared });
+      expect(out.a).toEqual({ name: 'shared', self: '[Circular Reference]' });
+      expect(out.b).toEqual({ name: 'shared', self: '[Circular Reference]' });
+    });
   });
 
   describe('cleanCircularJson', () => {
@@ -304,6 +375,11 @@ describe('utils', () => {
       expect(out.level).toBe(1);
       expect(out.child.level).toBe(2);
       expect(out.child.back).toBe('[Circular Reference]');
+    });
+
+    it('keeps an object shared by two keys (GitHub #8005)', () => {
+      const item = { id: 1 };
+      expect(cleanCircularJson({ a: item, b: [item] })).toEqual({ a: { id: 1 }, b: [{ id: 1 }] });
     });
   });
 
