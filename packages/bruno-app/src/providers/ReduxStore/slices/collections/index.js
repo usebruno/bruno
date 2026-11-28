@@ -254,6 +254,21 @@ const applyDataType = (variable, dataType) => {
   return variable;
 };
 
+const addOauth2TimelineEntry = (collection, { folderUid, itemUid, timestamp, data }) => {
+  if (!collection.timeline) {
+    collection.timeline = [];
+  }
+
+  collection.timeline.push({
+    type: 'oauth2',
+    collectionUid: collection.uid,
+    folderUid,
+    itemUid,
+    timestamp,
+    data
+  });
+};
+
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -3884,14 +3899,8 @@ export const collectionsSlice = createSlice({
       // skip the shared timeline push so it doesn't leak into the standalone view.
       if (executionMode === 'runner') return;
 
-      if (!collection.timeline) {
-        collection.timeline = [];
-      }
-
       if (debugInfo) {
-        collection.timeline.push({
-          type: 'oauth2',
-          collectionUid,
+        addOauth2TimelineEntry(collection, {
           folderUid,
           itemUid,
           timestamp: Date.now(),
@@ -3906,6 +3915,14 @@ export const collectionsSlice = createSlice({
           }
         });
       }
+    },
+
+    collectionAddOauth2TimelineEntry: (state, action) => {
+      const { collectionUid, folderUid, itemUid, timestamp, debugInfo } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection || !debugInfo) return;
+
+      addOauth2TimelineEntry(collection, { folderUid, itemUid, timestamp, data: { debugInfo: debugInfo.data } });
     },
 
     // Clears a specific credential matching url + collectionUid + credentialsId (used by UI "Clear OAuth2 Cache")
@@ -4485,6 +4502,7 @@ export const {
   moveCollection,
   streamDataReceived,
   collectionAddOauth2CredentialsByUrl,
+  collectionAddOauth2TimelineEntry,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   collectionClearOauth2CredentialsByCredentialsId,
   updateFolderAuth,

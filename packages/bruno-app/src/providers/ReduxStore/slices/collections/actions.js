@@ -55,6 +55,7 @@ import {
   setCollectionSecurityConfig,
   updateCollectionVersion as _updateCollectionVersion,
   collectionAddOauth2CredentialsByUrl,
+  collectionAddOauth2TimelineEntry,
   collectionClearOauth2CredentialsByUrlAndCredentialsId,
   initRunRequestEvent,
   updateRunnerConfiguration as _updateRunnerConfiguration,
@@ -3428,7 +3429,20 @@ export const fetchOauth2Credentials = (payload) => async (dispatch, getState) =>
   return new Promise((resolve, reject) => {
     window.ipcRenderer
       .invoke('renderer:fetch-oauth2-credentials', { itemUid, request, collection })
-      .then(({ credentials, url, collectionUid, credentialsId, debugInfo }) => {
+      .then(({ error, credentials, url, collectionUid, credentialsId, debugInfo }) => {
+        if (error) {
+          dispatch(
+            collectionAddOauth2TimelineEntry({
+              collectionUid: collection.uid,
+              timestamp: Date.now(),
+              debugInfo: safeParseJSON(safeStringifyJSON(debugInfo)),
+              folderUid: folderUid || null,
+              itemUid: !folderUid ? itemUid : null
+            })
+          );
+          reject(new Error(error));
+          return;
+        }
         dispatch(
           collectionAddOauth2CredentialsByUrl({
             credentials,

@@ -46,7 +46,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments, _clearScriptGlobalEnvBaseline } from 'providers/ReduxStore/slices/global-environments';
-import { collectionAddOauth2CredentialsByUrl, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
+import { collectionAddOauth2CredentialsByUrl, collectionAddOauth2TimelineEntry, collectionClearOauth2CredentialsByCredentialsId, updateCollectionLoadingState, collectionLoadedFromTree } from 'providers/ReduxStore/slices/collections/index';
 import { migrationProgressEvent } from 'providers/ReduxStore/slices/collection-migration';
 import { addLog } from 'providers/ReduxStore/slices/logs';
 import { loadNotifications } from 'providers/ReduxStore/slices/notifications';
@@ -366,6 +366,10 @@ const useIpcEvents = () => {
       dispatch(collectionClearOauth2CredentialsByCredentialsId(val));
     });
 
+    const removeOauth2AuthorizationFailedListener = ipcRenderer.on('main:oauth2-authorization-failed', (val) => {
+      dispatch(collectionAddOauth2TimelineEntry(val));
+    });
+
     const removeHttpStreamNewDataListener = ipcRenderer.on('main:http-stream-new-data', (val) => {
       dispatch(streamDataReceived(val));
     });
@@ -457,6 +461,7 @@ const useIpcEvents = () => {
       removeSnapshotHydrationListener();
       removeCollectionOauth2CredentialsUpdatesListener();
       removeCollectionOauth2CredentialsClearListener();
+      removeOauth2AuthorizationFailedListener();
       removeHttpStreamNewDataListener();
       removeHttpStreamEndListener();
       removeCollectionLoadingStateListener();

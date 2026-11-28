@@ -2119,13 +2119,6 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
           });
         }
 
-        const handleOAuth2Response = (response) => {
-          if (response.error && !response.debugInfo) {
-            throw new Error(response.error);
-          }
-          return response;
-        };
-
         switch (grantType) {
           case 'authorization_code':
             interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -2135,7 +2128,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               forceFetch: true,
               certsAndProxyConfigForTokenUrl,
               certsAndProxyConfigForRefreshUrl
-            }).then(handleOAuth2Response);
+            });
 
           case 'client_credentials':
             interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -2145,7 +2138,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               forceFetch: true,
               certsAndProxyConfigForTokenUrl,
               certsAndProxyConfigForRefreshUrl
-            }).then(handleOAuth2Response);
+            });
 
           case 'password':
             interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -2155,7 +2148,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               forceFetch: true,
               certsAndProxyConfigForTokenUrl,
               certsAndProxyConfigForRefreshUrl
-            }).then(handleOAuth2Response);
+            });
 
           case 'implicit':
             interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
@@ -2163,7 +2156,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
               request: requestCopy,
               collectionUid,
               forceFetch: true
-            }).then(handleOAuth2Response);
+            });
 
           default:
             return {
@@ -2176,7 +2169,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
         }
       }
     } catch (error) {
-      return Promise.reject(error);
+      return { error: error.message, debugInfo: error.debugInfo };
     }
   });
 

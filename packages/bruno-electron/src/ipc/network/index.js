@@ -1325,6 +1325,25 @@ const registerNetworkIpc = (mainWindow) => {
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
+      // A failed authorization has no credentials for `main:credentials-update`, but the hops it made
+      // before failing explain the failure, so they still reach the timeline.
+      if (request.oauth2 && error?.debugInfo) {
+        if (parentRunnerEventData) {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'oauth2-debug',
+            ...parentRunnerEventData,
+            debugInfo: error.debugInfo
+          });
+        } else {
+          mainWindow.webContents.send('main:oauth2-authorization-failed', {
+            collectionUid,
+            folderUid: request.oauth2Credentials?.folderUid,
+            itemUid: item.uid,
+            timestamp: Date.now(),
+            debugInfo: error.debugInfo
+          });
+        }
+      }
 
       // we are not rejecting the promise here and instead returning a response object with `error` which is handled in the `send-http-request` invocation
       // timeline prop won't be accessible in the usual way in the renderer process if we reject the promise
@@ -2160,6 +2179,15 @@ const registerNetworkIpc = (mainWindow) => {
               mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookiesTest)));
             }
           } catch (error) {
+            // The hops made before a failed authorization explain the failure.
+            if (request.oauth2 && error?.debugInfo) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'oauth2-debug',
+                ...eventData,
+                debugInfo: error.debugInfo
+              });
+            }
+
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
               error: error ? error.message : 'An error occurred while running the request',

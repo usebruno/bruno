@@ -490,14 +490,10 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
   }
   axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
-  try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
-    debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
-  } catch (error) {
-    return Promise.reject(safeStringifyJSON(error?.response?.data));
-  }
+  const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
+  debugInfo.data.push(requestDetails);
+  credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+  return { collectionUid, url, credentials, credentialsId, debugInfo };
 };
 
 // PASSWORD CREDENTIALS
@@ -640,14 +636,10 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
   }
   axiosRequestConfig.data = qs.stringify(data);
   let debugInfo = { data: [] };
-  try {
-    const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
-    debugInfo.data.push(requestDetails);
-    credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
-    return { collectionUid, url, credentials, credentialsId, debugInfo };
-  } catch (error) {
-    return Promise.reject(safeStringifyJSON(error?.response?.data));
-  }
+  const { credentials, requestDetails } = await getCredentialsFromTokenUrl({ requestConfig: axiosRequestConfig, certsAndProxyConfig: certsAndProxyConfigForTokenUrl });
+  debugInfo.data.push(requestDetails);
+  credentials && persistOauth2Credentials({ collectionUid, url, credentials, credentialsId });
+  return { collectionUid, url, credentials, credentialsId, debugInfo };
 };
 
 const refreshOauth2Token = async ({ requestCopy, collectionUid, certsAndProxyConfig }) => {

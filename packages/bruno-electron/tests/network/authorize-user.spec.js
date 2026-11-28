@@ -57,4 +57,26 @@ describe('matchesCallbackUrl', () => {
     let callBackUrl = 'https://callback.url/endpoint';
     expect(matchesCallbackUrl(null, new URL(callBackUrl))).toBe(false);
   });
+
+  describe('scheme, host and path matching', () => {
+    const comparisonCases = [
+      { callbackUrl: 'https://hostname/', url: 'https://hostname/login/callback?code=abcd', expected: false, desc: 'broker callback under a root callback path' },
+      { callbackUrl: 'https://callback.url/endpoint', url: 'https://callback.url/endpoint/nested?code=abcd', expected: false, desc: 'sub-path of the callback path' },
+      { callbackUrl: 'https://callback.url/endpoint/', url: 'https://callback.url/endpoint?code=abcd', expected: true, desc: 'callback with a trailing slash the redirect drops' },
+      { callbackUrl: 'https://callback.url/endpoint', url: 'https://callback.url/endpoint//?code=abcd', expected: false, desc: 'redirect with more than one trailing slash' },
+      { callbackUrl: 'https://callback.url/endpoint', url: 'http://callback.url/endpoint?code=abcd', expected: false, desc: 'different scheme' },
+      { callbackUrl: 'http://localhost:8080/callback', url: 'http://localhost:9090/callback?code=abcd', expected: false, desc: 'different port' },
+      { callbackUrl: 'https://callback.url/endpoint?tenant=a', url: 'https://callback.url/endpoint?tenant=a&code=abcd', expected: true, desc: 'callback query kept by the server' },
+      { callbackUrl: 'https://callback.url/endpoint?tenant=a', url: 'https://callback.url/endpoint?code=abcd', expected: true, desc: 'callback query dropped by the server' }
+    ];
+
+    it.each(comparisonCases)('$desc ($url against $callbackUrl) - should be $expected', ({ callbackUrl, url, expected }) => {
+      const redirectUrl = new URL(url);
+      const registeredCallbackUrl = new URL(callbackUrl);
+
+      const actual = matchesCallbackUrl(redirectUrl, registeredCallbackUrl);
+
+      expect(actual).toBe(expected);
+    });
+  });
 });
