@@ -18,7 +18,7 @@ const sameWidthModifier = {
   }
 };
 
-const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, sameWidth = false, popperOptions, noPadding, hideOnReferenceClip = false, ...props }) => {
+const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, appendTo, onMouseEnter, onMouseLeave, onContextMenu, sameWidth = false, popperOptions, noPadding, hideOnReferenceClip = false, ...props }) => {
   // Merge the caller's popperOptions with the sameWidth modifier when requested.
   const resolvedPopperOptions = sameWidth
     ? {
@@ -49,6 +49,7 @@ const Dropdown = ({ icon, children, onCreate, placement, transparent, visible, a
           tabIndex={-1}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
+          onContextMenu={onContextMenu}
           {...attrs}
         >
           {children}

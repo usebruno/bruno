@@ -7,6 +7,8 @@ import StyledWrapper from './StyledWrapper';
 // Constants
 const NAVIGATION_KEYS = ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Escape'];
 const ACTION_KEYS = ['Enter', ' '];
+// Gap Tippy keeps by default between a trigger element and the menu
+const TRIGGER_OFFSET = [0, 10];
 
 // Calculate next index for keyboard navigation
 const getNextIndex = (currentIndex, total, key, noFocus) => {
@@ -56,7 +58,8 @@ const getNextIndex = (currentIndex, total, key, noFocus) => {
  * @param {string} props.submenuPlacement - Placement of submenus: 'right' (default) or 'left'. Controls both position and arrow direction.
  * @param {boolean} props.disabled - Optional flag to keep the dropdown from opening and show the trigger as disabled (default: false)
  * @param {Object} props.dropdownProps - Other props passed to underlying Dropdown component
- * @param {React.Ref} ref - Optional ref to expose open/close methods
+ * @param {React.Ref} ref - Optional ref to expose open/close methods. `show(position)` and `toggle(position)`
+ *   accept `{ x, y }` viewport coordinates to open the menu at that point instead of the trigger element
  */
 const MenuDropdown = forwardRef(({
   items = [],
@@ -83,6 +86,8 @@ const MenuDropdown = forwardRef(({
   const selectedItemIdRef = useRef(selectedItemId);
   const autoFocusFirstOptionRef = useRef(autoFocusFirstOption);
   const [internalIsOpen, setInternalIsOpen] = useState(false);
+  // Viewport point the menu was opened at through the ref. Null anchors the menu to the trigger element.
+  const [anchorPosition, setAnchorPosition] = useState(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -113,7 +118,11 @@ const MenuDropdown = forwardRef(({
   }, []);
 
   // Update state (respects controlled vs uncontrolled mode)
-  const updateOpenState = useCallback((newState) => {
+  // `position` anchors the menu being opened at a viewport point; closing drops it so the next open
+  // falls back to the trigger element.
+  const updateOpenState = useCallback((newState, position = null) => {
+    setAnchorPosition(newState ? position : null);
+
     if (isControlled) {
       onChange?.(newState);
     } else {
@@ -299,17 +308,39 @@ const MenuDropdown = forwardRef(({
   }, [updateOpenState]);
 
   // Expose imperative methods via ref
+  // `show(position)` and `toggle(position)` anchor the menu at `{ x, y }` viewport coordinates instead
+  // of the trigger element, e.g. the `clientX` / `clientY` of a `contextmenu` event.
   useImperativeHandle(ref, () => ({
-    show: () => {
-      updateOpenState(true);
+    show: (position) => {
+      updateOpenState(true, position);
     },
     hide: () => {
       updateOpenState(false);
     },
-    toggle: () => {
-      updateOpenState(!isOpen);
+    toggle: (position) => {
+      updateOpenState(!isOpen, position);
     }
   }), [updateOpenState, isOpen]);
+
+  // A zero-sized rect at the anchor point, so a `bottom-start` menu opens with its corner on the pointer
+  const getReferenceClientRect = anchorPosition
+    ? () => ({
+        width: 0,
+        height: 0,
+        top: anchorPosition.y,
+        bottom: anchorPosition.y,
+        left: anchorPosition.x,
+        right: anchorPosition.x
+      })
+    : null;
+
+  // The menu is portaled, so React still bubbles its events to the owner. A right-click inside an open
+  // menu must not reach the owner's context-menu handler, or a menu anchored at the pointer would
+  // follow it.
+  const handleMenuContextMenu = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   // Setup Tippy instance
   const onDropdownCreate = useCallback((ref) => {
@@ -528,7 +559,13 @@ const MenuDropdown = forwardRef(({
       className={className}
       visible={isOpen && !disabled}
       onClickOutside={handleClickOutside}
+      onContextMenu={handleMenuContextMenu}
       {...dropdownProps}
+      // The point the menu was opened at wins, then the reference rect passed by the caller. Explicit
+      // `null` falls back to the trigger element, because Tippy keeps the previous value for `undefined`.
+      getReferenceClientRect={getReferenceClientRect ?? dropdownProps.getReferenceClientRect ?? null}
+      // A menu opened at the pointer sits on it, without the gap kept from a trigger
+      offset={anchorPosition ? [0, 0] : dropdownProps.offset ?? TRIGGER_OFFSET}
     >
       <StyledWrapper {...(testId && { 'data-testid': testId + '-dropdown' })}>
         {header && (

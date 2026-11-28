@@ -89,13 +89,14 @@ describe('ApiSpecItem', () => {
     jest.restoreAllMocks();
   });
 
-  it('opens the actions menu on right-click', () => {
+  it('opens the actions menu at the pointer on right-click', () => {
     renderRow(OPENAPI_SPEC);
 
-    const defaultAllowed = fireEvent.contextMenu(screen.getByText(OPENAPI_SPEC.name));
+    const defaultAllowed = fireEvent.contextMenu(screen.getByText(OPENAPI_SPEC.name), { clientX: 12, clientY: 34 });
 
     expect(defaultAllowed).toBe(false);
     expect(mockToggleMenu).toHaveBeenCalledTimes(1);
+    expect(mockToggleMenu).toHaveBeenCalledWith({ x: 12, y: 34 });
   });
 
   it('leaves the open menu alone when one of its items is right-clicked', () => {
