@@ -102,7 +102,8 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         path: collectionPath,
         opened: true,
         alreadyOpen: true,
-        uid
+        uid,
+        name: brunoConfig.name
       };
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
@@ -139,7 +140,8 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       path: collectionPath,
       opened: true,
       alreadyOpen: false,
-      uid
+      uid,
+      name: brunoConfig.name
     };
   } catch (err) {
     if (!options.dontSendDisplayErrors) {
@@ -159,6 +161,7 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
   const seenPaths = new Set();
   const result = {
     opened: [],
+    openedCollections: [],
     failed: [],
     invalid: []
   };
@@ -178,6 +181,7 @@ const openCollectionsByPathname = async (win, watcher, collectionPaths, options 
       const openResult = await openCollection(win, watcher, resolvedPath, options);
       if (openResult?.opened) {
         result.opened.push(openResult.path);
+        result.openedCollections.push({ path: openResult.path, name: openResult.name });
       } else {
         result.failed.push({
           path: resolvedPath,

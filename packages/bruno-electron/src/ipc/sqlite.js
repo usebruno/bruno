@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const { getStatements } = require('../services/sqlite');
 const { readRunnerExchange, clearRunnerResponses } = require('../services/runner-exchange');
+const recentCollections = require('../services/recent-collections');
 
 const requireUid = (value, name) => {
   if (typeof value !== 'string' || value === '') {
@@ -26,6 +27,10 @@ const registerSqliteIpc = () => {
   ipcMain.handle('datastore:runner_responses:delete_runner_responses_for_collection', (_event, params) => {
     const collection_uid = requireUid(params?.collection_uid, 'collection_uid');
     return clearRunnerResponses(collection_uid);
+  });
+
+  ipcMain.handle('datastore:recent_collections:list_recent_collections', () => {
+    return recentCollections.list();
   });
 };
 

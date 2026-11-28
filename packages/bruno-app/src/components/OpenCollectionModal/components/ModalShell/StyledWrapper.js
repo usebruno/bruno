@@ -84,6 +84,14 @@ const StyledWrapper = styled.div`
     display: flex;
     flex-direction: column;
   }
+
+  .modal-page-slot {
+    display: contents;
+  }
+
+  .modal-page-slot[hidden] {
+    display: none;
+  }
 `;
 
 export default StyledWrapper;

@@ -1,16 +1,22 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Portal from 'components/Portal';
 import { folderNoteDismissed } from 'providers/ReduxStore/slices/open-collection-modal';
-import { closeOpenCollectionModal, loadImportableFile, openDroppedItems } from 'providers/ReduxStore/slices/open-collection-modal/actions';
-import { OPEN_COLLECTION_PAGES } from '../../sidebar/pages';
+import {
+  addFolderResultToSearch,
+  closeOpenCollectionModal,
+  loadImportableFile,
+  openCollectionModal,
+  openDroppedItems
+} from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { findOpenCollectionPage } from '../../sidebar/pages';
 import BusyOverlay from '../BusyOverlay';
 import DropOverlay from '../DropOverlay';
 import { useImportHandoff } from '../ImportHandoff/context';
 import ModalMenu from '../../sidebar/ModalMenu';
 import Note from '../Note';
 import PageHeader from '../PageHeader';
-import { getTabbableElements } from '../../utils/focus';
+import { focusNextTabbable, focusWhenFocusIsLost, getTabbableElements } from '../../utils/focus';
 import { isDraggingFiles, readDroppedItems } from '../../utils/dropped-items';
 import StyledWrapper from './StyledWrapper';
 
@@ -37,14 +43,49 @@ const ModalShell = () => {
   const dispatch = useDispatch();
   const importFrom = useImportHandoff();
   const [opener] = useState(() => document.activeElement);
+  const hostSlot = useRef(null);
+  const isAddingToSearchRef = useRef(false);
   const pageId = useSelector((state) => state.openCollectionModal.page);
   const isOpening = useSelector((state) => state.openCollectionModal.openingId !== null);
   const note = useSelector((state) => state.openCollectionModal.chooseFolder.result?.note);
-  const page = OPEN_COLLECTION_PAGES.find(({ id }) => id === pageId) || OPEN_COLLECTION_PAGES[0];
+  const foldersToAdd = useSelector((state) => {
+    const { result } = state.openCollectionModal.chooseFolder;
+    return result?.addedToSearch ? undefined : result?.folders;
+  });
+  const page = findOpenCollectionPage(pageId);
+  const hostPage = page.parent ? findOpenCollectionPage(page.parent) : page;
   const Page = page.component;
+  const HostPage = hostPage.component;
+  const Subtitle = page.subtitle;
   const [showDropOverlay, setShowDropOverlay] = useState(false);
 
   const close = () => dispatch(closeOpenCollectionModal());
+
+  const goBack = () => {
+    dispatch(openCollectionModal(page.parent));
+    queueMicrotask(() => focusWhenFocusIsLost(getTabbableElements(hostSlot.current)[0]));
+  };
+
+  const addFoldersToSearch = (event) => {
+    focusNextTabbable(event.currentTarget);
+    if (isAddingToSearchRef.current) {
+      return;
+    }
+    isAddingToSearchRef.current = true;
+    dispatch(addFolderResultToSearch()).finally(() => {
+      isAddingToSearchRef.current = false;
+    });
+  };
+
+  const getNoteAction = () => {
+    if (note.importFile) {
+      return { label: 'Import it', onClick: () => importFrom(loadImportableFile(note.importFile)) };
+    }
+    if (foldersToAdd) {
+      return { label: 'Add to search locations', onClick: addFoldersToSearch };
+    }
+    return null;
+  };
 
   const handleDragEnter = (event) => {
     event.preventDefault();
@@ -134,13 +175,18 @@ const ModalShell = () => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <ModalMenu titleId={TITLE_ID} activePageId={page.id} />
+          <ModalMenu titleId={TITLE_ID} activePageId={hostPage.id} />
           <div className="modal-main">
-            <PageHeader title={page.title} description={page.description} onClose={close} />
+            <PageHeader
+              title={page.title}
+              description={Subtitle ? <Subtitle /> : page.description}
+              onBack={page.parent ? goBack : undefined}
+              onClose={close}
+            />
             {note && (
               <Note
                 tone={note.tone}
-                action={note.importFile ? { label: 'Import it', onClick: () => importFrom(loadImportableFile(note.importFile)) } : null}
+                action={getNoteAction()}
                 onDismiss={() => dispatch(folderNoteDismissed())}
               >
                 {note.text}
@@ -148,7 +194,10 @@ const ModalShell = () => {
             )}
             <div className="modal-page" data-testid={`open-collection-page-${page.id}`}>
               <div className="modal-page-content" inert={isOpening}>
-                <Page />
+                <div ref={hostSlot} key={hostPage.id} className="modal-page-slot" hidden={hostPage !== page}>
+                  <HostPage />
+                </div>
+                {hostPage !== page && <Page />}
               </div>
               {isOpening && <BusyOverlay>Opening…</BusyOverlay>}
             </div>

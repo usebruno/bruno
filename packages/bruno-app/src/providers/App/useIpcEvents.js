@@ -41,6 +41,8 @@ import {
   hydrateSnapshotForOpenedCollection,
   restoreActiveWorkspaceFromSnapshot
 } from 'providers/ReduxStore/slices/workspaces/actions';
+import { recentCollectionsChangedEvent } from 'providers/ReduxStore/slices/open-collection-modal/actions';
+import { myComputerCollectionsFound, myComputerScanFinished } from 'providers/ReduxStore/slices/open-collection-modal';
 import { workspaceDotEnvUpdateEvent, setWorkspaceDotEnvVariables } from 'providers/ReduxStore/slices/workspaces';
 import toast from 'react-hot-toast';
 import { useDispatch, useStore } from 'react-redux';
@@ -153,6 +155,18 @@ const useIpcEvents = () => {
 
     const removeOpenCollectionModalListener = ipcRenderer.on('main:open-collection', () => {
       dispatch(setIsOpeningCollection(true));
+    });
+
+    const removeRecentCollectionsChangedListener = ipcRenderer.on('main:recent-collections-changed', () => {
+      dispatch(recentCollectionsChangedEvent());
+    });
+
+    const removeCollectionScanBatchListener = ipcRenderer.on('main:collection-scan:batch', (batch) => {
+      dispatch(myComputerCollectionsFound(batch));
+    });
+
+    const removeCollectionScanDoneListener = ipcRenderer.on('main:collection-scan:done', (result) => {
+      dispatch(myComputerScanFinished(result));
     });
 
     const removeWorkspacesReadyListener = ipcRenderer.on('main:workspaces-ready', () => {
@@ -434,6 +448,9 @@ const useIpcEvents = () => {
       removeCollectionMigrationProgressListener();
       removeOpenWorkspaceListener();
       removeOpenCollectionModalListener();
+      removeRecentCollectionsChangedListener();
+      removeCollectionScanBatchListener();
+      removeCollectionScanDoneListener();
       removeWorkspacesReadyListener();
       removeWorkspaceConfigUpdatedListener();
       removeWorkspaceEnvironmentAddedListener();

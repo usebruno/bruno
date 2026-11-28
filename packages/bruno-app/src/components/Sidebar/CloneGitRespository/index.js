@@ -257,7 +257,7 @@ const CloneGitRepository = ({ onClose, onFinish, collectionRepositoryUrl = null 
         break;
       case 'Open':
         if (collectionPaths.length > 0 && selectedCollectionPaths.length > 0) {
-          dispatch(openMultipleCollections(selectedCollectionPaths));
+          dispatch(openMultipleCollections(selectedCollectionPaths, { recordRecent: true }));
           onClose();
           onFinish();
         }

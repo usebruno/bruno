@@ -4,10 +4,16 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { ThemeProvider } from 'providers/Theme';
 import openCollectionModalReducer from 'providers/ReduxStore/slices/open-collection-modal';
+import { OPEN_COLLECTION_PAGE } from 'utils/common/constants';
 import { OPEN_COLLECTION_PAGES } from '../pages';
 import ModalMenu from './index';
 
-const renderMenu = (activePageId = 'choose-folder') => {
+jest.mock('nanoid', () => {
+  let count = 0;
+  return { customAlphabet: () => () => `mock-id-${(count += 1)}` };
+});
+
+const renderMenu = (activePageId = OPEN_COLLECTION_PAGE.CHOOSE_FOLDER) => {
   const store = configureStore({
     reducer: { openCollectionModal: openCollectionModalReducer },
     preloadedState: {
@@ -43,7 +49,7 @@ describe('ModalMenu', () => {
   });
 
   it('marks only the active page', () => {
-    renderMenu('recents');
+    renderMenu(OPEN_COLLECTION_PAGE.RECENTS);
 
     const current = menuItems().filter((item) => item.getAttribute('aria-current') === 'page');
     expect(current).toEqual([screen.getByTestId('open-collection-menu-item-recents')]);
@@ -54,7 +60,7 @@ describe('ModalMenu', () => {
 
     fireEvent.click(screen.getByTestId('open-collection-menu-item-my-computer'));
 
-    expect(store.getState().openCollectionModal.page).toBe('my-computer');
+    expect(store.getState().openCollectionModal.page).toBe(OPEN_COLLECTION_PAGE.MY_COMPUTER);
   });
 
   it('moves focus with the arrow keys and wraps at both ends', () => {

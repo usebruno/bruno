@@ -25,6 +25,10 @@ const defaultPreferences = {
     },
     ai: {
       enabled: false
+    },
+    openCollection: {
+      searchFolders: [],
+      searchWholeComputer: false
     }
   }
 };
