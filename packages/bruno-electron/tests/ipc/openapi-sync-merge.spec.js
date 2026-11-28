@@ -1366,9 +1366,45 @@ describe('compareRequestFields for a request a sync keeps', () => {
     expect(compare(json({ meta: '' }), json({ meta: { env: 'prod' } })).changes).toEqual(['body schema']);
   });
 
+  it('does not flag a value of another shape than the example when a schema in the body schema allows its type', () => {
+    const recipient = object({ email: string });
+    const recipients = declaredFor('application/json', { anyOf: [recipient, { type: 'array', items: recipient }] });
+    const message = declaredFor('application/json', { oneOf: [object({ kind: string, data: object({ id: string }) }), object({ kind: string, data: string })] });
+    const multiType = declaredFor('application/json', object({ data: { type: ['object', 'string'], properties: { id: string } } }));
+
+    expect(compare(json({ email: '' }), json([{ email: 'a@x.io' }]), recipients).hasDiff).toBe(false);
+    expect(compare(json({ kind: '', data: { id: '' } }), json({ kind: 'b', data: 'hello' }), message).hasDiff).toBe(false);
+    expect(compare(json({ data: { id: '' } }), json({ data: 'hello' }), multiType).hasDiff).toBe(false);
+    expect(compare(json({ email: '' }), json('a@x.io'), recipients).changes).toEqual(['body schema']);
+  });
+
+  it('flags a oneOf or anyOf part whose type none of its alternatives allows', () => {
+    const payment = { oneOf: [object({ iban: string }), object({ cardNumber: string })] };
+    const declared = declaredFor('application/json', object({ payment, payments: { type: 'array', items: payment }, extra: { oneOf: [object({ iban: string }), {}] } }));
+    const template = { payment: { iban: '' }, payments: [{ iban: '' }], extra: { iban: '' } };
+    const sent = (part) => json({ ...template, ...part });
+
+    expect(compare(json(template), sent({ payment: 'DE89' }), declared).changes).toEqual(['body schema']);
+    expect(compare(json(template), sent({ payments: ['DE89'] }), declared).changes).toEqual(['body schema']);
+    expect(compare(json(template), sent({ payment: null }), declared).hasDiff).toBe(false);
+    expect(compare(json(template), sent({ extra: 'anything' }), declared).hasDiff).toBe(false);
+  });
+
   it('does not flag the object the user sends for a oneOf property the spec writes as ""', () => {
     const declared = declaredFor('application/json', object({ payment: { oneOf: [object({ iban: string }), object({ cardNumber: string })] } }));
     expect(compare(json({ payment: '' }), json({ payment: { iban: 'DE89' } }), declared).hasDiff).toBe(false);
+  });
+
+  it('does not look inside a oneOf or anyOf part, which a sync keeps as written', () => {
+    const recipient = object({ email: string });
+    const message = { oneOf: [object({ kind: string, data: object({ id: string }) }), object({ kind: string, data: string })] };
+    const declared = declaredFor('application/json', object({ to: { anyOf: [recipient, { type: 'array', items: recipient }] }, payload: message, payments: { type: 'array', items: message } }));
+    const template = { to: { email: '' }, payload: { kind: '', data: { id: '' } }, payments: [{ kind: '', data: { id: '' } }] };
+    const sent = (part) => json({ ...template, ...part });
+
+    expect(compare(json(template), sent({ to: [{ email: 'a@x.io' }] }), declared).hasDiff).toBe(false);
+    expect(compare(json(template), sent({ payload: { kind: 'b', data: 'hello' } }), declared).hasDiff).toBe(false);
+    expect(compare(json(template), sent({ payments: [{ kind: 'b', data: 'hello' }] }), declared).hasDiff).toBe(false);
   });
 
   it('treats a form field the body schema declares as unchanged, and flags a field type the user changed', () => {
@@ -1379,5 +1415,104 @@ describe('compareRequestFields for a request a sync keeps', () => {
 
     const multipart = (type) => request({ mode: 'multipartForm', multipartForm: [{ name: 'avatar', type, value: '' }] });
     expect(compare(multipart('text'), multipart('file'), declaredFor('multipart/form-data', object({ avatar: string }))).changes).toEqual(['+1 form fields', '-1 form fields']);
+  });
+});
+
+describe('mergeSpecIntoRequest (restoring the spec\'s types)', () => {
+  const string = { type: 'string' };
+  const object = (properties) => ({ type: 'object', properties });
+  const recipient = object({ email: string });
+  const recipients = { anyOf: [recipient, { type: 'array', items: recipient }] };
+  const declaredFor = (schema) => helpers.declaredBodyOf({ openapi: '3.0.3', info: { title: 'Pets', version: '1' }, paths: { '/pets': { post: { requestBody: { content: { 'application/json': { schema } } } } } } }, 'POST', '/pets');
+  const item = (body) => ({ request: { method: 'POST', url: '{{baseUrl}}/pets', params: [], headers: [], body, auth: { mode: 'none' } } });
+
+  it('keeps a JSON value the user changed to another type, unless the spec\'s types are restored', () => {
+    const user = item({ mode: 'json', json: '{"name":"Fido","owner":"seven"}' });
+    const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0}}' });
+
+    expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec).request.body.json)).toEqual({ name: 'Fido', owner: 'seven' });
+    expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json)).toEqual({ name: 'Fido', owner: { id: 0 } });
+  });
+
+  it('takes the spec\'s descriptions of headers and params, unless the spec\'s types are restored', () => {
+    const withFields = (description) => ({
+      request: {
+        ...item({ mode: 'none' }).request,
+        params: [{ name: 'limit', value: '10', type: 'query', enabled: true, description }],
+        headers: [{ name: 'X-Request-Id', value: '1', enabled: true, description }]
+      }
+    });
+    const descriptionsOf = ({ request }) => [...request.params, ...request.headers].map(({ description }) => description);
+
+    expect(descriptionsOf(helpers.mergeSpecIntoRequest(withFields('Mine'), withFields('From the spec')))).toEqual(['From the spec', 'From the spec']);
+    expect(descriptionsOf(helpers.mergeSpecIntoRequest(withFields('Mine'), withFields('From the spec'), { restoreSpecTypes: true }))).toEqual(['Mine', 'Mine']);
+  });
+
+  it('keeps a multipart field the user switched between text and file, unless the spec\'s types are restored', () => {
+    const user = item({ mode: 'multipartForm', multipartForm: [{ name: 'photo', type: 'text', value: 'not a file', enabled: true }, { name: 'caption', type: 'text', value: 'Sunny', enabled: true }] });
+    const spec = item({ mode: 'multipartForm', multipartForm: [{ name: 'photo', type: 'file', value: [], enabled: true }, { name: 'caption', type: 'text', value: '', enabled: true }] });
+    const fieldsOf = (merged) => merged.request.body.multipartForm.map(({ name, type, value }) => [name, type, value]);
+
+    expect(fieldsOf(helpers.mergeSpecIntoRequest(user, spec))).toEqual([['photo', 'text', 'not a file'], ['caption', 'text', 'Sunny']]);
+    expect(fieldsOf(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }))).toEqual([['photo', 'file', []], ['caption', 'text', 'Sunny']]);
+  });
+
+  it('keeps a {{var}} written in place of a JSON object or array when the spec\'s types are restored', () => {
+    const json = '{\n  "name": "Fido",\n  "owner": {{owner}},\n  "tags": {{tags}}\n}';
+    const user = item({ mode: 'json', json });
+    const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0},"tags":[]}' });
+
+    expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
+  });
+
+  it('takes the spec\'s modes with the blocks the user saved for them, and keeps the other blocks, when the spec\'s types are restored', () => {
+    const withAuth = ({ request }, auth) => ({ request: { ...request, auth } });
+    const user = withAuth(item({ mode: 'text', text: 'Saved text', json: '{"name":"Fido"}' }), { mode: 'basic', basic: { username: 'me', password: 'secret' }, bearer: { token: 'old' } });
+    const spec = withAuth(item({ mode: 'json', json: '{"name":""}', text: null, formUrlEncoded: [] }), { mode: 'bearer', bearer: { token: '{{token}}' }, basic: null });
+    const merged = helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request;
+
+    expect(merged.auth).toEqual({ mode: 'bearer', bearer: { token: 'old' }, basic: { username: 'me', password: 'secret' } });
+    expect(merged.body).toMatchObject({ mode: 'json', json: '{"name":"Fido"}', text: 'Saved text' });
+  });
+
+  it('keeps the JSON text as written when restoring the spec\'s types changes no value', () => {
+    const json = '{\n    "owner": { "id": 9007199254740993 },\n    "name": "Fido",\n    "price": 19.90\n}';
+    const user = item({ mode: 'json', json });
+    const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0},"price":0}' });
+
+    expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe(json);
+  });
+
+  it('restores only the fields of another type when the JSON body holds a {{var}}', () => {
+    const user = item({ mode: 'json', json: '{"name":{{petName}},"owner":"seven","tag":"{{tag}}"}' });
+    const spec = item({ mode: 'json', json: '{"name":"","owner":{"id":0},"tag":{"id":0}}' });
+
+    expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json)
+      .toBe('{\n  "name": {{petName}},\n  "owner": {\n    "id": 0\n  },\n  "tag": {\n    "id": 0\n  }\n}');
+  });
+
+  it('takes the spec\'s body for a JSON body that is null when the spec\'s types are restored', () => {
+    const user = item({ mode: 'json', json: 'null' });
+    const spec = item({ mode: 'json', json: '{"name":""}' });
+
+    expect(helpers.mergeSpecIntoRequest(user, spec).request.body.json).toBe('null');
+    expect(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true }).request.body.json).toBe('{"name":""}');
+  });
+
+  it('keeps a oneOf or anyOf part as written when the spec\'s types are restored', () => {
+    const declaredBody = declaredFor(object({ to: recipients, owner: object({ id: { type: 'integer' } }) }));
+    const user = item({ mode: 'json', json: '{"to":[{"email":"a@x.io"}],"owner":"seven"}' });
+    const spec = item({ mode: 'json', json: '{"to":{"email":""},"owner":{"id":0}}' });
+
+    expect(JSON.parse(helpers.mergeSpecIntoRequest(user, spec, { restoreSpecTypes: true, declaredBody }).request.body.json)).toEqual({ to: [{ email: 'a@x.io' }], owner: { id: 0 } });
+  });
+
+  it('keeps a body of another shape than the example when the body schema allows its type, and restores one it does not', () => {
+    const declaredBody = declaredFor(recipients);
+    const spec = item({ mode: 'json', json: '{"email":""}' });
+    const reset = (json) => JSON.parse(helpers.mergeSpecIntoRequest(item({ mode: 'json', json }), spec, { restoreSpecTypes: true, declaredBody }).request.body.json);
+
+    expect(reset('[{"email":"a@x.io"}]')).toEqual([{ email: 'a@x.io' }]);
+    expect(reset('"a@x.io"')).toEqual({ email: '' });
   });
 });

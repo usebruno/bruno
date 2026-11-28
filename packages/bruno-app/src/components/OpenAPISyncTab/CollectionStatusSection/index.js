@@ -21,8 +21,6 @@ const CollectionStatusSection = ({
   collection,
   collectionDrift,
   reloadDrift,
-  specDrift,
-  storedSpec,
   lastSyncDate,
   onOpenEndpoint,
   isLoading,
@@ -40,7 +38,6 @@ const CollectionStatusSection = ({
     handleAddAllMissing
   } = useEndpointActions(collection, collectionDrift, reloadDrift);
 
-  const spec = storedSpec || specDrift?.newSpec;
   const hasStoredSpec = collectionDrift && !collectionDrift.noStoredSpec;
   const hasDrift = hasStoredSpec && (collectionDrift.modified?.length > 0
     || collectionDrift.missing?.length > 0
@@ -48,23 +45,22 @@ const CollectionStatusSection = ({
 
   const renderDriftRow = (endpoint, idx, actions) => (
     <ExpandableEndpointRow
-      key={endpoint.id}
+      key={[endpoint.pathname, endpoint.id].join('|')}
       endpoint={endpoint}
       collectionPath={collection.pathname}
-      newSpec={spec}
       showDecisions={false}
       diffLeftLabel="Last Synced Spec"
       diffRightLabel="Current (in collection)"
       swapDiffSides
       collectionUid={collection.uid}
       actions={actions}
+      resetToSpec
     />
   );
 
   const modifiedCount = collectionDrift?.modified?.length || 0;
   const missingCount = collectionDrift?.missing?.length || 0;
   const localOnlyCount = collectionDrift?.localOnly?.length || 0;
-  const version = specDrift?.storedVersion || storedSpec?.info?.version;
 
   const bannerState = useMemo(() => {
     if (hasDrift) {
@@ -76,7 +72,7 @@ const CollectionStatusSection = ({
       };
     }
     return null;
-  }, [hasDrift, modifiedCount, missingCount, localOnlyCount, version, lastSyncDate]);
+  }, [hasDrift, modifiedCount, missingCount, localOnlyCount]);
 
   return (
     <div className="collection-status-section">

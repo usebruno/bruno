@@ -15,7 +15,7 @@ const {
 const { openApiToBruno } = require('@usebruno/converters');
 const { resolveEnvironmentInheritance, buildQueryString, parseQueryParams, getFilenameWithFormat } = require('@usebruno/common/utils');
 const { writeFile, writeFileUnique, sanitizeName, getCollectionFormat, posixifyPath } = require('../utils/filesystem');
-const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys } = require('../utils/openapi-schema');
+const { derefSpecObject, declaredSchemaNode, declaresKey, declaredKeysOf, declaredChild, declaredItems, declaresOnlyScalars, declaresTypeOf, keyLeavesShapeOpen, itemsLeaveShapeOpen, otherAlternativeKeys, noAlternativeAllows, missingDiscriminatorOf } = require('../utils/openapi-schema');
 const { COLLECTION_ROOT_BASENAMES, FOLDER_ROOT_BASENAMES } = require('../utils/mount');
 
 const RESERVED_FOLDER_NAMES = ['node_modules', '.git', 'environments', 'mocks'];
@@ -368,6 +368,12 @@ const findRequestFileOnDisk = (dirPath, method, urlPath, collectionPath = dirPat
   return null;
 };
 
+const readCollectionRequestFile = (collectionPath, pathname) => {
+  if (!isPathInsideCollection(pathname, collectionPath)) return null;
+  const format = pathname.endsWith('.yml') || pathname.endsWith('.yaml') ? 'yml' : 'bru';
+  return { format, request: parseRequest(fs.readFileSync(pathname, 'utf8'), { format }) };
+};
+
 /**
  * Save an OpenAPI spec file to AppData specs directory.
  * - Detects format (JSON/YAML) from the content and uses the correct file extension.
@@ -521,6 +527,10 @@ const unmaskJsonInterpolations = (str, vars, prefix = 'BRUNO_VAR') => {
     .replace(new RegExp(`${SENTINEL}${prefix}_S_(\\d+)${SENTINEL}`, 'g'), (m, n) => restore(n, m));
 };
 
+const MASKED_BARE_VARIABLE = new RegExp(`^${SENTINEL}\\w+_V_\\d+${SENTINEL}$`);
+
+const isMaskedBareVariable = (value) => typeof value === 'string' && MASKED_BARE_VARIABLE.test(value);
+
 // ---------------------------------------------------------------------------
 // JSON value merge helpers
 // ---------------------------------------------------------------------------
@@ -557,6 +567,16 @@ const withoutUndeclaredFields = (userVal, declared, shapeOpen = false) => {
   return out;
 };
 
+const jsonNodeTypeChanged = (userVal, specVal, declared) => {
+  if (userVal === null || userVal === undefined) return false;
+  const userHasStructure = isPlainObject(userVal) || Array.isArray(userVal);
+  if (userHasStructure && declaresOnlyScalars(declared)) return true;
+  if (declaresTypeOf(declared, userVal)) return false;
+  if (isPlainObject(specVal)) return !isPlainObject(userVal);
+  if (Array.isArray(specVal)) return !Array.isArray(userVal);
+  return userHasStructure && declared === undefined;
+};
+
 /**
  * Recursively merge a user JSON value with a spec JSON value.
  *
@@ -582,15 +602,18 @@ const withoutUndeclaredFields = (userVal, declared, shapeOpen = false) => {
  *
  * When preserveValues=false the spec value is returned as-is.
  */
-const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false) => {
+const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shapeOpen = false, restoreSpecTypes = false) => {
   if (!preserveValues) return specVal;
-  if (shapeOpen) return userVal;
+  if (shapeOpen) return restoreSpecTypes && !isMaskedBareVariable(userVal) && noAlternativeAllows(declared, userVal) ? specVal : userVal;
+  if (restoreSpecTypes && !isMaskedBareVariable(userVal) && jsonNodeTypeChanged(userVal, specVal, declared)) return specVal;
   if (isPlainObject(specVal) && isPlainObject(userVal)) {
     if (Object.keys(specVal).length === 0) return withoutUndeclaredFields(userVal, declared);
     const otherBranchKeys = otherAlternativeKeys(declared, userVal);
+    const missingDiscriminator = restoreSpecTypes ? missingDiscriminatorOf(declared, userVal) : undefined;
     const out = {};
     for (const key of Object.keys(specVal)) {
-      if (Object.hasOwn(userVal, key)) setOwn(out, key, mergeJsonValues(userVal[key], specVal[key], preserveValues, declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
+      if (Object.hasOwn(userVal, key)) setOwn(out, key, mergeJsonValues(userVal[key], specVal[key], preserveValues, declaredChild(declared, key), keyLeavesShapeOpen(declared, key), restoreSpecTypes));
+      else if (key === missingDiscriminator?.propertyName) setOwn(out, key, missingDiscriminator.value);
       else if (!otherBranchKeys.has(key)) setOwn(out, key, specVal[key]);
     }
     for (const key of Object.keys(userVal)) {
@@ -604,7 +627,7 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shap
     const template = specVal.length > 0 ? specVal[0] : undefined;
     if (template === undefined) return userVal;
     const declaredItem = declaredItems(declared);
-    return userVal.map((el) => mergeJsonValues(el, template, preserveValues, declaredItem, itemsOpen));
+    return userVal.map((el) => mergeJsonValues(el, template, preserveValues, declaredItem, itemsOpen, restoreSpecTypes));
   }
   return userVal === undefined ? specVal : userVal;
 };
@@ -617,13 +640,16 @@ const mergeJsonValues = (userVal, specVal, preserveValues = true, declared, shap
  * JSON is unparseable (e.g. contains a work-in-progress template), and keeps
  * the user JSON as it is when the spec body has no JSON template (no schema).
  */
-const mergeJsonBody = (userBody, specBody, preserveValues = true, declared) => {
+const mergeJsonBody = (userBody, specBody, preserveValues = true, declared, restoreSpecTypes = false) => {
   if (!preserveValues || !userBody?.json) return specBody;
   if (!specBody?.json) return { ...specBody, mode: 'json', json: userBody.json };
   try {
     const u = maskJsonInterpolations(userBody.json, 'BRU_U');
     const s = maskJsonInterpolations(specBody.json, 'BRU_S');
-    const merged = mergeJsonValues(JSON.parse(u.masked), JSON.parse(s.masked), preserveValues, declared);
+    const userJson = JSON.parse(u.masked);
+    if (restoreSpecTypes && userJson === null) return specBody;
+    const merged = mergeJsonValues(userJson, JSON.parse(s.masked), preserveValues, declared, false, restoreSpecTypes);
+    if (restoreSpecTypes && _.isEqual(merged, userJson)) return { ...specBody, mode: 'json', json: userBody.json };
     let json = JSON.stringify(merged, null, 2);
     json = unmaskJsonInterpolations(json, u.vars, 'BRU_U');
     json = unmaskJsonInterpolations(json, s.vars, 'BRU_S');
@@ -636,15 +662,15 @@ const mergeJsonBody = (userBody, specBody, preserveValues = true, declared) => {
 
 const MULTIPART_FIELD_TYPES = ['text', 'file'];
 
-const mergeFieldEntry = (specEntry, userEntry, previousEntry) => {
+const mergeFieldEntry = (specEntry, userEntry, previousEntry, restoreSpecTypes = false) => {
   const enabled = userEntry.enabled ?? specEntry.enabled;
   const typeDiffers = MULTIPART_FIELD_TYPES.includes(specEntry.type) && MULTIPART_FIELD_TYPES.includes(userEntry.type) && userEntry.type !== specEntry.type;
-  const description = specEntry.description || userEntry.description;
+  const description = restoreSpecTypes ? (userEntry.description || specEntry.description) : (specEntry.description || userEntry.description);
   const notes = {
     ...(description !== undefined ? { description } : {}),
     ...(userEntry.annotations !== undefined ? { annotations: userEntry.annotations } : {})
   };
-  if (typeDiffers && previousEntry !== undefined && previousEntry.type !== specEntry.type) return { ...specEntry, enabled, ...notes };
+  if (typeDiffers && (restoreSpecTypes || (previousEntry !== undefined && previousEntry.type !== specEntry.type))) return { ...specEntry, enabled, ...notes };
   return {
     ...specEntry,
     ...(typeDiffers ? { type: userEntry.type } : {}),
@@ -663,13 +689,15 @@ const mergeFieldEntry = (specEntry, userEntry, previousEntry) => {
  * enum, not with a value the spec dropped). Unless the key is an enum in the spec,
  * a disabled same-value entry yields to an enabled entry of the same key. A pair
  * keeps the user's value, `enabled`, `contentType` and annotations, and the user's
- * description when the spec has none. An enum value the user does not have yet
+ * description when the spec has none or, with restoreSpecTypes, whenever the user
+ * has one. An enum value the user does not have yet
  * comes in disabled while the user still has that param. A multipart field takes
- * the spec entry only when the spec switched it between text and file. The spec
- * defines membership: other user entries are dropped, except a form field whose
- * name the body schema declares (declared) though the spec list leaves it out.
+ * the spec entry only when the spec switched it between text and file, or, with
+ * restoreSpecTypes, when the user did. The spec defines membership: other user
+ * entries are dropped, except a form field whose name the body schema declares
+ * (declared) though the spec list leaves it out.
  */
-const mergeFieldListPreserving = (specItems, existingItems, preserveValues = true, previousItems, { keyOf = (entry) => entry.name, declared } = {}) => {
+const mergeFieldListPreserving = (specItems, existingItems, preserveValues = true, previousItems, { keyOf = (entry) => entry.name, declared, restoreSpecTypes = false } = {}) => {
   if (!preserveValues) return specItems || [];
   const spec = (specItems || []).filter(isPlainObject);
   const existing = (existingItems || []).filter(isPlainObject);
@@ -705,7 +733,7 @@ const mergeFieldListPreserving = (specItems, existingItems, preserveValues = tru
     const userEntry = pairs.get(index);
     const key = keyOf(specEntry);
     if (!userEntry) return isEnumLike(key) && userKeys.has(key) ? { ...specEntry, enabled: false } : specEntry;
-    return mergeFieldEntry(specEntry, userEntry, previous && previous.find((entry) => keyOf(entry) === key));
+    return mergeFieldEntry(specEntry, userEntry, previous && previous.find((entry) => keyOf(entry) === key), restoreSpecTypes);
   });
   return [...merged, ...kept];
 };
@@ -775,14 +803,14 @@ const mergeRawBody = (userBody, specBody, mode, previousSpecBody) => {
  * (xml, text, sparql) follows the spec; otherwise raw modes keep the user's body
  * verbatim.
  */
-const mergeBody = (userBody, specBody, preserveValues = true, previousSpecBody, declared) => {
+const mergeBody = (userBody, specBody, preserveValues = true, previousSpecBody, declared, restoreSpecTypes = false) => {
   if (!preserveValues || !userBody || !specBody) return specBody;
   const specMode = specBody.mode || 'none';
   const userMode = userBody.mode || 'none';
   if (specMode !== userMode) return specBody;
-  if (specMode === 'json') return mergeJsonBody(userBody, specBody, preserveValues, declared);
+  if (specMode === 'json') return mergeJsonBody(userBody, specBody, preserveValues, declared, restoreSpecTypes);
   if (specMode === 'formUrlEncoded' || specMode === 'multipartForm') {
-    const fields = mergeFieldListPreserving(specBody[specMode], userBody[specMode], preserveValues, previousListIn(previousSpecBody, specMode), { declared });
+    const fields = mergeFieldListPreserving(specBody[specMode], userBody[specMode], preserveValues, previousListIn(previousSpecBody, specMode), { declared, restoreSpecTypes });
     return { ...specBody, [specMode]: fields };
   }
   // graphql stores a nested { query, variables } object — keep the user's, but
@@ -792,6 +820,12 @@ const mergeBody = (userBody, specBody, preserveValues = true, previousSpecBody, 
   if (previousSpecBody !== undefined && RAW_BODY_MODES.includes(specMode)) return mergeRawBody(userBody, specBody, specMode, previousSpecBody);
   // without the previous spec body, raw modes (xml / text / sparql) keep the user's string payload; a shallow copy is safe
   return { ...userBody };
+};
+
+const hasSavedBlock = (block) => {
+  if (Array.isArray(block)) return block.length > 0;
+  if (typeof block === 'string') return block.trim() !== '';
+  return isPlainObject(block);
 };
 
 /**
@@ -813,11 +847,11 @@ const mergeWithUserValues = (specItems, existingItems) => {
  * (tests, scripts, assertions) and user values for matching params/headers.
  *
  * fullReset: true = spec replaces entire request section (reset mode)
- *            false = only override url/body/auth from spec (sync mode); with
+ *            false = only override url/method/body/auth from spec (sync mode); with
  *            preserveValues the url keeps the spec path and its query string is
  *            rebuilt from the enabled query params
  */
-const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, preserveValues = true, previousSpecItem, declaredBody } = {}) => {
+const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, preserveValues = true, previousSpecItem, declaredBody, restoreSpecTypes = false } = {}) => {
   if (fullReset) {
     const mergedParams = mergeWithUserValues(specItem.request.params, existingRequest.request?.params);
     const mergedHeaders = mergeWithUserValues(specItem.request.headers, existingRequest.request?.headers);
@@ -838,16 +872,27 @@ const mergeSpecIntoRequest = (existingRequest, specItem, { fullReset = false, pr
 
   // Sync mode: reconcile structure to the spec while preserving the user's values.
   const previousRequest = previousSpecItem && (previousSpecItem.request || {});
-  const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey });
+  const params = mergeFieldListPreserving(specItem.request.params, existingRequest.request?.params, preserveValues, previousListIn(previousRequest, 'params'), { keyOf: paramKey, restoreSpecTypes });
+  const inSpecMode = (existing, spec) => (restoreSpecTypes && isPlainObject(existing) && isPlainObject(spec) && hasSavedBlock(existing[spec.mode])
+    ? { ...existing, mode: spec.mode }
+    : existing);
+  const withOtherModeBlocks = (merged, existing) => (restoreSpecTypes && isPlainObject(merged) && isPlainObject(existing)
+    ? { ...merged, ..._.omit(existing, ['mode', merged.mode]) }
+    : merged);
+  const existingBody = existingRequest.request?.body;
+  const existingAuth = existingRequest.request?.auth;
+  const body = mergeBody(inSpecMode(existingBody, specItem.request.body), specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody, restoreSpecTypes);
+  const auth = mergeAuth(inSpecMode(existingAuth, specItem.request.auth), specItem.request.auth, preserveValues);
   return {
     ...existingRequest,
     request: {
       ...existingRequest.request,
       url: preserveValues ? urlWithQueryParams(specItem.request.url, params, existingRequest.request?.url) : specItem.request.url,
-      body: mergeBody(existingRequest.request?.body, specItem.request.body, preserveValues, previousRequest && (previousRequest.body || {}), declaredBody),
-      auth: mergeAuth(existingRequest.request?.auth, specItem.request.auth, preserveValues),
+      method: specItem.request.method,
+      body: withOtherModeBlocks(body, existingBody),
+      auth: withOtherModeBlocks(auth, existingAuth),
       params,
-      headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey })
+      headers: mergeFieldListPreserving(specItem.request.headers, existingRequest.request?.headers, preserveValues, previousListIn(previousRequest, 'headers'), { keyOf: headerKey, restoreSpecTypes })
     }
   };
 };
@@ -918,13 +963,12 @@ const extractJsonKeys = (obj, prefix = '') => {
   return keys;
 };
 
-const jsonTypeChanged = (userVal, specVal, declared) => {
-  if (userVal === null || userVal === undefined) return false;
-  const userHasStructure = isPlainObject(userVal) || Array.isArray(userVal);
-  if (userHasStructure && declaresOnlyScalars(declared)) return true;
-  if (isPlainObject(specVal)) return !isPlainObject(userVal) || Object.keys(specVal).some((key) => Object.hasOwn(userVal, key) && jsonTypeChanged(userVal[key], specVal[key], declaredChild(declared, key)));
-  if (Array.isArray(specVal)) return !Array.isArray(userVal) || (specVal.length > 0 && userVal.some((item) => jsonTypeChanged(item, specVal[0], declaredItems(declared))));
-  return userHasStructure && declared === undefined;
+const jsonTypeChanged = (userVal, specVal, declared, shapeOpen = false) => {
+  if (shapeOpen) return noAlternativeAllows(declared, userVal);
+  if (jsonNodeTypeChanged(userVal, specVal, declared)) return true;
+  if (isPlainObject(specVal) && isPlainObject(userVal)) return Object.keys(specVal).some((key) => Object.hasOwn(userVal, key) && jsonTypeChanged(userVal[key], specVal[key], declaredChild(declared, key), keyLeavesShapeOpen(declared, key)));
+  if (Array.isArray(specVal) && Array.isArray(userVal)) return specVal.length > 0 && userVal.some((item) => jsonTypeChanged(item, specVal[0], declaredItems(declared), itemsLeaveShapeOpen(declared)));
+  return false;
 };
 
 /**
@@ -1093,13 +1137,14 @@ const EMPTY_SPEC_ITEM = { request: { body: {} } };
 const previousSpecItemFor = (storedCollection, method, endpointPath) =>
   findItemInCollection(storedCollection?.items || [], method, endpointPath)?.item || EMPTY_SPEC_ITEM;
 
-const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy }) => {
+const mergeOptionsFor = (collectionPath, brunoConfig, newSpec, { preserveValues, groupBy, restoreSpecTypes = false }) => {
   const storedSpec = preserveValues && newSpec ? loadStoredSpecIfAny(collectionPath, brunoConfig) : null;
   const storedCollection = _.once(() => storedSpecCollectionOf(storedSpec, groupBy));
   return (method, endpointPath) => ({
     preserveValues,
     previousSpecItem: previousSpecItemFor(storedCollection(), method, endpointPath),
-    declaredBody: declaredBodyOf(newSpec, method, endpointPath)
+    declaredBody: declaredBodyOf(newSpec, method, endpointPath),
+    restoreSpecTypes
   });
 };
 
@@ -1482,7 +1527,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
   });
 
   // Get endpoint diff data for visual comparison (spec vs collection)
-  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, newSpec, preserveValues = true }) => {
+  ipcMain.handle('renderer:get-endpoint-diff-data', async (event, { collectionPath, endpointId, pathname, newSpec, preserveValues = true, resetToSpec = false }) => {
     try {
       let brunoConfig;
       try {
@@ -1495,8 +1540,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const [method, ...pathParts] = endpointId.split(':');
       const endpointPath = pathParts.join(':'); // Rejoin in case path contains ':'
 
-      // Get spec to use (new spec if provided, otherwise stored spec)
-      let specToUse = newSpec;
+      let specToUse = resetToSpec ? null : newSpec;
       if (!specToUse) {
         const diffSourceUrl = brunoConfig?.openapi?.[0]?.sourceUrl;
         const diffSpecEntry = diffSourceUrl ? getSpecEntryForUrl(collectionPath) : null;
@@ -1520,8 +1564,16 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       const specItem = findItemInCollection(specAsCollection.items || [], method, endpointPath)?.item || null;
 
       // Find the actual collection file for this endpoint
-      const actualFile = findRequestFileOnDisk(collectionPath, method.toUpperCase(), endpointPath);
-      const actualRequest = actualFile?.request || null;
+      let actualRequest = null;
+      if (resetToSpec && pathname) {
+        const requestFile = readCollectionRequestFile(collectionPath, pathname);
+        if (!requestFile) {
+          return { error: 'Request file is outside the collection' };
+        }
+        actualRequest = requestFile.request;
+      } else {
+        actualRequest = findRequestFileOnDisk(collectionPath, method.toUpperCase(), endpointPath)?.request || null;
+      }
 
       // Transform to visual diff format (matching what VisualDiffViewer rendering components expect)
       // Components like VisualDiffUrlBar, VisualDiffParams, etc. read from data.request.*
@@ -1573,7 +1625,7 @@ const registerOpenAPISyncIpc = (mainWindow) => {
       // matching the shape that mergeSpecIntoRequest expects as its first argument.
       let specItemForDisplay = specItem;
       if (specItem && actualRequest) {
-        const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues, groupBy });
+        const mergeOptionsOf = mergeOptionsFor(collectionPath, brunoConfig, specToUse, { preserveValues: preserveValues || resetToSpec, groupBy, restoreSpecTypes: resetToSpec });
         const merged = mergeSpecIntoRequest(actualRequest, specItem, mergeOptionsOf(method, endpointPath));
         specItemForDisplay = { ...specItem, request: merged.request };
       }
@@ -2070,10 +2122,17 @@ const registerOpenAPISyncIpc = (mainWindow) => {
   });
 
   // Reset modified endpoints to match the spec
-  ipcMain.handle('renderer:reset-endpoints-to-spec', async (event, { collectionPath, endpoints }) => {
+  ipcMain.handle('renderer:reset-endpoints-to-spec', async (event, { collectionPath, endpoints, fullReset = false }) => {
     try {
       const { brunoConfig } = loadBrunoConfig(collectionPath);
       const specCollection = loadStoredSpecCollection(collectionPath, brunoConfig);
+      const mergeOptionsOf = fullReset
+        ? () => ({ fullReset: true })
+        : mergeOptionsFor(collectionPath, brunoConfig, loadStoredSpecIfAny(collectionPath, brunoConfig), {
+            preserveValues: true,
+            groupBy: specConversionOptions(brunoConfig, collectionPath).groupBy,
+            restoreSpecTypes: true
+          });
 
       let resetCount = 0;
       for (const endpoint of endpoints) {
@@ -2081,17 +2140,14 @@ const registerOpenAPISyncIpc = (mainWindow) => {
         const specItem = findItemInCollection(specCollection.items, endpoint.method, endpoint.path)?.item;
 
         if (specItem && endpoint.pathname) {
-          if (!isPathInsideCollection(endpoint.pathname, collectionPath)) {
-            console.error(`[OpenAPI Sync] Path traversal blocked in reset-endpoints: ${endpoint.pathname}`);
-            continue;
-          }
-
           try {
-            const fileFormat = endpoint.pathname.endsWith('.yml') || endpoint.pathname.endsWith('.yaml') ? 'yml' : 'bru';
-            const existingContent = fs.readFileSync(endpoint.pathname, 'utf8');
-            const existingRequest = parseRequest(existingContent, { format: fileFormat });
-            const mergedRequest = mergeSpecIntoRequest(existingRequest, specItem, { fullReset: true });
-            const requestContent = await stringifyRequestViaWorker(mergedRequest, { format: fileFormat });
+            const requestFile = readCollectionRequestFile(collectionPath, endpoint.pathname);
+            if (!requestFile) {
+              console.error(`[OpenAPI Sync] Path traversal blocked in reset-endpoints: ${endpoint.pathname}`);
+              continue;
+            }
+            const mergedRequest = mergeSpecIntoRequest(requestFile.request, specItem, mergeOptionsOf(endpoint.method, endpoint.path));
+            const requestContent = await stringifyRequestViaWorker(mergedRequest, { format: requestFile.format });
             await writeFile(endpoint.pathname, requestContent);
             resetCount++;
           } catch (err) {
