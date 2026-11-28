@@ -158,6 +158,29 @@ describe('interpolate-vars: interpolateVars', () => {
 
     expect(result.data).toEqual([{ name: 'note', value: 'first line\nsecond line', type: 'text', enabled: true }]);
   });
+
+  describe('Default values', () => {
+    it('uses a variable from the combined scope over the default in an env value', () => {
+      const request = { method: 'GET', url: '{{base}}/users' };
+
+      const result = interpolateVars(request, { base: '{{host:-localhost}}' }, { host: 'api.example.com' }, null);
+      expect(result.url).toEqual('api.example.com/users');
+    });
+
+    it('uses process.env over the default in an env value', () => {
+      const request = { method: 'GET', url: '{{base}}/users' };
+
+      const result = interpolateVars(request, { base: '{{process.env.HOST:-localhost}}' }, null, { HOST: 'env-host' });
+      expect(result.url).toEqual('env-host/users');
+    });
+
+    it('uses the default when the variable is not set anywhere', () => {
+      const request = { method: 'GET', url: '{{base}}/users' };
+
+      const result = interpolateVars(request, { base: '{{host:-localhost}}' }, null, null);
+      expect(result.url).toEqual('localhost/users');
+    });
+  });
 });
 
 describe('interpolate-vars: api key header name sidecar', () => {
