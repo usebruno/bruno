@@ -1,4 +1,5 @@
 const { cleanJson } = require('../utils');
+const { performance } = require('node:perf_hooks');
 
 /**
  * The console methods a script can call, matching Node's console. Single source
@@ -41,8 +42,9 @@ const CONSOLE_METHODS = [
  *
  * Stateful methods (count, time) keep their state per console instance, which
  * lives for one script execution. Methods with no observable output in a log
- * pane (groupEnd, countReset, clear) or no sandbox equivalent (profile,
- * profileEnd, timeStamp) are accepted and do nothing.
+ * pane (groupEnd, clear, and countReset, which resets a counter without
+ * logging) or no sandbox equivalent (profile, profileEnd, timeStamp) are
+ * accepted and do nothing observable.
  *
  * @param {function(string, Array)} onConsoleLog - Called with the log type and the cleaned arguments.
  * @returns {object} The console object to expose to the script.
@@ -60,7 +62,8 @@ const createScriptConsole = (onConsoleLog) => {
   return {
     assert: (condition, ...args) => {
       if (!condition) {
-        onConsoleLog('error', cleanJson(args.length ? args : ['Assertion failed']));
+        // Node prefixes the message: "Assertion failed: <message>".
+        onConsoleLog('error', cleanJson(['Assertion failed', ...args]));
       }
     },
     // Nothing to clear in the console pane.
@@ -74,11 +77,11 @@ const createScriptConsole = (onConsoleLog) => {
       counters.delete(label);
     },
     debug: forward('debug'),
-    dir: (...args) => log(...args),
-    dirxml: (...args) => log(...args),
+    dir: log,
+    dirxml: log,
     error: forward('error'),
-    group: (...args) => log(...args),
-    groupCollapsed: (...args) => log(...args),
+    group: log,
+    groupCollapsed: log,
     // The console pane has no nesting to close.
     groupEnd: () => {},
     info: forward('info'),
@@ -86,11 +89,11 @@ const createScriptConsole = (onConsoleLog) => {
     // No CPU profiler in the sandbox.
     profile: () => {},
     profileEnd: () => {},
-    table: (...args) => log(...args),
+    table: log,
     time: (label = 'default') => {
       // A second start for a running timer keeps the original start, like Node.
       if (!timers.has(label)) {
-        timers.set(label, Date.now());
+        timers.set(label, performance.now());
       }
     },
     timeEnd: (label = 'default') => {
@@ -99,18 +102,18 @@ const createScriptConsole = (onConsoleLog) => {
         return;
       }
       timers.delete(label);
-      log(`${label}: ${Date.now() - startedAt}ms`);
+      log(`${label}: ${performance.now() - startedAt}ms`);
     },
     timeLog: (label = 'default', ...args) => {
       const startedAt = timers.get(label);
       if (startedAt === undefined) {
         return;
       }
-      log(`${label}: ${Date.now() - startedAt}ms`, ...args);
+      log(`${label}: ${performance.now() - startedAt}ms`, ...args);
     },
     // No DevTools timeline in the sandbox.
     timeStamp: () => {},
-    trace: (...args) => log(...args),
+    trace: log,
     warn: forward('warn')
   };
 };

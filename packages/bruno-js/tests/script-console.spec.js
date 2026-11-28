@@ -1,6 +1,9 @@
 const { describe, it, expect } = require('@jest/globals');
 const ScriptRuntime = require('../src/runtime/script-runtime');
 const { createScriptConsole, CONSOLE_METHODS } = require('../src/runtime/script-console');
+const TestRuntime = require('../src/runtime/test-runtime');
+const GrpcScriptRuntime = require('../src/grpc/grpc-script-runtime');
+const { wrapConsoleWithSerializers } = require('../src/sandbox/node-vm/console');
 
 const request = {
   url: 'https://example.com/users',
@@ -19,7 +22,7 @@ const runScript = (runtime, script) => {
   const logs = [];
   const onConsoleLog = (type, args) => logs.push({ type, args });
   return new ScriptRuntime({ runtime })
-    .runRequestScript(script, request, {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe')
+    .runRequestScript(script, { ...request }, {}, {}, '.', onConsoleLog, {}, undefined, runRequestByItemPathname, 'Probe')
     .then((result) => ({ logs, result }));
 };
 
@@ -54,6 +57,20 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
     expect(logs[0].args[0]).toEqual([
       { name: 'a', value: 1 },
       { name: 'b', value: 2 }
+    ]);
+  });
+
+  it('should serialize Set and Map arguments for logging', async () => {
+    const script = `
+      console.log(new Set([1, 2]));
+      console.log(new Map([['a', 1]]));
+    `;
+
+    const { logs } = await runScript(runtime, script);
+
+    expect(logs.map((l) => l.args[0])).toEqual([
+      { __brunoType: 'Set', __brunoValue: [1, 2] },
+      { __brunoType: 'Map', __brunoValue: [['a', 1]] }
     ]);
   });
 
@@ -119,7 +136,7 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
     const { logs } = await runScript(runtime, script);
 
     expect(logs).toHaveLength(1);
-    const elapsed = Number(logs[0].args[0].match(/^phase: (\d+)ms$/)[1]);
+    const elapsed = Number(logs[0].args[0].match(/^phase: (\d+(?:\.\d+)?)ms$/)[1]);
     expect(elapsed).toBeGreaterThanOrEqual(40);
   });
 
@@ -162,5 +179,85 @@ describe.each(RUNTIMES)('script console (%s runtime)', (runtime) => {
     const { logs } = await runScript(runtime, script);
 
     expect(logs.map((l) => l.args[0])).toEqual(['outer', 'inside', 'inner']);
+  });
+});
+
+describe('the other runtimes wire the same script console', () => {
+  const runTestsScript = async (script) => {
+    const logs = [];
+    const onConsoleLog = (type, args) => logs.push({ type, args });
+    await new TestRuntime({ runtime: 'nodevm' }).runTests(
+      script,
+      { ...request },
+      { status: 200, statusText: 'OK', data: [] },
+      {},
+      {},
+      '.',
+      onConsoleLog
+    );
+    return logs;
+  };
+
+  const runGrpcScript = async (script) => {
+    const logs = [];
+    const onConsoleLog = (type, args) => logs.push({ type, args });
+    await new GrpcScriptRuntime({ runtime: 'nodevm' }).runGrpcRequestScript({
+      script,
+      request: {
+        ...request,
+        methodType: 'unary',
+        body: { grpc: [{ name: 'message 1', content: '{"greeting":"hi"}' }] }
+      },
+      envVariables: {},
+      runtimeVariables: {},
+      collectionPath: '.',
+      onConsoleLog
+    });
+    return logs;
+  };
+
+  it('TestRuntime forwards console output from a tests script', async () => {
+    const logs = await runTestsScript(`console.log('from tests'); console.count('hits');`);
+
+    expect(logs.map((l) => l.args[0])).toEqual(['from tests', 'hits: 1']);
+  });
+
+  it('GrpcScriptRuntime forwards console output from a gRPC hook', async () => {
+    const logs = await runGrpcScript(`console.log('from grpc'); console.warn('careful');`);
+
+    expect(logs.map((l) => l.type)).toEqual(['log', 'warn']);
+    expect(logs.map((l) => l.args[0])).toEqual(['from grpc', 'careful']);
+  });
+});
+
+describe('wrapConsoleWithSerializers', () => {
+  class HostConsole {
+    constructor() {
+      this.calls = [];
+    }
+
+    log(...args) {
+      this.calls.push(args);
+    }
+  }
+
+  it('wraps inherited console methods and keeps their this', () => {
+    const host = new HostConsole();
+    const wrapped = wrapConsoleWithSerializers(host);
+
+    wrapped.log(new Set([1, 2]));
+
+    expect(wrapped.log).not.toBe(host.log);
+    expect(host.calls).toEqual([[{ __brunoType: 'Set', __brunoValue: [1, 2] }]]);
+  });
+
+  it('leaves callables outside CONSOLE_METHODS untouched', () => {
+    const host = new HostConsole();
+    host.Console = class Console {};
+    host.context = () => ({});
+    const wrapped = wrapConsoleWithSerializers(host);
+
+    expect(wrapped.Console).toBe(host.Console);
+    expect(wrapped.context).toBe(host.context);
   });
 });

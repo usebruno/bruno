@@ -1,3 +1,5 @@
+const { CONSOLE_METHODS } = require('../../runtime/script-console');
+
 /**
  * Gets the type tag of a value using Object.prototype.toString
  * This works across VM context boundaries unlike instanceof
@@ -84,9 +86,12 @@ function wrapConsoleWithSerializers(originalConsole) {
 
   const wrappedConsole = { ...originalConsole };
 
-  // Wrap every method the console exposes, so the extra logging methods (table,
-  // dir, trace, ...) serialize Set/Map like the five core ones do.
-  for (const method of Object.keys(originalConsole)) {
+  // Wrap the console methods a script can call, so the extra logging methods
+  // (table, dir, trace, ...) serialize Set/Map like the five core ones do.
+  // Iterating the known method list instead of every own function property keeps
+  // non-logging callables (a host console's Console, context, createTask)
+  // untouched and still wraps methods a host console inherits.
+  for (const method of CONSOLE_METHODS) {
     if (typeof originalConsole[method] === 'function') {
       wrappedConsole[method] = (...args) => {
         const transformedArgs = args.map((arg) => transformValue(arg));
