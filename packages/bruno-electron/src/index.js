@@ -42,7 +42,7 @@ if (isBenchmarkEnabled()) {
 }
 
 const menuTemplate = require('./app/menu-template');
-const { openCollection } = require('./app/collections');
+const { openCollectionFromRecentMenu, setRecentCollectionsWindow } = require('./app/recent-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const { registerCollectionSearchIpc } = require('./ipc/collection-search');
@@ -574,6 +574,7 @@ app.on('ready', async () => {
   registerAppDocumentIpc(appDocuments, mainWindow);
   registerWsdlIpc();
   registerCollectionSearchIpc();
+  setRecentCollectionsWindow(mainWindow);
 
   // Internal delegator
   ipcMain.handle('main:cache-clear', async () => {
@@ -642,7 +643,7 @@ app.on('window-all-closed', app.quit);
 
 // Open collection from Recent menu (#1521)
 app.on('open-file', (event, path) => {
-  openCollection(mainWindow, collectionWatcher, path);
+  openCollectionFromRecentMenu(mainWindow, collectionWatcher, path);
 });
 
 // Register the global shortcuts

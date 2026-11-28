@@ -19,7 +19,10 @@ import {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  recentsLoadStarted,
+  recentsLoadFinished,
+  recentsLoadFailed
 } from './index';
 import { selectAutoOpenFolderPicker, selectOpenCollectionPathKeys } from './selectors';
 import { countOf, getFolderSearchOutcome } from './folder-results';
@@ -28,6 +31,7 @@ import { readImportableFile, readImportFiles, readImportUrl } from 'utils/import
 
 const CHOOSE_FOLDER_PAGE = 'choose-folder';
 const IMPORT_PAGE = 'import';
+const RECENTS_PAGE = 'recents';
 
 const getSearchLabel = (folderPaths) =>
   folderPaths.length === 1 ? getFolderName(folderPaths[0]) : `${folderPaths.length} folders`;
@@ -79,7 +83,7 @@ export const openCollectionsFromModal = (collectionPaths) => async (dispatch, ge
 
   let result;
   try {
-    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true, dontSendDisplayErrors: true }));
+    result = await dispatch(openMultipleCollections(collectionPaths, { silent: true, dontSendDisplayErrors: true, recordRecent: true }));
   } catch (error) {
     dispatch(collectionsOpeningEnded(openingId));
     toast.error('An error occurred while opening the collections');
@@ -244,12 +248,27 @@ export const saveAutoOpenFolderPicker = (enabled) => (dispatch, getState) => {
   });
 };
 
+export const loadRecentCollections = () => async (dispatch) => {
+  const loadId = uuid();
+  dispatch(recentsLoadStarted(loadId));
+
+  try {
+    const items = await callIpc('datastore:recent_collections:list_recent_collections');
+    dispatch(recentsLoadFinished({ loadId, items }));
+  } catch (error) {
+    dispatch(recentsLoadFailed({ loadId, error: formatIpcError(error) }));
+  }
+};
+
 export const openCollectionModal = (page) => (dispatch, getState) => {
   const { isOpen, openingId, chooseFolder } = getState().openCollectionModal;
   if (page !== CHOOSE_FOLDER_PAGE && chooseFolder.searchId) {
     dispatch(cancelCollectionSearch());
   }
   dispatch(isOpen ? showOpenCollectionPage(page) : showOpenCollectionModal(page));
+  if (!isOpen || page === RECENTS_PAGE) {
+    dispatch(loadRecentCollections());
+  }
 
   if (page !== CHOOSE_FOLDER_PAGE || openingId) {
     return;
@@ -259,5 +278,11 @@ export const openCollectionModal = (page) => (dispatch, getState) => {
   }
   if (selectAutoOpenFolderPicker(getState())) {
     dispatch(pickCollectionFolders());
+  }
+};
+
+export const recentCollectionsChangedEvent = () => (dispatch, getState) => {
+  if (getState().openCollectionModal.isOpen) {
+    dispatch(loadRecentCollections());
   }
 };

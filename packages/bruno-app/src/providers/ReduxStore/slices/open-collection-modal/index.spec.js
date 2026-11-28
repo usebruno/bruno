@@ -11,7 +11,10 @@ import reducer, {
   folderNoteDismissed,
   folderResultCleared,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  recentsLoadStarted,
+  recentsLoadFinished,
+  recentsLoadFailed
 } from 'providers/ReduxStore/slices/open-collection-modal';
 
 const initialState = reducer(undefined, { type: 'init' });
@@ -33,7 +36,8 @@ describe('openCollectionModal slice', () => {
       page: null,
       openingId: null,
       importLoadId: null,
-      chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null }
+      chooseFolder: { status: 'idle', searchId: null, searchLabel: null, result: null },
+      recents: { status: 'idle', loadId: null, items: [], error: null }
     });
   });
 
@@ -135,6 +139,40 @@ describe('openCollectionModal slice', () => {
 
       expect(importLoadId([...loading, showOpenCollectionPage('import')])).toBe('load-1');
       expect(importLoadId([...loading, showOpenCollectionPage('recents')])).toBeNull();
+    });
+  });
+
+  describe('recents', () => {
+    const items = [{ path: '/work/api', name: 'API', usedAt: 1700000000000, lastEvent: 'closed' }];
+    const recents = (actions) => applyActions([showOpenCollectionModal('recents'), ...actions]).recents;
+    const loaded = [recentsLoadStarted('load-1'), recentsLoadFinished({ loadId: 'load-1', items })];
+    const failed = [recentsLoadStarted('load-1'), recentsLoadFailed({ loadId: 'load-1', error: 'disk failure' })];
+
+    it('shows the first load as loading, then keeps the collections it read', () => {
+      expect(recents([recentsLoadStarted('load-1')])).toEqual({ status: 'loading', loadId: 'load-1', items: [], error: null });
+      expect(recents(loaded)).toEqual({ status: 'ready', loadId: null, items, error: null });
+    });
+
+    it('keeps showing the last answer while it loads again', () => {
+      expect(recents([...loaded, recentsLoadStarted('load-2')])).toEqual({ status: 'ready', loadId: 'load-2', items, error: null });
+      expect(recents([...failed, recentsLoadStarted('load-2')])).toEqual({ status: 'error', loadId: 'load-2', items: [], error: 'disk failure' });
+    });
+
+    it('keeps why a load failed until a later load succeeds', () => {
+      expect(recents(failed)).toEqual({ status: 'error', loadId: null, items: [], error: 'disk failure' });
+      expect(recents([...failed, recentsLoadStarted('load-2'), recentsLoadFinished({ loadId: 'load-2', items })]))
+        .toEqual({ status: 'ready', loadId: null, items, error: null });
+    });
+
+    it('ignores the answer of a load that is no longer the current one', () => {
+      const reloading = applyActions([recentsLoadStarted('load-1'), recentsLoadStarted('load-2')]);
+
+      expect(reducer(reloading, recentsLoadFinished({ loadId: 'load-1', items }))).toBe(reloading);
+      expect(reducer(reloading, recentsLoadFailed({ loadId: 'load-1', error: 'disk failure' }))).toBe(reloading);
+    });
+
+    it('forgets the collections when the modal closes', () => {
+      expect(reducer(applyActions(loaded), hideOpenCollectionModal()).recents).toEqual(initialState.recents);
     });
   });
 

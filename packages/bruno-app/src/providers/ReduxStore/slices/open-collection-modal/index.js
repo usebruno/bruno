@@ -10,6 +10,12 @@ const initialState = {
     searchId: null,
     searchLabel: null,
     result: null
+  },
+  recents: {
+    status: 'idle',
+    loadId: null,
+    items: [],
+    error: null
   }
 };
 
@@ -71,6 +77,26 @@ export const openCollectionModalSlice = createSlice({
       if (state.openingId === action.payload) {
         state.openingId = null;
       }
+    },
+    recentsLoadStarted: (state, action) => {
+      state.recents.loadId = action.payload;
+      if (state.recents.status === 'idle') {
+        state.recents.status = 'loading';
+      }
+    },
+    recentsLoadFinished: (state, action) => {
+      if (action.payload.loadId !== state.recents.loadId) {
+        return;
+      }
+      state.recents = { ...initialState.recents, status: 'ready', items: action.payload.items };
+    },
+    recentsLoadFailed: (state, action) => {
+      if (action.payload.loadId !== state.recents.loadId) {
+        return;
+      }
+      state.recents.status = 'error';
+      state.recents.loadId = null;
+      state.recents.error = action.payload.error;
     }
   }
 });
@@ -88,7 +114,10 @@ export const {
   importLoadStarted,
   importLoadEnded,
   collectionsOpeningStarted,
-  collectionsOpeningEnded
+  collectionsOpeningEnded,
+  recentsLoadStarted,
+  recentsLoadFinished,
+  recentsLoadFailed
 } = openCollectionModalSlice.actions;
 
 export default openCollectionModalSlice.reducer;
