@@ -1,6 +1,13 @@
 import path from 'path';
 import fs from 'fs';
-import { expect } from '../playwright';
+import { test, expect } from '../playwright';
+
+/** Allow for cold Windows startup and the two or three Electron sessions in restart tests. */
+export const setSnapshotRestartTimeout = () => {
+  if (process.platform === 'win32') {
+    test.setTimeout(Math.max(test.info().timeout, 180000));
+  }
+};
 
 export const getSnapshotPath = (userDataPath: string) =>
   path.join(userDataPath, 'ui-state-snapshot.json');

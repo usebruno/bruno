@@ -4,6 +4,7 @@ import {
   closeElectronApp,
   type Page
 } from '../../playwright';
+import { setSnapshotRestartTimeout } from '../../utils';
 import {
   createCollection,
   createExampleFromSidebar,
@@ -83,6 +84,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   });
 
   test('when request and example are open, last active request restores as active after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-sidebar-request-active-over-example');
     const colPath = await createTmpDir('col');
 
@@ -125,6 +127,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   });
 
   test('when last active tab is an example, it restores as active after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-sidebar-example-active-restore');
     const colPath = await createTmpDir('col');
 
@@ -159,6 +162,7 @@ test.describe('Snapshot: Sidebar-Tab Restoration', () => {
   });
 
   test('when duplicate example names exist, snapshot restores the same active example by index', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-sidebar-duplicate-example-restore');
     const colPath = await createTmpDir('col');
 

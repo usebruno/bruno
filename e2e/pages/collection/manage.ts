@@ -7,6 +7,7 @@ import {
 import { buildDropdownLocators } from '../shared-ui/dropdown';
 import { buildModalLocators } from '../shared-ui/modal';
 import { revealCollectionsTop } from '../sidebar/collection-tree';
+import { waitForCollectionMount } from './mount';
 
 /**
  * Locators for the "+" menu in the sidebar Collections header (open / create / import).
@@ -225,6 +226,8 @@ export const createCollection = async (
     // Wait for the collection name to appear in the sidebar before proceeding
     await page.locator('#sidebar-collection-name').filter({ hasText: collectionName }).waitFor({ state: 'visible', timeout: 5000 });
     await openCollection(page, collectionName);
+    // Wait for discovery before callers create files that the watcher must pick up.
+    await waitForCollectionMount(page, collectionName);
   });
 };
 

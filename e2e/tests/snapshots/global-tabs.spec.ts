@@ -1,4 +1,5 @@
 import { test, expect, closeElectronApp } from '../../playwright';
+import { setSnapshotRestartTimeout } from '../../utils';
 import {
   createCollection,
   createRequest,
@@ -10,6 +11,7 @@ import { waitForReadyPage } from '../../utils';
 
 test.describe('Snapshot: Global Tab Restoration', () => {
   test('preferences and global environment tabs are restored and reusable after restart', async ({ launchElectronApp, createTmpDir }) => {
+    setSnapshotRestartTimeout();
     const userDataPath = await createTmpDir('snap-global-tabs');
     const colPath = await createTmpDir('col');
 
