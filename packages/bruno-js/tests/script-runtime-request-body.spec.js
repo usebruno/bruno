@@ -122,6 +122,18 @@ describe.each(['nodevm', 'quickjs'])('req.setBody() in a pre-request script on %
     expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
   });
 
+  it('sends the bytes of an ArrayBuffer created in the script when Content-Type is application/json', async () => {
+    const request = makeRequest({ headers: { 'content-type': 'application/json' } });
+
+    await runRequestScript(
+      runtime,
+      `const body = new ArrayBuffer(${BINARY_BYTES.length}); new Uint8Array(body).set(${JSON.stringify(BINARY_BYTES)}); req.setBody(body)`,
+      request
+    );
+
+    expect(request.data).toStrictEqual(Buffer.from(BINARY_BYTES));
+  });
+
   it('keeps a string body unchanged', async () => {
     const request = makeRequest();
 

@@ -1,3 +1,4 @@
+const { isArrayBuffer } = require('node:util').types;
 const { getMediaType } = require('@usebruno/common').utils;
 const HeaderList = require('./header-list');
 const { parseUrl } = require('./utils/url');
@@ -362,7 +363,8 @@ class BrunoRequest {
   setBody(data, options = {}) {
     if (ArrayBuffer.isView(data) && !Buffer.isBuffer(data)) {
       data = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-    } else if (data instanceof ArrayBuffer) {
+    } else if (isArrayBuffer(data)) {
+      // Not `instanceof ArrayBuffer`: in Developer Mode the script's ArrayBuffer comes from the VM's own realm
       data = Buffer.from(data);
     }
 
